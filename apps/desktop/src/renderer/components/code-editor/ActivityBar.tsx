@@ -6,15 +6,8 @@
 import { useState } from 'react';
 import {
   Files,
-  Search,
-  GitBranch,
-  Package,
   Settings,
   Bot,
-  ListTodo,
-  Network,
-  Code2,
-  MapPin,
 } from 'lucide-react';
 
 export type ActivityView =
@@ -42,22 +35,14 @@ interface ActivityItem {
   badge?: number;
 }
 
-// Main activity items (top section)
+// Main activity items (top section) - simplified to just explorer + AI
 const mainActivities: ActivityItem[] = [
   { id: 'explorer', icon: Files, label: 'Explorer', shortcut: 'Ctrl+Shift+E' },
-  { id: 'search', icon: Search, label: 'Search', shortcut: 'Ctrl+Shift+F' },
-  { id: 'git', icon: GitBranch, label: 'Source Control', shortcut: 'Ctrl+Shift+G' },
-  { id: 'todos', icon: ListTodo, label: 'TODOs', shortcut: 'Ctrl+Shift+T' },
-  { id: 'outline', icon: Code2, label: 'Outline', shortcut: 'Ctrl+Shift+O' },
-  { id: 'refs', icon: MapPin, label: 'References' },
-  { id: 'graph', icon: Network, label: 'Import Graph' },
   { id: 'ai', icon: Bot, label: 'AI Chat', shortcut: 'Ctrl+Shift+A' },
 ];
 
-// Bottom section items
-const bottomActivities: ActivityItem[] = [
-  { id: 'extensions', icon: Package, label: 'Extensions' },
-];
+// Bottom section items - empty for cleaner UI
+const bottomActivities: ActivityItem[] = [];
 
 export function ActivityBar({ activeView, onViewChange, isAIActive }: ActivityBarProps) {
   const [hoveredItem, setHoveredItem] = useState<ActivityView | null>(null);

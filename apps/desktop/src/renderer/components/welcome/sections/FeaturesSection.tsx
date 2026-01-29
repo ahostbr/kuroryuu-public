@@ -27,7 +27,6 @@ import {
   FileText,
   Users,
 } from 'lucide-react';
-import { ClawdbotWidget } from './ClawdbotWidget';
 import { cn } from '../../../lib/utils';
 
 // Helper to navigate to a view by dispatching a custom event
@@ -319,21 +318,6 @@ const features: Feature[] = [
       'Secure credential storage',
     ],
     // No route - opens dialog
-  },
-  {
-    id: 'clawdbot',
-    icon: Bot,
-    title: 'Clawdbot Worker',
-    shortDesc: 'Autonomous AI worker in Docker',
-    longDesc: 'Delegate tasks to an independent AI worker running in a Docker container. Supports LM Studio, Ollama, Anthropic, and OpenAI.',
-    bullets: [
-      'Runs autonomously in Docker container',
-      'Supports LM Studio, Ollama, Anthropic, OpenAI',
-      'Reports results back to Kuroryuu',
-      'Safe sandbox for experiments',
-      'Quick task submission from HOME',
-    ],
-    customWidget: ClawdbotWidget,
   },
   {
     id: 'tray-companion',

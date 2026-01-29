@@ -228,13 +228,6 @@ export const DEFAULT_SERVERS: ServerHealth[] = [
     status: 'disconnected',
     metricLabel: 'Models',
   },
-  {
-    id: 'clawdbot',
-    name: 'Clawdbot',
-    url: 'http://localhost:18790',
-    status: 'disconnected',
-    metricLabel: 'Status',
-  },
 ];
 
 export const CATEGORY_LABELS: Record<ToolCategory | 'all', string> = {

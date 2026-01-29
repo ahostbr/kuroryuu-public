@@ -92,20 +92,33 @@ export function CLISection({ className }: CLISectionProps) {
       <CollapsibleSection title="Getting Started" icon={Terminal} defaultOpen={true}>
         <div className="space-y-3">
           <p className="text-muted-foreground">
-            The CLI is bundled with Kuroryuu Desktop. Add to PATH for terminal access.
+            The CLI is bundled with Kuroryuu. Run the setup script to add to PATH:
           </p>
+
+          {/* Setup Script */}
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+            <div className="text-xs font-medium text-foreground mb-2">One-Time Setup</div>
+            <CodeBlock>.\scripts\setup-cli.ps1</CodeBlock>
+            <p className="text-xs text-muted-foreground mt-2">
+              Adds <code className="bg-secondary px-1 rounded">kuroryuu-cli</code> to PATH and creates <code className="bg-secondary px-1 rounded">kuro</code> alias.
+              Restart PowerShell after running.
+            </p>
+          </div>
+
+          {/* Usage */}
           <div className="space-y-2">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Usage</div>
             <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
               <code className="font-mono text-xs text-primary">kuroryuu-cli</code>
               <span className="text-xs text-muted-foreground">Start interactive REPL</span>
             </div>
             <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
-              <code className="font-mono text-xs text-primary">kuroryuu-cli --prompt "..."</code>
-              <span className="text-xs text-muted-foreground">Run with initial prompt</span>
+              <code className="font-mono text-xs text-primary">kuro</code>
+              <span className="text-xs text-muted-foreground">Shorthand alias</span>
             </div>
             <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
-              <code className="font-mono text-xs text-primary">kuroryuu-cli -p --prompt "..."</code>
-              <span className="text-xs text-muted-foreground">Print and exit</span>
+              <code className="font-mono text-xs text-primary">kuroryuu-cli --prompt "..."</code>
+              <span className="text-xs text-muted-foreground">Run with initial prompt</span>
             </div>
             <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
               <code className="font-mono text-xs text-primary">kuroryuu-cli --help</code>

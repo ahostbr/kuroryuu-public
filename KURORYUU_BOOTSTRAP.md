@@ -269,7 +269,6 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 |------|---------|-------------|
 | `k_rag` | 12 | query, index, status, hybrid, semantic, agentic |
 | `k_pty` | 12 | list, term_read, send_line, talk, resolve, spawn_cli |
-| `k_clawd` | 11 | status, submit, cancel, list (OPT-IN) |
 | `k_inbox` | 8 | send, list, claim, complete, stats |
 | `k_capture` | 8 | start, stop, screenshot, poll, get_latest |
 | `k_pccontrol` | 8 | click, type, launch, find_element (OPT-IN) |
@@ -284,7 +283,7 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 | `k_MCPTOOLSEARCH` | 2 | search, list |
 | `k_help` | - | Help system |
 
-**OPT-IN:** `k_pccontrol` (PowerShell desktop automation) and `k_clawd` (Clawdbot) require explicit enable.
+**OPT-IN:** `k_pccontrol` (PowerShell desktop automation) requires explicit enable via Desktop Settings.
 
 ---
 

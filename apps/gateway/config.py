@@ -15,6 +15,7 @@ Environment Variables:
     KURORYUU_ALLOW_EXTERNAL: Allow external connections (default: false)
     KURORYUU_MCP_URL: MCP server URL (default: http://127.0.0.1:8100)
     KURORYUU_PROXY_PORT: Tunnel proxy port (default: 8199)
+    KURORYUU_TRUSTED_PROXIES: Trusted proxy IPs for X-Forwarded headers (default: none)
 """
 
 from __future__ import annotations
@@ -102,6 +103,14 @@ class GatewayConfig:
     # Tunnel Proxy
     proxy_port: int = field(default_factory=lambda: int(
         os.environ.get("KURORYUU_PROXY_PORT", "8199")
+    ))
+
+    # Trusted Proxies (for running behind nginx/Caddy)
+    # Set to "*" to trust all, or comma-separated IPs/CIDRs
+    # When set, X-Forwarded-For headers will be trusted
+    trusted_proxies: List[str] = field(default_factory=lambda: _parse_list(
+        os.environ.get("KURORYUU_TRUSTED_PROXIES", ""),
+        default=[]
     ))
 
     @property

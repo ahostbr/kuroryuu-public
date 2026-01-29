@@ -35,6 +35,7 @@ from .config import config
 
 from fastapi import FastAPI, Header, HTTPException, Cookie, Form, Response, Request, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from fastapi.responses import StreamingResponse, FileResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -294,6 +295,12 @@ app.add_middleware(
 
 # Traffic monitoring middleware (for network visualization)
 app.add_middleware(TrafficMonitoringMiddleware)
+
+# Trusted proxies middleware (for running behind nginx/Caddy)
+# Enables correct client IP detection from X-Forwarded-For headers
+if config.trusted_proxies:
+    trusted_hosts = config.trusted_proxies if "*" not in config.trusted_proxies else "*"
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=trusted_hosts)
 
 # M2: Include agent registry router
 app.include_router(agents_router)

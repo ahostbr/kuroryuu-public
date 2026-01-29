@@ -16,7 +16,6 @@ Tools exposed (routed pattern with action parameter):
 - k_pty: list, create, write, read, run, resize, kill (LEADER-ONLY)
 - k_thinker_channel: send_line, read (NOT leader-only, for thinker debates)
 - k_capture: start, stop, screenshot, poll
-- k_clawd: status, start, stop, task, results, inbox (OPT-IN, KURORYUU_CLAWD_ENABLED=1)
 - k_pccontrol: help, status, screenshot, click, type, find_element, launch_app, get_windows (OPT-IN, requires WinAppDriver)
 """
 
@@ -47,7 +46,6 @@ from tools_thinker_channel import register_thinker_channel_tools
 from tools_collective import register_collective_tools, _load_patterns, _load_skill_matrix, PATTERNS_PATH  # Phase 4: Collective intelligence
 from tools_graphiti_migrate import register_graphiti_migrate_tools  # Graphiti migration
 from tools_mcp_search import register_mcp_search_tools  # Tool discovery for external LLMs
-from tools_clawd import register_clawd_tools  # Clawdbot integration (opt-in)
 from tools_pccontrol import register_pccontrol_tools  # Full Desktop Access (opt-in, requires WinAppDriver)
 from pty_registry import get_pty_registry
 from pty_persistence import get_pty_persistence
@@ -93,7 +91,6 @@ register_thinker_channel_tools(registry)
 register_collective_tools(registry)  # Phase 4: Collective intelligence
 register_graphiti_migrate_tools(registry)  # Graphiti migration
 register_mcp_search_tools(registry)  # Tool discovery for external LLMs (k_MCPTOOLSEARCH, k_help)
-register_clawd_tools(registry)  # Clawdbot integration (opt-in, KURORYUU_CLAWD_ENABLED=1)
 register_pccontrol_tools(registry)  # Full Desktop Access (opt-in, requires WinAppDriver)
 
 protocol = MCPProtocol(registry)
