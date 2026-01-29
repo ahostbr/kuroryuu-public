@@ -2390,6 +2390,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
         >
           <Layers className="w-3 h-3" />
         </button>
+        {/* NOTE: PM button hidden for public release - /plan command still works manually
         {term.claudeMode && (
           <button
             tabIndex={-1}
@@ -2410,6 +2411,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
             PM
           </button>
         )}
+        */}
         {linkedAgent?.role === 'leader' && (
           <button
             tabIndex={-1}
@@ -3394,7 +3396,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
                     <Layers className="w-3 h-3" />
                   </button>
 
-                  {/* Plan Mode Button - only visible in Claude mode */}
+                  {/* NOTE: PM button hidden for public release - /plan command still works manually
                   {term.claudeMode && (
                     <button
                       tabIndex={-1}
@@ -3415,6 +3417,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
                       PM
                     </button>
                   )}
+                  */}
 
                   {/* Leader Monitor button - only for leader terminals */}
                   {linkedAgent?.role === 'leader' && (
