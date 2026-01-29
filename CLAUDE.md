@@ -135,10 +135,12 @@ command 2>nul
 command 2>/dev/null
 ```
 
-**Cleanup:** Use WSL to delete (Windows cmd can't delete reserved names):
-```bash
-wsl rm -f "/mnt/e/path/to/nul"
+**Cleanup:** Use PowerShell to call WSL (Git Bash mangles the path):
+```powershell
+powershell.exe -Command "wsl rm -f /mnt/e/path/to/nul"
 ```
+
+Note: Direct `wsl rm -f "/mnt/e/..."` from Git Bash fails because the path gets converted to `C:/Program Files/Git/mnt/...`
 
 ---
 
