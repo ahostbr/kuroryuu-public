@@ -49,18 +49,19 @@ export const PROVIDERS: ProviderInfo[] = [
     description: 'Direct Claude API - requires API key',
     color: 'orange',
   },
-  {
-    id: 'claude-cli',
-    name: 'Claude CLI',
-    description: 'Direct via Claude Code CLI - real Opus 4.5 access (Max subscription)',
-    color: 'amber',
-  },
-  {
-    id: 'claude-cli-pty',
-    name: 'Claude PTY',
-    description: 'Persistent Claude CLI session - full features (/compact, skills, etc.)',
-    color: 'yellow',
-  },
+  // NOTE: Claude CLI and Claude PTY hidden for public release - not fully functional
+  // {
+  //   id: 'claude-cli',
+  //   name: 'Claude CLI',
+  //   description: 'Direct via Claude Code CLI - real Opus 4.5 access (Max subscription)',
+  //   color: 'amber',
+  // },
+  // {
+  //   id: 'claude-cli-pty',
+  //   name: 'Claude PTY',
+  //   description: 'Persistent Claude CLI session - full features (/compact, skills, etc.)',
+  //   color: 'yellow',
+  // },
 ];
 
 // ============================================================================

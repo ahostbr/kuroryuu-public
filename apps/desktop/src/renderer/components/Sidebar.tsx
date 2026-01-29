@@ -98,7 +98,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
       { id: 'worktrees', label: 'GitHub', icon: GitBranch, shortcut: 'W' },
-      { id: 'insights', label: 'Insights', icon: Brain, shortcut: 'N' },
+      // { id: 'insights', label: 'Insights', icon: Brain, shortcut: 'N' }, // Hidden: PTY integration not fully functional for public release
     ],
   },
   {
