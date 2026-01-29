@@ -95,6 +95,16 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
       set({ error: null });
 
       try {
+        // Auto-start CLIProxyAPI if not already running
+        try {
+          const status = await window.electronAPI.cliproxy.native.status();
+          if (!status.healthy) {
+            await window.electronAPI.cliproxy.native.start();
+          }
+        } catch {
+          // CLIProxyAPI start failed - will show as disconnected
+        }
+
         // Ping servers in parallel
         await pingAllServers();
 
@@ -375,30 +385,60 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
               isHealthy = false;
             }
           } catch {
-            // API not responding - container likely not running
+            // API not responding - CLIProxyAPI not running
             const updatedServers = [...get().servers];
             updatedServers[serverIndex] = {
               ...updatedServers[serverIndex],
               status: 'disconnected',
               lastPing: new Date().toISOString(),
               responseTimeMs: Date.now() - startTime,
-              error: 'Container not responding',
+              error: 'Not running - click Restart',
             };
             set({ servers: updatedServers });
             return;
           }
-        } else {
-          // Unknown server - mark as disconnected
-          const updatedServers = [...get().servers];
-          updatedServers[serverIndex] = {
-            ...updatedServers[serverIndex],
-            status: 'disconnected',
-            lastPing: new Date().toISOString(),
-            responseTimeMs: Date.now() - startTime,
-            error: 'Not responding',
-          };
-          set({ servers: updatedServers });
-          return;
+        } else if (serverId === 'clawdbot') {
+          // Clawdbot: Direct HTTP health check first, then fall back to IPC status
+          try {
+            const response = await fetch('http://localhost:18790/health', {
+              signal: AbortSignal.timeout(3000),
+            });
+            if (response.ok) {
+              isHealthy = true;
+            } else {
+              isHealthy = false;
+            }
+          } catch {
+            // API not responding - check IPC status for more info
+            try {
+              const status = await window.electronAPI.clawdbot.status();
+              const updatedServers = [...get().servers];
+              let errorMsg = 'Not responding';
+              if (!status.enabled) errorMsg = 'Disabled (opt-in)';
+              else if (!status.dockerAvailable) errorMsg = 'Docker not available';
+              else if (!status.containerRunning) errorMsg = status.containerExists ? 'Container stopped' : 'Container not created';
+
+              updatedServers[serverIndex] = {
+                ...updatedServers[serverIndex],
+                status: 'disconnected',
+                lastPing: new Date().toISOString(),
+                responseTimeMs: Date.now() - startTime,
+                error: errorMsg,
+              };
+              set({ servers: updatedServers });
+            } catch {
+              const updatedServers = [...get().servers];
+              updatedServers[serverIndex] = {
+                ...updatedServers[serverIndex],
+                status: 'disconnected',
+                lastPing: new Date().toISOString(),
+                responseTimeMs: Date.now() - startTime,
+                error: 'Not responding',
+              };
+              set({ servers: updatedServers });
+            }
+            return;
+          }
         }
 
         const responseTimeMs = Date.now() - startTime;
@@ -455,11 +495,16 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
         } else if (serverId === 'pty-daemon') {
           result = await window.electronAPI.services.restartPtyDaemon();
         } else if (serverId === 'cliproxy') {
-          // CLIProxyAPI: Use native mode (CLIProxyAPIPlus.exe)
+          // CLIProxyAPI: Use native mode (not Docker)
           await window.electronAPI.cliproxy.native.stop();
           await new Promise((r) => setTimeout(r, 1000));
           const startResult = await window.electronAPI.cliproxy.native.start();
           result = { ok: startResult.success, error: startResult.error };
+        } else if (serverId === 'clawdbot') {
+          // Clawdbot: Stop then start container
+          await window.electronAPI.clawdbot.stop();
+          await new Promise((r) => setTimeout(r, 1000));
+          result = await window.electronAPI.clawdbot.start();
         } else {
           return { ok: false, error: 'Unknown server' };
         }
