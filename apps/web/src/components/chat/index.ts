@@ -1,0 +1,1 @@
+export { CopilotChatWindow } from './CopilotChatWindow';

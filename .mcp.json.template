@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@playwright/mcp@latest"],
+      "disabled": false
+    },
+    "KURORYUU_STDIO_MCP": {
+      "command": "{{KURORYUU_VENV}}\\Scripts\\python.exe",
+      "args": ["{{KURORYUU_ROOT}}\\apps\\mcp_stdio\\server.py"],
+      "env": {
+        "KURORYUU_RAG_USE_RG": "1",
+        "KURORYUU_PROJECT_ROOT": "{{KURORYUU_ROOT}}"
+      }
+    }
+  }
+}

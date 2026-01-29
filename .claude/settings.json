@@ -1,0 +1,106 @@
+{
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true"
+  },
+  "plugins": [
+    ".claude/plugins/kuro"
+  ],
+  "enabledPlugins": {
+    "kuro": true,
+    "feature-dev@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "plugin-dev@claude-plugins-official": true
+  },
+  "plansDirectory": "Docs/Plans",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__kuroryuu__k_rag",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/rag-interactive-gate.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+        "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd /c echo WRITE >> ai/hooks/hook_fired.txt",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd /c echo EDIT >> ai/hooks/hook_fired.txt",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "TaskCreate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/sync-claude-task.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/sync-claude-task.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\\"\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/export-transcript.ps1\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/export-transcript.ps1\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude\\statusline.ps1\""
+  }
+}

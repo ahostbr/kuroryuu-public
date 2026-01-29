@@ -1,0 +1,186 @@
+{
+  "components": [
+    {
+      "id": "desktop",
+      "label": "Desktop App",
+      "x": 0.4,
+      "y": 0.03,
+      "w": 0.2,
+      "h": 0.11,
+      "title": "Desktop App (Electron)",
+      "bodyMd": "**What you're seeing:** The Kuroryuu desktop application.\n\n**Why it matters:** Your command center for all AI operations.\n\n• React + Electron frontend\n• Multi-pane workspace\n• Real-time updates via IPC\n• Offline-capable",
+      "jumpRoute": "welcome",
+      "color": "#c9a227",
+      "icon": "monitor"
+    },
+    {
+      "id": "cliproxyapi",
+      "label": "CLIProxyAPI",
+      "x": 0.08,
+      "y": 0.20,
+      "w": 0.18,
+      "h": 0.11,
+      "title": "CLIProxyAPI (Multi-Provider Proxy)",
+      "bodyMd": "**What you're seeing:** Unified API for 9 AI providers.\n\n**Why it matters:** One interface for all models.\n\n• 61 models: Claude, OpenAI, Gemini, Copilot, Kiro\n• OpenAI-compatible API on port 8317\n• OAuth per provider, tokens stored locally\n• Auto-fallback between providers",
+      "jumpRoute": "welcome",
+      "color": "#22c55e",
+      "icon": "cpu"
+    },
+    {
+      "id": "gateway",
+      "label": "Gateway",
+      "x": 0.33,
+      "y": 0.20,
+      "w": 0.18,
+      "h": 0.11,
+      "title": "Gateway (FastAPI)",
+      "bodyMd": "**What you're seeing:** FastAPI gateway service.\n\n**Why it matters:** Single entry point with auth and routing.\n\n• Single-user auth (hackathon POC)\n• Routes requests to MCP_CORE\n• WebSocket support for streaming\n• Local-first design",
+      "jumpRoute": "traffic-flow",
+      "color": "#3b82f6",
+      "icon": "server"
+    },
+    {
+      "id": "mcp_core",
+      "label": "MCP_CORE",
+      "x": 0.58,
+      "y": 0.20,
+      "w": 0.18,
+      "h": 0.11,
+      "title": "MCP_CORE (Tool Registry)",
+      "bodyMd": "**What you're seeing:** Model Context Protocol core.\n\n**Why it matters:** Central hub for all tool operations.\n\n• 50+ registered tools\n• Permission management\n• Tool routing and dispatch\n• Kuroryuu MCP server",
+      "jumpRoute": "traffic-flow",
+      "color": "#8b5cf6",
+      "icon": "box"
+    },
+    {
+      "id": "providers",
+      "label": "Providers",
+      "x": 0.02,
+      "y": 0.40,
+      "w": 0.16,
+      "h": 0.11,
+      "title": "LLM Providers",
+      "bodyMd": "**What you're seeing:** Multi-provider routing.\n\n**Why it matters:** Use any model seamlessly.\n\n• CLIProxyAPI (default): 61 models, 9 providers\n• LMStudio: Local models on GPU\n• Direct Claude API with OAuth\n• Automatic fallback chain",
+      "color": "#10b981",
+      "icon": "cpu"
+    },
+    {
+      "id": "leader_worker",
+      "label": "Leader/Worker",
+      "x": 0.21,
+      "y": 0.40,
+      "w": 0.16,
+      "h": 0.11,
+      "title": "Leader/Worker Orchestration",
+      "bodyMd": "**What you're seeing:** Multi-agent coordination system.\n\n**Why it matters:** Parallel execution with coordination.\n\n• Leader receives high-level tasks\n• Workers execute in parallel\n• Inbox message passing\n• Task delegation patterns",
+      "jumpRoute": "terminals",
+      "color": "#f59e0b",
+      "icon": "users"
+    },
+    {
+      "id": "ralph",
+      "label": "Ralph",
+      "x": 0.40,
+      "y": 0.40,
+      "w": 0.16,
+      "h": 0.11,
+      "title": "Ralph (Autonomous Orchestrator)",
+      "bodyMd": "**What you're seeing:** Long-running task orchestration.\n\n**Why it matters:** 100+ hour autonomous sessions.\n\n• Leader orchestrates worker via k_pty\n• Promise-based signals: DONE, STUCK, PROGRESS\n• Intelligent intervention when worker stuck\n• Desktop silence detection with nudges",
+      "jumpRoute": "terminals",
+      "color": "#f97316",
+      "icon": "users"
+    },
+    {
+      "id": "pty",
+      "label": "PTY Daemon",
+      "x": 0.59,
+      "y": 0.40,
+      "w": 0.16,
+      "h": 0.11,
+      "title": "PTY Daemon (Terminals)",
+      "bodyMd": "**What you're seeing:** Pseudo-terminal management.\n\n**Why it matters:** Real shell access for agents.\n\n• One PTY per agent\n• Full shell capabilities\n• Real-time output streaming\n• Cross-platform support",
+      "jumpRoute": "terminals",
+      "color": "#ec4899",
+      "icon": "terminal"
+    },
+    {
+      "id": "pccontrol",
+      "label": "PC Control",
+      "x": 0.78,
+      "y": 0.40,
+      "w": 0.16,
+      "h": 0.11,
+      "title": "k_pccontrol (Desktop Automation)",
+      "bodyMd": "**What you're seeing:** Full Windows desktop access.\n\n**Why it matters:** Agents can interact with your PC.\n\n• Click, type, keypress actions\n• Launch apps, get window list\n• Opt-in via Settings → Integrations\n• All actions audit-logged",
+      "jumpRoute": "welcome",
+      "color": "#a855f7",
+      "icon": "monitor"
+    },
+    {
+      "id": "persistence",
+      "label": "Persistence",
+      "x": 0.25,
+      "y": 0.60,
+      "w": 0.18,
+      "h": 0.11,
+      "title": "Persistence Layer",
+      "bodyMd": "**What you're seeing:** Data storage and state management.\n\n**Why it matters:** Never lose your work.\n\n• Session snapshots\n• Checkpoint system\n• Worklog storage\n• Git-friendly format",
+      "color": "#6366f1",
+      "icon": "database"
+    },
+    {
+      "id": "observability",
+      "label": "Observability",
+      "x": 0.50,
+      "y": 0.60,
+      "w": 0.18,
+      "h": 0.11,
+      "title": "Observability (Traffic/Capture)",
+      "bodyMd": "**What you're seeing:** Monitoring and capture systems.\n\n**Why it matters:** Full visibility into operations.\n\n• Traffic monitoring\n• Screen capture (SOTS)\n• Visual digest\n• Insights dashboard",
+      "jumpRoute": "capture",
+      "color": "#ef4444",
+      "icon": "activity"
+    }
+  ],
+  "edges": [
+    { "from": "desktop", "to": "gateway", "label": "HTTP/WS" },
+    { "from": "desktop", "to": "cliproxyapi", "label": "API" },
+    { "from": "gateway", "to": "mcp_core", "label": "Route" },
+    { "from": "cliproxyapi", "to": "providers", "label": "LLM calls" },
+    { "from": "mcp_core", "to": "providers", "label": "LLM calls" },
+    { "from": "mcp_core", "to": "leader_worker", "label": "Orchestrate" },
+    { "from": "leader_worker", "to": "ralph", "label": "Autonomous" },
+    { "from": "ralph", "to": "pty", "label": "k_pty" },
+    { "from": "leader_worker", "to": "pty", "label": "Shell" },
+    { "from": "mcp_core", "to": "pccontrol", "label": "Automation" },
+    { "from": "mcp_core", "to": "persistence", "label": "State" },
+    { "from": "mcp_core", "to": "observability", "label": "Metrics" }
+  ],
+  "suggestedPaths": [
+    {
+      "id": "start",
+      "label": "Start Here",
+      "components": ["desktop"]
+    },
+    {
+      "id": "request-flow",
+      "label": "Follow Request Flow",
+      "components": ["desktop", "gateway", "mcp_core", "providers"]
+    },
+    {
+      "id": "multi-provider",
+      "label": "Multi-Provider Flow",
+      "components": ["desktop", "cliproxyapi", "providers"]
+    },
+    {
+      "id": "autonomous",
+      "label": "Autonomous Execution",
+      "components": ["leader_worker", "ralph", "pty"]
+    },
+    {
+      "id": "security",
+      "label": "Security Boundaries",
+      "components": ["gateway", "persistence"]
+    }
+  ]
+}

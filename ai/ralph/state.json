@@ -1,0 +1,13 @@
+{
+  "session_id": "claude_ralph_leader_750e02da",
+  "worker_pty": "d7f847eda1af27aa",
+  "worker_agent_id": "worker_claude_1769568107203",
+  "current_task": null,
+  "iteration": 0,
+  "started_at": "2026-01-28T02:50:00Z",
+  "capabilities": {
+    "desktop_automation": false,
+    "pty_control": true
+  },
+  "status": "ready"
+}

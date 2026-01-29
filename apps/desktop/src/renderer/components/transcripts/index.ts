@@ -1,0 +1,1 @@
+export { Transcripts } from './Transcripts';

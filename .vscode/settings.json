@@ -1,0 +1,16 @@
+{
+    "kiroAgent.configureMCP": "Enabled",
+
+    "terminal.integrated.env.windows": {
+        "PATH": "${env:PATH}"
+    },
+    "python.defaultInterpreterPath": "python",
+    "python.terminal.activateEnvironment": true,
+    "terminal.integrated.profiles.windows": {
+        "PowerShell (Kuroryuu)": {
+            "source": "PowerShell",
+            "args": ["-NoLogo", "-NoExit", "-Command", "cd '${workspaceFolder}'"]
+        }
+    },
+    "terminal.integrated.defaultProfile.windows": "PowerShell (Kuroryuu)"
+}

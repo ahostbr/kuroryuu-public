@@ -1,0 +1,13 @@
+{
+  "name": "claude-interactive-local",
+  "owner": {
+    "name": "Ryan"
+  },
+  "plugins": [
+    {
+      "name": "claude-interactive",
+      "source": ".",
+      "description": "Human-in-the-loop result filtering for search operations"
+    }
+  ]
+}

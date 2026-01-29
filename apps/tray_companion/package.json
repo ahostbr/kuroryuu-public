@@ -1,0 +1,41 @@
+{
+  "name": "kuroryuu-tray-companion",
+  "version": "0.1.0",
+  "description": "Kuroryuu TTS Tray Companion App",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron .",
+    "typecheck": "tsc --noEmit",
+    "test:settings": "echo 'Settings tests not implemented yet'",
+    "test:tts": "echo 'TTS tests not implemented yet'",
+    "test:ipc": "echo 'IPC tests not implemented yet'",
+    "test:tray": "echo 'Tray tests not implemented yet'"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "say": "^0.16.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.4.0",
+    "lucide-react": "^0.562.0"
+  },
+  "devDependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^22.15.21",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.21",
+    "electron": "^36.3.1",
+    "electron-vite": "^3.1.0",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.8.3"
+  }
+}

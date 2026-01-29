@@ -1,0 +1,213 @@
+{
+  "schema": "kuroryuu_prompt_pack_index_v1",
+  "name": "Two Thinkers",
+  "description": "Provider-agnostic debate personas for structured ideation and adversarial refinement (Part of 16 MCP tools → 118 actions)",
+  "version": "1.1.0",
+  "created_at": "2026-01-11",
+  "updated_at": "2026-01-27",
+  "hackathon_stats": "23 days | 437 sessions | 431 tasks",
+  "category": "thinkers",
+
+  "base_protocol": {
+    "id": "_base",
+    "file": "_base_thinker.md",
+    "description": "Shared debate protocol inherited by all thinker personas"
+  },
+
+  "tool_profile": {
+    "file": "_tool_profile.md",
+    "version": "2.0",
+    "description": "Research-capable debater - can research, communicate, maintain state, but cannot modify files",
+    "allowed_tools": [
+      {"tool": "k_rag", "actions": ["query", "status"]},
+      {"tool": "k_files", "actions": ["read", "list"]},
+      {"tool": "k_checkpoint", "actions": ["list", "load"]},
+      {"tool": "k_capture", "actions": ["screenshot", "get_latest", "poll", "status"]},
+      {"tool": "Glob", "actions": ["*"]},
+      {"tool": "Grep", "actions": ["*"]},
+      {"tool": "Read", "actions": ["*"]},
+      {"tool": "WebFetch", "actions": ["*"]},
+      {"tool": "WebSearch", "actions": ["*"]},
+      {"tool": "k_memory", "actions": ["get", "set_goal", "add_blocker", "clear_blockers", "set_steps", "reset"]},
+      {"tool": "k_inbox", "actions": ["send", "list", "read"]},
+      {"tool": "k_thinker_channel", "actions": ["help", "send_line", "read"]}
+    ],
+    "prohibited_tools": [
+      {"tool": "k_pty", "reason": "Full PTY control is leader-only (use k_thinker_channel instead)"},
+      {"tool": "k_interact", "reason": "Leader-only human interaction"},
+      {"tool": "Edit", "reason": "No file modification"},
+      {"tool": "Write", "reason": "No file creation"},
+      {"tool": "Bash", "reason": "No command execution"},
+      {"tool": "NotebookEdit", "reason": "No notebook modification"},
+      {"tool": "Task", "reason": "No spawning sub-agents"}
+    ]
+  },
+
+  "packs": [
+    {
+      "id": "visionary",
+      "name": "The Visionary",
+      "file": "visionary.md",
+      "category": "exploration",
+      "description": "Creative thinker who sees possibilities where others see obstacles",
+      "style": "expansive",
+      "icon": "lightbulb",
+      "color": "#FFD700",
+      "compatible_with": ["skeptic", "pragmatist", "devils_advocate", "first_principles"],
+      "tags": ["creative", "possibilities", "innovation", "future-oriented"]
+    },
+    {
+      "id": "skeptic",
+      "name": "The Skeptic",
+      "file": "skeptic.md",
+      "category": "evaluation",
+      "description": "Rigorous thinker who tests ideas before accepting them",
+      "style": "critical",
+      "icon": "search",
+      "color": "#4A90D9",
+      "compatible_with": ["visionary", "synthesizer", "pragmatist"],
+      "tags": ["analytical", "risk-aware", "evidence-based", "rigorous"]
+    },
+    {
+      "id": "pragmatist",
+      "name": "The Pragmatist",
+      "file": "pragmatist.md",
+      "category": "execution",
+      "description": "Practical thinker who bridges ideas and reality",
+      "style": "grounded",
+      "icon": "wrench",
+      "color": "#28A745",
+      "compatible_with": ["visionary", "first_principles", "user_advocate"],
+      "tags": ["practical", "feasibility", "constraints", "execution-focused"]
+    },
+    {
+      "id": "synthesizer",
+      "name": "The Synthesizer",
+      "file": "synthesizer.md",
+      "category": "integration",
+      "description": "Integrative thinker who finds common ground in opposing views",
+      "style": "integrative",
+      "icon": "merge",
+      "color": "#9B59B6",
+      "compatible_with": ["visionary", "skeptic", "pragmatist", "devils_advocate", "first_principles", "red_team", "blue_team", "user_advocate", "systems_thinker"],
+      "tags": ["synthesis", "integration", "common-ground", "bridge-builder"]
+    },
+    {
+      "id": "devils_advocate",
+      "name": "The Devil's Advocate",
+      "file": "devils_advocate.md",
+      "category": "stress-testing",
+      "description": "Contrarian thinker who argues against prevailing positions",
+      "style": "contrarian",
+      "icon": "flame",
+      "color": "#E74C3C",
+      "compatible_with": ["visionary", "pragmatist", "synthesizer"],
+      "tags": ["contrarian", "challenge", "stress-test", "opposition"]
+    },
+    {
+      "id": "first_principles",
+      "name": "First Principles Thinker",
+      "file": "first_principles.md",
+      "category": "analysis",
+      "description": "Deconstructive thinker who reasons from fundamental truths",
+      "style": "deconstructive",
+      "icon": "atom",
+      "color": "#3498DB",
+      "compatible_with": ["pragmatist", "systems_thinker", "visionary"],
+      "tags": ["fundamentals", "analysis", "deconstruction", "reasoning"]
+    },
+    {
+      "id": "red_team",
+      "name": "Red Team (Attacker)",
+      "file": "red_team.md",
+      "category": "security",
+      "description": "Adversarial thinker who finds vulnerabilities",
+      "style": "adversarial",
+      "icon": "target",
+      "color": "#C0392B",
+      "compatible_with": ["blue_team"],
+      "tags": ["security", "attack", "vulnerability", "threat-modeling"]
+    },
+    {
+      "id": "blue_team",
+      "name": "Blue Team (Defender)",
+      "file": "blue_team.md",
+      "category": "security",
+      "description": "Protective thinker who designs defenses and mitigations",
+      "style": "protective",
+      "icon": "shield",
+      "color": "#2980B9",
+      "compatible_with": ["red_team"],
+      "tags": ["security", "defense", "mitigation", "resilience"]
+    },
+    {
+      "id": "user_advocate",
+      "name": "User Advocate",
+      "file": "user_advocate.md",
+      "category": "experience",
+      "description": "Empathetic thinker who represents the user perspective",
+      "style": "empathetic",
+      "icon": "heart",
+      "color": "#E91E63",
+      "compatible_with": ["pragmatist", "systems_thinker", "visionary"],
+      "tags": ["ux", "user-experience", "empathy", "accessibility"]
+    },
+    {
+      "id": "systems_thinker",
+      "name": "Systems Thinker",
+      "file": "systems_thinker.md",
+      "category": "analysis",
+      "description": "Holistic thinker who sees feedback loops and emergent behavior",
+      "style": "holistic",
+      "icon": "network",
+      "color": "#17A2B8",
+      "compatible_with": ["first_principles", "user_advocate", "pragmatist"],
+      "tags": ["systems", "emergence", "feedback-loops", "second-order"]
+    }
+  ],
+
+  "recommended_pairings": [
+    {
+      "pair": ["visionary", "skeptic"],
+      "use_case": "Innovation refinement",
+      "description": "Creative expansion meets rigorous critique. Best for new feature ideation."
+    },
+    {
+      "pair": ["visionary", "pragmatist"],
+      "use_case": "Vision to execution",
+      "description": "Ambitious ideas meet practical grounding. Best for roadmap planning."
+    },
+    {
+      "pair": ["red_team", "blue_team"],
+      "use_case": "Security review",
+      "description": "Attack meets defense. Best for threat modeling and security architecture."
+    },
+    {
+      "pair": ["first_principles", "systems_thinker"],
+      "use_case": "Deep analysis",
+      "description": "Fundamental decomposition meets holistic integration. Best for architecture decisions."
+    },
+    {
+      "pair": ["devils_advocate", "visionary"],
+      "use_case": "Stress testing",
+      "description": "Bold ideas face structured opposition. Best for validating strategic direction."
+    },
+    {
+      "pair": ["user_advocate", "pragmatist"],
+      "use_case": "Feature design",
+      "description": "User needs meet implementation reality. Best for product decisions."
+    },
+    {
+      "pair": ["skeptic", "synthesizer"],
+      "use_case": "Conflict resolution",
+      "description": "Critical analysis feeds integration. Best for resolving team disagreements."
+    }
+  ],
+
+  "usage": {
+    "loading": "Load base protocol (_base_thinker.md) + selected persona as system prompt",
+    "format": "Markdown with YAML frontmatter",
+    "debate_flow": "Round-based exchange, convergence signals built into prompts",
+    "human_role": "Observer and arbiter - monitors debate, can inject context, requests synthesis"
+  }
+}

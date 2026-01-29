@@ -1,0 +1,149 @@
+{
+  "slides": [
+    {
+      "id": "kanban",
+      "imageSrc": "placeholder:Kanban Board",
+      "title": "Task Management",
+      "hotspots": [
+        {
+          "id": "columns",
+          "x": 0.05,
+          "y": 0.15,
+          "w": 0.9,
+          "h": 0.6,
+          "title": "Task Columns",
+          "bodyMd": "**What you're seeing:** Kanban board with Backlog → Active → Done flow.\n\n**Why it matters:** Visual task tracking that syncs with Claude Tasks.\n\n• Drag tasks between columns\n• Auto-sync with Claude's task system\n• Priority indicators + timestamps\n• Evidence chain linking to worklogs",
+          "jumpRoute": "/kanban"
+        },
+        {
+          "id": "new-task",
+          "x": 0.85,
+          "y": 0.02,
+          "w": 0.12,
+          "h": 0.08,
+          "title": "Create Task",
+          "bodyMd": "**What you're seeing:** New task button.\n\n**Why it matters:** Tasks drive the entire workflow.\n\n• Creates tracked task with ID\n• Links to checkpoints and worklogs\n• Visible in desktop monitor",
+          "jumpRoute": "/kanban"
+        }
+      ]
+    },
+    {
+      "id": "terminals",
+      "imageSrc": "placeholder:Terminal Grid",
+      "title": "Multi-Agent Terminals",
+      "hotspots": [
+        {
+          "id": "leader",
+          "x": 0.02,
+          "y": 0.1,
+          "w": 0.47,
+          "h": 0.85,
+          "title": "Leader Terminal",
+          "bodyMd": "**What you're seeing:** The orchestrating agent's terminal.\n\n**Why it matters:** Leader coordinates all worker agents.\n\n• Receives high-level tasks\n• Delegates to workers via inbox\n• Monitors progress across all agents\n• Full PTY with shell access",
+          "jumpRoute": "/terminal"
+        },
+        {
+          "id": "workers",
+          "x": 0.51,
+          "y": 0.1,
+          "w": 0.47,
+          "h": 0.85,
+          "title": "Worker Terminals",
+          "bodyMd": "**What you're seeing:** Worker agent terminals in grid.\n\n**Why it matters:** Parallel execution with PTY bridge.\n\n• Each worker has dedicated PTY\n• Real-time output streaming\n• Independent but coordinated\n• Resizable grid layout",
+          "jumpRoute": "/terminal"
+        }
+      ]
+    },
+    {
+      "id": "monitor",
+      "imageSrc": "placeholder:Traffic Monitor",
+      "title": "Traffic & Observability",
+      "hotspots": [
+        {
+          "id": "traffic",
+          "x": 0.02,
+          "y": 0.1,
+          "w": 0.96,
+          "h": 0.5,
+          "title": "Request/Response Traffic",
+          "bodyMd": "**What you're seeing:** Real-time API traffic monitor.\n\n**Why it matters:** Full observability of all LLM interactions.\n\n• Request/response pairs\n• Token counts + latency\n• Filterable by agent/model\n• Detailed payload inspection",
+          "jumpRoute": "/traffic"
+        },
+        {
+          "id": "orchestration",
+          "x": 0.02,
+          "y": 0.62,
+          "w": 0.96,
+          "h": 0.35,
+          "title": "Orchestration View",
+          "bodyMd": "**What you're seeing:** Agent orchestration timeline.\n\n**Why it matters:** Understand multi-agent coordination.\n\n• See leader/worker interactions\n• Inbox message flow\n• Task delegation patterns",
+          "jumpRoute": "/traffic"
+        }
+      ]
+    },
+    {
+      "id": "tray",
+      "imageSrc": "placeholder:Tray Companion",
+      "title": "Tray Companion",
+      "hotspots": [
+        {
+          "id": "quick-actions",
+          "x": 0.1,
+          "y": 0.1,
+          "w": 0.8,
+          "h": 0.4,
+          "title": "Quick Actions",
+          "bodyMd": "**What you're seeing:** System tray companion app.\n\n**Why it matters:** Always-available shortcuts.\n\n• Screenshot capture\n• Quick task creation\n• Session status at a glance\n• One-click recording start",
+          "jumpRoute": "/settings"
+        },
+        {
+          "id": "status",
+          "x": 0.1,
+          "y": 0.55,
+          "w": 0.8,
+          "h": 0.35,
+          "title": "Status Indicators",
+          "bodyMd": "**What you're seeing:** Live status information.\n\n**Why it matters:** Know what's happening at a glance.\n\n• Active agents count\n• Recording status\n• Gateway connection\n• LMStudio status",
+          "jumpRoute": "/settings"
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "imageSrc": "placeholder:System Architecture",
+      "title": "System Architecture",
+      "hotspots": [
+        {
+          "id": "desktop",
+          "x": 0.35,
+          "y": 0.02,
+          "w": 0.3,
+          "h": 0.12,
+          "title": "Desktop App (Electron)",
+          "bodyMd": "**What you're seeing:** The Kuroryuu desktop application.\n\n**Why it matters:** Your command center.\n\n• React + Electron frontend\n• Multi-pane workspace\n• Real-time updates via IPC\n• Offline-capable",
+          "jumpRoute": "/"
+        },
+        {
+          "id": "gateway",
+          "x": 0.35,
+          "y": 0.2,
+          "w": 0.3,
+          "h": 0.12,
+          "title": "Gateway (FastAPI)",
+          "bodyMd": "**What you're seeing:** FastAPI gateway service.\n\n**Why it matters:** Single entry point, auth + routing.\n\n• Single-user auth (hackathon POC)\n• Routes to MCP_CORE\n• WebSocket support\n• Local-first design",
+          "jumpRoute": "/traffic"
+        },
+        {
+          "id": "mcp_core",
+          "x": 0.65,
+          "y": 0.2,
+          "w": 0.3,
+          "h": 0.12,
+          "title": "MCP_CORE",
+          "bodyMd": "**What you're seeing:** Model Context Protocol core.\n\n**Why it matters:** Tool registry + permissions.\n\n• 40+ registered tools\n• Permission management\n• Tool routing\n• Kuroryuu MCP server",
+          "jumpRoute": "/traffic"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,606 @@
+@import "tailwindcss";
+
+/* Google Fonts - Matrix-style fonts + Reggae One for Kuroryuu - v3 */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Reggae+One&display=swap');
+
+/* Font family mappings */
+.font-share-tech-mono { font-family: 'Share Tech Mono', monospace; }
+.font-vt323 { font-family: 'VT323', monospace; }
+.font-ocr-a { font-family: 'OCR A Std', 'OCR-A', monospace; }
+.font-reggae-one { font-family: 'Reggae One', cursive; }
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.3);
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(161, 161, 170, 0.3) transparent;
+}
+
+/* Smooth transitions for all interactive elements */
+button, a, input, textarea, select {
+  transition: all 0.2s ease;
+}
+
+/* Loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Smooth fade in animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Kanban card reveal animation with subtle scale */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Slide in from right for workflow node detail panel */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Golden glow pulse for active elements */
+@keyframes goldenPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(201, 162, 39, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(201, 162, 39, 0.5);
+  }
+}
+
+/* Ambient glow for hover states */
+@keyframes ambientGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(201, 162, 39, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 16px rgba(201, 162, 39, 0.4));
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Sidebar collapse transitions */
+.sidebar-transition {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1),
+              margin 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Content reflow transitions */
+.content-transition {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+}
+
+/* Hover effects */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Status indicator pulse */
+@keyframes pulse-status {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-status {
+  animation: pulse-status 2s infinite;
+}
+
+/* Drag and drop animations */
+.drag-preview {
+  transform: rotate(5deg);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.drop-zone-active {
+  background: rgba(250, 204, 21, 0.1);
+  border: 2px dashed rgba(250, 204, 21, 0.5);
+  transition: all 0.2s ease;
+}
+
+/* Terminal typing effect */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink {
+  0%, 50% { border-color: transparent; }
+  51%, 100% { border-color: #facc15; }
+}
+
+.typing-effect {
+  overflow: hidden;
+  border-right: 2px solid #facc15;
+  white-space: nowrap;
+  animation: typing 2s steps(40, end), blink 1s infinite;
+}
+
+/* ===========================================
+   KURORYUU THEME SYSTEM
+   6 color themes + dark/light modes
+   Based on Auto-Claude theme architecture
+   =========================================== */
+
+/* Default Theme (Oscura-inspired with pale yellow accent) */
+:root,
+[data-theme="oscura-midnight"] {
+  --background: #0a0a0b;
+  --foreground: #fafafa;
+  --card: #111113;
+  --card-foreground: #fafafa;
+  --popover: #111113;
+  --popover-foreground: #fafafa;
+  --primary: #facc15;
+  --primary-foreground: #0a0a0b;
+  --secondary: #1c1c1f;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
+  --destructive: #dc2626;
+  --destructive-foreground: #fafafa;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #facc15;
+  --radius: 0.5rem;
+  
+  /* Extended palette */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --info: #3b82f6;
+  --sidebar-bg: #0a0a0b;
+  --sidebar-border: #27272a;
+  --panel-bg: #111113;
+}
+
+/* Dusk Theme (Warmer variant with lighter dark mode) */
+[data-theme="dusk"] {
+  --background: #1a1a1f;
+  --foreground: #f5f5f5;
+  --card: #242429;
+  --card-foreground: #f5f5f5;
+  --popover: #242429;
+  --popover-foreground: #f5f5f5;
+  --primary: #f59e0b;
+  --primary-foreground: #1a1a1f;
+  --secondary: #2d2d35;
+  --secondary-foreground: #f5f5f5;
+  --muted: #3d3d47;
+  --muted-foreground: #a8a8b3;
+  --accent: #3d3d47;
+  --accent-foreground: #f5f5f5;
+  --destructive: #ef4444;
+  --destructive-foreground: #f5f5f5;
+  --border: #3d3d47;
+  --input: #3d3d47;
+  --ring: #f59e0b;
+  
+  --success: #34d399;
+  --warning: #fbbf24;
+  --info: #60a5fa;
+  --sidebar-bg: #1a1a1f;
+  --sidebar-border: #3d3d47;
+  --panel-bg: #242429;
+}
+
+/* Lime Theme (Fresh, energetic lime with purple accents) */
+[data-theme="lime"] {
+  --background: #0f0f0f;
+  --foreground: #f0fdf4;
+  --card: #171717;
+  --card-foreground: #f0fdf4;
+  --popover: #171717;
+  --popover-foreground: #f0fdf4;
+  --primary: #84cc16;
+  --primary-foreground: #0f0f0f;
+  --secondary: #1f1f1f;
+  --secondary-foreground: #f0fdf4;
+  --muted: #2a2a2a;
+  --muted-foreground: #a3e635;
+  --accent: #7c3aed;
+  --accent-foreground: #f0fdf4;
+  --destructive: #f43f5e;
+  --destructive-foreground: #f0fdf4;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #84cc16;
+  
+  --success: #4ade80;
+  --warning: #facc15;
+  --info: #818cf8;
+  --sidebar-bg: #0f0f0f;
+  --sidebar-border: #2a2a2a;
+  --panel-bg: #171717;
+}
+
+/* Ocean Theme (Calm, professional blue) */
+[data-theme="ocean"] {
+  --background: #0c1222;
+  --foreground: #e2e8f0;
+  --card: #131c31;
+  --card-foreground: #e2e8f0;
+  --popover: #131c31;
+  --popover-foreground: #e2e8f0;
+  --primary: #38bdf8;
+  --primary-foreground: #0c1222;
+  --secondary: #1e293b;
+  --secondary-foreground: #e2e8f0;
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+  --accent: #0ea5e9;
+  --accent-foreground: #e2e8f0;
+  --destructive: #f87171;
+  --destructive-foreground: #e2e8f0;
+  --border: #334155;
+  --input: #334155;
+  --ring: #38bdf8;
+  
+  --success: #2dd4bf;
+  --warning: #fcd34d;
+  --info: #38bdf8;
+  --sidebar-bg: #0c1222;
+  --sidebar-border: #334155;
+  --panel-bg: #131c31;
+}
+
+/* Retro Theme (Warm, nostalgic amber) */
+[data-theme="retro"] {
+  --background: #18120b;
+  --foreground: #fef3c7;
+  --card: #231a0f;
+  --card-foreground: #fef3c7;
+  --popover: #231a0f;
+  --popover-foreground: #fef3c7;
+  --primary: #fbbf24;
+  --primary-foreground: #18120b;
+  --secondary: #2d2215;
+  --secondary-foreground: #fef3c7;
+  --muted: #3d2f1c;
+  --muted-foreground: #d97706;
+  --accent: #f59e0b;
+  --accent-foreground: #fef3c7;
+  --destructive: #dc2626;
+  --destructive-foreground: #fef3c7;
+  --border: #3d2f1c;
+  --input: #3d2f1c;
+  --ring: #fbbf24;
+  
+  --success: #84cc16;
+  --warning: #fb923c;
+  --info: #fcd34d;
+  --sidebar-bg: #18120b;
+  --sidebar-border: #3d2f1c;
+  --panel-bg: #231a0f;
+}
+
+/* Neo Theme (Modern cyberpunk) */
+[data-theme="neo"] {
+  --background: #0d0d0d;
+  --foreground: #f0f0f0;
+  --card: #151515;
+  --card-foreground: #f0f0f0;
+  --popover: #151515;
+  --popover-foreground: #f0f0f0;
+  --primary: #e879f9;
+  --primary-foreground: #0d0d0d;
+  --secondary: #1f1f1f;
+  --secondary-foreground: #f0f0f0;
+  --muted: #2a2a2a;
+  --muted-foreground: #a855f7;
+  --accent: #06b6d4;
+  --accent-foreground: #f0f0f0;
+  --destructive: #fb7185;
+  --destructive-foreground: #f0f0f0;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #e879f9;
+
+  --success: #4ade80;
+  --warning: #fcd34d;
+  --info: #22d3ee;
+  --sidebar-bg: #0d0d0d;
+  --sidebar-border: #2a2a2a;
+  --panel-bg: #151515;
+}
+
+/* Forest Theme (Deep greens, natural feel) */
+[data-theme="forest"] {
+  --background: #0a0d0a;
+  --foreground: #e6f0e6;
+  --card: #10140f;
+  --card-foreground: #e6f0e6;
+  --popover: #10140f;
+  --popover-foreground: #e6f0e6;
+  --primary: #16a34a;
+  --primary-foreground: #0a0d0a;
+  --secondary: #151a14;
+  --secondary-foreground: #e6f0e6;
+  --muted: #1f2a1d;
+  --muted-foreground: #7a8b78;
+  --accent: #22c55e;
+  --accent-foreground: #e6f0e6;
+  --destructive: #ef4444;
+  --destructive-foreground: #e6f0e6;
+  --border: #1f2a1d;
+  --input: #1f2a1d;
+  --ring: #16a34a;
+
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+  --sidebar-bg: #0a0d0a;
+  --sidebar-border: #1f2a1d;
+  --panel-bg: #10140f;
+}
+
+/* Matrix Theme - Authentic movie color palette */
+/* Based on: Vampire Black #0D0208, Dark Green #003B00, Islamic Green #008F11, Malachite #00FF41 */
+[data-theme="matrix"] {
+  --background: #0D0208;
+  --foreground: #00FF41;
+  --card: #0D0208;
+  --card-foreground: #00FF41;
+  --popover: #0D0208;
+  --popover-foreground: #00FF41;
+  --primary: #00FF41;
+  --primary-foreground: #0D0208;
+  --secondary: #003B00;
+  --secondary-foreground: #00FF41;
+  --muted: #003B00;
+  --muted-foreground: #008F11;
+  --accent: #008F11;
+  --accent-foreground: #00FF41;
+  --destructive: #FF0000;
+  --destructive-foreground: #0D0208;
+  --border: #003B00;
+  --input: #003B00;
+  --ring: #00FF41;
+
+  --success: #00FF41;
+  --warning: #008F11;
+  --info: #00FF41;
+  --sidebar-bg: #0D0208;
+  --sidebar-border: #003B00;
+  --panel-bg: #0D0208;
+
+  /* Share Tech Mono font for Matrix */
+  --font-sans: 'Share Tech Mono', monospace;
+  --font-mono: 'Share Tech Mono', monospace;
+}
+
+/* Grunge Theme - Raw, distressed, weathered aesthetic */
+/* Inspired by brush stroke textures: warm undertones, aged paper on charred wood */
+[data-theme="grunge"] {
+  --background: #0a0908;
+  --foreground: #e8e2dc;
+  --card: #1a1715;
+  --card-foreground: #e8e2dc;
+  --popover: #1a1715;
+  --popover-foreground: #e8e2dc;
+  --primary: #d4c4b0;
+  --primary-foreground: #0a0908;
+  --secondary: #2d2825;
+  --secondary-foreground: #c8c0b8;
+  --muted: #3d3835;
+  --muted-foreground: #8a8078;
+  --accent: #2d2825;
+  --accent-foreground: #d4c4b0;
+  --destructive: #8b3a3a;
+  --destructive-foreground: #e8e2dc;
+  --border: #2a2522;
+  --input: #2a2522;
+  --ring: #d4c4b0;
+
+  --success: #5a7a5a;
+  --warning: #9a7a4a;
+  --info: #6a7a8a;
+  --sidebar-bg: #0f0d0c;
+  --sidebar-border: #231e1c;
+  --panel-bg: #141210;
+}
+
+/* Kuroryuu Theme - Imperial dragon aesthetic */
+/* Gold/black with red accents, inspired by traditional Japanese art */
+[data-theme="kuroryuu"] {
+  --background: #0a0a0c;
+  --foreground: #e8d5b5;
+  --card: #12100e;
+  --card-foreground: #e8d5b5;
+  --popover: #12100e;
+  --popover-foreground: #e8d5b5;
+  --primary: #c9a227;
+  --primary-foreground: #0a0a0c;
+  --secondary: #1a1614;
+  --secondary-foreground: #c9a227;
+  --muted: #2a2420;
+  --muted-foreground: #9a8a6a;
+  --accent: #8b1e1e;
+  --accent-foreground: #e8d5b5;
+  --destructive: #8b1e1e;
+  --destructive-foreground: #e8d5b5;
+  --border: #3a3028;
+  --input: #1a1614;
+  --ring: #c9a227;
+
+  --success: #4a6a3a;
+  --warning: #c9a227;
+  --info: #4a5a7a;
+  --sidebar-bg: #080808;
+  --sidebar-border: #2a2420;
+  --panel-bg: #0e0c0a;
+
+  /* Reggae One font for Kuroryuu */
+  --font-sans: 'Reggae One', cursive, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+
+/* Kuroryuu Theme - Golden vignette effect (texture via React component) */
+[data-theme="kuroryuu"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9997;
+  background: radial-gradient(ellipse at center, transparent 20%, rgba(201, 162, 39, 0.15) 100%);
+}
+
+/* Light mode overrides (applied when .light class is present) */
+.light,
+[data-mode="light"] {
+  --background: #ffffff;
+  --foreground: #0a0a0b;
+  --card: #f4f4f5;
+  --card-foreground: #0a0a0b;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0b;
+  --secondary: #e4e4e7;
+  --secondary-foreground: #0a0a0b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #0a0a0b;
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --sidebar-bg: #fafafa;
+  --sidebar-border: #e4e4e7;
+  --panel-bg: #f4f4f5;
+}
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Theme-aware colors - these map to CSS variables that change per theme */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-sidebar: var(--sidebar-bg);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-panel: var(--panel-bg);
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Utility classes for theme colors */
+.bg-card { background-color: var(--card); }
+.bg-panel { background-color: var(--panel-bg); }
+.bg-sidebar { background-color: var(--sidebar-bg); }
+.border-sidebar { border-color: var(--sidebar-border); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-info { color: var(--info); }
+.bg-success { background-color: var(--success); }
+.bg-warning { background-color: var(--warning); }
+.bg-info { background-color: var(--info); }

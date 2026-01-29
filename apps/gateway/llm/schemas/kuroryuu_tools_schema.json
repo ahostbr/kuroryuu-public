@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kuroryuu.dev/schemas/devstral-tools-v1.json",
+  "title": "Kuroryuu MCP Tools for Devstral",
+  "description": "OpenAI-compatible function definitions for 8 routed MCP tools",
+  "$defs": {
+    "FilePath": {
+      "type": "string",
+      "description": "Path relative to project root",
+      "pattern": "^[^<>:\"|?*\\x00-\\x1f]*$"
+    },
+    "SessionId": {
+      "type": "string",
+      "description": "Session identifier (UUID or prefixed)",
+      "pattern": "^[a-f0-9-]{36}$|^sess_[a-z0-9]+$"
+    },
+    "FolderEnum": {
+      "type": "string",
+      "enum": ["new", "cur", "done", "dead"],
+      "description": "Inbox folder names"
+    },
+    "RiskLevel": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Risk level for approvals"
+    },
+    "ToolResponse": {
+      "type": "object",
+      "properties": {
+        "ok": { "type": "boolean" },
+        "error": { "type": "string" },
+        "error_code": { "type": "string" }
+      },
+      "required": ["ok"]
+    }
+  },
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "k_session",
+        "description": "Session/hook lifecycle management. Actions: help, start, end, context, pre_tool, post_tool, log",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["help", "start", "end", "context", "pre_tool", "post_tool", "log"],
+              "description": "Action to perform"
+            },
+            "process_id": {
+              "type": "integer",
+              "description": "OS process ID (for start)"
+            },
+            "cli_type": {
+              "type": "string",
+              "enum": ["kiro", "claude", "copilot", "codex"],
+              "description": "CLI type (for start)"
+            },
+            "agent_id": {
+              "type": "string",
+              "description": "Agent identifier (for start)"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Session ID (for end, context, pre_tool, post_tool, log)"
+            },
+            "exit_code": {
+              "type": "integer",
+              "default": 0,
+              "description": "Exit code (for end)"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Summary text (for end)"
+            },
+            "tool_name": {
+              "type": "string",
+              "description": "Tool name (for pre_tool, post_tool)"
+            },
+            "arguments": {
+              "type": "string",
+              "description": "Tool arguments as string (for pre_tool)"
+            },
+            "result_ok": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether tool succeeded (for post_tool)"
+            },
+            "result_summary": {
+              "type": "string",
+              "description": "Tool result summary (for post_tool)"
+            },
+            "message": {
+              "type": "string",
+              "description": "Progress message (for log)"
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "k_files",
+        "description": "File system operations. Actions: help, read, write, list",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["help", "read", "write", "list"],
+              "description": "Action to perform"
+            },
+            "path": {
+              "type": "string",
+              "description": "File/directory path relative to project root"
+            },
+            "content": {
+              "type": "string",
+              "description": "Content to write (for write)"
+            },
+            "start_line": {
+              "type": "integer",
+              "default": 1,
+              "description": "Starting line 1-indexed (for read)"
+            },
+            "end_line": {
+              "type": "integer",
+              "description": "Ending line inclusive (for read)"
+            },
+            "create_dirs": {
+              "type": "boolean",
+              "default": true,
+              "description": "Create parent directories (for write)"
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "k_memory",
+        "description": "Working memory state management. Actions: help, get, set_goal, add_blocker, clear_blockers, set_steps, reset",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["help", "get", "set_goal", "add_blocker", "clear_blockers", "set_steps", "reset"],
+              "description": "Action to perform"
+            },
+            "goal": {
+              "type": "string",
+              "description": "Goal text (for set_goal)"
+            },
+            "blocker": {
+              "type": "string",
+              "description": "Blocker description (for add_blocker)"
+            },
+            "steps": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of next steps (for set_steps)"
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "k_inbox",
+        "description": "Maildir-style message queue. Actions: help, send, list, read, claim, complete",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["help", "send", "list", "read", "claim", "complete"],
+              "description": "Action to perform"
+            },
+            "payload": {
+              "description": "Message payload (for send)"
+            },
+            "title": {
+              "type": "string",
+              "description": "Message title (for send)"
+            },
+            "thread_id": {
+              "type": "string",
+              "description": "Thread ID for grouping (for send)"
+            },
+            "folder": {
+              "type": "string",
+              "enum": ["new", "cur", "done", "dead"],
+              "default": "new",
+              "description": "Folder name (for list, read)"
+            },
+            "limit": {
+              "type": "integer",
+              "default": 50,
+              "description": "Max messages to return (for list)"
+            },
+            "include_payload": {
+              "type": "boolean",
+              "default": false,
+              "description": "Include full payload in results (for list)"
+            },
+            "id": {
+              "type": "string",
+              "description": "Message ID (for read, claim, complete)"
+            },
+            "status": {
+              "type": "string",
+              "enum": ["done", "dead"],
+              "default": "done",
+              "description": "Completion status (for complete)"
+            },
+            "note": {
+              "type": "string",
+              "description": "Completion note (for complete)"
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "k_checkpoint",
+        "description": "Session/thread persistence. Actions: help, save, list, load",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["help", "save", "list", "load"],
+              "description": "Action to perform"
+            },
+            "name": {
+              "type": "string",
+              "description": "Checkpoint namespace/name"
+            },
+            "data": {
+              "description": "JSON-serializable data to save (for save)"
+            },
+            "summary": {
+              "type": "string",
+              "description": "Human-readable summary (for save)"
+            },
+            "tags": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Tags for categorization (for save)"
+            },
+            "limit": {
+              "type": "integer",
+              "default": 20,
+              "description": "Max checkpoints to return (for list)"
+            },
+            "id": {
+              "type": "string",
+              "description": "Checkpoint ID (for load, use 'latest' for most recent)"
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "k_rag",
+        "description": "Keyword-based code search. Actions: help, query, status, index",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["help", "query", "status", "index"],
+              "description": "Action to perform"
+            },
+            "query": {
+              "type": "string",
+              "description": "Search query (for query action)"
+            },
+            "root": {
+              "type": "string",
+              "description": "Root directory to search/index"
+            },
+            "exts": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "File extensions to search (for query)"
+            },
+            "case_sensitive": {
+              "type": "boolean",
+              "default": false,
+              "description": "Case-sensitive search (for query)"
+            },
+            "top_k": {
+              "type": "integer",
+              "default": 8,
+              "description": "Max results to return (for query)"
+            },
+            "force": {
+              "type": "boolean",
+              "default": false,
+              "description": "Force full rebuild (for index)"
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "k_capture",
+        "description": "Screen capture and visual digest management. Actions: help, start, stop, screenshot, get_latest, get_storyboard, get_status, poll",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": ["help", "start", "stop", "screenshot", "get_latest", "get_storyboard", "get_status", "poll"],
+              "description": "Action to perform"
+            },
+            "duration": {
+              "type": "number",
+              "default": 0,
+              "description": "Recording duration in seconds, 0=unlimited (for start)"
+            },
+            "fps": {
+              "type": "number",
+              "default": 1,
+              "description": "Recording FPS (for start)"
+            },
+            "digest": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable VisualDigest live updates (for start)"
+            },
+            "digest_fps": {
+              "type": "number",
+              "default": 0.1,
+              "description": "VisualDigest capture rate (for start)"
+            },
+            "mode": {
+              "type": "string",
+              "enum": ["desktop", "monitor", "window"],
+              "default": "desktop",
+              "description": "Capture mode (for start)"
+            },
+            "out": {
+              "type": "string",
+              "description": "Output path (for start, screenshot)"
+            },
+            "as_base64": {
+              "type": "boolean",
+              "default": false,
+              "description": "Return image as base64 string (for get_latest, get_storyboard)"
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    }
+  ]
+}

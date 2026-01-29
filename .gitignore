@@ -1,0 +1,94 @@
+# Python venvs
+/.venv*/
+.venv/
+__pycache__/
+*.pyc
+
+# Generated configs (use templates instead)
+.mcp.json
+.claude/settings.local.json
+
+# Node
+node_modules/
+dist/
+.next/
+
+# Runtime data (MCP inbox, checkpoints, RAG index)
+WORKING/
+ai/checkpoints/
+ai/working_memory.json
+ai/.claude_mode/
+ai/exports/
+ai/logs/
+ai/rag_index/
+ai/repo_intel/
+ai/reports/
+Docs/worklogs/
+Docs/Plans/
+Reports/
+*.log
+
+# IDE/Editor
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Session artifacts
+*-this-session-is-being-continued-*.txt
+
+# CLI history
+.kuroryuu_cli_history
+ai/.cli_history
+
+# API keys (never commit)
+**/claude_api.ini
+
+# Environment files (contain secrets)
+**/.env
+.env
+.env.local
+.env.*.local
+
+# Spurious files
+New Text Document.txt
+
+# Build artifacts
+*.egg-info/
+build/
+out/
+
+# Auto Claude data directory
+.auto-claude/
+
+# CLIProxyAPI local data
+# Binary is large (~15MB), pid/version are runtime files
+.cliproxyapi/CLIProxyAPIPlus.exe
+.cliproxyapi/*.pid
+.cliproxyapi/version.txt
+# DO track config.yaml and auth/ for portability (commented out = tracked)
+# !.cliproxyapi/config.yaml
+# !.cliproxyapi/auth/
+
+
+/Docs/CaseStudies/REPOS
+/apps/mcp_core/__pycache__
+/ffmpeg
+/Graphiti
+/SASgraphiti-server
+ai/hooks/hook_fired.txt
+ai/hooks/hook_fired.txt
+ai/context_check.png
+ai/checkpoints/session_log.txt
+ai/checkpoints/_index.jsonl
+ai/checkpoints/session_log.txt
+ai/checkpoints/_index.jsonl
+ai/agents_registry.json
+*.log
+*.db
+/.cliproxyapi/auth
+nul

@@ -1,0 +1,24 @@
+export { ActivityBar } from './ActivityBar';
+export type { ActivityView } from './ActivityBar';
+export { ChangedFilesSidebar } from './ChangedFilesSidebar';
+export { EditorTabs } from './EditorTabs';
+export { DiffViewer } from './DiffViewer';
+export { MergeViewWrapper } from './MergeViewWrapper';
+export { KuroryuuDesktopAssistantPanel } from './Kuroryuu_Desktop_Assistant_Panel';
+export type { AssistantPanelProps } from './Kuroryuu_Desktop_Assistant_Panel';
+/** @deprecated Use KuroryuuDesktopAssistantPanel instead */
+export { LMStudioPanel } from './LMStudioPanel';
+export { MarkdownRenderer } from './MarkdownRenderer';
+export { ToolCallCard, ToolCallInline } from './ToolCallCard';
+export type { ToolCallData, ToolCallStatus } from './ToolCallCard';
+export { SuggestionOverlay, parseCodeBlocks, inferFilePathFromContext } from './SuggestionOverlay';
+export type { CodeSuggestion } from './SuggestionOverlay';
+export { ConversationList } from './ConversationList';
+export { ContextSelector } from './ContextSelector';
+export { BranchSwitcher } from './BranchSwitcher';
+export { TodosPanel } from './TodosPanel';
+export { DependenciesPanel } from './DependenciesPanel';
+export { ImportGraphPanel } from './ImportGraphPanel';
+export { SymbolOutlinePanel } from './SymbolOutlinePanel';
+export { ReferencesPanel } from './ReferencesPanel';
+export { SearchPanel } from './SearchPanel';

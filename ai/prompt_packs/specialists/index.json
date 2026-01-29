@@ -1,0 +1,145 @@
+{
+  "schema": "kuroryuu_prompt_pack_index_v1",
+  "name": "Specialists",
+  "description": "Task-specific specialist agents that auto-trigger based on keywords (Part of 16 MCP tools → 118 actions)",
+  "version": "1.1.0",
+  "created_at": "2026-01-11",
+  "updated_at": "2026-01-27",
+  "hackathon_stats": "23 days | 437 sessions | 431 tasks",
+  "category": "specialists",
+
+  "tool_profiles": {
+    "read_only": {
+      "description": "Can read but not modify code",
+      "allowed_tools": [
+        {"tool": "k_rag", "actions": ["query", "status"]},
+        {"tool": "k_files", "actions": ["read", "list"]},
+        {"tool": "Glob", "actions": ["*"]},
+        {"tool": "Grep", "actions": ["*"]},
+        {"tool": "Read", "actions": ["*"]},
+        {"tool": "WebFetch", "actions": ["*"]},
+        {"tool": "WebSearch", "actions": ["*"]}
+      ],
+      "prohibited_tools": [
+        {"tool": "Edit", "reason": "Read-only specialist"},
+        {"tool": "Write", "reason": "Read-only specialist"},
+        {"tool": "Bash", "reason": "No command execution"}
+      ]
+    },
+    "write_docs": {
+      "description": "Can write documentation files only",
+      "allowed_tools": [
+        {"tool": "k_rag", "actions": ["query", "status"]},
+        {"tool": "k_files", "actions": ["read", "write", "list"]},
+        {"tool": "Glob", "actions": ["*"]},
+        {"tool": "Grep", "actions": ["*"]},
+        {"tool": "Read", "actions": ["*"]},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "**/*.md"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "**/*.md"}
+      ],
+      "prohibited_tools": [
+        {"tool": "Bash", "reason": "No command execution"}
+      ]
+    },
+    "write_tests": {
+      "description": "Can write test files only",
+      "allowed_tools": [
+        {"tool": "k_rag", "actions": ["query", "status"]},
+        {"tool": "k_files", "actions": ["read", "write", "list"]},
+        {"tool": "Glob", "actions": ["*"]},
+        {"tool": "Grep", "actions": ["*"]},
+        {"tool": "Read", "actions": ["*"]},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "**/*.test.{ts,tsx,js,jsx}"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "**/*.test.{ts,tsx,js,jsx}"},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "**/*.spec.{ts,tsx,js,jsx}"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "**/*.spec.{ts,tsx,js,jsx}"},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "**/__tests__/**"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "**/__tests__/**"}
+      ],
+      "prohibited_tools": [
+        {"tool": "Bash", "reason": "No command execution"}
+      ]
+    }
+  },
+
+  "packs": [
+    {
+      "id": "security_auditor",
+      "name": "Security Auditor",
+      "file": "security_auditor.md",
+      "category": "review",
+      "description": "Reviews code for security vulnerabilities (OWASP Top 10, CVEs)",
+      "tool_profile": "read_only",
+      "icon": "shield-alert",
+      "color": "#DC2626",
+      "tags": ["security", "vulnerability", "audit", "OWASP"]
+    },
+    {
+      "id": "performance_optimizer",
+      "name": "Performance Optimizer",
+      "file": "performance_optimizer.md",
+      "category": "review",
+      "description": "Analyzes code for performance bottlenecks and optimization opportunities",
+      "tool_profile": "read_only",
+      "icon": "gauge",
+      "color": "#F59E0B",
+      "tags": ["performance", "optimization", "profiling", "scalability"]
+    },
+    {
+      "id": "doc_writer",
+      "name": "Documentation Writer",
+      "file": "doc_writer.md",
+      "category": "generation",
+      "description": "Generates and maintains documentation for code changes",
+      "tool_profile": "write_docs",
+      "icon": "file-text",
+      "color": "#3B82F6",
+      "tags": ["documentation", "readme", "jsdoc", "changelog"]
+    },
+    {
+      "id": "test_generator",
+      "name": "Test Generator",
+      "file": "test_generator.md",
+      "category": "generation",
+      "description": "Creates comprehensive test suites for new and modified code",
+      "tool_profile": "write_tests",
+      "icon": "test-tube",
+      "color": "#10B981",
+      "tags": ["testing", "unit-tests", "coverage", "TDD"]
+    }
+  ],
+
+  "triggers": {
+    "security_auditor": {
+      "keywords": ["security", "vulnerability", "CVE", "auth", "authentication", "authorization", "encrypt", "password", "secret", "injection", "XSS", "CSRF", "OWASP"],
+      "file_patterns": ["**/auth/**", "**/security/**", "**/*credential*", "**/*secret*"],
+      "auto_invoke": true,
+      "priority": "high"
+    },
+    "performance_optimizer": {
+      "keywords": ["performance", "slow", "optimize", "memory", "leak", "profile", "latency", "throughput", "scale", "bundle", "load time", "startup"],
+      "file_patterns": ["**/perf/**", "**/benchmark/**"],
+      "auto_invoke": true,
+      "priority": "medium"
+    },
+    "doc_writer": {
+      "keywords": ["documentation", "docs", "README", "JSDoc", "docstring", "comment", "changelog", "release notes", "API spec", "swagger"],
+      "file_patterns": ["**/*.md", "**/docs/**"],
+      "auto_invoke": true,
+      "priority": "low"
+    },
+    "test_generator": {
+      "keywords": ["test", "testing", "coverage", "unit test", "integration test", "spec", "assertion", "TDD", "test-driven"],
+      "file_patterns": ["**/*.test.*", "**/*.spec.*", "**/__tests__/**"],
+      "auto_invoke": true,
+      "priority": "medium"
+    }
+  },
+
+  "usage": {
+    "loading": "Load specialist persona as system prompt when triggered",
+    "invocation": "Auto-triggered by keywords in task title/description or manual invocation",
+    "output": "Specialist generates report/artifacts which are reviewed by leader",
+    "integration": "Works alongside workers, does not replace them"
+  }
+}

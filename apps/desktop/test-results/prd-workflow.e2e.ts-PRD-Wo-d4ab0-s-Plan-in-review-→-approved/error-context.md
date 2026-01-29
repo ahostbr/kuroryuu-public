@@ -1,0 +1,213 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - button "Collapse sidebar" [ref=e7]:
+      - img [ref=e8]
+    - generic [ref=e11]:
+      - heading "Kuroryuu" [level=1] [ref=e12]
+      - paragraph [ref=e13]: 黒き幻影の霧の龍
+    - generic [ref=e14]:
+      - button "Home H" [ref=e15]:
+        - img [ref=e16]
+        - generic [ref=e19]: Home
+        - generic [ref=e20]: H
+      - generic [ref=e22]:
+        - button "Plan" [ref=e23]:
+          - img [ref=e24]
+          - generic [ref=e27]: Plan
+          - img [ref=e28]
+        - generic [ref=e31]:
+          - button "Dojo D" [ref=e32]:
+            - img [ref=e34]
+            - generic [ref=e43]: Dojo
+            - generic [ref=e44]: D
+          - button "Kanban K" [ref=e45]:
+            - img [ref=e46]
+            - generic [ref=e51]: Kanban
+            - generic [ref=e52]: K
+      - generic [ref=e53]:
+        - button "Build" [ref=e54]:
+          - img [ref=e55]
+          - generic [ref=e59]: Build
+          - img [ref=e60]
+        - generic [ref=e63]:
+          - button "Terminals T" [ref=e64]:
+            - img [ref=e65]
+            - generic [ref=e68]: Terminals
+            - generic [ref=e69]: T
+          - button "GitHub W" [ref=e70]:
+            - img [ref=e71]
+            - generic [ref=e75]: GitHub
+            - generic [ref=e76]: W
+          - button "Insights N" [ref=e77]:
+            - img [ref=e78]
+            - generic [ref=e86]: Insights
+            - generic [ref=e87]: "N"
+          - button "CodeEditor ↗" [ref=e88]:
+            - img [ref=e89]
+            - generic [ref=e93]: CodeEditor
+            - generic [ref=e94]: ↗
+      - generic [ref=e95]:
+        - button "Monitor" [ref=e96]:
+          - img [ref=e97]
+          - generic [ref=e100]: Monitor
+          - img [ref=e101]
+        - generic [ref=e104]:
+          - button "Claude Tasks C" [ref=e105]:
+            - img [ref=e106]
+            - generic [ref=e109]: Claude Tasks
+            - generic [ref=e110]: C
+          - button "HTTP Traffic F" [ref=e111]:
+            - img [ref=e112]
+            - generic [ref=e114]: HTTP Traffic
+            - generic [ref=e115]: F
+          - button "PTY Traffic Y" [ref=e116]:
+            - img [ref=e117]
+            - generic [ref=e123]: PTY Traffic
+            - generic [ref=e124]: "Y"
+          - button "Command Center M" [ref=e125]:
+            - img [ref=e126]
+            - generic [ref=e128]: Command Center
+            - generic [ref=e129]: M
+          - button "Capture P" [ref=e130]:
+            - img [ref=e131]
+            - generic [ref=e134]: Capture
+            - generic [ref=e135]: P
+      - generic [ref=e136]:
+        - button "Log" [ref=e137]:
+          - img [ref=e138]
+          - generic [ref=e142]: Log
+          - img [ref=e143]
+        - generic [ref=e146]:
+          - button "Memory" [ref=e147]:
+            - img [ref=e148]
+            - generic [ref=e151]: Memory
+          - button "Changelog L" [ref=e152]:
+            - img [ref=e153]
+            - generic [ref=e156]: Changelog
+            - generic [ref=e157]: L
+          - button "Transcripts R" [ref=e158]:
+            - img [ref=e159]
+            - generic [ref=e162]: Transcripts
+            - generic [ref=e163]: R
+    - generic [ref=e164]:
+      - button "Integrations" [ref=e165]:
+        - img [ref=e166]
+        - generic [ref=e168]: Integrations
+      - button "Domain Config" [ref=e169]:
+        - img [ref=e170]
+        - generic [ref=e173]: Domain Config
+      - button "Settings Ctrl+," [ref=e174]:
+        - img [ref=e175]
+        - generic [ref=e178]: Settings
+        - generic [ref=e179]: Ctrl+,
+      - button "Tray Companion" [ref=e180]:
+        - img [ref=e181]
+        - generic [ref=e184]: Tray Companion
+  - main [ref=e186]:
+    - generic [ref=e187]:
+      - generic [ref=e189]:
+        - button "Orchestration" [ref=e190]:
+          - img [ref=e191]
+          - text: Orchestration
+        - button "PRD" [ref=e195]:
+          - img [ref=e196]
+          - text: PRD
+        - button "Ideation" [ref=e199]:
+          - img [ref=e200]
+          - text: Ideation
+      - generic [ref=e202]:
+        - generic [ref=e203]:
+          - img [ref=e204]
+          - generic [ref=e207]:
+            - text: LMStudio Connected
+            - generic [ref=e208]:
+              - text: "Model:"
+              - code [ref=e209]: mistralai/devstral-small-2-2512
+        - button "Refresh connection" [ref=e210]:
+          - img [ref=e211]
+      - generic [ref=e217]:
+        - generic [ref=e218]:
+          - button "Expand sidebar" [ref=e220]:
+            - img [ref=e221]
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - img [ref=e225]
+              - generic [ref=e228]: "1"
+            - button "New PRD" [ref=e229]:
+              - img [ref=e230]
+          - button "Sessions" [ref=e232]:
+            - img [ref=e233]
+        - generic [ref=e237]:
+          - application [ref=e238]:
+            - generic [ref=e240]:
+              - generic:
+                - generic:
+                  - img:
+                    - group "Edge from generate-prd to create-plan-preview"
+                  - img:
+                    - group "Edge from create-plan-preview to load-context-preview"
+                  - img:
+                    - group "Edge from load-context-preview to break-down-preview"
+                  - img:
+                    - group "Edge from break-down-preview to execute-preview"
+                  - img:
+                    - group "Edge from execute-preview to validate-preview"
+                - generic:
+                  - group [ref=e241]:
+                    - generic [ref=e244] [cursor=pointer]:
+                      - img [ref=e246]
+                      - generic [ref=e249]:
+                        - generic [ref=e250]: Generate PRD
+                        - generic [ref=e251]: → Draft
+                  - group [ref=e253]:
+                    - generic [ref=e254]:
+                      - img [ref=e257]
+                      - generic [ref=e260]:
+                        - img [ref=e262]
+                        - generic [ref=e268]: Create Plan
+                  - group [ref=e270]:
+                    - generic [ref=e271]:
+                      - img [ref=e274]
+                      - generic [ref=e277]:
+                        - img [ref=e279]
+                        - generic [ref=e285]: Load Context
+                  - group [ref=e287]:
+                    - generic [ref=e288]:
+                      - img [ref=e291]
+                      - generic [ref=e294]:
+                        - img [ref=e296]
+                        - generic [ref=e300]: Break Down Tasks
+                  - group [ref=e302]:
+                    - generic [ref=e303]:
+                      - img [ref=e306]
+                      - generic [ref=e309]:
+                        - img [ref=e311]
+                        - generic [ref=e314]: Execute Step
+                  - group [ref=e316]:
+                    - generic [ref=e317]:
+                      - img [ref=e320]
+                      - generic [ref=e323]:
+                        - img [ref=e325]
+                        - generic [ref=e329]: Validate & Complete
+            - img
+            - generic "Control Panel" [ref=e331]:
+              - button "Zoom In" [ref=e332] [cursor=pointer]:
+                - img [ref=e333]
+              - button "Zoom Out" [ref=e335] [cursor=pointer]:
+                - img [ref=e336]
+              - button "Fit View" [ref=e338] [cursor=pointer]:
+                - img [ref=e339]
+              - button "Toggle Interactivity" [ref=e341] [cursor=pointer]:
+                - img [ref=e342]
+            - img "Mini Map" [ref=e345]
+          - generic [ref=e353]:
+            - heading "Status Guide" [level=4] [ref=e354]
+            - generic [ref=e355]:
+              - generic [ref=e358]: Available (click to execute)
+              - generic [ref=e361]: Completed
+              - generic [ref=e364]: Locked (prerequisites needed)
+              - generic [ref=e367]: Recommended next step
+```

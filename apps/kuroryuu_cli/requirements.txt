@@ -1,0 +1,7 @@
+# Kuroryuu CLI Dependencies
+prompt_toolkit>=3.0.43  # Rich interactive input with history
+rich>=13.7.0            # Terminal formatting, spinners, live display
+colorama>=0.4.6         # Cross-platform ANSI colors
+httpx>=0.26.0           # Async HTTP client
+anthropic>=0.75.0       # Claude API client (optional, for --llm-provider claude)
+aiohttp>=3.9.0          # Async HTTP for OAuth flow (optional, for Claude OAuth)

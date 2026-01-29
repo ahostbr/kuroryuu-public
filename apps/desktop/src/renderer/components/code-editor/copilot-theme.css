@@ -1,0 +1,1424 @@
+/**
+ * Copilot Dark Theme - Isolated for Code Editor AI Chat Panel
+ * This file is ONLY imported by LMStudioPanel.tsx
+ * Does NOT affect the main desktop app theme system
+ */
+
+/* Scoped CSS variables - applied to .copilot-panel container */
+.copilot-panel {
+  /* Background colors */
+  --cp-bg-primary: #1e1e1e;
+  --cp-bg-secondary: #252526;
+  --cp-bg-tertiary: #2d2d30;
+  --cp-bg-input: #3c3c3c;
+  --cp-bg-hover: #2a2d2e;
+  --cp-bg-active: #37373d;
+
+  /* Text colors */
+  --cp-text-primary: #cccccc;
+  --cp-text-secondary: #9d9d9d;
+  --cp-text-muted: #6e6e6e;
+  --cp-text-bright: #ffffff;
+
+  /* Accent colors */
+  --cp-accent-blue: #0078d4;
+  --cp-accent-purple: #9b6bc9;
+  --cp-accent-green: #4ec9b0;
+  --cp-accent-orange: #ce9178;
+  --cp-accent-yellow: #dcdcaa;
+
+  /* Imperial Gold - Kuroryuu brand */
+  --cp-accent-gold: #c9a227;
+  --cp-accent-gold-dim: rgba(201, 162, 39, 0.15);
+  --cp-accent-gold-glow: rgba(201, 162, 39, 0.4);
+
+  /* Border colors */
+  --cp-border-default: #3c3c3c;
+  --cp-border-light: #454545;
+  --cp-border-focus: #007acc;
+
+  /* Message colors */
+  --cp-msg-user-bg: #2b2b2b;
+  --cp-msg-tool-bg: #1e3a5f;
+
+  /* File bubble colors */
+  --cp-file-bg: #2d2d30;
+  --cp-file-hover: #3c3c3c;
+  --cp-file-border: #454545;
+
+  /* Button colors */
+  --cp-btn-primary: #0e639c;
+  --cp-btn-primary-hover: #1177bb;
+
+  /* Shadows */
+  --cp-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
+
+  /* Apply base styles */
+  background-color: var(--cp-bg-primary);
+  color: var(--cp-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Scrollbar styling for copilot panel */
+.copilot-panel ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.copilot-panel ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.copilot-panel ::-webkit-scrollbar-thumb {
+  background: var(--cp-bg-tertiary);
+  border-radius: 4px;
+}
+
+.copilot-panel ::-webkit-scrollbar-thumb:hover {
+  background: var(--cp-border-light);
+}
+
+/* Selection color */
+.copilot-panel ::selection {
+  background: rgba(0, 120, 212, 0.4);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes cp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes cp-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cp-slide-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cp-dots {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+@keyframes cp-recording-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.5; }
+}
+
+.cp-animate-pulse {
+  animation: cp-pulse 1.5s ease-in-out infinite;
+}
+
+.cp-animate-fade-in {
+  animation: cp-fade-in 0.2s ease-out;
+}
+
+.cp-animate-slide-up {
+  animation: cp-slide-up 0.3s ease-out;
+}
+
+/* ========================================
+   MESSAGE STYLES
+   ======================================== */
+
+/* User message row - full width highlight */
+.cp-msg-user {
+  background-color: var(--cp-msg-user-bg);
+}
+
+/* Tool message - blue tinted */
+.cp-msg-tool {
+  background-color: var(--cp-msg-tool-bg);
+  border: 1px solid rgba(0, 120, 212, 0.2);
+}
+
+/* Avatar styles - VS Code Copilot uses smaller, more subtle avatars */
+.cp-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.cp-avatar-user {
+  background-color: rgba(0, 120, 212, 0.2);
+  color: var(--cp-accent-blue);
+}
+
+.cp-avatar-ai {
+  background-color: var(--cp-accent-gold-dim);
+  color: var(--cp-accent-gold);
+  overflow: hidden;
+}
+
+/* Dragon icon glow effect */
+.cp-dragon-glow {
+  filter: drop-shadow(0 0 6px var(--cp-accent-gold-glow));
+}
+
+.cp-avatar-tool {
+  background-color: rgba(0, 120, 212, 0.2);
+  color: var(--cp-accent-blue);
+}
+
+/* Message header */
+.cp-msg-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.cp-msg-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cp-text-primary);
+}
+
+.cp-msg-time {
+  font-size: 11px;
+  color: var(--cp-text-muted);
+}
+
+/* ========================================
+   STREAMING INDICATOR
+   ======================================== */
+
+.cp-streaming-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cp-streaming-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--cp-accent-gold);
+  animation: cp-dots 1.2s ease-in-out infinite;
+}
+
+.cp-streaming-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.cp-streaming-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.cp-typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 16px;
+  background-color: var(--cp-accent-gold);
+  margin-left: 2px;
+  animation: cp-pulse 1s ease-in-out infinite;
+}
+
+/* ========================================
+   INPUT AREA
+   ======================================== */
+
+.cp-input-container {
+  background-color: var(--cp-bg-input);
+  border: 1px solid var(--cp-border-default);
+  border-radius: 6px;
+  transition: border-color 0.2s ease;
+}
+
+.cp-input-container:focus-within {
+  border-color: var(--cp-border-focus);
+}
+
+.cp-input-textarea {
+  background: transparent;
+  color: var(--cp-text-primary);
+  resize: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cp-input-textarea::placeholder {
+  color: var(--cp-text-muted);
+}
+
+/* Keyboard hints */
+.cp-kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: inherit;
+  background-color: var(--cp-bg-tertiary);
+  border-radius: 4px;
+  color: var(--cp-text-muted);
+}
+
+/* ========================================
+   RECORDING BANNER
+   ======================================== */
+
+.cp-recording-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: rgba(239, 68, 68, 0.2);
+  border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.cp-recording-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  animation: cp-recording-pulse 1s ease-in-out infinite;
+}
+
+.cp-recording-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #f87171;
+}
+
+/* ========================================
+   EMPTY STATE
+   ======================================== */
+
+.cp-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.cp-empty-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background-color: rgba(155, 107, 201, 0.1);
+  margin-bottom: 24px;
+  font-size: 32px;
+}
+
+.cp-empty-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--cp-text-bright);
+  margin-bottom: 8px;
+}
+
+.cp-empty-subtitle {
+  font-size: 14px;
+  color: var(--cp-text-muted);
+  margin-bottom: 32px;
+  max-width: 320px;
+}
+
+/* Suggestion buttons */
+.cp-suggestion-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  background-color: var(--cp-bg-tertiary);
+  border: 1px solid var(--cp-border-default);
+  border-radius: 8px;
+  color: var(--cp-text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cp-suggestion-btn:hover {
+  background-color: var(--cp-bg-hover);
+  border-color: var(--cp-border-light);
+  color: var(--cp-text-primary);
+}
+
+/* ========================================
+   FILE BUBBLES
+   ======================================== */
+
+.cp-file-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background-color: var(--cp-file-bg);
+  border: 1px solid var(--cp-file-border);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--cp-text-primary);
+  cursor: default;
+  transition: background-color 0.2s ease;
+}
+
+.cp-file-bubble:hover {
+  background-color: var(--cp-file-hover);
+}
+
+.cp-file-icon {
+  font-size: 16px;
+}
+
+.cp-file-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp-file-range {
+  font-size: 12px;
+  padding: 2px 6px;
+  background-color: rgba(0, 120, 212, 0.2);
+  color: var(--cp-accent-blue);
+  border-radius: 4px;
+}
+
+.cp-file-remove {
+  padding: 2px;
+  color: var(--cp-text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cp-file-remove:hover {
+  background-color: var(--cp-bg-active);
+  color: var(--cp-text-primary);
+}
+
+/* File tooltip */
+.cp-file-tooltip {
+  position: absolute;
+  z-index: 50;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 8px;
+  padding: 12px;
+  min-width: 250px;
+  max-width: 350px;
+  background-color: var(--cp-bg-secondary);
+  border: 1px solid var(--cp-border-default);
+  border-radius: 8px;
+  box-shadow: var(--cp-shadow-lg);
+}
+
+.cp-file-tooltip-arrow {
+  position: absolute;
+  bottom: -5px;
+  left: 16px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--cp-bg-secondary);
+  border-right: 1px solid var(--cp-border-default);
+  border-bottom: 1px solid var(--cp-border-default);
+  transform: rotate(45deg);
+}
+
+/* ========================================
+   CONTEXT DISPLAY
+   ======================================== */
+
+.cp-context-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+}
+
+.cp-context-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--cp-text-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.cp-context-toggle:hover {
+  color: var(--cp-text-primary);
+}
+
+.cp-context-badge {
+  font-size: 12px;
+  padding: 2px 6px;
+  background-color: var(--cp-bg-tertiary);
+  border-radius: 4px;
+}
+
+.cp-context-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cp-context-btn {
+  padding: 4px;
+  color: var(--cp-text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cp-context-btn:hover {
+  background-color: var(--cp-bg-hover);
+  color: var(--cp-text-primary);
+}
+
+.cp-context-btn-danger:hover {
+  color: #f87171;
+}
+
+/* ========================================
+   BUTTONS
+   ======================================== */
+
+.cp-btn-primary {
+  background-color: var(--cp-btn-primary);
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cp-btn-primary:hover {
+  background-color: var(--cp-btn-primary-hover);
+}
+
+.cp-btn-primary:disabled {
+  background-color: var(--cp-bg-tertiary);
+  color: var(--cp-text-muted);
+  cursor: not-allowed;
+}
+
+.cp-btn-danger {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.cp-btn-danger:hover {
+  background-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ========================================
+   PROSE STYLING FOR MARKDOWN
+   ======================================== */
+
+.cp-prose {
+  color: var(--cp-text-primary);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.cp-prose h1,
+.cp-prose h2,
+.cp-prose h3,
+.cp-prose h4 {
+  color: var(--cp-text-bright);
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.cp-prose h1 { font-size: 1.5em; }
+.cp-prose h2 { font-size: 1.25em; }
+.cp-prose h3 { font-size: 1.1em; }
+
+.cp-prose p {
+  margin-bottom: 0.75em;
+}
+
+.cp-prose strong {
+  color: var(--cp-text-bright);
+  font-weight: 600;
+}
+
+.cp-prose a {
+  color: var(--cp-accent-blue);
+  text-decoration: none;
+}
+
+.cp-prose a:hover {
+  text-decoration: underline;
+}
+
+.cp-prose code {
+  color: var(--cp-accent-orange);
+  background: transparent;
+  padding: 0 4px;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.cp-prose pre {
+  background-color: var(--cp-bg-primary);
+  border: 1px solid var(--cp-border-default);
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.cp-prose pre code {
+  color: var(--cp-text-secondary);
+  padding: 0;
+  background: transparent;
+}
+
+.cp-prose blockquote {
+  border-left: 3px solid var(--cp-accent-blue);
+  color: var(--cp-text-secondary);
+  padding-left: 16px;
+  margin: 0.75em 0;
+  font-style: italic;
+}
+
+.cp-prose ul,
+.cp-prose ol {
+  padding-left: 1.5em;
+  margin: 0.75em 0;
+}
+
+.cp-prose li {
+  margin-bottom: 0.25em;
+}
+
+.cp-prose hr {
+  border: none;
+  border-top: 1px solid var(--cp-border-default);
+  margin: 1em 0;
+}
+
+/* ========================================
+   TOOL CALL CARD
+   ======================================== */
+
+.cp-tool-card {
+  background-color: var(--cp-msg-tool-bg);
+  border: 1px solid rgba(0, 120, 212, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cp-tool-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cp-tool-header:hover {
+  background-color: rgba(0, 120, 212, 0.2);
+}
+
+.cp-tool-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 120, 212, 0.2);
+  border-radius: 4px;
+  color: var(--cp-accent-blue);
+}
+
+.cp-tool-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--cp-accent-blue);
+}
+
+.cp-tool-result {
+  padding: 12px;
+  border-top: 1px solid var(--cp-border-default);
+}
+
+.cp-tool-result pre {
+  font-size: 12px;
+  color: var(--cp-text-secondary);
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ========================================
+   COPY BUTTON (hover reveal)
+   ======================================== */
+
+.cp-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--cp-text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.cp-msg-content:hover .cp-copy-btn {
+  opacity: 1;
+}
+
+.cp-copy-btn:hover {
+  background-color: var(--cp-bg-hover);
+  color: var(--cp-text-primary);
+}
+
+.cp-copy-btn-success {
+  color: var(--cp-accent-green);
+}
+
+/* ========================================
+   MODEL SELECTOR - Copilot Style Dropdown
+   ======================================== */
+
+.model-selector-container {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Trigger Button - minimal like Copilot */
+.model-selector-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+  padding: 2px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.model-selector-trigger:hover:not(.disabled) {
+  background: var(--cp-bg-hover);
+}
+
+.model-selector-trigger.open {
+  background: var(--cp-bg-active);
+}
+
+.model-selector-trigger.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Model Name in trigger */
+.model-selector-name {
+  font-size: 12px;
+  color: var(--cp-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chevron */
+.model-selector-chevron {
+  width: 12px;
+  height: 12px;
+  color: var(--cp-text-muted);
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.model-selector-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Dropdown Panel - opens UPWARD (bottom bar placement) */
+.model-selector-dropdown {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: 240px;
+  background: var(--cp-bg-secondary);
+  border: 1px solid var(--cp-border-default);
+  border-radius: 4px;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* Model List */
+.model-selector-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.model-selector-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--cp-text-muted);
+}
+
+/* Group container */
+.model-selector-group {
+  /* No margin/padding - clean list */
+}
+
+/* Divider line with family label */
+.model-selector-divider {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px 4px;
+  margin-top: 4px;
+  border-top: 1px solid var(--cp-border-default);
+}
+
+.model-selector-divider.first {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 4px;
+}
+
+.model-selector-divider span {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--cp-text-muted);
+}
+
+/* Model Item - flat row like Copilot */
+.model-selector-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 4px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.08s ease;
+  text-align: left;
+}
+
+.model-selector-item:hover,
+.model-selector-item.highlighted {
+  background: var(--cp-bg-hover);
+}
+
+.model-selector-item.selected {
+  background: var(--cp-bg-active);
+}
+
+.model-selector-item.selected:hover {
+  background: var(--cp-bg-hover);
+}
+
+/* Model name */
+.model-selector-item-name {
+  flex: 1;
+  font-size: 13px;
+  color: var(--cp-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-selector-item.selected .model-selector-item-name {
+  color: var(--cp-text-bright);
+}
+
+/* Right side info */
+.model-selector-item-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+/* Source/Provider badge - shows which service provides the model */
+.model-selector-item-source {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+/* Context window */
+.model-selector-item-ctx {
+  font-size: 11px;
+  color: var(--cp-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tools icon */
+.model-selector-item-tools {
+  width: 12px;
+  height: 12px;
+  color: #4ec9b0;
+}
+
+/* Check mark */
+.model-selector-item-check {
+  width: 14px;
+  height: 14px;
+  color: #ffffff;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+/* Tooltip - appears below hovered item */
+.model-selector-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  background: var(--cp-bg-primary);
+  border: 1px solid var(--cp-border-light);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--cp-text-primary);
+  margin-bottom: 4px;
+}
+
+.model-selector-tooltip-name {
+  font-weight: 500;
+}
+
+.model-selector-tooltip-id {
+  color: var(--cp-text-muted);
+}
+
+.model-selector-tooltip-ctx {
+  color: #4ec9b0;
+}
+
+/* Footer with Manage Models link */
+.model-selector-footer {
+  border-top: 1px solid var(--cp-border-default);
+  padding: 4px;
+}
+
+.model-selector-manage {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.08s ease;
+  font-size: 12px;
+  color: #0078d4;
+}
+
+.model-selector-manage:hover {
+  background: var(--cp-bg-hover);
+}
+
+/* ============================================================================
+ * Slash Command Menu - Copilot style command picker
+ * ============================================================================ */
+
+.slash-command-menu {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--cp-bg-secondary);
+  border: 1px solid var(--cp-border-default);
+  border-radius: 6px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.slash-command-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.slash-command-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--cp-text-muted);
+}
+
+.slash-command-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.08s ease;
+}
+
+.slash-command-item:hover,
+.slash-command-item.highlighted {
+  background: var(--cp-bg-hover);
+}
+
+.slash-command-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: #75beff;
+}
+
+.slash-command-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slash-command-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cp-text-bright);
+}
+
+.slash-command-desc {
+  font-size: 11px;
+  color: var(--cp-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slash-command-scope {
+  font-size: 10px;
+  color: var(--cp-text-muted);
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+/* ============================================================================
+ * @ Mention Picker - Copilot style context picker
+ * ============================================================================ */
+
+.at-mention-picker {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--cp-bg-secondary);
+  border: 1px solid var(--cp-border-default);
+  border-radius: 6px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+/* Header with category title */
+.at-mention-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--cp-bg-tertiary);
+  border-bottom: 1px solid var(--cp-border-default);
+}
+
+.at-mention-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: var(--cp-text-muted);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.at-mention-back:hover {
+  background: var(--cp-bg-hover);
+  color: var(--cp-text-primary);
+}
+
+.at-mention-header-icon {
+  color: #75beff;
+}
+
+.at-mention-header-title {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--cp-text-primary);
+}
+
+.at-mention-header-arrow {
+  color: var(--cp-text-muted);
+  font-size: 12px;
+}
+
+/* List container */
+.at-mention-list {
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 4px;
+}
+
+.at-mention-empty {
+  padding: 20px 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--cp-text-muted);
+}
+
+/* Category items (Files, Directories, etc.) */
+.at-mention-category-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.08s ease;
+}
+
+.at-mention-category-item:hover,
+.at-mention-category-item.highlighted {
+  background: #04395e;
+}
+
+.at-mention-category-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--cp-text-secondary);
+}
+
+.at-mention-category-item.highlighted .at-mention-category-icon {
+  color: var(--cp-text-primary);
+}
+
+.at-mention-category-label {
+  font-size: 13px;
+  color: var(--cp-text-primary);
+}
+
+/* File/Directory items */
+.at-mention-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.08s ease;
+}
+
+.at-mention-item:hover,
+.at-mention-item.highlighted {
+  background: #04395e;
+}
+
+.at-mention-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--cp-text-muted);
+}
+
+.at-mention-item.highlighted .at-mention-item-icon {
+  color: var(--cp-text-secondary);
+}
+
+.at-mention-item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.at-mention-item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cp-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.at-mention-item-path {
+  font-size: 11px;
+  color: var(--cp-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.at-mention-item-meta {
+  font-size: 11px;
+  color: var(--cp-text-muted);
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+/* Navigable folder caret */
+.at-mention-item-caret {
+  margin-left: auto;
+  color: var(--cp-text-muted);
+  flex-shrink: 0;
+  transition: color 0.1s ease;
+}
+
+.at-mention-item:hover .at-mention-item-caret {
+  color: var(--cp-text-primary);
+}
+
+.at-mention-item.is-navigable {
+  cursor: pointer;
+}
+
+.at-mention-item.is-navigable:hover .at-mention-item-icon {
+  color: #75beff;
+}
+
+/* Breadcrumb navigation */
+.at-mention-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.at-mention-breadcrumb::-webkit-scrollbar {
+  display: none;
+}
+
+.at-mention-breadcrumb-segment {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.at-mention-breadcrumb-sep {
+  color: var(--cp-text-muted);
+  font-size: 10px;
+  margin: 0 1px;
+}
+
+.at-mention-breadcrumb-btn {
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--cp-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: all 0.1s ease;
+}
+
+.at-mention-breadcrumb-btn:hover {
+  background: var(--cp-bg-hover);
+  color: var(--cp-text-primary);
+}
+
+.at-mention-breadcrumb-btn:last-child {
+  color: var(--cp-text-primary);
+  font-weight: 500;
+}
+
+/* ========================================
+   SIDEBAR VIEW TOGGLE
+   For switching between Conversations and Files
+   ======================================== */
+
+.sidebar-view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--cp-border-default);
+  background: var(--cp-bg-tertiary);
+}
+
+.sidebar-view-toggle button {
+  flex: 1;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--cp-border-default);
+  color: var(--cp-text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sidebar-view-toggle button:hover {
+  background: var(--cp-bg-hover);
+  color: var(--cp-text-secondary);
+}
+
+.sidebar-view-toggle button.active {
+  background: var(--cp-bg-hover);
+  color: var(--cp-text-primary);
+  border-color: #04395e;
+}
+
+/* File explorer in sidebar styling */
+.sidebar-file-explorer {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+}
+
+.sidebar-file-explorer .file-tree-node {
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.sidebar-file-explorer .file-tree-node:hover {
+  background: var(--cp-bg-hover);
+}
+
+/* ========================================
+   GLOBAL THEME INTEGRATION
+   Bridges copilot variables to global theme system
+   ======================================== */
+
+/* Kuroryuu Theme - Pure black with warm cream text */
+[data-theme="kuroryuu"] .copilot-panel {
+  --cp-bg-primary: var(--background);
+  --cp-bg-secondary: var(--card);
+  --cp-bg-tertiary: var(--secondary);
+  --cp-bg-input: var(--input);
+  --cp-bg-hover: var(--muted);
+  --cp-bg-active: var(--muted);
+  --cp-text-primary: var(--foreground);
+  --cp-text-secondary: var(--muted-foreground);
+  --cp-text-muted: var(--muted-foreground);
+  --cp-text-bright: var(--foreground);
+  --cp-border-default: var(--border);
+  --cp-border-light: var(--border);
+  --cp-msg-user-bg: var(--secondary);
+  --cp-file-bg: var(--secondary);
+  --cp-file-hover: var(--muted);
+  --cp-file-border: var(--border);
+}
+
+/* Other dark themes - connect to global variables */
+[data-theme="oscura-midnight"] .copilot-panel,
+[data-theme="dusk"] .copilot-panel,
+[data-theme="lime"] .copilot-panel,
+[data-theme="ocean"] .copilot-panel,
+[data-theme="retro"] .copilot-panel,
+[data-theme="neo"] .copilot-panel,
+[data-theme="forest"] .copilot-panel,
+[data-theme="matrix"] .copilot-panel,
+[data-theme="grunge"] .copilot-panel {
+  --cp-bg-primary: var(--background);
+  --cp-bg-secondary: var(--card);
+  --cp-bg-tertiary: var(--secondary);
+  --cp-bg-input: var(--input);
+  --cp-bg-hover: var(--muted);
+  --cp-bg-active: var(--muted);
+  --cp-text-primary: var(--foreground);
+  --cp-text-secondary: var(--muted-foreground);
+  --cp-text-muted: var(--muted-foreground);
+  --cp-text-bright: var(--foreground);
+  --cp-border-default: var(--border);
+  --cp-border-light: var(--border);
+  --cp-msg-user-bg: var(--secondary);
+  --cp-file-bg: var(--secondary);
+  --cp-file-hover: var(--muted);
+  --cp-file-border: var(--border);
+}
+
+/* Kuroryuu-specific enhancements - golden glow effects */
+[data-theme="kuroryuu"] .copilot-panel .cp-input-container:focus-within {
+  border-color: var(--cp-accent-gold);
+  box-shadow: 0 0 10px var(--cp-accent-gold-dim);
+}
+
+[data-theme="kuroryuu"] .copilot-panel .cp-avatar-ai {
+  box-shadow: 0 0 8px var(--cp-accent-gold-glow);
+}
+
+[data-theme="kuroryuu"] .copilot-panel .cp-streaming-dot {
+  box-shadow: 0 0 6px var(--cp-accent-gold-glow);
+}

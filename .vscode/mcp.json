@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "kuroryuu_mcp": {
+      "type": "http",
+      "url": "http://127.0.0.1:8100/mcp",
+      "description": "Kuroryuu MCP_CORE - RAG, Inbox, Checkpoints, Hooks (run apps/mcp_core/run.ps1 first)"
+    }
+  },
+  "inputs": []
+}

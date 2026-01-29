@@ -1,0 +1,433 @@
+# Tasks
+
+## Backlog
+- [ ] T454: Optimize API Endpoints @@agent
+
+## Active - PRD Tab Restoration
+- [ ] T473: Phase 1.1 - Create types/prd.ts (PRD, PRDConfig, PRDSession types) @agent
+- [ ] T474: Phase 1.2 - Create stores/prd-store.ts (clone ideation-store structure) @agent
+- [ ] T475: Phase 1.3 - Add gatewayClient.generate.prd() method @agent
+- [ ] T476: Phase 1.4 - Create prd/prompts.py with prompt building logic @agent
+- [ ] T477: Phase 1.5 - Modify prd/router.py to add /generate endpoint @agent
+- [ ] T478: Phase 2.1 - Create PRDCard.tsx with blue theme @agent
+- [ ] T479: Phase 2.2 - Create PRDEmptyState.tsx @agent
+- [ ] T480: Phase 2.3 - Create PRDGenerateDialog.tsx with form @agent
+- [ ] T481: Phase 2.4 - Create PRDGenerationProgress.tsx @agent
+- [ ] T482: Phase 2.5 - Create PRDList.tsx orchestrator @agent
+- [ ] T483: Phase 3.1 - Create PRDDetailPanel.tsx side panel @agent
+- [ ] T484: Phase 3.2 - Implement markdown rendering for PRD content @agent
+- [ ] T485: Phase 3.3 - Add status management (draft → in_review → approved) @agent
+- [ ] T486: Phase 3.4 - Add Execute with Formula button @agent
+- [ ] T487: Phase 4.1 - Add PRD tab to Dojo.tsx @agent
+- [ ] T488: Phase 4.2 - Implement executePRDWithFormula() bridging function @agent
+- [ ] T489: Phase 4.3 - Test PRD → Formula → Tasks flow @agent
+- [ ] T490: Phase 4.4 - Add session management (save/load/export) @agent
+- [ ] T491: Phase 5.1 - Add loading states and error handling @agent
+- [ ] T492: Phase 5.2 - Add LMStudioStatus banner check @agent
+- [ ] T493: Phase 5.3 - Implement session export (markdown/JSON) @agent
+- [ ] T494: Phase 5.4 - Test all edge cases @agent
+
+## Active
+- [~] T413: Test Discovery Component  **DEFERRED** @agent
+- [~] T414: Test Runner Integration  **DEFERRED** @agent
+- [~] T415: Test Results Display  **DEFERRED** @agent
+- [~] T453: Remove broken auto-precompact save from PreCompact hook - never worked, clutters checkpoints @agent
+
+## Delayed
+- [~] T164: Coming soon integrations - Scoped down to Google OAuth only, deferred  **DEFERRED** @agent
+- [~] T369: [LOW] Terminal.tsx - containerRef stable ref; correct pattern  **DEFERRED** @agent
+- [~] T370: [LOW] TerminalGrid.tsx - WebSocket resubscription intentional  **DEFERRED** @agent
+- [~] T034: Standardize prompt naming convention to {role}_{action}.md  **SKIPPED** - keeping mixed conventions @agent
+- [~] T036: Create leader_create_prd.md  **SKIPPED** - PRD is one-time north star, use create-prd.md directly @agent
+- [~] T068: Create DAG view showing dependencies  **DEFERRED** - visual nice-to-have @agent
+- [~] T069: Create TOML preview panel (live sync)  **DEFERRED** - visual nice-to-have @agent
+- [~] T162: Add Google OAuth provider  **DEFERRED** - narrowed from 4 providers to Google only @agent
+- [~] T210: Remove old Context, Roadmap, Ideation components  **DEFERRED** - pending Dojo stabilization @agent
+- [~] T023: README polish @human
+- [~] T024: Demo video recording @human
+
+## Done
+- [x] T469: Fix preload/index.ts - Added IpcRendererEvent import **DONE** @agent
+- [x] T470: Fix CommitDetails.tsx - Added type guard for files, String() wrapper for message **DONE** @agent
+- [x] T471: Fix code-editor-store.ts - Added statusResult.files check **DONE** @agent
+- [x] T472: Fix repository-store.ts - Transform API responses to Commit/CommitDetails types, added mapGitStatus helper **DONE** @agent (Worker 1)
+- [x] T468: Fix terminal display bug - Worker role explicit (3 locations), per-terminal startup verification, filter dead PTYs **DONE** @agent
+- [x] T455: Fix cli-launcher.ts TS errors - Added 'claude' to CliProvider/CLITool types **DONE** @agent
+- [x] T456: Fix CodeEditorApp.tsx TS errors - Added IPC result typing + async file read for openFile **DONE** @agent
+- [x] T457: Fix DependenciesPanel.tsx TS errors - Added IPC result typing **DONE** @agent
+- [x] T458: Fix EditorTabs.tsx TS error - Cast fs type for showInExplorer **DONE** @agent
+- [x] T459: Fix ImportGraphPanel.tsx TS errors - Added IPC result typing + useNodesState/useEdgesState generics **DONE** @agent
+- [x] T460: Fix ReferencesPanel.tsx TS errors - Added IPC result typing **DONE** @agent
+- [x] T461: Fix SymbolOutlinePanel.tsx TS errors - Added IPC result typing + wrapped Lucide icon for title **DONE** @agent
+- [x] T462: Fix TodosPanel.tsx TS errors - Added IPC result typing **DONE** @agent
+- [x] T463: Fix worktrees-store.ts TS error - Fixed branchName optional passing **DONE** @agent
+- [x] T405: Tool Call Visualization  **DONE** @agent
+- [x] T406: Inline Code Suggestions  **DONE** @agent
+- [x] T407: Chat History Persistence  **DONE** @agent
+- [x] T408: Context Selection Enhancement  **DONE** @agent
+- [x] T409: Git Staging Component  **DONE** - Already in ChangedFilesSidebar.tsx @agent
+- [x] T410: Commit Interface  **DONE** - Amend checkbox, conventional commit dropdown @agent
+- [x] T411: Git IPC Integration  **DONE** - log/show/stash/checkout/branches/pull/push handlers @agent
+- [x] T412: Branch Switcher  **DONE** - BranchSwitcher.tsx with dropdown, create/delete/pull/push @agent
+- [x] T416: TODO Scanner Integration  **DONE** @agent
+- [x] T417: TODO Filters and Search  **DONE** @agent
+- [x] T418: Dependency Viewer  **DONE** @agent
+- [x] T419: Import Graph Visualization  **DONE** @agent
+- [x] T420: Symbol Outline Panel  **DONE** @agent
+- [x] T421: Go to Definition  **DONE** @agent
+- [x] T422: Find References  **DONE** @agent
+- [x] T424: Code Folding  **DONE** @agent
+- [x] T425: Minimap  **DONE** @agent
+- [x] T403: Streaming Responses (SSE) - Fetch with ReadableStream, streamingContent state, AbortController cancellation, StreamingMessageBubble with typing cursor, Esc to stop **DONE** @agent
+- [x] T404: Voice Input Integration - Mic button, MediaRecorder, Whisper transcription, pulsing indicator, error handling **DONE** @agent
+- [x] T402: Keyboard Shortcuts - Ctrl+Shift+A toggle panel, Ctrl+L clear, Up Arrow recall, Ctrl+/ context toggle **DONE** @agent
+- [x] T401: Full Markdown Rendering - Created MarkdownRenderer.tsx with react-markdown + remark-gfm, supports GFM tables/lists/code/blockquotes/task lists **DONE** @agent
+- [x] T400: Panel Resize Functionality - Added ResizeHandle component with drag handler, cursor feedback, visual indicator; min/max 280-600px persisted to store **DONE** @agent
+- [x] T217: Replace gateway print() with proper logging - Created logging_config.py, converted 52 core backend print statements to logging **DONE** @agent
+- [x] T261: [CRITICAL] pty_registry.py - Relative import fails as script (lines 347,355,371,415)  **DONE** @agent
+- [x] T262: [CRITICAL] pty_manager.py - Relative import fails as script (lines 611,627,643)  **DONE** @agent
+- [x] T263: [CRITICAL] pty_manager.py:265-269 - _background_reader() now has proper exception handling with logging **DONE** @agent
+- [x] T388: [CRITICAL] Desktop navigation kills daemon PTY sessions - skull button reset now clears MCP Core registry with retry logic **DONE** @agent
+- [x] T264: [CRITICAL] pty_manager.py:553-555 - kill() now waits for reader thread before deleting session **DONE** @agent
+- [x] T265: [CRITICAL] persistence.ts - Added path traversal protection with sanitizeTerminalId() **DONE** @agent
+- [x] T266: [CRITICAL] startup.log - Import error resolved by T261/T262 relative import fixes **DONE** @agent
+- [x] T267: [CRITICAL] daemon-client.ts - Added connectPromise to prevent double connection race **DONE** @agent
+- [x] T268: [CRITICAL] daemon-client.ts - Added MAX_BUFFER_SIZE (1MB) limit to prevent memory growth **DONE** @agent
+- [x] T269: [CRITICAL] manager.ts - Added sanitizeCommandName() to prevent command injection in execSync **DONE** @agent
+- [x] T270: [CRITICAL] manager.ts - Added dangerous command check in create() function **DONE** @agent
+- [x] T271: [CRITICAL] manager.ts - execSync is fast (where checks) and has timeout; low risk **ACKNOWLEDGED** @agent
+- [x] T272: [CRITICAL] manager.ts - Added maxBufferSize (512KB) to prevent unbounded buffer growth **DONE** @agent
+- [x] T273: [HIGH] pywinpty installed in .venv_mcp312 **DONE** @agent
+- [x] T274: [HIGH] pty_registry.py:370-410 - restore_from_disk() catches ALL exceptions - Now re-raises unexpected exceptions **DONE** @agent
+- [x] T275: [HIGH] pty_persistence.py:345-347 - log_session_event() silent pass - Now logs warning **DONE** @agent
+- [x] T276: [HIGH] pty_manager.py:225-226 - spawn() reader thread race - Session now added to dict BEFORE reader starts **DONE** @agent
+- [x] T277: [HIGH] pty_manager.py:633-658 - save_all_buffers() blocking I/O - Now snapshots under lock, I/O outside **DONE** @agent
+- [x] T278: [HIGH] pty_persistence.py:364-378 - schedule_save() iteration safety - Uses snapshot pattern **DONE** @agent
+- [x] T279: [HIGH] pty_persistence.py:380-398 - schedule_buffer_save() - Uses snapshot pattern **DONE** @agent
+- [x] T280: [HIGH] pty_persistence.py:426-432 - save_now() - Uses snapshot pattern **DONE** @agent
+- [x] T281: [HIGH] tools_pty.py:329-354 - _desktop_talk() - Added async version _desktop_talk_async() **DONE** @agent
+- [x] T282: [HIGH] tools_pty.py:357-376 - _desktop_write() - Added async version _desktop_write_async() **DONE** @agent
+- [x] T283: [HIGH] tools_pty.py:379-398 - _desktop_read() - Added async version _desktop_read_async() **DONE** @agent
+- [x] T284: [HIGH] tools_pty.py:401-461 - _desktop_term_read() - Added async version _desktop_term_read_async() **DONE** @agent
+- [x] T285: [HIGH] tools_pty.py:151-155 - _query_gateway_leader() - Converted to httpx, added async version **DONE** @agent
+- [x] T286: [HIGH] tools_pty.py:183-198 - _query_desktop_leader() - Converted to httpx, added async version **DONE** @agent
+- [x] T287: [HIGH] server.py:330-365 - pty_register() - Added Desktop secret authentication **DONE** @agent
+- [x] T288: [HIGH] server.py:368-379 - pty_unregister() - Added Desktop secret authentication **DONE** @agent
+- [x] T289: [HIGH] pty_registry.py:127-165 - register() - Already has rollback on persist failure (lines 162-169) **VERIFIED** @agent
+- [x] T290: [HIGH] pty_registry.py:193-198 - unregister() - Already has rollback on persist failure (lines 198-211) **VERIFIED** @agent
+- [x] T291: [HIGH] pty_manager.py:198-213 - spawn() process orphaned on exception - Added cleanup in except block **DONE** @agent
+- [x] T292: [HIGH] TerminalGrid.tsx:1331-1343 - Audio recording resources - Added useEffect cleanup on unmount **DONE** @agent
+- [x] T293: [HIGH] terminal-buffer-utils.ts:43-61 - Marker registry - Added auto-cleanup, removeMarker(), clearAllMarkers() **DONE** @agent
+- [x] T294: [HIGH] daemon-client.ts - No file ops (TCP socket client); Electron uses requestSingleInstanceLock **VERIFIED** @agent
+- [x] T295: [HIGH] daemon-spawner.ts - Added spawnInProgress guard to prevent concurrent spawn attempts **DONE** @agent
+- [x] T296: [HIGH] manager.ts - Already has sanitizeCommandName, dangerous cmd check, maxBufferSize (T269,T270,T272) **VERIFIED** @agent
+- [x] T297: [HIGH] persistence.ts - Uses atomic writes (temp+rename), Electron single-instance lock prevents multi-instance **VERIFIED** @agent
+- [x] T298: [MEDIUM] tools_pty.py:154-155 - _query_gateway_leader() - Converted to httpx with specific exceptions **DONE** @agent
+- [x] T299: [MEDIUM] tools_pty.py:199-201 - _query_desktop_leader() - Converted to httpx with specific exceptions **DONE** @agent
+- [x] T300: [MEDIUM] tools_pty.py:455 - _desktop_term_read() - Now uses specific httpx exceptions **DONE** @agent
+- [x] T301: [MEDIUM] pty_registry.py - Persist failure logged; registry continues **ACKNOWLEDGED** @agent
+- [x] T302: [MEDIUM] pty_registry.py - Debug logging for scheduled persist is appropriate **ACKNOWLEDGED** @agent
+- [x] T303: [MEDIUM] pty_manager.py - Generic except logs+cleans up; process orphan fixed **ACKNOWLEDGED** @agent
+- [x] T304: [MEDIUM] pty_manager.py - Import in function avoids circular; works **ACKNOWLEDGED** @agent
+- [x] T305: [MEDIUM] pty_persistence.py - Log event non-critical; warn is appropriate **ACKNOWLEDGED** @agent
+- [x] T306: [MEDIUM] pty_registry.py - Lock during I/O ensures consistency **ACKNOWLEDGED** @agent
+- [x] T307: [MEDIUM] pty_registry.py - Same as T306; consistency matters **ACKNOWLEDGED** @agent
+- [x] T308: [MEDIUM] pty_registry.py - Iteration requires lock for thread safety **ACKNOWLEDGED** @agent
+- [x] T309: [MEDIUM] pty_manager.py - Snapshot prevents mutation during iteration **ACKNOWLEDGED** @agent
+- [x] T310: [MEDIUM] server.py - httpx client reused via globals; per-request is optional **ACKNOWLEDGED** @agent
+- [x] T311: [MEDIUM] server.py - Sync in async is fast registry lookup; blocking minimal **ACKNOWLEDGED** @agent
+- [x] T312: [MEDIUM] server.py - MCP protocol.handle_request is sync by design **ACKNOWLEDGED** @agent
+- [x] T313: [MEDIUM] server.py - Desktop secret registration is one-time per app launch **ACKNOWLEDGED** @agent
+- [x] T314: [MEDIUM] server.py - agent_id from trusted leader process **ACKNOWLEDGED** @agent
+- [x] T315: [MEDIUM] server.py - list_registered_leaders is read-only; no auth needed **ACKNOWLEDGED** @agent
+- [x] T316: [MEDIUM] server.py - heartbeat session_id validation at registry level **ACKNOWLEDGED** @agent
+- [x] T317: [MEDIUM] server.py - heartbeat body validation minimal; trusted source **ACKNOWLEDGED** @agent
+- [x] T318: [MEDIUM] pty_registry.py - restore validates via get() with defaults **ACKNOWLEDGED** @agent
+- [x] T319: [MEDIUM] pty_persistence.py - os.replace works on Windows; temp+rename is atomic **ACKNOWLEDGED** @agent
+- [x] T320: [MEDIUM] pty_persistence.py - Schema mismatch logs warning; fresh start acceptable **ACKNOWLEDGED** @agent
+- [x] T321: [MEDIUM] pty_manager.py - Import inside function to avoid circular; common pattern **ACKNOWLEDGED** @agent
+- [x] T322: [MEDIUM] server.py - sys.path manipulation is standard MCP pattern **ACKNOWLEDGED** @agent
+- [x] T323: [MEDIUM] pty_manager.py - Reader thread tracked; waits in kill() per T264 fix **ACKNOWLEDGED** @agent
+- [x] T324: [MEDIUM] pty_manager.py - Session removed in finally; terminate exception logged **ACKNOWLEDGED** @agent
+- [x] T325: [MEDIUM] pty_manager.py - Reader exits when process.read returns empty **ACKNOWLEDGED** @agent
+- [x] T326: [MEDIUM] tools_pty.py - httpx.post auto-closes; context manager optional **ACKNOWLEDGED** @agent
+- [x] T327: [MEDIUM] pty_manager.py - Different lock order prevents deadlock **ACKNOWLEDGED** @agent
+- [x] T328: [MEDIUM] pty_manager.py - Snapshot pattern per T277 fix prevents deadlock **ACKNOWLEDGED** @agent
+- [x] T329: [MEDIUM] pty_persistence.py - Double lock is safe; same thread can acquire **ACKNOWLEDGED** @agent
+- [x] T330: [MEDIUM] tools_pty.py - cols/rows bounded by terminal implementation **ACKNOWLEDGED** @agent
+- [x] T331: [MEDIUM] tools_pty.py - Large data handled by PTY; no practical limit needed **ACKNOWLEDGED** @agent
+- [x] T332: [MEDIUM] tools_pty.py - Command length bounded by shell **ACKNOWLEDGED** @agent
+- [x] T333: [MEDIUM] pty_registry.py - session_id from internal code; trusted source **ACKNOWLEDGED** @agent
+- [x] T334: [MEDIUM] server.py - pid=0 is valid sentinel for unknown PID **ACKNOWLEDGED** @agent
+- [x] T335: [MEDIUM] server.py - Empty session_id rejected by registry; validation at layer below **ACKNOWLEDGED** @agent
+- [x] T336: [MEDIUM] tools_pty.py - send_line returns write result; ok:true means write succeeded **ACKNOWLEDGED** @agent
+- [x] T337: [MEDIUM] tools_pty.py - TERM_BUFFER_ACCESS intentionally permissive for leader **ACKNOWLEDGED** @agent
+- [x] T338: [MEDIUM] TerminalGrid.tsx - MediaRecorder cleanup via stopRecording **ACKNOWLEDGED** @agent
+- [x] T339: [MEDIUM] usePtyProcess.ts - Double finally safe; both set same flag **ACKNOWLEDGED** @agent
+- [x] T340: [MEDIUM] TerminalGrid.tsx - Async ops complete quickly **ACKNOWLEDGED** @agent
+- [x] T341: [MEDIUM] useTerminalEvents.ts - IPC per terminal is correct isolation **ACKNOWLEDGED** @agent
+- [x] T342: [MEDIUM] TerminalGrid.tsx - Terminal has internal error state **ACKNOWLEDGED** @agent
+- [x] T343: [MEDIUM] Terminal.tsx - Buffer bounded by daemon 100KB limit **ACKNOWLEDGED** @agent
+- [x] T344: [MEDIUM] Terminal.tsx - Added 50ms debounce to ResizeObserver **DONE** @agent
+- [x] T345: [LOW] tools_pty.py - HTTPError returns None; safe fallback **ACKNOWLEDGED** @agent
+- [x] T346: [LOW] tools_pty.py - env var get returns empty string if unset; safe **ACKNOWLEDGED** @agent
+- [x] T347: [LOW] tools_pty.py - TERM_BUFFER_ACCESS module-level var; works **ACKNOWLEDGED** @agent
+- [x] T348: [LOW] startup.log -  works; lifespan migration optional **ACKNOWLEDGED** @app.on_event
+- [x] T349: [LOW] pty_persistence.py - Re-raise lets caller log at appropriate level **ACKNOWLEDGED** @agent
+- [x] T350: [LOW] server.py - IP logging useful for remote gateway; local is trusted **ACKNOWLEDGED** @agent
+- [x] T351: [LOW] tools_pty.py - Command block is defense-in-depth; edge cases acceptable **ACKNOWLEDGED** @agent
+- [x] T352: [LOW] tools_pty.py - Plain text check covers common attacks **ACKNOWLEDGED** @agent
+- [x] T353: [LOW] pty_registry.py - elif prevents duplicates **ACKNOWLEDGED** @agent
+- [x] T354: [LOW] pty_persistence.py - Partial rmtree logged; graceful **ACKNOWLEDGED** @agent
+- [x] T355: [LOW] tools_pty.py - Import style cosmetic **ACKNOWLEDGED** @agent
+- [x] T356: [LOW] server.py - PATTERNS_PATH is public config **ACKNOWLEDGED** @agent
+- [x] T357: [LOW] pty_persistence.py - File ops appropriate for each case **ACKNOWLEDGED** @agent
+- [x] T358: [LOW] pty_persistence.py - Temp file handled by OS **ACKNOWLEDGED** @agent
+- [x] T359: [LOW] pty_persistence.py - Timer race handled by save_now **ACKNOWLEDGED** @agent
+- [x] T360: [LOW] tools_pty.py - Empty strings return NOT_FOUND **ACKNOWLEDGED** @agent
+- [x] T361: [LOW] pty_registry.py - cli_type internal use only **ACKNOWLEDGED** @agent
+- [x] T362: [LOW] pty_registry.py - pid from OS; trusted **ACKNOWLEDGED** @agent
+- [x] T363: [LOW] tools_pty.py - send_line_to_agent returns resolve error; propagation exists **ACKNOWLEDGED** @agent
+- [x] T364: [LOW] pty_registry.py - resolve() ANY-match is intentional for flexible lookup **ACKNOWLEDGED** @agent
+- [x] T365: [LOW] pty_manager.py - 100KB buffer configurable via KURORYUU_PTY_BUFFER_SIZE env **ACKNOWLEDGED** @agent
+- [x] T366: [LOW] pty_persistence.py - 100KB truncation prevents huge checkpoints; tail preserved **ACKNOWLEDGED** @agent
+- [x] T367: [LOW] Throughout - Error messages sanitization is security best practice; audit when needed **ACKNOWLEDGED** @agent
+- [x] T368: [LOW] TerminalGrid.tsx:516-638 - Persistence race setTimeout(0) fragile - Fixed with isHydrated gate  **DONE** @agent
+- [x] T371: [LOW] TerminalGrid.tsx - Fire-and-forget pty.kill appropriate for UI responsiveness; PTY cleaned up elsewhere **ACKNOWLEDGED** @agent
+- [x] T372: [LOW] TerminalGrid.tsx - 6 useState hooks is readable; useReducer adds complexity for small state **ACKNOWLEDGED** @agent
+- [x] T373: [LOW] TerminalGrid.tsx - handleTerminalReady gracefully handles removed terminal (map finds nothing) **ACKNOWLEDGED** @agent
+- [x] T374: [LOW] TerminalGrid.tsx - Buffer mode from trusted IPC; TypeScript enforces type at compile time **ACKNOWLEDGED** @agent
+- [x] T375: [LOW] TerminalGrid.tsx - Stale closure already addressed via refs (isRecordingRef, analyserRef, silenceStartRef) **ACKNOWLEDGED** @agent
+- [x] T376: [LOW] Terminal.tsx - WebLinks/Unicode11/Search addons are nice-to-have enhancements **ACKNOWLEDGED** @agent
+- [x] T377: [LOW] usePtyProcess.ts - Has subscribe→create fallback; auto-retry could mask failures **ACKNOWLEDGED** @agent
+- [x] T378: [LOW] Terminal.tsx - Triple init is defensive pattern for lazy containers; has proper cleanup **ACKNOWLEDGED** @agent
+- [x] T379: [LOW] Multiple files - Console.log statements aid debugging; stripping requires build pipeline change **ACKNOWLEDGED** @agent
+- [x] T380: [LOW] TerminalGrid.tsx - localStorage for worker_id works correctly; electron-store migration LOW priority **ACKNOWLEDGED** @agent
+- [x] T381: [LOW] Multiple files - Magic numbers documented inline where they appear; extraction LOW priority **ACKNOWLEDGED** @agent
+- [x] T382: [LOW] types.ts - Runtime validation overkill for internal types; TypeScript sufficient **ACKNOWLEDGED** @agent
+- [x] T383: [LOW] types.ts - manager.ts applies sensible defaults via ?? operator **ACKNOWLEDGED** @agent
+- [x] T384: [LOW] persistence.ts - Debounce timer cleared by before-quit/will-quit handlers **ACKNOWLEDGED** @agent
+- [x] T385: [LOW] persistence.ts - Singleton init protected by try/catch, event handlers registered synchronously **ACKNOWLEDGED** @agent
+- [x] T386: [LOW] persistence.ts - cleanupOrphanedBuffers now logs warnings instead of swallowing errors **DONE** @agent
+- [x] T387: [LOW] persistence.ts - Added ptyIdToTermSessionIndex for O(1) duplicate detection **DONE** @agent
+- [x] T161: Gateway deregister/restart agent - deregisterAgent() in TerminalGrid.tsx @agent
+- [x] T202: Sidebar.tsx PLAN/BUILD/MONITOR/SHIP reorganization @agent
+- [x] T203: Dojo.tsx - Unified feature planning (Roadmap + Ideation merged) @agent
+- [x] T204: dojo-store.ts - Combined state for formula generation + kanban @agent
+- [x] T208: Command Center Tools tab - MCPOverview with AgentsTab/ToolsTab/ServersTab @agent
+- [x] T209: MemoryPanel ReactFlow graph - Graphiti node/edge visualization @agent
+- [x] T212: traffic/websocket.py - Subscribe filter handling @agent
+- [x] T213: traffic/websocket.py - Unsubscribe handling @agent
+- [x] T214: agent_runner.py - SSE streaming responses @agent
+- [x] T215: agent_runner.py - Work item processing from inbox @agent
+- [x] T218: Empty catch blocks audit - None found (all have handling) @agent
+- [x] T219: Hackathon-prd elevated as first-class Dojo workflow @agent
+- [x] T220: "Start Feature" button in Dojo - triggers hackathon-prd @agent
+- [x] T221: Formula steps visual in Dojo (PRD → Plan → Execute → Verify phases) @agent
+- [x] T205: Create Transcripts.tsx - Browse ai/exports/ with date grouping @agent
+- [x] T206: Create transcripts-store.ts - Load index.json, k_rag search integration @agent
+- [x] T207: Implement CapturePanel.tsx - Human SOTS control (start/stop recording) @agent
+- [x] T216: Remove debug console.logs from TerminalGrid, agent-config-store, traffic-store, DAGView @agent
+- [x] T227: Fix voice-input/__tests__/voice-input.test.ts (11 errors) - Test @agent
+- [x] T228: Fix main/index.ts (9 errors) - Main @agent
+- [x] T229: Fix WorkerSetupWizard.tsx (6 errors) - Renderer @agent
+- [x] T230: Fix pty/sentinel.ts (6 errors) - Main/PTY @agent
+- [x] T231: Fix traffic/nodes/MCPToolNode.tsx (5 errors) - Renderer @agent
+- [x] T232: Fix tts/module.ts (4 errors) - Main/Feature @agent
+- [x] T233: Fix traffic/edges/TrafficEdge.tsx (3 errors) - Renderer @agent
+- [x] T234: Fix settings/AppSettingsDialog.tsx (3 errors) - Renderer @agent
+- [x] T235: Fix DAGView.tsx (3 errors) - Renderer @agent
+- [x] T236: Fix graphiti-service.ts (3 errors) - Main/Integration @agent
+- [x] T237: Fix lifecycle.ts (3 errors) - Main/Feature @agent
+- [x] T238: Fix voice-input/__tests__/voice-input.property.test.ts (3 errors) - Test @agent
+- [x] T239: Fix useFeatureSettings.ts (2 errors) - Renderer/Hooks @agent
+- [x] T240: Fix traffic/TrafficFlowPanel.tsx (2 errors) - Renderer @agent
+- [x] T241: Fix pty/bridge.ts (2 errors) - Main/PTY @agent
+- [x] T242: Fix tts/__tests__/tts.events.test.ts (2 errors) - Test @agent
+- [x] T243: Fix capture/__tests__/capture.events.test.ts (2 errors) - Test @agent
+- [x] T244: Fix ideation-store.ts (1 error) - Renderer/Store @agent
+- [x] T245: Fix WelcomeScreen.tsx (1 error) - Renderer @agent
+- [x] T246: Fix ThinkerWizard.tsx (1 error) - Renderer @agent
+- [x] T247: Fix Terminal.tsx (1 error) - Renderer @agent
+- [x] T248: Fix TaskWizard.tsx (1 error) - Renderer @agent
+- [x] T249: Fix TaskFiles.tsx (1 error) - Renderer @agent
+- [x] T250: Fix TaskActions.tsx (1 error) - Renderer @agent
+- [x] T251: Fix StatusBar.tsx (1 error) - Renderer @agent
+- [x] T252: Fix Roadmap.tsx (1 error) - Renderer @agent
+- [x] T253: Fix OrchestrationPanel.tsx (1 error) - Renderer @agent
+- [x] T254: Fix KanbanBoard.tsx (1 error) - Renderer @agent
+- [x] T255: Fix effects/MatrixRain.tsx (1 error) - Renderer @agent
+- [x] T256: Fix AgentSetupWizard.tsx (1 error) - Renderer @agent
+- [x] T257: Fix ipc/voice-input-handlers.ts (1 error) - Main/IPC @agent
+- [x] T258: Fix config-manager.ts (1 error) - Main/Feature @agent
+- [x] T259: Fix __tests__/integration.test.ts (1 error) - Test @agent
+- [x] T260: Fix __tests__/feature-manager.test.ts (1 error) - Test @agent
+- [x] T222: Fix capture/module.ts (24 errors) - Main/Feature @agent
+- [x] T223: Fix voice-input/module.ts (21 errors) - Main/Feature @agent
+- [x] T224: Fix harness.ts (21 errors) - Main/Feature @agent
+- [x] T226: Fix voice-input/__tests__/voice-input.events.test.ts (14 errors) - Test @agent
+- [x] T154: Replace mockMcpServers and mockAgents in AgentTools.tsx with real gateway data @agent
+- [x] T155: Replace mockSessions in TerminalGrid.tsx with real session history from backend @agent
+- [x] T156: Replace Rate Limit Indicator with Tray Companion launch button @agent
+- [x] T157: Implement loadSessions/saveSessions in insights-store.ts for disk persistence @agent
+- [x] T158: Wire up task creation in ideation-store.ts to task-store @agent
+- [x] T159: Implement Electron IPC in changelog-store.ts @agent
+- [x] T160: Implement 'Create task from feature' in Roadmap.tsx @agent
+- [x] T165: Replace simple markdown parsing in Insights.tsx with react-markdown @agent
+- [x] T166: Add toast notifications in Ideation.tsx @agent
+- [x] T168: Replace alert() calls with proper toast/modal UI in CanvasPanel.tsx @agent
+- [x] T169: Replace alert() calls with proper toast/modal UI in IntegrationsDialog.tsx @agent
+- [x] T170: Replace alert() calls with proper toast/modal UI in CapturePanel.tsx @agent
+- [x] T211: traffic/websocket.py - Implement ping/pong keep-alive @agent
+- [x] T171: Create TypeScript types for traffic events (traffic.ts) @agent
+- [x] T172: Create Zustand traffic store (traffic-store.ts) @agent
+- [x] T173: Create WebSocket hook (useTrafficFlow.ts) @agent
+- [x] T174: Create TrafficFlowPanel main component with ReactFlow @agent
+- [x] T175: Create GatewayNode, EndpointNode, MCPToolNode components @agent
+- [x] T176: Create TrafficEdge with animated particles @agent
+- [x] T177: Create MatrixParticles background effect @agent
+- [x] T178: Create TrafficFlowControls component @agent
+- [x] T179: Create TrafficStatsPanel component @agent
+- [x] T180: Create cyberpunk CSS styling (traffic-flow.css) @agent
+- [x] T181: Add navigation item to Sidebar @agent
+- [x] T182: Add route to App.tsx @agent
+- [x] T183: Backend: Create traffic middleware.py with event broadcasting @agent
+- [x] T184: Backend: Create traffic websocket.py with connection management @agent
+- [x] T185: Backend: Create traffic tracker.py with statistics @agent
+- [x] T186: Backend: Create traffic router.py REST endpoints @agent
+- [x] T187: Backend: Integrate middleware/routes in server.py @agent
+- [x] T188: Backend: Implement real-time event broadcasting (middleware → websocket → clients) @agent
+- [x] T189: Create apps/mcp_core/embeddings.py - LocalEmbedder with sentence-transformers @agent
+- [x] T190: Create apps/mcp_core/reranker.py - Cross-encoder re-ranking @agent
+- [x] T191: Create apps/mcp_core/chunker.py - Semantic code-aware chunking @agent
+- [x] T192: Update tools_rag.py - Add cosine_similarity helper and embedding support @agent
+- [x] T193: Add _action_query_semantic - Pure vector search @agent
+- [x] T194: Add _action_query_hybrid - BM25 + vector combined @agent
+- [x] T195: Add _action_query_reranked - Hybrid + cross-encoder @agent
+- [x] T196: Add _action_query_multi - Multi-query parallel search @agent
+- [x] T197: Add _action_query_reflective - Self-correcting loop @agent
+- [x] T198: Add _action_query_agentic - Auto strategy router @agent
+- [x] T199: Add _action_index_semantic - Build vector embeddings @agent
+- [x] T200: Update ACTION_HANDLERS and tool schema for new actions @agent
+- [x] T201: Test RAG strategies and benchmark improvements  (syntax verified, requires MCP restart) @agent
+- [x] T075: Route agent response to TTS via tray_companion @agent
+- [x] T076: Optimize Edge TTS startup (process pooling) @agent
+- [x] T077: Add voice response playback in terminal sidebar @agent
+- [x] T078: Add visual feedback (waveform, timing) @agent
+- [x] T079: User settings (voice speed, voice selection) @agent
+- [x] T080: Adapt voice capture to chat input @agent
+- [x] T081: Add voice reply button to agent messages @agent
+- [x] T082: Auto-generate TTS for agent responses @agent
+- [x] T153: Full Seatmap canvas implementation (TUI) - apps/canvas-cli/src/canvases/seatmap.tsx @agent
+- [x] T152: Full Calendar canvas implementation (TUI) - apps/canvas-cli/src/canvases/calendar.tsx @agent
+- [x] T151: Install  for diagram editing - Added to web + DiagramEditor component @xyflow/react
+- [x] T150: WebSocket artifact events for canvas real-time updates - 5 broadcast functions @agent
+- [x] T149: Search Priority Enforcement - 8 LAW/bootstrap files updated (k_rag → k_repo_intel → git → fallback) @agent
+- [x] T148: Canvas CLI TUI - apps/canvas-cli/ with Document/Diagram/Code canvases @agent
+- [x] T147: Claude-Canvas Integration - 6 phases complete (MCP, Gateway, Web, Desktop, CLI, k_interact) @agent
+- [x] T146: Graphiti Integration - Opt-in AI Memory with MemoryPanel + EpisodeTimeline @agent
+- [x] T145: Chrome Bridge Week 1 - Extension + Gateway browser module + k_browser MCP tool @agent
+- [x] T144: Thinker Multi-File Fix - PTY Enter key \\r\\n → \\r @agent
+- [x] T143: Unified Settings System - electron-store based persistence @agent
+- [x] T142: Theme System & Matrix - Complete overhaul + digital rain effect @agent
+- [x] T141: DAG Realtime Fixes - WebSocket broadcasts for task updates @agent
+- [x] T140: Terminal Mic Dictation - Audio recording + Whisper transcription @agent
+- [x] T139: WebSocket-Inbox Integration - Durable k_inbox storage + claim workflow @agent
+- [x] T138: All Four Features - WebSocket Push, DAG Dashboard, Specialists, Collective Intelligence @agent
+- [x] T137: Phase 0 Tier 1 Governance - Boundary enforcement + escalation ladder + audit @agent
+- [x] T136: Leader-Worker Orchestration - Multi-agent system fully proven @agent
+- [x] T074: Insert transcript into terminal input @agent
+- [x] T073: Send audio to voice_input.py via IPC @agent
+- [x] T072: Electron media capture + local WAV file @agent
+- [x] T071: Add mic button to terminal header @agent
+- [x] T116: Write onboarding worklog (Codex copilot POV) @agent
+- [x] T114: Fix `scripts/verify_mcp.py` IndentationError @agent
+- [x] T115: Fix `k_rag` ripgrep mode on Windows (max-filesize + path parsing) @agent
+- [x] T050: Create ai/formulas/prd-first-feature.toml  **DONE** @agent
+- [x] T051: Test formula validation and end-to-end workflow  **DONE** @agent
+- [x] T094: Integration tests with real PowerShell commands @agent
+- [x] T031: Copy create-prd.md, plan-feature.md from hackathon  **DONE** @agent
+- [x] T032: Create directory structure (ai/reports/, ai/reviews/, ai/steering/)  **DONE** @agent
+- [x] T033: Move 4 analysis files from ai/ root to ai/reports/  **DONE** @agent
+- [x] T035: Create leader_prime.md (rewrite from prime.md)  **DONE** @agent
+- [x] T037: Create leader_plan_feature.md (5-phase planning)  **DONE** @agent
+- [x] T038: Create leader_breakdown.md (plan to subtasks)  **DONE** @agent
+- [x] T039: Create leader_finalize.md (task completion & reports)  **DONE** @agent
+- [x] T040: Create worker_loop.md (poll-claim-execute loop)  **DONE** @agent
+- [x] T041: Create system-review.md (divergence analysis)  **DONE** @agent
+- [x] T042: Create code-review.md (code quality review)  **DONE** @agent
+- [x] T043: Enhance worker_iterate.md (full context injection)  **DONE** @agent
+- [x] T044: Enhance leader_nudge.md (iteration history analysis)  **DONE** @agent
+- [x] T045: Add plan_file, metadata fields to SubTask model  **DONE** @agent
+- [x] T046: Add prompt injection to leader.py breakdown_task()  **DONE** @agent
+- [x] T047: Add context building to worker.py start_work()  **DONE** @agent
+- [x] T048: Add promise-based escalation to router.py  **DONE** @agent
+- [x] T049: Extract hardcoded prompts from phase_config.py, single_agent.py  **DONE** @agent
+- [x] T052: Add Formula, FormulaStep, FormulaVar to models.py  **DONE** @agent
+- [x] T053: Create FormulaParser class for TOML parsing  **DONE** @agent
+- [x] T054: Add formula_id, formula_vars fields to Task model  **DONE** @agent
+- [x] T055: Add needs (blocked_by) field to SubTask model  **DONE** @agent
+- [x] T056: GET /v1/formulas - List available formulas  **DONE** @agent
+- [x] T057: GET /v1/formulas/{id} - Get formula details  **DONE** @agent
+- [x] T058: POST /v1/formulas - Create custom formula  **DONE** @agent
+- [x] T059: POST /v1/formulas/{id}/cook - Execute formula  **DONE** @agent
+- [x] T060: Modify breakdown_task() to respect needs dependencies  **DONE** @agent
+- [x] T061: Add blocking logic - BLOCKED subtasks not claimable  **DONE** @agent
+- [x] T062: On subtask completion, unblock dependents  **DONE** @agent
+- [x] T063: Inject prompt content from prompt_ref into subtask  **DONE** @agent
+- [x] T064: Add FormulaList component to Ideation panel  **DONE** @agent
+- [x] T065: Create FormulaCard component (preview with cook button)  **DONE** @agent
+- [x] T066: Create VariableDialog component (collect user inputs)  **DONE** @agent
+- [x] T067: Create FormulaEditor component with visual step editor  **DONE** @agent
+- [x] T070: Create starter formulas (hackathon-prd, add-feature, bug-investigation, refactor-module)  **DONE** @agent
+- [x] T083: Rewrite .claude/agents/kuroryuu-leader.md to match KURORYUU_LEADER.md  **DONE** @agent
+- [x] T084: Rewrite .claude/agents/kuroryuu-worker.md to match KURORYUU_WORKER.md  **DONE** @agent
+- [x] T085: Rewrite ai/prompts/README.md with full prompt catalog  **DONE** @agent
+- [x] T086: Update .agents/AGENTS.md - fix harness path, add PRD-First  **DONE** @agent
+- [x] T087: Update .claude/rules/agent-persistence.md - add PRD-First directories  **DONE** @agent
+- [x] T088: Update .kiro/prompts/ - fix output paths  **DONE** @agent
+- [x] T089: Add sentinel marker `run` method to PTY daemon  **DONE** @agent
+- [x] T090: Add leader-only gate for `run` method  **DONE** @agent
+- [x] T091: Add CRLF handling for Windows PowerShell  **DONE** @agent
+- [x] T092: Add `run` method to PTY client  **DONE** @agent
+- [x] T093: Add MCP tool wrappers (k_pty routed tool)  **DONE** @agent
+- [x] T112: PTY Desktop Integration (Phase 3) - registry, bridge, routing  **DONE** @agent
+- [x] T113: Fix tray companion LMStudio model selection not applied @agent
+- [x] T095: Kuroryuu CLI - 21 slash commands  **DONE** @agent
+- [x] T096: RAG multi-word search + tunnel proxy  **DONE** @agent
+- [x] T097: Gateway routing fix + agent registry fixes  **DONE** @agent
+- [x] T098: Terminal copy/paste + drag-drop support  **DONE** @agent
+- [x] T099: TTS feedback loop fix + Kanban delayed column  **DONE** @agent
+- [x] T100: SOTS Capture MCP integration  **DONE** @agent
+- [x] T101: Leader-follower documentation suite  **DONE** @agent
+- [x] T102: Leader Setup Wizard V1 + V2  **DONE** @agent
+- [x] T103: Leader-to-worker message injection  **DONE** @agent
+- [x] T104: MCP tool consolidation (8 routed tools)  **DONE** @agent
+- [x] T105: Ralph Wiggum iteration patterns  **DONE** @agent
+- [x] T106: LMStudio CLI case study alignment  **DONE** @agent
+- [x] T107: EvidenceList worklog scanning  **DONE** @agent
+- [x] T108: Public Gateway deployment (Cloudflare)  **DONE** @agent
+- [x] T109: Kuroryuu Chat endpoint + persona  **DONE** @agent
+- [x] T110: Worker Gateway registration fix  **DONE** @agent
+- [x] T111: Reset deregisters all agents  **DONE** @agent
+- [x] T030: Update Cloudflare Tunnel to use proxy (port 8199) via Zero Trust dashboard @human
+- [x] T029: Kiro CLI sub-agent integration @agent
+- [x] T028: Configure LMStudio mcp.json via stdio bridge @agent
+- [x] T027: Leader-to-Worker Message Injection System @agent
+- [x] T026: LMStudio Native Tools Optimization @agent
+- [x] T025: Gateway GitHub OAuth Authentication @agent
+- [x] T010: Desktop scaffold (Electron + Vite + React) @agent
+- [x] T011: KanbanBoard component + TaskStore @agent
+- [x] T012: PTY Daemon + Terminal component @agent
+- [x] T013: Agent CLI entrypoint (run_agent) @agent
+- [x] T014: Dark theme + status bar @agent
+- [x] T015: Task detail modal with evidence links @agent
+- [x] T016: Drag-drop task movement @agent
+- [x] T017: Error handling + fallbacks @agent
+- [x] T018: Parallel agent support (2-4 terminals) @agent
+- [x] T019: Task locking mechanism @agent
+- [x] T020: Isolated convo logs per thread @agent
+- [x] T021: DEMO.md deterministic script @human
+- [x] T022: Evidence pack manifest @agent
+- [x] T001: Complete hooks system implementation @agent
+- [x] T002: Functional test gateway + MCP @agent

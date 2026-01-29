@@ -1,0 +1,274 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e5]:
+    - button "Collapse sidebar" [ref=e7]:
+      - img [ref=e8]
+    - generic [ref=e11]:
+      - heading "Kuroryuu" [level=1] [ref=e12]
+      - paragraph [ref=e13]: 黒き幻影の霧の龍
+    - generic [ref=e14]:
+      - button "Home H" [ref=e15]:
+        - img [ref=e16]
+        - generic [ref=e19]: Home
+        - generic [ref=e20]: H
+      - generic [ref=e22]:
+        - button "Plan" [ref=e23]:
+          - img [ref=e24]
+          - generic [ref=e27]: Plan
+          - img [ref=e28]
+        - generic [ref=e31]:
+          - button "Dojo D" [ref=e32]:
+            - img [ref=e34]
+            - generic [ref=e43]: Dojo
+            - generic [ref=e44]: D
+          - button "Kanban K" [ref=e45]:
+            - img [ref=e46]
+            - generic [ref=e51]: Kanban
+            - generic [ref=e52]: K
+      - generic [ref=e53]:
+        - button "Build" [ref=e54]:
+          - img [ref=e55]
+          - generic [ref=e59]: Build
+          - img [ref=e60]
+        - generic [ref=e63]:
+          - button "Terminals T" [ref=e64]:
+            - img [ref=e65]
+            - generic [ref=e68]: Terminals
+            - generic [ref=e69]: T
+          - button "GitHub W" [ref=e70]:
+            - img [ref=e71]
+            - generic [ref=e75]: GitHub
+            - generic [ref=e76]: W
+          - button "Insights N" [ref=e77]:
+            - img [ref=e78]
+            - generic [ref=e86]: Insights
+            - generic [ref=e87]: "N"
+          - button "CodeEditor ↗" [ref=e88]:
+            - img [ref=e89]
+            - generic [ref=e93]: CodeEditor
+            - generic [ref=e94]: ↗
+      - generic [ref=e95]:
+        - button "Monitor" [ref=e96]:
+          - img [ref=e97]
+          - generic [ref=e100]: Monitor
+          - img [ref=e101]
+        - generic [ref=e104]:
+          - button "Claude Tasks C" [ref=e105]:
+            - img [ref=e106]
+            - generic [ref=e109]: Claude Tasks
+            - generic [ref=e110]: C
+          - button "HTTP Traffic F" [ref=e111]:
+            - img [ref=e112]
+            - generic [ref=e114]: HTTP Traffic
+            - generic [ref=e115]: F
+          - button "PTY Traffic Y" [ref=e116]:
+            - img [ref=e117]
+            - generic [ref=e123]: PTY Traffic
+            - generic [ref=e124]: "Y"
+          - button "Command Center M" [ref=e125]:
+            - img [ref=e126]
+            - generic [ref=e128]: Command Center
+            - generic [ref=e129]: M
+          - button "Capture P" [ref=e130]:
+            - img [ref=e131]
+            - generic [ref=e134]: Capture
+            - generic [ref=e135]: P
+      - generic [ref=e136]:
+        - button "Log" [ref=e137]:
+          - img [ref=e138]
+          - generic [ref=e142]: Log
+          - img [ref=e143]
+        - generic [ref=e146]:
+          - button "Memory" [ref=e147]:
+            - img [ref=e148]
+            - generic [ref=e151]: Memory
+          - button "Changelog L" [ref=e152]:
+            - img [ref=e153]
+            - generic [ref=e156]: Changelog
+            - generic [ref=e157]: L
+          - button "Transcripts R" [ref=e158]:
+            - img [ref=e159]
+            - generic [ref=e162]: Transcripts
+            - generic [ref=e163]: R
+    - generic [ref=e164]:
+      - button "Integrations" [ref=e165]:
+        - img [ref=e166]
+        - generic [ref=e168]: Integrations
+      - button "Domain Config" [ref=e169]:
+        - img [ref=e170]
+        - generic [ref=e173]: Domain Config
+      - button "Settings Ctrl+," [ref=e174]:
+        - img [ref=e175]
+        - generic [ref=e178]: Settings
+        - generic [ref=e179]: Ctrl+,
+      - button "Tray Companion" [ref=e180]:
+        - img [ref=e181]
+        - generic [ref=e184]: Tray Companion
+  - main [ref=e186]:
+    - generic [ref=e187]:
+      - generic [ref=e189]:
+        - button "Orchestration" [ref=e190]:
+          - img [ref=e191]
+          - text: Orchestration
+        - button "PRD" [ref=e195]:
+          - img [ref=e196]
+          - text: PRD
+        - button "Ideation" [ref=e199]:
+          - img [ref=e200]
+          - text: Ideation
+      - generic [ref=e202]:
+        - generic [ref=e203]:
+          - img [ref=e204]
+          - generic [ref=e207]:
+            - text: LMStudio Connected
+            - generic [ref=e208]:
+              - text: "Model:"
+              - code [ref=e209]: mistralai/devstral-small-2-2512
+        - button "Refresh connection" [ref=e210]:
+          - img [ref=e211]
+      - generic [ref=e217]:
+        - generic [ref=e218]:
+          - button "Expand sidebar" [ref=e220]:
+            - img [ref=e221]
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - img [ref=e225]
+              - generic [ref=e228]: "1"
+            - button "New PRD" [ref=e229]:
+              - img [ref=e230]
+          - button "Sessions" [ref=e232]:
+            - img [ref=e233]
+        - generic [ref=e236]:
+          - generic [ref=e238]:
+            - 'heading "Test PRD: User Authentication Feature" [level=2] [ref=e239]'
+            - generic [ref=e240]:
+              - generic [ref=e241]: Draft
+              - generic [ref=e242]: feature
+          - generic [ref=e243]:
+            - application [ref=e244]:
+              - generic [ref=e246]:
+                - generic:
+                  - generic:
+                    - img:
+                      - group "Edge from create-plan to load-context" [ref=e247] [cursor=pointer]
+                    - img:
+                      - group "Edge from load-context to break-down" [ref=e249] [cursor=pointer]
+                    - img:
+                      - group "Edge from break-down to execute-step" [ref=e250] [cursor=pointer]
+                    - img:
+                      - group "Edge from break-down to execute-formula" [ref=e251] [cursor=pointer]
+                    - img:
+                      - group "Edge from execute-step to review-work" [ref=e254] [cursor=pointer]
+                    - img:
+                      - group "Edge from execute-step to validate" [ref=e255] [cursor=pointer]
+                    - img:
+                      - group "Edge from validate to completion-hub" [ref=e259] [cursor=pointer]
+                    - img:
+                      - group "Edge from completion-hub to gen-report"
+                    - img:
+                      - group "Edge from completion-hub to code-review" [ref=e260] [cursor=pointer]
+                    - img:
+                      - group "Edge from completion-hub to system-review" [ref=e263] [cursor=pointer]
+                    - img:
+                      - group "Edge from completion-hub to final-checklist" [ref=e266] [cursor=pointer]
+                  - generic:
+                    - group [ref=e269]:
+                      - generic [ref=e272] [cursor=pointer]:
+                        - img [ref=e274]
+                        - generic [ref=e279]:
+                          - generic [ref=e280]: Create Plan
+                          - generic [ref=e281]: Draft → Review
+                    - group [ref=e283]:
+                      - generic [ref=e286] [cursor=pointer]:
+                        - img [ref=e288]
+                        - generic [ref=e294]: Load Context
+                    - group [ref=e296]:
+                      - generic [ref=e297]:
+                        - img [ref=e300]
+                        - generic [ref=e303]:
+                          - img [ref=e305]
+                          - generic [ref=e308]:
+                            - generic [ref=e309]: Break Down Tasks
+                            - generic [ref=e310]: Review → Approved
+                    - group [ref=e312]:
+                      - generic [ref=e313]:
+                        - img [ref=e316]
+                        - generic [ref=e319]:
+                          - img [ref=e321]
+                          - generic [ref=e324]: Execute Step
+                    - group [ref=e326]:
+                      - generic [ref=e327]:
+                        - img [ref=e330]
+                        - generic [ref=e333]:
+                          - img [ref=e335]
+                          - generic [ref=e338]: Execute with Formula
+                    - group [ref=e340]:
+                      - generic [ref=e341]:
+                        - img [ref=e344]
+                        - generic [ref=e347]:
+                          - img [ref=e349]
+                          - generic [ref=e352]: Review Work
+                    - group [ref=e354]:
+                      - generic [ref=e355]:
+                        - img [ref=e358]
+                        - generic [ref=e361]:
+                          - img [ref=e363]
+                          - generic [ref=e366]:
+                            - generic [ref=e367]: Validate & Complete
+                            - generic [ref=e368]: Progress → Complete
+                    - group [ref=e370]:
+                      - generic [ref=e371]:
+                        - img [ref=e374]
+                        - generic [ref=e377]:
+                          - img [ref=e379]
+                          - generic [ref=e383]: Feature Complete
+                    - group [ref=e385]:
+                      - generic [ref=e386]:
+                        - img [ref=e389]
+                        - generic [ref=e392]:
+                          - img [ref=e394]
+                          - generic [ref=e398]: Generate Report
+                    - group [ref=e400]:
+                      - generic [ref=e401]:
+                        - img [ref=e404]
+                        - generic [ref=e407]:
+                          - img [ref=e409]
+                          - generic [ref=e412]: Code Review
+                    - group [ref=e414]:
+                      - generic [ref=e415]:
+                        - img [ref=e418]
+                        - generic [ref=e421]:
+                          - img [ref=e423]
+                          - generic [ref=e427]: System Review
+                    - group [ref=e429]:
+                      - generic [ref=e430]:
+                        - img [ref=e433]
+                        - generic [ref=e436]:
+                          - img [ref=e438]
+                          - generic [ref=e442]: Final Checklist
+              - img
+              - generic "Control Panel" [ref=e444]:
+                - button "Zoom In" [ref=e445] [cursor=pointer]:
+                  - img [ref=e446]
+                - button "Zoom Out" [ref=e448] [cursor=pointer]:
+                  - img [ref=e449]
+                - button "Fit View" [ref=e451] [cursor=pointer]:
+                  - img [ref=e452]
+                - button "Toggle Interactivity" [ref=e454] [cursor=pointer]:
+                  - img [ref=e455]
+              - img "Mini Map" [ref=e458]
+            - generic [ref=e472]:
+              - heading "Status Guide" [level=4] [ref=e473]
+              - generic [ref=e474]:
+                - generic [ref=e477]: Available (click to execute)
+                - generic [ref=e480]: Completed
+                - generic [ref=e483]: Locked (prerequisites needed)
+                - generic [ref=e486]: Recommended next step
+  - generic [ref=e488]:
+    - img [ref=e489]
+    - generic [ref=e492]: Quizmaster session started - check terminal
+    - button [ref=e493]:
+      - img [ref=e494]
+```

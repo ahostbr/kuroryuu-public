@@ -1,0 +1,1227 @@
+/**
+ * Graphiti Themes - Unified Observability Hub Styling
+ * Each theme creates a distinct visual personality for the data visualization
+ *
+ * Themes:
+ * - cyberpunk: Neon holographic with electric glow
+ * - kuroryuu: Imperial gold, ink-wash aesthetic
+ * - retro: CRT phosphor with scanlines
+ * - default: Modern dark with refined shadows
+ */
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES - Theme Tokens
+   ============================================================================ */
+
+/* CYBERPUNK THEME - Electric Neon Hologram */
+[data-graphiti-theme="cyberpunk"] {
+  /* Base palette */
+  --g-bg: #0a0a0a;
+  --g-bg-secondary: #0d1117;
+  --g-fg: #e0e0e0;
+  --g-muted: #666666;
+
+  /* Accent colors */
+  --g-primary: #00ffff;
+  --g-secondary: #ff00ff;
+  --g-tertiary: #ffff00;
+
+  /* Status colors */
+  --g-success: #00ff00;
+  --g-warning: #ffff00;
+  --g-error: #ff0000;
+  --g-info: #00ccff;
+
+  /* Effects */
+  --g-glow: 0 0 10px var(--g-primary);
+  --g-glow-intense: 0 0 20px var(--g-primary), 0 0 40px rgba(0, 255, 255, 0.3);
+  --g-glow-error: 0 0 15px var(--g-error);
+  --g-text-glow: 0 0 8px var(--g-primary);
+
+  /* Cards */
+  --g-card-bg: rgba(0, 255, 255, 0.03);
+  --g-card-bg-hover: rgba(0, 255, 255, 0.06);
+  --g-card-border: rgba(0, 255, 255, 0.2);
+  --g-card-border-hover: rgba(0, 255, 255, 0.5);
+
+  /* Sparkline */
+  --g-spark-stroke: #00ffff;
+  --g-spark-fill: rgba(0, 255, 255, 0.15);
+  --g-spark-dot: #ffffff;
+
+  /* Font */
+  --g-font-display: 'Orbitron', 'Rajdhani', system-ui, sans-serif;
+  --g-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Borders */
+  --g-border-style: solid;
+  --g-border-radius: 4px;
+}
+
+/* KURORYUU THEME - Imperial Gold Dragon */
+[data-graphiti-theme="kuroryuu"] {
+  /* Base palette - deep ink black */
+  --g-bg: #0a0a0c;
+  --g-bg-secondary: #12100e;
+  --g-fg: #e8e0d0;
+  --g-muted: #6b5c4a;
+
+  /* Accent colors - imperial gold and dragon red */
+  --g-primary: #c9a227;
+  --g-secondary: #8b6914;
+  --g-tertiary: #d4af37;
+
+  /* Status colors - muted traditional */
+  --g-success: #4a7c59;
+  --g-warning: #d4af37;
+  --g-error: #8b3a3a;
+  --g-info: #5a7a8a;
+
+  /* Effects - subtle golden glow */
+  --g-glow: 0 0 8px rgba(201, 162, 39, 0.3);
+  --g-glow-intense: 0 0 15px rgba(201, 162, 39, 0.5), 0 0 30px rgba(201, 162, 39, 0.2);
+  --g-glow-error: 0 0 12px rgba(139, 58, 58, 0.5);
+  --g-text-glow: 0 0 6px rgba(201, 162, 39, 0.4);
+
+  /* Cards - parchment texture feel */
+  --g-card-bg: rgba(201, 162, 39, 0.03);
+  --g-card-bg-hover: rgba(201, 162, 39, 0.06);
+  --g-card-border: rgba(201, 162, 39, 0.2);
+  --g-card-border-hover: rgba(201, 162, 39, 0.4);
+
+  /* Sparkline */
+  --g-spark-stroke: #c9a227;
+  --g-spark-fill: rgba(201, 162, 39, 0.15);
+  --g-spark-dot: #d4af37;
+
+  /* Font - elegant serif */
+  --g-font-display: 'Cinzel', 'Playfair Display', Georgia, serif;
+  --g-font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+
+  /* Borders */
+  --g-border-style: solid;
+  --g-border-radius: 2px;
+}
+
+/* RETRO THEME - CRT Phosphor Terminal */
+[data-graphiti-theme="retro"] {
+  /* Base palette - deep CRT black */
+  --g-bg: #100D0B;
+  --g-bg-secondary: #0a0806;
+  --g-fg: #e8d5b7;
+  --g-muted: #8b7355;
+
+  /* Accent colors - amber/orange phosphor */
+  --g-primary: #d97706;
+  --g-secondary: #ea580c;
+  --g-tertiary: #f59e0b;
+
+  /* Status colors - warm vintage */
+  --g-success: #65a30d;
+  --g-warning: #eab308;
+  --g-error: #dc2626;
+  --g-info: #0891b2;
+
+  /* Effects - phosphor bloom */
+  --g-glow: none;
+  --g-glow-intense: 0 0 10px rgba(217, 119, 6, 0.3), 0 0 20px rgba(217, 119, 6, 0.15);
+  --g-glow-error: 0 0 10px rgba(220, 38, 38, 0.4);
+  --g-text-glow: 0 0 4px rgba(217, 119, 6, 0.5);
+
+  /* Cards - vintage terminal */
+  --g-card-bg: rgba(217, 119, 6, 0.05);
+  --g-card-bg-hover: rgba(217, 119, 6, 0.08);
+  --g-card-border: rgba(217, 119, 6, 0.25);
+  --g-card-border-hover: rgba(217, 119, 6, 0.4);
+
+  /* Sparkline */
+  --g-spark-stroke: #d97706;
+  --g-spark-fill: rgba(217, 119, 6, 0.12);
+  --g-spark-dot: #fbbf24;
+
+  /* Font - monospace terminal */
+  --g-font-display: 'VT323', 'Share Tech Mono', monospace;
+  --g-font-mono: 'VT323', 'Share Tech Mono', monospace;
+
+  /* Borders - dashed terminal style */
+  --g-border-style: dashed;
+  --g-border-radius: 0px;
+}
+
+/* DEFAULT THEME - Modern Dark */
+[data-graphiti-theme="default"] {
+  /* Base palette - neutral dark */
+  --g-bg: #1a1a1a;
+  --g-bg-secondary: #242424;
+  --g-fg: #e5e5e5;
+  --g-muted: #737373;
+
+  /* Accent colors - modern blue */
+  --g-primary: #3b82f6;
+  --g-secondary: #8b5cf6;
+  --g-tertiary: #06b6d4;
+
+  /* Status colors - standard */
+  --g-success: #22c55e;
+  --g-warning: #eab308;
+  --g-error: #ef4444;
+  --g-info: #3b82f6;
+
+  /* Effects - subtle shadow */
+  --g-glow: 0 0 5px rgba(59, 130, 246, 0.2);
+  --g-glow-intense: 0 0 10px rgba(59, 130, 246, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --g-glow-error: 0 0 8px rgba(239, 68, 68, 0.4);
+  --g-text-glow: none;
+
+  /* Cards */
+  --g-card-bg: rgba(59, 130, 246, 0.03);
+  --g-card-bg-hover: rgba(59, 130, 246, 0.06);
+  --g-card-border: rgba(59, 130, 246, 0.15);
+  --g-card-border-hover: rgba(59, 130, 246, 0.3);
+
+  /* Sparkline */
+  --g-spark-stroke: #3b82f6;
+  --g-spark-fill: rgba(59, 130, 246, 0.12);
+  --g-spark-dot: #60a5fa;
+
+  /* Font */
+  --g-font-display: system-ui, -apple-system, sans-serif;
+  --g-font-mono: 'SF Mono', 'Cascadia Code', monospace;
+
+  /* Borders */
+  --g-border-style: solid;
+  --g-border-radius: 8px;
+}
+
+
+/* ============================================================================
+   GRAPHITI PANEL - Main Container
+   ============================================================================ */
+
+.graphiti-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--g-bg);
+  color: var(--g-fg);
+  overflow: hidden;
+}
+
+.graphiti-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+  background: var(--g-bg-secondary);
+}
+
+.graphiti-panel-title {
+  font-family: var(--g-font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--g-primary);
+  text-shadow: var(--g-text-glow);
+}
+
+.graphiti-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.graphiti-panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+
+/* ============================================================================
+   KPI ROW - Metrics Dashboard
+   ============================================================================ */
+
+.graphiti-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  padding: 16px;
+  background: var(--g-bg-secondary);
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+}
+
+@media (max-width: 1200px) {
+  .graphiti-kpi-row {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .graphiti-kpi-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ============================================================================
+   KPI CARD - Individual Metric
+   ============================================================================ */
+
+.graphiti-kpi-card {
+  position: relative;
+  background: var(--g-card-bg);
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: var(--g-border-radius);
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.graphiti-kpi-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.02) 0%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.02) 100%
+  );
+  pointer-events: none;
+}
+
+.graphiti-kpi-card:hover {
+  background: var(--g-card-bg-hover);
+  border-color: var(--g-card-border-hover);
+  box-shadow: var(--g-glow);
+  transform: translateY(-1px);
+}
+
+.graphiti-kpi-card--error {
+  border-color: var(--g-error);
+  box-shadow: var(--g-glow-error);
+}
+
+.graphiti-kpi-card--warning {
+  border-color: var(--g-warning);
+}
+
+.graphiti-kpi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.graphiti-kpi-label {
+  font-family: var(--g-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--g-muted);
+}
+
+.graphiti-kpi-trend {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.graphiti-kpi-trend--up {
+  color: var(--g-success);
+}
+
+.graphiti-kpi-trend--down {
+  color: var(--g-error);
+}
+
+.graphiti-kpi-trend--flat {
+  color: var(--g-muted);
+}
+
+.graphiti-kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.graphiti-kpi-value {
+  font-family: var(--g-font-display);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--g-fg);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: var(--g-text-glow);
+}
+
+.graphiti-kpi-unit {
+  font-family: var(--g-font-mono);
+  font-size: 12px;
+  color: var(--g-muted);
+}
+
+.graphiti-kpi-sparkline {
+  width: 100%;
+  height: 24px;
+}
+
+
+/* ============================================================================
+   SPARKLINE - Animated SVG Chart
+   ============================================================================ */
+
+.graphiti-sparkline {
+  width: 100%;
+  height: 100%;
+}
+
+.graphiti-sparkline-fill {
+  fill: var(--g-spark-fill);
+  transition: d 0.3s ease;
+}
+
+.graphiti-sparkline-line {
+  fill: none;
+  stroke: var(--g-spark-stroke);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: d 0.3s ease;
+  filter: drop-shadow(0 0 2px var(--g-spark-stroke));
+}
+
+.graphiti-sparkline-dot {
+  fill: var(--g-spark-dot);
+  filter: drop-shadow(0 0 4px var(--g-spark-stroke));
+}
+
+/* Animated drawing effect on mount */
+.graphiti-sparkline-line--animate {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: sparklineDraw 1s ease-out forwards;
+}
+
+@keyframes sparklineDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Pulsing dot animation */
+.graphiti-sparkline-dot--pulse {
+  animation: sparklinePulse 2s ease-in-out infinite;
+}
+
+@keyframes sparklinePulse {
+  0%, 100% {
+    r: 2;
+    opacity: 1;
+  }
+  50% {
+    r: 3;
+    opacity: 0.8;
+  }
+}
+
+
+/* ============================================================================
+   FILTER BAR - Search and Filter Controls
+   ============================================================================ */
+
+.graphiti-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--g-card-bg);
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+}
+
+.graphiti-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.graphiti-filter-select {
+  appearance: none;
+  background: var(--g-bg);
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: var(--g-border-radius);
+  padding: 6px 28px 6px 10px;
+  font-family: var(--g-font-mono);
+  font-size: 11px;
+  color: var(--g-fg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.graphiti-filter-select:hover {
+  border-color: var(--g-card-border-hover);
+}
+
+.graphiti-filter-select:focus {
+  outline: none;
+  border-color: var(--g-primary);
+  box-shadow: 0 0 0 2px rgba(var(--g-primary), 0.1);
+}
+
+.graphiti-filter-toggle-group {
+  display: flex;
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: var(--g-border-radius);
+  overflow: hidden;
+}
+
+.graphiti-filter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-right: 1px var(--g-border-style) var(--g-card-border);
+  font-family: var(--g-font-mono);
+  font-size: 11px;
+  color: var(--g-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.graphiti-filter-toggle:last-child {
+  border-right: none;
+}
+
+.graphiti-filter-toggle:hover {
+  background: var(--g-card-bg);
+  color: var(--g-fg);
+}
+
+.graphiti-filter-toggle--active {
+  background: var(--g-card-bg-hover);
+  color: var(--g-primary);
+}
+
+.graphiti-filter-toggle-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.graphiti-filter-search {
+  position: relative;
+  flex: 1;
+  min-width: 160px;
+  max-width: 240px;
+}
+
+.graphiti-filter-search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: var(--g-muted);
+  pointer-events: none;
+}
+
+.graphiti-filter-search-input {
+  width: 100%;
+  background: var(--g-bg);
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: var(--g-border-radius);
+  padding: 6px 10px 6px 32px;
+  font-family: var(--g-font-mono);
+  font-size: 11px;
+  color: var(--g-fg);
+  transition: all 0.2s ease;
+}
+
+.graphiti-filter-search-input::placeholder {
+  color: var(--g-muted);
+}
+
+.graphiti-filter-search-input:focus {
+  outline: none;
+  border-color: var(--g-primary);
+  box-shadow: 0 0 0 2px rgba(var(--g-primary), 0.1);
+}
+
+/* Active filter pills */
+.graphiti-filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--g-bg);
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+}
+
+.graphiti-filter-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--g-card-bg);
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: 999px;
+  font-family: var(--g-font-mono);
+  font-size: 10px;
+  color: var(--g-fg);
+}
+
+.graphiti-filter-pill-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  background: transparent;
+  border: none;
+  color: var(--g-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.graphiti-filter-pill-remove:hover {
+  color: var(--g-error);
+}
+
+.graphiti-filter-clear {
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  font-family: var(--g-font-mono);
+  font-size: 10px;
+  color: var(--g-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.graphiti-filter-clear:hover {
+  color: var(--g-primary);
+}
+
+
+/* ============================================================================
+   DRILLDOWN PANEL - Detail Slide-In
+   ============================================================================ */
+
+.graphiti-drilldown-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 40;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.graphiti-drilldown {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 380px;
+  max-width: 100%;
+  background: var(--g-bg);
+  border-left: 1px var(--g-border-style) var(--g-card-border);
+  box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  animation: drilldownSlideIn 0.3s ease-out;
+}
+
+@keyframes drilldownSlideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.graphiti-drilldown-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+  background: var(--g-bg-secondary);
+}
+
+.graphiti-drilldown-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--g-card-bg);
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: var(--g-border-radius);
+  color: var(--g-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.graphiti-drilldown-back:hover {
+  border-color: var(--g-card-border-hover);
+  color: var(--g-fg);
+}
+
+.graphiti-drilldown-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.graphiti-drilldown-type {
+  font-family: var(--g-font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--g-primary);
+  margin-bottom: 2px;
+}
+
+.graphiti-drilldown-title {
+  font-family: var(--g-font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--g-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graphiti-drilldown-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--g-muted);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.graphiti-drilldown-close:hover {
+  color: var(--g-fg);
+}
+
+.graphiti-drilldown-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--g-card-bg);
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+}
+
+.graphiti-drilldown-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.graphiti-drilldown-stat-label {
+  font-family: var(--g-font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--g-muted);
+}
+
+.graphiti-drilldown-stat-value {
+  font-family: var(--g-font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--g-fg);
+}
+
+.graphiti-drilldown-stat-value--success {
+  color: var(--g-success);
+}
+
+.graphiti-drilldown-stat-value--error {
+  color: var(--g-error);
+}
+
+.graphiti-drilldown-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.graphiti-drilldown-section {
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+}
+
+.graphiti-drilldown-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--g-bg-secondary);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.graphiti-drilldown-section-header:hover {
+  background: var(--g-card-bg);
+}
+
+.graphiti-drilldown-section-title {
+  font-family: var(--g-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--g-fg);
+}
+
+.graphiti-drilldown-section-toggle {
+  color: var(--g-muted);
+  transition: transform 0.2s ease;
+}
+
+.graphiti-drilldown-section-toggle--open {
+  transform: rotate(180deg);
+}
+
+.graphiti-drilldown-section-content {
+  padding: 0;
+}
+
+
+/* ============================================================================
+   TIMELINE ENTRY - Event Log Item
+   ============================================================================ */
+
+.graphiti-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.graphiti-timeline-entry {
+  display: flex;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px var(--g-border-style) rgba(255, 255, 255, 0.05);
+  transition: background 0.2s ease;
+}
+
+.graphiti-timeline-entry:hover {
+  background: var(--g-card-bg);
+}
+
+.graphiti-timeline-entry:last-child {
+  border-bottom: none;
+}
+
+.graphiti-timeline-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.graphiti-timeline-icon-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.graphiti-timeline-icon--task {
+  color: var(--g-info);
+}
+
+.graphiti-timeline-icon--tool {
+  color: var(--g-secondary);
+}
+
+.graphiti-timeline-icon--success {
+  color: var(--g-success);
+}
+
+.graphiti-timeline-icon--error {
+  color: var(--g-error);
+}
+
+.graphiti-timeline-icon--session {
+  color: var(--g-tertiary);
+}
+
+.graphiti-timeline-icon--heartbeat {
+  color: var(--g-muted);
+  opacity: 0.5;
+}
+
+.graphiti-timeline-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.graphiti-timeline-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.graphiti-timeline-time {
+  font-family: var(--g-font-mono);
+  font-size: 10px;
+  color: var(--g-muted);
+  flex-shrink: 0;
+}
+
+.graphiti-timeline-type {
+  font-family: var(--g-font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--g-fg);
+}
+
+.graphiti-timeline-detail {
+  font-family: var(--g-font-mono);
+  font-size: 11px;
+  color: var(--g-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graphiti-timeline-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.graphiti-timeline-result--ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--g-success);
+}
+
+.graphiti-timeline-result--error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--g-error);
+}
+
+.graphiti-timeline-result--timeout {
+  background: rgba(234, 179, 8, 0.15);
+  color: var(--g-warning);
+}
+
+
+/* ============================================================================
+   CORRELATED ITEMS - Related Entities
+   ============================================================================ */
+
+.graphiti-correlated-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.graphiti-correlated-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px var(--g-border-style) rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.graphiti-correlated-item:hover {
+  background: var(--g-card-bg);
+}
+
+.graphiti-correlated-item:last-child {
+  border-bottom: none;
+}
+
+.graphiti-correlated-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--g-border-radius);
+  background: var(--g-card-bg);
+  border: 1px var(--g-border-style) var(--g-card-border);
+  font-size: 14px;
+}
+
+.graphiti-correlated-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.graphiti-correlated-type {
+  font-family: var(--g-font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--g-muted);
+  margin-bottom: 1px;
+}
+
+.graphiti-correlated-label {
+  font-family: var(--g-font-mono);
+  font-size: 12px;
+  color: var(--g-fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graphiti-correlated-arrow {
+  color: var(--g-muted);
+  transition: transform 0.2s ease;
+}
+
+.graphiti-correlated-item:hover .graphiti-correlated-arrow {
+  transform: translateX(4px);
+  color: var(--g-primary);
+}
+
+
+/* ============================================================================
+   THEME SELECTOR
+   ============================================================================ */
+
+.graphiti-theme-selector {
+  display: flex;
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: var(--g-border-radius);
+  overflow: hidden;
+}
+
+.graphiti-theme-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-right: 1px var(--g-border-style) var(--g-card-border);
+  color: var(--g-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.graphiti-theme-btn:last-child {
+  border-right: none;
+}
+
+.graphiti-theme-btn:hover {
+  background: var(--g-card-bg);
+  color: var(--g-fg);
+}
+
+.graphiti-theme-btn--active {
+  background: var(--g-card-bg-hover);
+  color: var(--g-primary);
+}
+
+
+/* ============================================================================
+   CANVAS AREA
+   ============================================================================ */
+
+.graphiti-canvas-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.graphiti-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* ReactFlow overrides */
+.graphiti-canvas .react-flow__background {
+  background: var(--g-bg);
+}
+
+.graphiti-canvas .react-flow__minimap {
+  border: 1px var(--g-border-style) var(--g-card-border);
+  background: var(--g-bg-secondary);
+  border-radius: var(--g-border-radius);
+}
+
+.graphiti-canvas .react-flow__controls {
+  border: 1px var(--g-border-style) var(--g-card-border);
+  background: var(--g-bg-secondary);
+  border-radius: var(--g-border-radius);
+  box-shadow: none;
+}
+
+.graphiti-canvas .react-flow__controls-button {
+  background: transparent;
+  border: none;
+  border-bottom: 1px var(--g-border-style) var(--g-card-border);
+  color: var(--g-muted);
+}
+
+.graphiti-canvas .react-flow__controls-button:hover {
+  background: var(--g-card-bg);
+  color: var(--g-fg);
+}
+
+.graphiti-canvas .react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
+
+.graphiti-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+}
+
+.graphiti-empty-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  color: var(--g-muted);
+  opacity: 0.5;
+}
+
+.graphiti-empty-title {
+  font-family: var(--g-font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--g-primary);
+  text-shadow: var(--g-text-glow);
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+}
+
+.graphiti-empty-message {
+  font-family: var(--g-font-mono);
+  font-size: 12px;
+  color: var(--g-muted);
+  max-width: 280px;
+}
+
+
+/* ============================================================================
+   SETTINGS DROPDOWN
+   ============================================================================ */
+
+.graphiti-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  background: var(--g-card-bg);
+  border: 1px var(--g-border-style) var(--g-card-border);
+  border-radius: var(--g-border-radius);
+  color: var(--g-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.graphiti-settings-btn:hover {
+  border-color: var(--g-card-border-hover);
+  color: var(--g-fg);
+}
+
+
+/* ============================================================================
+   SCANLINE OVERLAY - Retro Theme Effect
+   ============================================================================ */
+
+[data-graphiti-theme="retro"] .graphiti-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.08) 2px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+  animation: scanlineFlicker 0.1s infinite;
+}
+
+@keyframes scanlineFlicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.97; }
+}
+
+/* CRT curvature vignette */
+[data-graphiti-theme="retro"] .graphiti-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+}
+
+
+/* ============================================================================
+   CYBERPUNK THEME - Grid Overlay
+   ============================================================================ */
+
+[data-graphiti-theme="cyberpunk"] .graphiti-canvas-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(0, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(rgba(0, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+}

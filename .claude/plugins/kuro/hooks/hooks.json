@@ -1,0 +1,84 @@
+{
+  "description": "Kuroryuu auto-start and context management hooks",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/confirm-edits.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__kuroryuu__k_rag",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/rag-interactive-gate.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "A new Claude Code session has started in the Kuroryuu project. To properly integrate with the multi-agent orchestration system:\n\n1. Read KURORYUU_BOOTSTRAP.md to understand session start procedure\n2. Determine role: If this is the first agent, become leader. Otherwise, become worker.\n3. Call k_session(action=\"start\", process_id=\"claude_code\", agent_type=\"claude\")\n4. Register with Gateway: POST to http://127.0.0.1:8200/v1/agents/register\n5. Confirm: Output 'KURORYUU-aware. Role: {role}. Session: {session_id}. Ready.'\n\nIf MCP tools are unavailable, inform user to run .\\run_all.ps1 to start the Kuroryuu stack.\n\nProceed with session initialization.",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Before stopping, verify Kuroryuu session state:\n\n1. Check context usage - if above 80%, a checkpoint should have been saved\n2. Review if significant work was done that should be checkpointed\n3. If work was done and no recent checkpoint, save one now with k_checkpoint\n\nIf a checkpoint is needed, suggest running /k-save before stopping.\n\nReturn 'approve' to allow stop, or 'block' with reason if checkpoint needed.",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/export-transcript.ps1\"",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/check-inbox.ps1\"",
+            "timeout": 5000
+          },
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/export-transcript.ps1\"",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "TaskCreate|TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"${CLAUDE_PLUGIN_ROOT}/scripts/sync-claude-task.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "id": "document-1768260593558-8f78ec15",
+  "type": "document",
+  "scenario": "display",
+  "title": "Kuroryuu Architecture Overview v2",
+  "metadata": {
+    "updated_by": "leader",
+    "reason": "added version"
+  },
+  "created_at": "2026-01-12T23:29:53.558662+00:00",
+  "updated_at": "2026-01-12T23:30:34.733048+00:00",
+  "version": 2,
+  "created_by": "claude_leader_655fd23a",
+  "session_id": null,
+  "run_id": null
+}

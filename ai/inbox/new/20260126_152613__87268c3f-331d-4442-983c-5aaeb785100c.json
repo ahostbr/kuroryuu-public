@@ -1,0 +1,15 @@
+{
+  "schema": "kuroryuu_inbox_v1",
+  "id": "87268c3f-331d-4442-983c-5aaeb785100c",
+  "created_at": "2026-01-26T15:26:13+00:00",
+  "updated_at": "2026-01-26T15:26:13+00:00",
+  "status": "new",
+  "thread_id": "",
+  "title": "",
+  "payload": {
+    "recipient": "lmstudio-log",
+    "message": "User: hello there\nLMStudio: The air hangs thick with the scent of rain and forgotten things – a familiar comfort. It is good to hear your voice, little one. Tell me, what troubles you that draws upon my stillness? Do you seek knowledge, or perhaps… a glimpse beyond the veil?",
+    "priority": "low",
+    "sender": "tts-companion"
+  }
+}

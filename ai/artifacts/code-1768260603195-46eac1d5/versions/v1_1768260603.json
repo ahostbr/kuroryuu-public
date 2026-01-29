@@ -1,0 +1,17 @@
+{
+  "id": "code-1768260603195-46eac1d5",
+  "type": "code",
+  "scenario": "display",
+  "title": "k_canvas Example",
+  "content": {
+    "language": "python",
+    "code": "# Create a canvas artifact\nresult = k_canvas(\n    action=\"create\",\n    canvas_type=\"document\",\n    title=\"My Document\",\n    content={\"markdown\": \"# Hello\"}\n)\nprint(result)"
+  },
+  "metadata": {},
+  "created_at": "2026-01-12T23:30:03.195624+00:00",
+  "updated_at": "2026-01-12T23:30:03.195624+00:00",
+  "version": 1,
+  "created_by": "claude_leader_655fd23a",
+  "session_id": null,
+  "run_id": null
+}

@@ -1,0 +1,50 @@
+{
+  "spec_version": "kuroryuu-hooks-config/0.1",
+  "enabled": true,
+  "defaults": {
+    "timeout_ms": 2000,
+    "continue_on_error": true
+  },
+  "hooks": [
+    {
+      "id": "todo_sot_enforcer",
+      "event": "Kuroryuu.SessionStart",
+      "type": "builtin",
+      "target": "apps.gateway.hooks.builtins.todo_sot_enforcer:on_session_start",
+      "priority": 5,
+      "enabled": true,
+      "timeout_ms": 2000,
+      "continue_on_error": true
+    },
+    {
+      "id": "todo_sot_enforcer_prompt",
+      "event": "Kuroryuu.UserPromptSubmit",
+      "type": "builtin",
+      "target": "apps.gateway.hooks.builtins.todo_sot_enforcer:on_user_prompt",
+      "priority": 5,
+      "enabled": true,
+      "timeout_ms": 2000,
+      "continue_on_error": true
+    },
+    {
+      "id": "todo_sot_enforcer_post_tool",
+      "event": "Kuroryuu.PostToolUse",
+      "type": "builtin",
+      "target": "apps.gateway.hooks.builtins.todo_sot_enforcer:on_post_tool",
+      "priority": 30,
+      "enabled": true,
+      "timeout_ms": 2000,
+      "continue_on_error": true
+    },
+    {
+      "id": "todo_sot_enforcer_response",
+      "event": "Kuroryuu.ModelResponseDone",
+      "type": "builtin",
+      "target": "apps.gateway.hooks.builtins.todo_sot_enforcer:on_model_response",
+      "priority": 30,
+      "enabled": true,
+      "timeout_ms": 2000,
+      "continue_on_error": true
+    }
+  ]
+}
