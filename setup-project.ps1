@@ -210,15 +210,37 @@ Write-Host "[$stepNum/$totalSteps] Checking build assets..." -ForegroundColor Ye
 $stepNum++
 
 $buildDir = Join-Path $ProjectRoot "apps\desktop\build"
-$iconPath = Join-Path $buildDir "icon.png"
+$resourcesDir = Join-Path $ProjectRoot "apps\desktop\resources"
+$iconIco = Join-Path $buildDir "icon.ico"
+$iconPng = Join-Path $buildDir "icon.png"
+$srcIco = Join-Path $resourcesDir "Kuroryuu_ico.ico"
+$srcPng = Join-Path $resourcesDir "Kuroryuu_png.png"
 
-if (Test-Path $iconPath) {
-    Write-Host "  Build assets present" -ForegroundColor Green
-} else {
-    Write-Host "  WARNING: apps/desktop/build/icon.png missing" -ForegroundColor DarkYellow
+# Create build dir if missing
+if (-not (Test-Path $buildDir)) {
+    New-Item -ItemType Directory -Path $buildDir -Force | Out-Null
+    Write-Host "  Created apps/desktop/build/" -ForegroundColor Green
+}
 
-    Write-Host "  You'll need to create apps/desktop/build/icon.png (256x256 PNG)" -ForegroundColor Yellow
-    Write-Host "  The desktop app won't build without this icon." -ForegroundColor Yellow
+# Copy icon.ico for Windows taskbar (required for proper taskbar icon)
+if ((Test-Path $srcIco) -and -not (Test-Path $iconIco)) {
+    Copy-Item $srcIco $iconIco
+    Write-Host "  Copied icon.ico for Windows builds" -ForegroundColor Green
+} elseif (Test-Path $iconIco) {
+    Write-Host "  icon.ico present" -ForegroundColor Green
+}
+
+# Copy icon.png for electron-builder
+if ((Test-Path $srcPng) -and -not (Test-Path $iconPng)) {
+    Copy-Item $srcPng $iconPng
+    Write-Host "  Copied icon.png for builds" -ForegroundColor Green
+} elseif (Test-Path $iconPng) {
+    Write-Host "  icon.png present" -ForegroundColor Green
+}
+
+if (-not (Test-Path $iconIco) -and -not (Test-Path $iconPng)) {
+    Write-Host "  WARNING: No build icons found" -ForegroundColor DarkYellow
+    Write-Host "  Copy icons from apps/desktop/resources/ to apps/desktop/build/" -ForegroundColor Yellow
 }
 
 # ============================================================================
