@@ -366,6 +366,60 @@ def _init_catalog() -> None:
         category="integration",
     )
 
+    # k_pccontrol - Desktop automation (OPT-IN, DANGEROUS)
+    register_tool_metadata(
+        name="k_pccontrol",
+        description="Full Desktop Access - control Windows PC via PowerShell/Win32 APIs (OPT-IN)",
+        keywords=[
+            "desktop", "control", "automation", "click", "type", "keyboard",
+            "mouse", "window", "win32", "powershell", "launch", "app"
+        ],
+        actions=["help", "status", "click", "doubleclick", "rightclick",
+                 "type", "keypress", "launch_app", "get_windows"],
+        examples=[
+            "k_pccontrol(action='status')",
+            "k_pccontrol(action='click', x=100, y=200)",
+            "k_pccontrol(action='type', text='Hello')",
+            "k_pccontrol(action='launch_app', path='notepad.exe')",
+        ],
+        category="automation",
+        leader_only=True,
+    )
+
+    # k_help - Tool help system
+    register_tool_metadata(
+        name="k_help",
+        description="Get help on Kuroryuu MCP tools - list all tools or get detailed help",
+        keywords=[
+            "help", "documentation", "docs", "tools", "list", "usage",
+            "guide", "manual", "info", "reference"
+        ],
+        actions=[],  # No actions - just call with optional tool parameter
+        examples=[
+            "k_help()",
+            "k_help(tool='k_rag')",
+            "k_help(tool='k_inbox')",
+        ],
+        category="meta",
+    )
+
+    # k_MCPTOOLSEARCH - Tool discovery and execution
+    register_tool_metadata(
+        name="k_MCPTOOLSEARCH",
+        description="Find and execute the right Kuroryuu MCP tool for your task",
+        keywords=[
+            "search", "find", "tool", "discover", "execute", "query",
+            "match", "best", "which", "what"
+        ],
+        actions=["search", "help"],
+        examples=[
+            "k_MCPTOOLSEARCH(query='search code for function')",
+            "k_MCPTOOLSEARCH(query='send message to agent', execute=False)",
+            "k_MCPTOOLSEARCH(action='help')",
+        ],
+        category="meta",
+    )
+
 
 # Initialize catalog on module load
 _init_catalog()
