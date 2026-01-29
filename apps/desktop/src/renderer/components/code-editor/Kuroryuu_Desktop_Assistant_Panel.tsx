@@ -1415,14 +1415,15 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                 <FolderTree className="w-3.5 h-3.5 inline mr-1.5" />
                 Files
               </button>
-              <button
+{/* NOTE: Terminal tab hidden for public release - PTY integration not fully functional */}
+              {/* <button
                 onClick={() => setSidebarView('terminal')}
                 className={sidebarView === 'terminal' ? 'active' : ''}
                 title="Terminal - Raw PTY Output"
               >
                 <TerminalSquare className="w-3.5 h-3.5 inline mr-1.5" />
                 Terminal
-              </button>
+              </button> */}
             </div>
           )}
 
@@ -1439,13 +1440,14 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                 inputRef.current?.focus();
               }}
             />
-          ) : sidebarView === 'terminal' ? (
+{/* NOTE: Terminal panel hidden for public release - PTY integration not fully functional */}
+          {/* ) : sidebarView === 'terminal' ? (
             <InsightsTerminalPanel
               ptySessionId={ptySessionId}
               onPtyReady={handlePtyReady}
               cwd={DEFAULT_ROOT}
             />
-          ) : null}
+          */}) : null}
         </div>
       )}
 
