@@ -2565,13 +2565,11 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
         isOpen={agentWizardTerminalId !== null}
         onClose={() => setAgentWizardTerminalId(null)}
         onLaunchThinker={(basePath, personaPath, personaName) => {
-          // Use the same terminal that triggered the wizard
-          setThinkerWizardTerminalId(agentWizardTerminalId);
+          // Close AgentWizard and create new terminal directly
+          // NOTE: Changed from handleThinkerLaunch (existing terminal) to handleThinkerFromWizard (new terminal)
+          // This removes the redundant "Activate Thinker" modal
           setAgentWizardTerminalId(null);
-          // Delay to allow state update, then trigger thinker launch
-          setTimeout(() => {
-            handleThinkerLaunch(basePath, personaPath, personaName);
-          }, 100);
+          handleThinkerFromWizard(basePath, personaPath, personaName);
         }}
         onLaunchSpecialist={(promptPath, specialistName, profile) => {
           // Use the same terminal that triggered the wizard
