@@ -194,7 +194,6 @@ All tools use routed pattern: `tool(action="...", ...)` to prevent tool bloat.
 |------|---------|-------|---------|
 | `k_rag` | query, status, index, hybrid, semantic, agentic, reflective... | 12 | Multi-strategy code search |
 | `k_pty` | list, create, send_line, talk, term_read, resolve, spawn_cli... | 12 | PTY control (all agents) |
-| `k_clawd` | status, submit, cancel, list, configure, health... | 11 | Clawdbot worker orchestration (OPT-IN) |
 | `k_inbox` | send, list, read, claim, complete, stats, archive, delete | 8 | Maildir messaging |
 | `k_capture` | start, stop, screenshot, poll, get_latest, list, delete, configure | 8 | Screen capture |
 | `k_pccontrol` | click, doubleclick, rightclick, type, keypress, launch_app, get_windows, status | 8 | PowerShell/Win32 desktop automation (OPT-IN) |
@@ -211,7 +210,6 @@ All tools use routed pattern: `tool(action="...", ...)` to prevent tool bloat.
 
 **OPT-IN Tools:**
 - `k_pccontrol` — Enable Full Desktop Access in Desktop Settings (flag file: `ai/config/pccontrol-armed.flag`)
-- `k_clawd` — Set `KURORYUU_CLAWD_ENABLED=1` environment variable
 
 ---
 

@@ -25,7 +25,7 @@
 
 .EXAMPLE
     # Online install (default)
-    irm https://raw.githubusercontent.com/ahostbr/Kuroryuu/master/packaging/kuroryuu-install.ps1 | iex
+    irm https://raw.githubusercontent.com/ahostbr/kuroryuu-public/master/packaging/kuroryuu-install.ps1 | iex
 
     # Offline install
     .\kuroryuu-install.ps1 -Offline
@@ -49,8 +49,8 @@ $KuroVersion = "0.1.0"
 $PythonVersion = "3.12.4"
 $PythonEmbedUrl = "https://www.python.org/ftp/python/$PythonVersion/python-$PythonVersion-embed-amd64.zip"
 $GetPipUrl = "https://bootstrap.pypa.io/get-pip.py"
-$RepoZipUrl = "https://github.com/ahostbr/Kuroryuu/archive/refs/heads/master.zip"
-$DesktopInstallerUrl = "https://github.com/ahostbr/Kuroryuu/releases/download/v$KuroVersion/Kuroryuu-$KuroVersion-Setup.exe"
+$RepoZipUrl = "https://github.com/ahostbr/kuroryuu-public/archive/refs/heads/master.zip"
+$DesktopInstallerUrl = "https://github.com/ahostbr/kuroryuu-public/releases/download/v$KuroVersion/Kuroryuu-$KuroVersion-Setup.exe"
 
 # Colors and formatting
 function Write-Banner {
@@ -600,7 +600,7 @@ try {
     Write-Host "  - Ensure you have internet connection" -ForegroundColor DarkGray
     Write-Host "  - Try running as Administrator" -ForegroundColor DarkGray
     Write-Host "  - Use -EmbeddedPython flag if winget fails" -ForegroundColor DarkGray
-    Write-Host "  - Check https://github.com/ahostbr/Kuroryuu/issues" -ForegroundColor DarkGray
+    Write-Host "  - Check https://github.com/ahostbr/kuroryuu-public/issues" -ForegroundColor DarkGray
     Write-Host ""
     Read-Host "Press Enter to exit"
     exit 1

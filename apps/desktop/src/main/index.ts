@@ -26,7 +26,6 @@ import { AnthropicService } from './integrations/providers/anthropic';
 import { OpenAIService } from './integrations/providers/openai';
 import { GitHubOAuthService } from './integrations/providers/github';
 import { setupGraphitiIpc, configureGraphiti, cleanupGraphiti } from './integrations/graphiti-service';
-import { setupClawdbotIpc, configureClawdbot, cleanupClawdbot, autoStartClawdbot } from './integrations/clawdbot-service';
 import { setupLinearIpc } from './integrations/linear-service';
 import { setupWorktreeIpc, configureWorktrees } from './worktree-manager';
 import { setupGitIpc, configureGitService } from './git-service';
@@ -2578,7 +2577,6 @@ app.whenReady().then(async () => {
   setupServiceManagerIpc();
   // V4 OPT-IN features
   setupGraphitiIpc();
-  setupClawdbotIpc();
   setupLinearIpc();
   setupWorktreeIpc();
   setupGitIpc();
@@ -2601,11 +2599,6 @@ app.whenReady().then(async () => {
     });
     console.log('[Main] Graphiti enabled with URL:', graphitiSettings.serverUrl || 'http://localhost:8000');
   }
-
-  // Auto-start Clawdbot if enabled (opt-in via KURORYUU_CLAWD_ENABLED=1)
-  autoStartClawdbot().catch(err => {
-    console.error('[Main] Clawdbot auto-start error:', err);
-  });
 
   configureWorktrees({
     enabled: true,

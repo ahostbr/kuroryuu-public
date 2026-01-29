@@ -136,7 +136,7 @@ For full functionality including desktop automation, use the native Windows inst
 ### Key Components
 
 - **Gateway**: FastAPI server with 21 routers, agent registry, WebSocket events, streaming chat
-- **MCP Core**: 16 MCP tools with 118 routed actions (RAG, Inbox, Checkpoints, PTY, PCControl, Clawdbot...)
+- **MCP Core**: 15 MCP tools with 107 routed actions (RAG, Inbox, Checkpoints, PTY, PCControl...)
 - **Desktop**: Electron + React + TypeScript with 235 components, 16 screens, 13 modals
 - **Kuroryuu CLI**: 9,030 LOC Python REPL with 24 slash commands, 61+ models via 3 providers
 - **Leader/Worker Pattern**: Ralph orchestration with Desktop monitoring and nudging
@@ -201,7 +201,6 @@ Kiro CLI connects directly to Kuroryuu's MCP server, providing access to:
 |------|---------|---------|
 | **k_rag** | 12 | Multi-strategy search (keyword, semantic, hybrid, reflective, agentic) |
 | **k_pty** | 12 | Terminal control & injection |
-| **k_clawd** | 11 | Clawdbot orchestration (OPT-IN) |
 | **k_inbox** | 8 | Maildir messaging |
 | **k_capture** | 8 | Screen capture |
 | **k_pccontrol** | 8 | Desktop automation via PowerShell/Win32 APIs (OPT-IN) |
@@ -231,7 +230,6 @@ Kiro CLI connects directly to Kuroryuu's MCP server, providing access to:
 - Fail-closed security model (leader death blocks UI)
 - Real-time agent registry with heartbeat monitoring
 - k_pccontrol for full Windows desktop automation (OPT-IN)
-- k_clawd for Clawdbot worker delegation (OPT-IN)
 
 ### Desktop Application (235 React Components)
 - 16 main screens + 13 modals with Kuroryuu/Matrix themes
@@ -244,10 +242,9 @@ Kiro CLI connects directly to Kuroryuu's MCP server, providing access to:
 - Changelog generator from completed tasks
 - 437 searchable conversation transcripts
 
-### MCP Tool Suite (16 Tools → 118 Actions)
+### MCP Tool Suite (15 Tools → 107 Actions)
 - Routed tool architecture to prevent tool bloat
 - k_pccontrol for full Windows desktop automation
-- k_clawd for Clawdbot worker orchestration
 - RAG search with 12 strategies (keyword, semantic, hybrid, agentic...)
 - Maildir-based inbox for multi-agent messaging
 - Graphiti knowledge graph integration
@@ -283,25 +280,6 @@ python -m kuroryuu_cli --help
 ### CLI Bootstrap Integrations
 - Bootstrap files for 8 major AI tools:
   - Kiro CLI, Cursor, Copilot, Cline, Windsurf, Codex, Antigravity
-
-### Clawdbot Worker (Optional)
-
-Autonomous AI worker running in a Docker container for delegating tasks:
-
-- **Providers**: LM Studio, Ollama, Anthropic, OpenAI
-- **Configuration**: GUI-based provider setup with connection testing
-- **Auto-discovery**: Automatic model detection for LM Studio/Ollama
-- **HOME Widget**: Quick task submission from the desktop app
-- **MCP Integration**: Use `k_clawd` tool from any agent
-
-```bash
-# Enable Clawdbot
-$env:KURORYUU_CLAWD_ENABLED = "1"
-
-# Or configure via Settings > Integrations > Clawdbot Worker
-```
-
-See [Clawdbot Setup Guide](Docs/Guides/ClawdbotSetup.md) for detailed configuration.
 
 ## Directory Structure
 

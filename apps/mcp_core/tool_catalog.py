@@ -347,25 +347,6 @@ def _init_catalog() -> None:
         category="migration",
     )
 
-    # k_clawd - Clawdbot integration (opt-in autonomous worker)
-    register_tool_metadata(
-        name="k_clawd",
-        description="Clawdbot integration - autonomous AI worker in Docker container (opt-in)",
-        keywords=[
-            "clawdbot", "clawd", "worker", "autonomous", "docker", "container",
-            "delegate", "task", "research", "agent", "pi", "sandbox"
-        ],
-        actions=["help", "status", "start", "stop", "task", "cancel",
-                 "results", "inbox", "reply", "history", "config"],
-        examples=[
-            "k_clawd(action='status')",
-            "k_clawd(action='start')",
-            "k_clawd(action='task', prompt='Research React hooks patterns')",
-            "k_clawd(action='results')",
-        ],
-        category="integration",
-    )
-
     # k_pccontrol - Desktop automation (OPT-IN, DANGEROUS)
     register_tool_metadata(
         name="k_pccontrol",

@@ -121,6 +121,9 @@ export function FullDesktopSection() {
       <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
         <Zap className="w-3 h-3 text-primary" />
         <span>Uses PowerShell - no external software required</span>
+        <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[9px] font-medium">
+          Windows only
+        </span>
       </div>
 
       {/* Status & Controls */}

@@ -72,8 +72,8 @@ if platform.system() == "Windows":
 else:
     # Linux/Mac: use tmux backend (NEW - only runs on non-Windows)
     try:
-        from pty_backend_tmux import TmuxPtyProcess as _PtyProcess, spawn as _tmux_spawn
-        PtyProcess = _PtyProcess
+        from pty_backend_tmux import TmuxPtyProcess
+        PtyProcess = TmuxPtyProcess  # Has spawn() class method matching pywinpty interface
         PYWINPTY_AVAILABLE = True  # Reuse flag name for compatibility
         logger.info("Using tmux PTY backend for Linux/Mac")
     except ImportError:

@@ -8,17 +8,10 @@ import { useCodeEditorStore } from './stores/code-editor-store';
 import { useLMStudioChatStore } from './stores/lmstudio-chat-store';
 import {
   ActivityBar,
-  ChangedFilesSidebar,
   EditorTabs,
   DiffViewer,
   KuroryuuDesktopAssistantPanel,
   BranchSwitcher,
-  TodosPanel,
-  DependenciesPanel,
-  ImportGraphPanel,
-  SymbolOutlinePanel,
-  ReferencesPanel,
-  SearchPanel,
   type ActivityView,
 } from './components/code-editor';
 import { FileExplorerPanel } from './components/FileExplorerPanel';
@@ -47,7 +40,6 @@ export default function CodeEditorApp() {
     sidebarWidth,
     projectRoot,
     diffViewFile,
-    changedFiles,
     refreshGitStatus,
     togglePreview,
     updateFileContent,
@@ -61,24 +53,16 @@ export default function CodeEditorApp() {
 
   // Activity bar state - controls which LEFT sidebar view is active
   const [activeView, setActiveView] = useState<ActivityView | null>('explorer');
-  // Track if primary sidebar (left) is visible
-  const [showPrimarySidebar, setShowPrimarySidebar] = useState(true);
+  // Track if primary sidebar (left) is visible - hidden by default for cleaner UI
+  const [showPrimarySidebar, setShowPrimarySidebar] = useState(false);
   // Track if AI panel (right) is visible - independent from left sidebar
   const [showAIPanel, setShowAIPanel] = useState(false);
-  // Track symbol for references panel
-  const [referencesSymbol, setReferencesSymbol] = useState<string>('');
   // Minimap toggle (T425)
   const [showMinimap, setShowMinimap] = useState(false);
   // Track if file explorer is empty
   const [explorerIsEmpty, setExplorerIsEmpty] = useState(false);
 
   const activeFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
-
-  // Open references panel with a symbol
-  const openReferencesPanel = useCallback((symbol: string) => {
-    setReferencesSymbol(symbol);
-    setActiveView('refs');
-  }, []);
 
   // Handle activity view change from ActivityBar
   const handleViewChange = useCallback((view: ActivityView | null) => {
@@ -102,23 +86,19 @@ export default function CodeEditorApp() {
 
   // Check if a right panel should be shown based on active view
   const isRightPanelView = (view: ActivityView | null): boolean => {
-    return view === 'ai' || view === 'todos' || view === 'graph' || view === 'outline' || view === 'refs';
+    return view === 'ai';
   };
 
   // Check if sidebar has content to show (collapse when empty or no active view)
   const sidebarHasContent = (): boolean => {
-    // No active view = collapse sidebar
+    // Only explorer is supported - AI is independent right panel
     if (!activeView || activeView === 'ai') {
       return false;
     }
     if (activeView === 'explorer') {
       return !!projectRoot && !explorerIsEmpty;
     }
-    if (activeView === 'git') {
-      return changedFiles.length > 0;
-    }
-    // All other left sidebar views always have content
-    return true;
+    return false;
   };
 
   // Update AI chat context when active file changes
@@ -215,10 +195,7 @@ export default function CodeEditorApp() {
             toast.success(`Definition: ${match.file}:${match.line}`);
           }
         } else {
-          // No definition found, open references panel
-          setReferencesSymbol(symbol);
-          setActiveView('refs');
-          toast.info(`No definition found for "${symbol}", searching references...`);
+          toast.info(`No definition found for "${symbol}"`);
         }
       }
     } catch (err) {
@@ -227,13 +204,12 @@ export default function CodeEditorApp() {
     }
   }, [projectRoot, openFile]);
 
-  // Handle Find References (Shift+F12)
+  // Handle Find References (Shift+F12) - shows toast since references panel removed
   const handleFindReferences = useCallback((symbol: string) => {
-    setReferencesSymbol(symbol);
-    setActiveView('refs');
+    toast.info(`Find references: "${symbol}" - use k_repo_intel in AI chat`);
   }, []);
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts (simplified - only explorer, AI, and essential shortcuts)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+S - Save file
@@ -246,30 +222,10 @@ export default function CodeEditorApp() {
         e.preventDefault();
         handleViewChange('explorer');
       }
-      // Ctrl+Shift+F - Toggle Search
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'F') {
-        e.preventDefault();
-        handleViewChange('search');
-      }
-      // Ctrl+Shift+G - Toggle Git/Source Control
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'G') {
-        e.preventDefault();
-        handleViewChange('git');
-      }
       // Ctrl+Shift+A - Toggle AI panel
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'A') {
         e.preventDefault();
         handleViewChange('ai');
-      }
-      // Ctrl+Shift+T - Toggle TODOs panel
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'T') {
-        e.preventDefault();
-        handleViewChange(activeView === 'todos' ? null : 'todos');
-      }
-      // Ctrl+Shift+O - Toggle Symbol Outline panel
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'O') {
-        e.preventDefault();
-        handleViewChange(activeView === 'outline' ? null : 'outline');
       }
       // Ctrl+Shift+M - Toggle Minimap
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'M') {
@@ -386,7 +342,7 @@ export default function CodeEditorApp() {
           isAIActive={showAIPanel}
         />
 
-        {/* Primary Sidebar (Explorer/Git) - auto-collapse when empty */}
+        {/* Primary Sidebar (Explorer only) - pop in/out */}
         {showPrimarySidebar && sidebarHasContent() && (
           <div
             className="border-r border-border bg-card/30 flex-shrink-0 overflow-hidden"
@@ -406,60 +362,6 @@ export default function CodeEditorApp() {
                   }
                 }}
                 onEmptyChange={setExplorerIsEmpty}
-              />
-            )}
-            {activeView === 'git' && (
-              <ChangedFilesSidebar />
-            )}
-            {activeView === 'search' && (
-              <SearchPanel
-                isOpen={true}
-                onClose={() => setActiveView(null)}
-                projectRoot={projectRoot}
-                onFileSelect={async (path, line) => {
-                  try {
-                    const content = await window.electronAPI?.fs?.readFile?.(path);
-                    if (typeof content === 'string') {
-                      openFile(path, content);
-                      // TODO: scroll to line
-                    }
-                  } catch (err) {
-                    console.error('[CodeEditorApp] Failed to open file from search:', err);
-                  }
-                }}
-              />
-            )}
-            {activeView === 'todos' && (
-              <TodosPanel
-                isOpen={true}
-                onClose={() => setActiveView(null)}
-              />
-            )}
-            {activeView === 'extensions' && (
-              <DependenciesPanel
-                isOpen={true}
-                onClose={() => setActiveView(null)}
-              />
-            )}
-            {activeView === 'graph' && (
-              <div className="w-full h-full">
-                <ImportGraphPanel
-                  isOpen={true}
-                  onClose={() => setActiveView(null)}
-                />
-              </div>
-            )}
-            {activeView === 'outline' && (
-              <SymbolOutlinePanel
-                isOpen={true}
-                onClose={() => setActiveView(null)}
-              />
-            )}
-            {activeView === 'refs' && (
-              <ReferencesPanel
-                isOpen={true}
-                onClose={() => setActiveView(null)}
-                initialSymbol={referencesSymbol}
               />
             )}
           </div>

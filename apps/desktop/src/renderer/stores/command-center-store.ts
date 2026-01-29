@@ -387,41 +387,13 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
             set({ servers: updatedServers });
             return;
           }
-        } else if (serverId === 'clawdbot') {
-          // Clawdbot: Direct HTTP health check first, then fall back to IPC status
-          try {
-            const response = await fetch('http://localhost:18790/health', {
-              signal: AbortSignal.timeout(3000),
-            });
-            if (response.ok) {
-              isHealthy = true;
-            } else {
-              isHealthy = false;
-            }
-          } catch {
-            // API not responding - check IPC status for more info
-            try {
-              const status = await window.electronAPI.clawdbot.status();
-              const updatedServers = [...get().servers];
-              let errorMsg = 'Not responding';
-              if (!status.enabled) errorMsg = 'Disabled (opt-in)';
-              else if (!status.dockerAvailable) errorMsg = 'Docker not available';
-              else if (!status.containerRunning) errorMsg = status.containerExists ? 'Container stopped' : 'Container not created';
-
-              updatedServers[serverIndex] = {
-                ...updatedServers[serverIndex],
-                status: 'disconnected',
-                lastPing: new Date().toISOString(),
-                responseTimeMs: Date.now() - startTime,
-                error: errorMsg,
-              };
-              set({ servers: updatedServers });
-            } catch {
-              const updatedServers = [...get().servers];
-              updatedServers[serverIndex] = {
-                ...updatedServers[serverIndex],
-                status: 'disconnected',
-                lastPing: new Date().toISOString(),
+        } else {
+          // Unknown server - mark as disconnected
+          const updatedServers = [...get().servers];
+          updatedServers[serverIndex] = {
+            ...updatedServers[serverIndex],
+            status: 'disconnected',
+            lastPing: new Date().toISOString(),
                 responseTimeMs: Date.now() - startTime,
                 error: 'Not responding',
               };
@@ -490,11 +462,6 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
           await new Promise((r) => setTimeout(r, 1000));
           const startResult = await window.electronAPI.cliproxy.container.start();
           result = { ok: startResult.success, error: startResult.error };
-        } else if (serverId === 'clawdbot') {
-          // Clawdbot: Stop then start container
-          await window.electronAPI.clawdbot.stop();
-          await new Promise((r) => setTimeout(r, 1000));
-          result = await window.electronAPI.clawdbot.start();
         } else {
           return { ok: false, error: 'Unknown server' };
         }
