@@ -1440,14 +1440,16 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                 inputRef.current?.focus();
               }}
             />
-{/* NOTE: Terminal panel hidden for public release - PTY integration not fully functional */}
-          {/* ) : sidebarView === 'terminal' ? (
+          ) : null}
+          {/* NOTE: Terminal panel hidden for public release - PTY integration not fully functional
+          ) : sidebarView === 'terminal' ? (
             <InsightsTerminalPanel
               ptySessionId={ptySessionId}
               onPtyReady={handlePtyReady}
               cwd={DEFAULT_ROOT}
             />
-          */}) : null}
+          ) : null}
+          */}
         </div>
       )}
 
