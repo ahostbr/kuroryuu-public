@@ -1,0 +1,75 @@
+00:00:00
+All right, so yesterday we had a pretty  interesting Claude Code update that may change the way that many of you fundamentally  use Claude Code and may also unlock some new workflows for you. And this is a brand new task  management system that includes new capabilities like dependency tracking, and I'll be going over  that in this video and what it means for you. But before getting started, this video is sponsored  by myself and my Claude Code masterclass. If you want to join hundreds of other people and  become the most proficient Claude Code user at
+
+00:00:25
+your company, through the most comprehensive  Claude Code class that you will find online, then there will be a link down below in the  description. Okay, so I'll explain the background, examples and what you can now do with this new  task management system. So getting started, one of the biggest problems of coding agents  these days is this agent amnesia that it has, where basically if you start a brand new session  in the middle of a task because the context window filled up too much or something, then  the agent would forget where it was and then
+
+00:00:50
+have to rediscover a lot of files unless you  write the remaining todos in a brand new file. This can get quite annoying and cumbersome  to write the remaining tasks into a brand new file and then load it up in a brand new  context window, which is why many people developed solutions such as Beads, which is  a pretty popular one for many coding agents, where basically it writes everything that it's  done so far into a JSON file. It writes a goal that it's currently working on, and then the  next steps that it has, which means that you
+
+00:01:15
+can start brand new sessions pretty easily and  have one session isolated to completing one task. Another problem that coding agents do have these  days is that if they notice a bug or a problem, because the context window is already pretty full  or it has like 90, 100,000 tokens in the context window, then even if it finds a bug, it might  just drop it and completely ignore that task. But by having each task that you give a coding  agent isolated into its own context window, you can now give it the ability to log any bugs  for later or tasks that it does come across. Now,
+
+00:01:46
+essentially what the Claude Code team  did is they made this possible and they said themselves that they were  inspired by the Beads repository over here. So basically Beads is kind  of now integrated into Claude Code. And what this practically means is that  previously Claude Code had a to-do list, and you may have noticed this when Claude Code was  executing, it'll just be ticking off things as it goes along. And this was stored in session memory  and did not persist across different sessions. So
+
+00:02:10
+what Claude Code have now done is it got rid  of the to-do list and they now added a task list instead that is saved onto your computer in  the .claude folder. So for example, if I go to my .claude folder, go to tasks, then I can see  some tasks over here from an earlier session. So I have task number 1, 2, 3, 4, and if I  open up any of these tasks, then I can see the description of the task that Claude Code  gave it. And I can see a few more things here, such as this task blocks these other  tasks and is blocked by this other task.
+
+00:02:40
+So essentially we have some dependencies here,  which means that we can have many tasks running in parallel reliably, knowing that some tasks  have to be completed before other ones. But now, since the to-do list itself is stored on the  file system instead for each individual session, we can now share it across the different sessions. And each sub-agent that is actually  completing each individual task... So task number one is completed by sub-agent one,  task number two will be completed by sub-agent
+
+00:03:05
+two. Each sub-agent now has the ability to see  which tasks there are, which ones are remaining, and to even write new tasks as well. So you can  see that in Claude Code, both the main session and sub-agents have access to four new tools:  TaskCreate, TaskGet, TaskUpdate, and TaskList, which means that a sub-agent, if it notices that  it should create a brand new task to be completed by another sub-agent, then it can create it right  over here. Now, this makes Claude Code more useful for longer projects across many different sessions  and sub-agents. So you could have two sessions,
+
+00:03:37
+each with different sub-agents, all showing the  same set of tasks that they have to complete. Now let's go for a short example.  So in my application, HyperWhisper, I recently added the ability to stream text  as you're speaking onto your computer. And I want to add ElevenLabs as a provider  because currently I have Deepgram. So I basically got Claude Code to explore the  code base and write this plan file over here for the changes that should be made. Looking through  this plan, can you basically turn it into a set
+
+00:04:02
+of tasks that you should complete? And now you  can see it's created six tasks and now it's like identifying task dependencies. And it identified  which tasks are blocked by whichever ones. So for example, task three depends  on two, task five depends on one, two and four. So we have these  dependencies here. And these tasks have now been written into this file  with the folder name being the session ID. And instead of waiting, I'll go for a different  chat where I've actually completed that plan.
+
+00:04:26
+One thing I forgot to mention is that you have  to specify "completed by different sub-agents" because sometimes it just doesn't launch it  in a different sub-agent and it decides to complete those tasks within the main chat  instead. We had a dependency breakdown and some of them could be run in parallel  because they have no other dependencies. So we had wave one where three of them ran in  parallel, wave two, and then a final wave three. And you can see that by the end of the plan,  we've only used 18% of the context window. But
+
+00:04:53
+in this particular case where we did not specify  to have each task run by a different sub-agent, you can see that this chat basically, like all  the tasks happened within the same context window, and it ended up using about 56%  of the context window instead. So yeah, do try to tell it to complete each  task with different sub-agents and it should automatically identify which one should happen in  parallel. Because I find that this new task system sometimes runs them in parallel with sub-agents  and sometimes doesn't. Now the thing that we
+
+00:05:19
+just saw now is that instead of Claude Code  completing all the tasks in a single session, if we spin it up into different sub-agents  to actually complete it, we get a brand new context window where we can basically focus on  completing that particular task without worrying about previous merge conflicts or mergeability  problems because each task does have a dependency. So if you do remember Ralph Wiggum,  it's kind of Ralph Wiggum as well, because each task has been completed in  its own brand new fresh context window. And
+
+00:05:44
+this now mirrors real engineering workflows  where you have work being done in parallel, you have handoffs, blockers and dependencies.  But unlike the real Ralph Wiggum Bash loop, we still have an orchestrator in this case, which  is slowly eating into our context window because it's still receiving the output of each of the  sub-agents as they're completing the tasks. And a nice benefit that we do have here  is that we can tell Claude Code to tell each sub-agent to update the task list  with any new tasks that do need to be
+
+00:06:11
+made. Or we could tell Claude Code to  tell any relevant sub-agent that is completing the task that if anything comes  up that the next task has to be aware of, then you should update that task with that  information. Okay, now let's talk about how you can have two different sessions of Claude  Code—session A and B—sharing the same context. So previously, if you had two different sessions  of Claude Code running, for example, one on the left and one on the right in the same folder,  then it was pretty tricky to have task updates
+
+00:06:37
+from one session being broadcasted into the other  session. And some people did get around this by using polling within Claude Code. So they tell one  session of Claude Code to look at a file every 30 seconds to make sure that any tasks that have been  marked as completed are now known to be completed. But you would still have a stale view of the  task status for about 30 seconds or whatever the polling interval is. But now what happens with  Claude Code is that as tasks are being completed, if two sessions are working on the same task  list, then each session is notified immediately
+
+00:07:07
+when the task is marked as completed or  updated in any way, which means that you no longer have the stale information problem or  you won't have two sessions of Claude Code that accidentally start the same task on the task  list. So let's actually see this in action. Currently both of these sessions of Claude  Code, even though they are in the same folder, are not sharing the same task list. So to  be able to do that, we have to define the task list at the very top. And that would  be done by writing in something like this.
+
+00:07:32
+So I have the task list ID here, which I set  to "localisation", and then I have Claude being triggered after that. So that's basically an  environment variable that's being passed in. If I press enter on both and then tell it to  convert a file that I have into a task list, then on the left hand side, we have  about 15 tasks that are newly created. And those tasks now appear on the right hand side,  even though I did not put in any prompts on the right hand side. And whenever it updates with the  state, such as which task is blocking which task,
+
+00:08:00
+then it's also updated on the right hand  side. Can you execute each task in its own sub-agent? And that will spawn up a general  purpose sub-agent for each of those tasks. But if I did have many different  sub-agent types in my project, then I could specify a different sub-agent  for each type of task if I wanted to. And now as it's completing the task—so number one  is being completed—you can see it's being updated on the right hand side. And now you're  probably thinking, what am I going to get this
+
+00:08:23
+right hand side Claude Code session to  do if the left hand side is completing all the tasks? And one thing that you can get  it to do is basically be a monitor of sorts. You could have the second session of Claude Code  being a checker. So instead of creating any tasks, it can monitor which tasks have  been completed. Every 30 seconds, it spawns up a checker sub-agent of sorts. Checks whether it's been implemented correctly. If it has, then it can just sleep for  another 30 seconds. If it hasn't,
+
+00:08:50
+then it adds a brand new task to the  task list for anything that is missing. So I can do that over here. So basically say every  five seconds, can you look at the task list to see which tasks have been completed and then spawn  up a checker sub-agent to make sure the task has been completed according to its description. And  if it hasn't, then add another task to the task list to basically complete the implementation in  a way that would fit the requirements of the task. So it's like, okay, found five tasks. Let me get  their details and it's spawning checker sub-agents
+
+00:09:21
+that will verify each task. And each of  these sub-agents do have access to the TaskGet tool so they can actually  view each task. And now it's like, okay, all five of them have been  completed and then it sleeps for about five seconds. It looks that there  are two new tasks and it's verifying them. So I think this is one interesting workflow  that you can have by having two sessions of Claude Code sharing the same task list. I'm  sure that many people will be thinking of new workflows in the future. Now you may actually  want to have a more complicated checker.
+
+00:09:47
+So it's doing something like code simplification  or identifying security vulnerabilities as the orchestrator is actually executing on each task.  Or you could have the checker session of Claude Code spawn up a headless version of Claude CLI  or Gemini CLI or something to do the checking instead. So this is the first idea that came to  mind when I was experimenting with this feature. And if any more ideas come to mind, then  I will be sharing them in my Claude Code masterclass. There's a link down below. Now  it is worth bearing in mind that the default
+
+00:10:12
+value for the task list ID will always be the  session ID, which means that if you don't define your task list ID and then do `/clear`,  for example, that will start a brand new session and your task list will disappear,  even if there were remaining tasks in it. So what you can do is you can put  this in your settings.json file, kind of like this. So at the very  bottom, you have an env section, put in `CLAUDE_CODE_TASK_LIST_ID`  and then your project's name. And this basically means that if you run Claude  within the project, then it will always remember
+
+00:10:42
+any tasks that are being completed, have been  completed until basically all of them are completed and then Claude Code will delete all  the tasks. So yeah, maybe this will be a pretty good long-term workflow. So overall it is pretty  interesting because the Anthropic team looks at any popular packages online and then integrates  a version of that into Claude Code itself. But of course, if you do want more flexibility,  then Beads may be a better solution for you.
+

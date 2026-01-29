@@ -1,0 +1,380 @@
+@import "tailwindcss";
+
+/* Dragon's Compact Shrine Theme */
+:root {
+  /* Legacy (keep for compatibility) */
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #18181b;
+  --border: #27272a;
+  --muted: #a1a1aa;
+  --accent: #eab308;
+
+  /* Shrine Backgrounds */
+  --bg-shrine: #08080a;
+  --bg-panel: #0f0e0d;
+  --bg-card: #1a1816;
+
+  /* Imperial Gold */
+  --gold-primary: #c9a227;
+  --gold-glow: rgba(250, 204, 21, 0.5);
+  --gold-muted: #8b7420;
+
+  /* Text */
+  --text-primary: #e8d5b5;
+  --text-secondary: #9a8a6a;
+  --text-muted: #6a5a4a;
+
+  /* Status */
+  --status-active: #4a9a5a;
+  --status-info: #4a6a9a;
+  --status-error: #8b2e2e;
+
+  /* Fonts */
+  --font-display: 'Reggae One', cursive;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --transition-base: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(161, 161, 170, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.5);
+}
+
+/* Yellow slider */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  background: #27272a;
+  height: 6px;
+  border-radius: 3px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  margin-top: -5px;
+  background-color: #eab308;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+input[type="range"]::-moz-range-track {
+  background: #27272a;
+  height: 6px;
+  border-radius: 3px;
+}
+input[type="range"]::-moz-range-thumb {
+  background-color: #eab308;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  border: none;
+}
+
+/* Select */
+select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* Animations */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Shrine Animations */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px var(--gold-glow); }
+  50% { box-shadow: 0 0 30px var(--gold-glow); }
+}
+
+/* Shrine Action Button */
+.shrine-action-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+  border: 1px solid var(--gold-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: visible;
+}
+
+.shrine-action-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 20px var(--gold-glow);
+}
+
+.shrine-action-btn:active {
+  transform: scale(0.95);
+}
+
+.shrine-action-btn .icon-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shrine-action-btn .micro-label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.shrine-action-btn.speaking {
+  animation: glow-pulse 1.5s ease-in-out infinite;
+  border-color: var(--gold-primary);
+}
+
+.shrine-action-btn.speaking .pulse-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--gold-primary);
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+.shrine-action-btn.speaking .pulse-ring:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.shrine-action-btn.speaking .pulse-ring:nth-child(3) {
+  animation-delay: 1s;
+}
+
+.shrine-action-btn.silence:hover {
+  border-color: var(--status-error);
+  box-shadow: 0 0 20px rgba(139, 46, 46, 0.5);
+}
+
+/* Engine Seal Badge */
+.engine-seal {
+  width: 52px;
+  height: 52px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.engine-seal .seal-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--status-active);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--transition-base);
+}
+
+.engine-seal.edge .seal-ring {
+  border-color: var(--status-info);
+}
+
+.engine-seal .seal-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--bg-panel) 0%, var(--bg-card) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.engine-seal .engine-name {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.5px;
+}
+
+.engine-seal .status-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--status-active);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.engine-seal.edge .status-dot {
+  background: var(--status-info);
+}
+
+/* Content Card */
+.content-card {
+  background: linear-gradient(135deg, rgba(15, 14, 13, 0.8), rgba(26, 24, 22, 0.6));
+  border: 1px solid rgba(201, 162, 39, 0.15);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+}
+
+.content-card:hover {
+  border-color: rgba(201, 162, 39, 0.25);
+}
+
+/* Shrine Header */
+.shrine-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.shrine-header .header-icon-shrine {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(201, 162, 39, 0.1), rgba(201, 162, 39, 0.05));
+  border: 1px solid rgba(201, 162, 39, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.shrine-header .header-icon-shrine svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold-primary);
+}
+
+.shrine-header .header-text {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: var(--text-primary);
+}
+
+/* Gold Divider */
+.gold-divider {
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold-muted), transparent);
+  position: relative;
+  margin: 12px 0;
+}
+
+.gold-divider::after {
+  content: '\u25C7';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--gold-muted);
+  font-size: 8px;
+  background: var(--bg-shrine);
+  padding: 0 4px;
+}
+
+/* Shrine Input */
+.shrine-input {
+  width: 100%;
+  padding: 10px 16px;
+  background: var(--bg-card);
+  border: 1px solid rgba(201, 162, 39, 0.15);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  transition: all var(--transition-base);
+}
+
+.shrine-input:focus {
+  outline: none;
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.1);
+}
+
+.shrine-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Shrine Toggle */
+.shrine-toggle {
+  width: 40px;
+  height: 24px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.shrine-toggle.active {
+  background: var(--gold-primary);
+}
+
+.shrine-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: var(--text-primary);
+  border-radius: 50%;
+  transition: transform var(--transition-base);
+}
+
+.shrine-toggle.active::after {
+  transform: translateX(16px);
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "KURORYUU_MCP": {
+      "command": "~/.kiro/kuroryuu-mcp-wrapper.sh",
+      "env": {}
+    }
+  }
+}

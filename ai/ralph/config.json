@@ -1,0 +1,9 @@
+{
+  "inactivity_timeout_ms": 300000,
+  "max_nudges_before_alert": 3,
+  "max_interventions_per_task": 3,
+  "completion_file_required": true,
+  "poll_interval_ms": 5000,
+  "worker_ready_timeout_ms": 10000,
+  "clear_wait_ms": 2000
+}

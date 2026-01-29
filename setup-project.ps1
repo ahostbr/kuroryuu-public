@@ -1,0 +1,233 @@
+<#
+.SYNOPSIS
+    Kuroryuu Project Setup Script - Run once after cloning for complete setup.
+
+.DESCRIPTION
+    This script sets up EVERYTHING needed to run Kuroryuu from a fresh clone:
+    1. Sets KURORYUU_PROJECT_ROOT environment variable (persistent)
+    2. Generates .mcp.json from template with resolved paths
+    3. Creates Python 3.12 virtual environment
+    4. Installs ALL Python dependencies (mcp_core, gateway, mcp_stdio)
+    5. Installs ALL Node.js dependencies (desktop, pty_daemon, web)
+    6. Copies build assets if missing
+
+.EXAMPLE
+    .\setup-project.ps1
+
+.EXAMPLE
+    .\setup-project.ps1 -SkipNode    # Skip npm installs
+    .\setup-project.ps1 -SkipPython  # Skip Python venv/deps
+#>
+
+param(
+    [switch]$SkipPython,    # Skip Python venv and deps
+    [switch]$SkipNode,      # Skip Node.js deps
+    [switch]$Force          # Overwrite existing configs
+)
+
+$ErrorActionPreference = "Stop"
+
+# Determine project root (this script is in root)
+$ProjectRoot = $PSScriptRoot
+
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  KURORYUU PROJECT SETUP" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
+Write-Host ""
+
+$stepNum = 1
+$totalSteps = 6
+
+# ============================================================================
+# Step 1: Set persistent environment variable
+# ============================================================================
+Write-Host "[$stepNum/$totalSteps] Setting KURORYUU_PROJECT_ROOT..." -ForegroundColor Yellow
+$stepNum++
+
+$currentEnv = [Environment]::GetEnvironmentVariable("KURORYUU_PROJECT_ROOT", "User")
+if ($currentEnv -and $currentEnv -ne $ProjectRoot) {
+    Write-Host "  Updating from: $currentEnv" -ForegroundColor DarkYellow
+}
+
+[Environment]::SetEnvironmentVariable("KURORYUU_PROJECT_ROOT", $ProjectRoot, "User")
+$env:KURORYUU_PROJECT_ROOT = $ProjectRoot
+Write-Host "  Set to: $ProjectRoot" -ForegroundColor Green
+
+# ============================================================================
+# Step 2: Generate .mcp.json from template
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Generating .mcp.json from template..." -ForegroundColor Yellow
+$stepNum++
+
+$templatePath = Join-Path $ProjectRoot ".mcp.json.template"
+$configPath = Join-Path $ProjectRoot ".mcp.json"
+
+if (-not (Test-Path $templatePath)) {
+    Write-Host "  WARNING: Template not found at $templatePath" -ForegroundColor DarkYellow
+    Write-Host "  Skipping .mcp.json generation" -ForegroundColor DarkYellow
+} elseif ((Test-Path $configPath) -and -not $Force) {
+    Write-Host "  .mcp.json already exists (use -Force to overwrite)" -ForegroundColor DarkYellow
+} else {
+    $template = Get-Content $templatePath -Raw
+    # For JSON, backslashes must be escaped as \\ (two chars in file = one backslash)
+    # Use .Replace() instead of -replace to avoid regex escaping issues
+    $escapedRoot = $ProjectRoot.Replace('\', '\\')
+    $escapedVenv = "$ProjectRoot\.venv_mcp312".Replace('\', '\\')
+    $config = $template.Replace('{{KURORYUU_ROOT}}', $escapedRoot)
+    $config = $config.Replace('{{KURORYUU_VENV}}', $escapedVenv)
+    # Write without BOM for cleaner JSON
+    [System.IO.File]::WriteAllText($configPath, $config)
+    Write-Host "  Generated: .mcp.json" -ForegroundColor Green
+}
+
+# ============================================================================
+# Step 3: Create Python virtual environment
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Setting up Python 3.12 virtual environment..." -ForegroundColor Yellow
+$stepNum++
+
+$venvPath = Join-Path $ProjectRoot ".venv_mcp312"
+$venvPython = Join-Path $venvPath "Scripts\python.exe"
+$pip = Join-Path $venvPath "Scripts\pip.exe"
+
+if ($SkipPython) {
+    Write-Host "  Skipped (-SkipPython)" -ForegroundColor DarkYellow
+} elseif (Test-Path $venvPython) {
+    # Verify venv works (copied venvs are broken)
+    $testResult = & $venvPython -c "import sys; print(sys.prefix)" 2>&1
+    if ($LASTEXITCODE -ne 0 -or -not ($testResult -like "*$ProjectRoot*")) {
+        Write-Host "  Existing venv is broken, recreating..." -ForegroundColor DarkYellow
+        Remove-Item -Recurse -Force $venvPath -ErrorAction SilentlyContinue
+        & py -3.12 -m venv $venvPath
+        Write-Host "  Recreated venv" -ForegroundColor Green
+    } else {
+        Write-Host "  Venv already exists and works" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  Creating Python 3.12 virtual environment..." -ForegroundColor White
+    $pyCmd = Get-Command py -ErrorAction SilentlyContinue
+    if ($pyCmd) {
+        & py -3.12 -m venv $venvPath
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  ERROR: Failed to create venv. Is Python 3.12 installed?" -ForegroundColor Red
+            Write-Host "  Install from: https://www.python.org/downloads/" -ForegroundColor Yellow
+            exit 1
+        }
+    } else {
+        Write-Host "  ERROR: 'py' launcher not found. Install Python 3.12" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  Created: .venv_mcp312" -ForegroundColor Green
+}
+
+# ============================================================================
+# Step 4: Install Python dependencies
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Installing Python dependencies..." -ForegroundColor Yellow
+$stepNum++
+
+if ($SkipPython) {
+    Write-Host "  Skipped (-SkipPython)" -ForegroundColor DarkYellow
+} elseif (Test-Path $pip) {
+    $requirementsFiles = @(
+        "apps\mcp_core\requirements.txt",
+        "apps\mcp_stdio\requirements.txt",
+        "apps\gateway\requirements.txt"
+    )
+
+    foreach ($reqFile in $requirementsFiles) {
+        $reqPath = Join-Path $ProjectRoot $reqFile
+        if (Test-Path $reqPath) {
+            $appName = ($reqFile -split '\\')[1]
+            Write-Host "  Installing $appName dependencies..." -ForegroundColor White
+            & $pip install -r $reqPath -q 2>&1 | Out-Null
+        }
+    }
+    Write-Host "  Python dependencies installed" -ForegroundColor Green
+} else {
+    Write-Host "  ERROR: pip not found at $pip" -ForegroundColor Red
+}
+
+# ============================================================================
+# Step 5: Install Node.js dependencies
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Installing Node.js dependencies..." -ForegroundColor Yellow
+$stepNum++
+
+if ($SkipNode) {
+    Write-Host "  Skipped (-SkipNode)" -ForegroundColor DarkYellow
+} else {
+    $npmApps = @(
+        "apps\desktop",
+        "apps\pty_daemon",
+        "apps\web"
+    )
+
+    $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
+    if (-not $npmCmd) {
+        Write-Host "  WARNING: npm not found. Skipping Node.js setup." -ForegroundColor DarkYellow
+        Write-Host "  Install Node.js from: https://nodejs.org/" -ForegroundColor Yellow
+    } else {
+        foreach ($app in $npmApps) {
+            $appPath = Join-Path $ProjectRoot $app
+            $packageJson = Join-Path $appPath "package.json"
+            $nodeModules = Join-Path $appPath "node_modules"
+
+            if (Test-Path $packageJson) {
+                $appName = Split-Path $app -Leaf
+                if (Test-Path $nodeModules) {
+                    Write-Host "  $appName - already installed" -ForegroundColor DarkGray
+                } else {
+                    Write-Host "  $appName - installing..." -ForegroundColor White
+                    Push-Location $appPath
+                    & npm install --silent 2>&1 | Out-Null
+                    Pop-Location
+                    Write-Host "  $appName - done" -ForegroundColor Green
+                }
+            }
+        }
+    }
+}
+
+# ============================================================================
+# Step 6: Check/copy build assets
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Checking build assets..." -ForegroundColor Yellow
+$stepNum++
+
+$buildDir = Join-Path $ProjectRoot "apps\desktop\build"
+$iconPath = Join-Path $buildDir "icon.png"
+
+if (Test-Path $iconPath) {
+    Write-Host "  Build assets present" -ForegroundColor Green
+} else {
+    Write-Host "  WARNING: apps/desktop/build/icon.png missing" -ForegroundColor DarkYellow
+
+    Write-Host "  You'll need to create apps/desktop/build/icon.png (256x256 PNG)" -ForegroundColor Yellow
+    Write-Host "  The desktop app won't build without this icon." -ForegroundColor Yellow
+}
+
+# ============================================================================
+# Done
+# ============================================================================
+Write-Host ""
+Write-Host "========================================" -ForegroundColor Green
+Write-Host "  SETUP COMPLETE" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "Next steps:" -ForegroundColor White
+Write-Host "  1. Restart your terminal (to pick up env variable)" -ForegroundColor White
+Write-Host "  2. Run: .\run_all.ps1" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "Optional:" -ForegroundColor DarkGray
+Write-Host "  - Build desktop: cd apps\desktop && npm run build" -ForegroundColor DarkGray
+Write-Host "  - Dev mode:      cd apps\desktop && npm run dev" -ForegroundColor DarkGray
+Write-Host ""

@@ -1,0 +1,61 @@
+{
+  "nodes": [
+    {
+      "id": "leader",
+      "data": {
+        "label": "Leader Agent"
+      },
+      "position": {
+        "x": 200,
+        "y": 50
+      }
+    },
+    {
+      "id": "worker1",
+      "data": {
+        "label": "Worker 1"
+      },
+      "position": {
+        "x": 100,
+        "y": 200
+      }
+    },
+    {
+      "id": "worker2",
+      "data": {
+        "label": "Worker 2"
+      },
+      "position": {
+        "x": 300,
+        "y": 200
+      }
+    },
+    {
+      "id": "inbox",
+      "data": {
+        "label": "k_inbox"
+      },
+      "position": {
+        "x": 200,
+        "y": 125
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "leader",
+      "target": "inbox"
+    },
+    {
+      "id": "e2",
+      "source": "inbox",
+      "target": "worker1"
+    },
+    {
+      "id": "e3",
+      "source": "inbox",
+      "target": "worker2"
+    }
+  ]
+}

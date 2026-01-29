@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kuroryuu": {
+      "url": "http://127.0.0.1:8100/mcp",
+      "description": "Kuroryuu MCP Core - Session management, file operations, working memory, inbox, checkpoints, RAG, PTY control, and capture tools"
+    }
+  }
+}

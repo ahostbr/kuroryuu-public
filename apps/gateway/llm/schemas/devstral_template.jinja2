@@ -1,0 +1,103 @@
+{#- Devstral Tool Calling Template - Kuroryuu Edition
+
+    This template fixes the strict alternation validation that causes errors
+    when messages don't strictly alternate user/assistant roles.
+
+    Changes from default Mistral template:
+    1. Removed strict alternation validation block
+    2. Added proper tool role handling with [TOOL_RESULTS]
+    3. Added eos_token after assistant messages
+    4. More lenient content checks
+-#}
+
+{#- Begin of sequence token -#}
+{{- bos_token }}
+
+{#- Handle system prompt if it exists -#}
+{%- if messages[0]['role'] == 'system' %}
+    {{- '[SYSTEM_PROMPT]' -}}
+    {%- if messages[0]['content'] is string %}
+        {{- messages[0]['content'] -}}
+    {%- else %}
+        {%- for block in messages[0]['content'] %}
+            {%- if block['type'] == 'text' %}
+                {{- block['text'] }}
+            {%- endif %}
+        {%- endfor %}
+    {%- endif %}
+    {{- '[/SYSTEM_PROMPT]' -}}
+    {%- set loop_messages = messages[1:] %}
+{%- else %}
+    {%- set loop_messages = messages %}
+{%- endif %}
+
+{#- Tools definition -#}
+{%- if tools is defined and tools is not none and tools|length > 0 %}
+    {{- '[AVAILABLE_TOOLS]' + (tools|tojson) + '[/AVAILABLE_TOOLS]' }}
+{%- endif %}
+
+{#- NO ALTERNATION VALIDATION - The strict check has been removed to prevent errors -#}
+
+{#- Handle conversation messages -#}
+{%- for message in loop_messages %}
+
+    {#- User messages -#}
+    {%- if message['role'] == 'user' %}
+        {%- if message['content'] is string %}
+            {{- '[INST]' + message['content'] + '[/INST]' }}
+        {%- elif message['content'] is iterable and message['content']|length > 0 %}
+            {{- '[INST]' }}
+            {%- for block in message['content'] %}
+                {%- if block['type'] == 'text' %}
+                    {{- block['text'] }}
+                {%- elif block['type'] in ['image', 'image_url'] %}
+                    {{- '[IMG]' }}
+                {%- endif %}
+            {%- endfor %}
+            {{- '[/INST]' }}
+        {%- endif %}
+
+    {#- Assistant messages -#}
+    {%- elif message['role'] == 'assistant' %}
+        {%- if message['content'] is string and message['content'] != '' %}
+            {{- message['content'] }}
+        {%- elif message['content'] is iterable and message['content']|length > 0 %}
+            {%- for block in message['content'] %}
+                {%- if block['type'] == 'text' %}
+                    {{- block['text'] }}
+                {%- endif %}
+            {%- endfor %}
+        {%- endif %}
+
+        {#- Tool calls -#}
+        {%- if message['tool_calls'] is defined and message['tool_calls'] is not none and message['tool_calls']|length > 0 %}
+            {%- for tool in message['tool_calls'] %}
+                {%- set arguments = tool['function']['arguments'] %}
+                {%- if arguments is not string %}
+                    {%- set arguments = arguments|tojson %}
+                {%- elif arguments == '' %}
+                    {%- set arguments = '{}' %}
+                {%- endif %}
+                {{- '[TOOL_CALLS]' + tool['function']['name'] + '[ARGS]' + arguments }}
+            {%- endfor %}
+        {%- endif %}
+        {{- eos_token }}
+
+    {#- Tool results -#}
+    {%- elif message['role'] == 'tool' %}
+        {{- '[TOOL_RESULTS]' }}
+        {%- if message['tool_call_id'] is defined %}
+            {{- '{"tool_call_id":"' + message['tool_call_id'] + '","content":' }}
+        {%- endif %}
+        {%- if message['content'] is string %}
+            {{- message['content']|tojson }}
+        {%- else %}
+            {{- message['content']|tojson }}
+        {%- endif %}
+        {%- if message['tool_call_id'] is defined %}
+            {{- '}' }}
+        {%- endif %}
+        {{- '[/TOOL_RESULTS]' }}
+
+    {%- endif %}
+{%- endfor %}

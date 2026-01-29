@@ -1,0 +1,1 @@
+"""Kuroryuu test suite."""

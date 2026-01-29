@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "KURORYUU_MCP": {
+      "url": "http://192.168.32.1:8100/mcp",
+      "disabled": false
+    },
+    "SOTS_MCP_CORE": {
+      "command": "E:\\SAS\\ShadowsAndShurikens\\.venv_mcp312\\Scripts\\python.exe",
+      "args": [
+        "E:\\SAS\\ShadowsAndShurikens\\DevTools\\python\\sots_mcp_server\\server.py"
+      ],
+      "env": {
+        "SOTS_MCP_ROLE": "assistant",
+        "SOTS_MCP_SUBPROCESS_TIMEOUT_S": "60",
+        "SOTS_MCP_RAG_QUERY_TIMEOUT_S": "60",
+        "SOTS_MCP_PYTHON_EXE": "E:\\SAS\\ShadowsAndShurikens\\.venv_mcp312\\Scripts\\python.exe",
+        "SOTS_PROJECT_ROOT": "E:\\SAS\\ShadowsAndShurikens",
+        "SOTS_ALLOW_DEVTOOLS_RUN": "1",
+        "SOTS_ALLOW_APPLY": "1"
+      },
+      "autoApprove": [
+        "sots_search",
+        "sots_read_file",
+        "sots_convo"
+      ]
+    }
+  }
+}

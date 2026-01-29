@@ -1,0 +1,131 @@
+/**
+ * Copilot Dark Theme
+ * Exact color matching for VS Code Copilot interface
+ */
+
+:root {
+  /* Background colors */
+  --copilot-bg-primary: #1e1e1e;
+  --copilot-bg-secondary: #252526;
+  --copilot-bg-tertiary: #2d2d30;
+  --copilot-bg-input: #3c3c3c;
+  --copilot-bg-hover: #2a2d2e;
+  --copilot-bg-active: #37373d;
+  
+  /* Text colors */
+  --copilot-text-primary: #cccccc;
+  --copilot-text-secondary: #9d9d9d;
+  --copilot-text-muted: #6e6e6e;
+  --copilot-text-bright: #ffffff;
+  
+  /* Accent colors */
+  --copilot-accent-blue: #0078d4;
+  --copilot-accent-purple: #9b6bc9;
+  --copilot-accent-green: #4ec9b0;
+  --copilot-accent-orange: #ce9178;
+  --copilot-accent-yellow: #dcdcaa;
+  
+  /* Border colors */
+  --copilot-border-default: #3c3c3c;
+  --copilot-border-light: #454545;
+  --copilot-border-focus: #007acc;
+  
+  /* File bubble colors */
+  --copilot-file-bg: #2d2d30;
+  --copilot-file-hover: #3c3c3c;
+  --copilot-file-border: #454545;
+  
+  /* Button colors */
+  --copilot-btn-primary: #0e639c;
+  --copilot-btn-primary-hover: #1177bb;
+  --copilot-btn-secondary: #3c3c3c;
+  --copilot-btn-secondary-hover: #454545;
+  
+  /* Message colors */
+  --copilot-msg-user-bg: #2b2b2b;
+  --copilot-msg-assistant-bg: transparent;
+  --copilot-msg-tool-bg: #1e3a5f;
+  
+  /* Shadows */
+  --copilot-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --copilot-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --copilot-shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
+  
+  /* Typography */
+  --copilot-font-mono: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  --copilot-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  /* Spacing */
+  --copilot-radius-sm: 4px;
+  --copilot-radius-md: 6px;
+  --copilot-radius-lg: 8px;
+  --copilot-radius-xl: 12px;
+  --copilot-radius-full: 9999px;
+}
+
+/* Base styles */
+body {
+  background-color: var(--copilot-bg-primary);
+  color: var(--copilot-text-primary);
+  font-family: var(--copilot-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--copilot-bg-tertiary);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--copilot-border-light);
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 1px solid var(--copilot-border-focus);
+  outline-offset: -1px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 120, 212, 0.4);
+}
+
+/* Animations */
+@keyframes copilot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes copilot-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes copilot-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.copilot-animate-pulse {
+  animation: copilot-pulse 1.5s ease-in-out infinite;
+}
+
+.copilot-animate-spin {
+  animation: copilot-spin 1s linear infinite;
+}
+
+.copilot-animate-fade-in {
+  animation: copilot-fade-in 0.2s ease-out;
+}

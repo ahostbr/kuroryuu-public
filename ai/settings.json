@@ -1,0 +1,5 @@
+{
+  "context_budget": "compact",
+  "strict_worker_guards": true,
+  "abandon_after_seconds": 600
+}

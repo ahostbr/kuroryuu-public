@@ -1,0 +1,191 @@
+{
+  "schema": "kuroryuu_prompt_pack_index_v1",
+  "name": "Workflow Specialists",
+  "description": "PRD workflow stage specialists for guided feature development (Part of 16 MCP tools → 118 actions)",
+  "version": "1.1.0",
+  "created_at": "2026-01-23",
+  "updated_at": "2026-01-27",
+  "hackathon_stats": "23 days | 437 sessions | 431 tasks",
+  "category": "workflow_specialists",
+
+  "tool_profiles": {
+    "read_analyze": {
+      "description": "Read-only analysis for priming, reviewing, and code review",
+      "allowed_tools": [
+        {"tool": "k_rag", "actions": ["query", "status", "query_semantic", "query_hybrid"]},
+        {"tool": "k_repo_intel", "actions": ["status", "get", "list"]},
+        {"tool": "k_files", "actions": ["read", "list"]},
+        {"tool": "Glob", "actions": ["*"]},
+        {"tool": "Grep", "actions": ["*"]},
+        {"tool": "Read", "actions": ["*"]},
+        {"tool": "WebFetch", "actions": ["*"]},
+        {"tool": "WebSearch", "actions": ["*"]}
+      ],
+      "prohibited_tools": [
+        {"tool": "Edit", "reason": "Read-only analysis specialist"},
+        {"tool": "Write", "reason": "Read-only analysis specialist"},
+        {"tool": "Bash", "reason": "No command execution for analysis"}
+      ]
+    },
+    "execute_full": {
+      "description": "Full tool access for implementation, validation, and hackathon finalization",
+      "allowed_tools": [
+        {"tool": "k_rag", "actions": ["*"]},
+        {"tool": "k_repo_intel", "actions": ["*"]},
+        {"tool": "k_files", "actions": ["*"]},
+        {"tool": "k_checkpoint", "actions": ["*"]},
+        {"tool": "k_memory", "actions": ["*"]},
+        {"tool": "Glob", "actions": ["*"]},
+        {"tool": "Grep", "actions": ["*"]},
+        {"tool": "Read", "actions": ["*"]},
+        {"tool": "Edit", "actions": ["*"]},
+        {"tool": "Write", "actions": ["*"]},
+        {"tool": "Bash", "actions": ["*"]},
+        {"tool": "WebFetch", "actions": ["*"]},
+        {"tool": "WebSearch", "actions": ["*"]},
+        {"tool": "Task", "actions": ["*"]}
+      ],
+      "prohibited_tools": []
+    },
+    "write_reports": {
+      "description": "Report writing for PRD generation, execution reports, and system reviews",
+      "allowed_tools": [
+        {"tool": "k_rag", "actions": ["query", "status"]},
+        {"tool": "k_repo_intel", "actions": ["status", "get", "list"]},
+        {"tool": "k_files", "actions": ["read", "write", "list"]},
+        {"tool": "Glob", "actions": ["*"]},
+        {"tool": "Grep", "actions": ["*"]},
+        {"tool": "Read", "actions": ["*"]},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "ai/reports/**"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "ai/reports/**"},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "ai/reviews/**"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "ai/reviews/**"},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "ai/prd/**"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "ai/prd/**"},
+        {"tool": "Edit", "actions": ["*"], "path_pattern": "Docs/**/*.md"},
+        {"tool": "Write", "actions": ["*"], "path_pattern": "Docs/**/*.md"}
+      ],
+      "prohibited_tools": [
+        {"tool": "Bash", "reason": "No command execution for report writing"}
+      ]
+    }
+  },
+
+  "packs": [
+    {
+      "id": "prd_generator",
+      "name": "PRD Generator",
+      "file": "prd_generator.md",
+      "workflow": "create-prd",
+      "category": "planning",
+      "description": "Generate PRD documents from conversation and requirements",
+      "tool_profile": "write_reports",
+      "icon": "file-plus",
+      "color": "#8B5CF6",
+      "tags": ["prd", "planning", "requirements", "documentation"]
+    },
+    {
+      "id": "prd_primer",
+      "name": "PRD Primer",
+      "file": "prd_primer.md",
+      "workflow": "prime",
+      "category": "context",
+      "description": "Load context, check staleness, prepare for execution",
+      "tool_profile": "read_analyze",
+      "icon": "book-open",
+      "color": "#7C3AED",
+      "tags": ["context", "prime", "staleness", "preparation"]
+    },
+    {
+      "id": "prd_executor",
+      "name": "PRD Executor",
+      "file": "prd_executor.md",
+      "workflow": "execute",
+      "category": "implementation",
+      "description": "Execute implementation steps from plan",
+      "tool_profile": "execute_full",
+      "icon": "play-circle",
+      "color": "#10B981",
+      "tags": ["execute", "implementation", "code", "build"]
+    },
+    {
+      "id": "prd_reviewer",
+      "name": "PRD Reviewer",
+      "file": "prd_reviewer.md",
+      "workflow": "review",
+      "category": "review",
+      "description": "Review implementation against acceptance criteria",
+      "tool_profile": "read_analyze",
+      "icon": "check-circle",
+      "color": "#3B82F6",
+      "tags": ["review", "acceptance", "criteria", "validation"]
+    },
+    {
+      "id": "prd_validator",
+      "name": "PRD Validator",
+      "file": "prd_validator.md",
+      "workflow": "validate",
+      "category": "validation",
+      "description": "Final validation before marking task complete",
+      "tool_profile": "execute_full",
+      "icon": "shield-check",
+      "color": "#22C55E",
+      "tags": ["validate", "final", "quality", "complete"]
+    },
+    {
+      "id": "prd_reporter",
+      "name": "PRD Reporter",
+      "file": "prd_reporter.md",
+      "workflow": "execution-report",
+      "category": "reporting",
+      "description": "Generate execution reports and documentation",
+      "tool_profile": "write_reports",
+      "icon": "file-text",
+      "color": "#F59E0B",
+      "tags": ["report", "documentation", "summary", "evidence"]
+    },
+    {
+      "id": "prd_code_reviewer",
+      "name": "PRD Code Reviewer",
+      "file": "prd_code_reviewer.md",
+      "workflow": "code-review",
+      "category": "review",
+      "description": "Technical code review for quality and best practices",
+      "tool_profile": "read_analyze",
+      "icon": "code",
+      "color": "#DC2626",
+      "tags": ["code-review", "quality", "patterns", "best-practices"]
+    },
+    {
+      "id": "prd_system_reviewer",
+      "name": "PRD System Reviewer",
+      "file": "prd_system_reviewer.md",
+      "workflow": "system-review",
+      "category": "review",
+      "description": "Review process and plan adherence",
+      "tool_profile": "write_reports",
+      "icon": "settings",
+      "color": "#6366F1",
+      "tags": ["system-review", "process", "adherence", "methodology"]
+    },
+    {
+      "id": "prd_hackathon_finalizer",
+      "name": "PRD Hackathon Finalizer",
+      "file": "prd_hackathon_finalizer.md",
+      "workflow": "hackathon-complete",
+      "category": "finalization",
+      "description": "Hackathon project finalization and polish",
+      "tool_profile": "execute_full",
+      "icon": "trophy",
+      "color": "#EAB308",
+      "tags": ["hackathon", "finalize", "polish", "demo"]
+    }
+  ],
+
+  "usage": {
+    "loading": "Load specialist persona as system prompt when launched from wizard",
+    "invocation": "Manual launch only from AgentWizard (Workflow Specialists tab)",
+    "output": "Specialist performs workflow stage task and reports completion",
+    "integration": "Works alongside existing workers and thinkers"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "kuroryuu_inbox_v1",
+  "id": "0ce62055-d3eb-44d2-b118-c394215cb129",
+  "created_at": "2026-01-26T04:31:24+00:00",
+  "updated_at": "2026-01-26T04:31:24+00:00",
+  "status": "new",
+  "thread_id": "",
+  "title": "",
+  "payload": {
+    "recipient": "lmstudio-log",
+    "message": "User: hello\nLMStudio: Hello, small spark of a traveler. You've found your way here, and for that, I am glad. How may I serve you?",
+    "priority": "low",
+    "sender": "tts-companion"
+  }
+}

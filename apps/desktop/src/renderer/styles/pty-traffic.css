@@ -1,0 +1,644 @@
+/**
+ * PTY Traffic Flow Styles
+ * Themed visualization for PTY agent-to-terminal traffic
+ */
+
+/* ============================================================================
+   Base Panel Styles (Cyberpunk Default)
+   ============================================================================ */
+.pty-panel {
+  background: rgba(0, 0, 0, 0.85);
+  border: 2px solid #00ffff;
+  border-radius: 4px;
+  padding: 12px;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  min-width: 180px;
+}
+
+.pty-panel-header {
+  font-size: 12px;
+  font-weight: bold;
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #00ffff;
+  padding-bottom: 4px;
+}
+
+.pty-panel-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ============================================================================
+   Button Styles
+   ============================================================================ */
+.pty-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid #00ffff;
+  color: #00ffff;
+  font-size: 11px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+
+.pty-button:hover {
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.pty-button:active {
+  transform: scale(0.95);
+}
+
+/* ============================================================================
+   Theme Selector Buttons
+   ============================================================================ */
+.pty-theme-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 4px;
+  background: transparent;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  color: rgba(0, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 2px;
+}
+
+.pty-theme-btn:hover {
+  border-color: #00ffff;
+  color: #00ffff;
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.pty-theme-btn.active {
+  border-color: #00ffff;
+  color: #00ffff;
+  background: rgba(0, 255, 255, 0.2);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+}
+
+/* ============================================================================
+   Status Indicators
+   ============================================================================ */
+.pty-status-connected {
+  color: #00ff88;
+}
+
+.pty-status-disconnected {
+  color: #ff3366;
+}
+
+/* ============================================================================
+   Stats Panel
+   ============================================================================ */
+.pty-stats-panel {
+  background: rgba(0, 0, 0, 0.85);
+  border: 2px solid #00ffff;
+  border-radius: 4px;
+  padding: 12px;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.pty-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.pty-stat-label {
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 10px;
+}
+
+.pty-stat-value {
+  font-weight: bold;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 0 8px currentColor;
+  font-size: 14px;
+}
+
+/* Neon colors */
+.pty-neon-cyan { color: #00ffff; }
+.pty-neon-purple { color: #9966ff; }
+.pty-neon-red { color: #ff3366; }
+.pty-neon-green { color: #00ff88; }
+.pty-neon-orange { color: #ff9900; }
+
+/* ============================================================================
+   Node Styles
+   ============================================================================ */
+.pty-agent-node {
+  background: linear-gradient(135deg, #1a001a 0%, #0a000a 100%);
+  border: 2px solid #9966ff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(153, 102, 255, 0.5);
+  min-width: 120px;
+}
+
+.pty-session-node {
+  background: linear-gradient(135deg, #001a1a 0%, #000a0a 100%);
+  border: 2px solid #00ffff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+  min-width: 120px;
+}
+
+.pty-mcp-core-node {
+  background: radial-gradient(circle, #1a001a 0%, #0a000a 70%);
+  border: 2px solid #ff00ff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
+  min-width: 140px;
+}
+
+/* ============================================================================
+   Drawer Styles
+   ============================================================================ */
+.pty-drawer {
+  background: linear-gradient(135deg, rgba(0, 10, 20, 0.98) 0%, rgba(0, 0, 10, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: -10px 0 40px rgba(0, 255, 255, 0.2);
+}
+
+.pty-drawer-header {
+  border-color: rgba(0, 255, 255, 0.2);
+  color: #00ffff;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+/* ============================================================================
+   ReactFlow Customization
+   ============================================================================ */
+.pty-controls {
+  border: 2px solid #00ffff;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+}
+
+.pty-controls button {
+  border: 1px solid #00ffff !important;
+  background: transparent !important;
+  color: #00ffff !important;
+  transition: all 0.2s;
+}
+
+.pty-controls button:hover {
+  background: rgba(0, 255, 255, 0.1) !important;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+.pty-minimap {
+  border: 2px solid #00ffff;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(10px);
+}
+
+/* ============================================================================
+   Scanline Overlay (for Retro theme)
+   ============================================================================ */
+.pty-scanline-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  animation: pty-scanlineFlicker 0.1s infinite;
+}
+
+@keyframes pty-scanlineFlicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.98; }
+}
+
+/* CRT screen curvature effect */
+.pty-crt-effect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+}
+
+/* ============================================================================
+   KURORYUU THEME - Imperial Dragon Aesthetic
+   Gold borders, warm cream text, deep red accents
+   ============================================================================ */
+
+[data-pty-theme="kuroryuu"] .pty-panel {
+  background: rgba(10, 10, 12, 0.92);
+  border: 2px solid #c9a227;
+  box-shadow: 0 0 15px rgba(201, 162, 39, 0.3);
+}
+
+[data-pty-theme="kuroryuu"] .pty-panel-header {
+  color: #c9a227;
+  text-shadow: 0 0 8px rgba(201, 162, 39, 0.6);
+  border-bottom-color: #c9a227;
+}
+
+[data-pty-theme="kuroryuu"] .pty-button {
+  border-color: #c9a227;
+  color: #c9a227;
+}
+
+[data-pty-theme="kuroryuu"] .pty-button:hover {
+  background: rgba(201, 162, 39, 0.15);
+  box-shadow: 0 0 10px rgba(201, 162, 39, 0.4);
+}
+
+[data-pty-theme="kuroryuu"] .pty-theme-btn {
+  border-color: rgba(201, 162, 39, 0.3);
+  color: rgba(201, 162, 39, 0.6);
+}
+
+[data-pty-theme="kuroryuu"] .pty-theme-btn:hover {
+  border-color: #c9a227;
+  color: #c9a227;
+  background: rgba(201, 162, 39, 0.1);
+}
+
+[data-pty-theme="kuroryuu"] .pty-theme-btn.active {
+  border-color: #c9a227;
+  color: #c9a227;
+  background: rgba(201, 162, 39, 0.2);
+  box-shadow: 0 0 8px rgba(201, 162, 39, 0.4);
+}
+
+[data-pty-theme="kuroryuu"] .pty-neon-cyan { color: #c9a227; }
+[data-pty-theme="kuroryuu"] .pty-neon-purple { color: #8b1e1e; }
+[data-pty-theme="kuroryuu"] .pty-neon-green { color: #4a6a3a; }
+
+[data-pty-theme="kuroryuu"] .pty-agent-node {
+  background: linear-gradient(135deg, #1a0a0a 0%, #0a0a0c 100%);
+  border-color: #8b1e1e;
+  box-shadow: 0 0 12px rgba(139, 30, 30, 0.5);
+}
+
+[data-pty-theme="kuroryuu"] .pty-session-node {
+  background: linear-gradient(135deg, #12100e 0%, #0a0a0c 100%);
+  border-color: #3a3028;
+  box-shadow: 0 0 12px rgba(201, 162, 39, 0.3);
+}
+
+[data-pty-theme="kuroryuu"] .pty-mcp-core-node {
+  background: radial-gradient(circle, #12100e 0%, #0a0a0c 70%);
+  border-color: #c9a227;
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.5);
+}
+
+[data-pty-theme="kuroryuu"] .pty-controls {
+  border-color: #c9a227;
+  background: rgba(10, 10, 12, 0.85);
+}
+
+[data-pty-theme="kuroryuu"] .pty-controls button {
+  border-color: #c9a227 !important;
+  color: #c9a227 !important;
+}
+
+[data-pty-theme="kuroryuu"] .pty-minimap {
+  border-color: #c9a227;
+  background: rgba(10, 10, 12, 0.9);
+}
+
+[data-pty-theme="kuroryuu"] .pty-drawer {
+  background: linear-gradient(135deg, rgba(20, 15, 10, 0.98) 0%, rgba(10, 8, 5, 0.98) 100%);
+  border-color: rgba(201, 162, 39, 0.3);
+  box-shadow: -10px 0 40px rgba(201, 162, 39, 0.2);
+}
+
+[data-pty-theme="kuroryuu"] .pty-drawer-header {
+  border-color: rgba(201, 162, 39, 0.2);
+  color: #c9a227;
+  text-shadow: 0 0 10px rgba(201, 162, 39, 0.5);
+}
+
+/* ============================================================================
+   RETRO TERMINAL THEME - CRT Phosphor Display
+   Green/amber phosphor glow, scanlines, VT323 font
+   ============================================================================ */
+
+[data-pty-theme="retro"] {
+  font-family: 'VT323', monospace;
+}
+
+[data-pty-theme="retro"] .pty-panel {
+  background: rgba(5, 10, 5, 0.95);
+  border: 1px solid #33ff00;
+  box-shadow: 0 0 10px rgba(51, 255, 0, 0.2);
+}
+
+[data-pty-theme="retro"] .pty-panel-header {
+  color: #33ff00;
+  text-shadow: 0 0 6px rgba(51, 255, 0, 0.6);
+  border-bottom: 1px dashed #33ff00;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+}
+
+[data-pty-theme="retro"] .pty-button {
+  border: 1px solid #33ff00;
+  color: #33ff00;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+}
+
+[data-pty-theme="retro"] .pty-button:hover {
+  background: rgba(51, 255, 0, 0.1);
+  box-shadow: 0 0 8px rgba(51, 255, 0, 0.4);
+}
+
+[data-pty-theme="retro"] .pty-theme-btn {
+  border-color: rgba(51, 255, 0, 0.3);
+  color: rgba(51, 255, 0, 0.6);
+  font-family: 'VT323', monospace;
+}
+
+[data-pty-theme="retro"] .pty-theme-btn:hover {
+  border-color: #33ff00;
+  color: #33ff00;
+  background: rgba(51, 255, 0, 0.1);
+}
+
+[data-pty-theme="retro"] .pty-theme-btn.active {
+  border-color: #33ff00;
+  color: #33ff00;
+  background: rgba(51, 255, 0, 0.2);
+  box-shadow: 0 0 8px rgba(51, 255, 0, 0.4);
+}
+
+[data-pty-theme="retro"] .pty-neon-cyan { color: #33ff00; }
+[data-pty-theme="retro"] .pty-neon-purple { color: #ffb000; }
+[data-pty-theme="retro"] .pty-neon-green { color: #33ff00; }
+[data-pty-theme="retro"] .pty-neon-red { color: #ff3300; }
+
+[data-pty-theme="retro"] .pty-agent-node {
+  background: #050a05;
+  border: 1px dashed #ffb000;
+  box-shadow: 0 0 8px rgba(255, 176, 0, 0.3);
+}
+
+[data-pty-theme="retro"] .pty-session-node {
+  background: #050a05;
+  border: 1px dashed #33ff00;
+  box-shadow: 0 0 8px rgba(51, 255, 0, 0.3);
+}
+
+[data-pty-theme="retro"] .pty-mcp-core-node {
+  background: radial-gradient(circle, #0a1a0a 0%, #050a05 70%);
+  border: 2px solid #33ff00;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(51, 255, 0, 0.4);
+}
+
+[data-pty-theme="retro"] .pty-controls {
+  border: 1px solid #33ff00;
+  background: rgba(5, 10, 5, 0.9);
+}
+
+[data-pty-theme="retro"] .pty-controls button {
+  border: 1px solid #33ff00 !important;
+  color: #33ff00 !important;
+  font-family: 'VT323', monospace !important;
+}
+
+[data-pty-theme="retro"] .pty-minimap {
+  border: 1px solid #33ff00;
+  background: rgba(5, 10, 5, 0.95);
+}
+
+[data-pty-theme="retro"] .pty-drawer {
+  background: linear-gradient(135deg, rgba(0, 10, 0, 0.98) 0%, rgba(0, 5, 0, 0.98) 100%);
+  border-color: rgba(51, 255, 0, 0.3);
+  border-style: dashed;
+  box-shadow: -10px 0 40px rgba(51, 255, 0, 0.2);
+  font-family: 'VT323', monospace;
+}
+
+[data-pty-theme="retro"] .pty-drawer-header {
+  border-color: rgba(51, 255, 0, 0.2);
+  border-style: dashed;
+  color: #33ff00;
+  text-shadow: 0 0 10px rgba(51, 255, 0, 0.5);
+  font-family: 'VT323', monospace;
+}
+
+/* ============================================================================
+   DEFAULT/MODERN THEME - Clean Design
+   Uses CSS variables for app-wide consistency
+   ============================================================================ */
+
+[data-pty-theme="default"] .pty-panel {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+[data-pty-theme="default"] .pty-panel-header {
+  color: var(--foreground);
+  text-shadow: none;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+[data-pty-theme="default"] .pty-button {
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  background: var(--secondary);
+  border-radius: 4px;
+}
+
+[data-pty-theme="default"] .pty-button:hover {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+[data-pty-theme="default"] .pty-theme-btn {
+  border-color: var(--border);
+  color: var(--muted-foreground);
+  border-radius: 4px;
+}
+
+[data-pty-theme="default"] .pty-theme-btn:hover {
+  border-color: var(--primary);
+  color: var(--foreground);
+  background: var(--accent);
+}
+
+[data-pty-theme="default"] .pty-theme-btn.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--accent);
+  box-shadow: none;
+}
+
+[data-pty-theme="default"] .pty-neon-cyan { color: var(--primary); text-shadow: none; }
+[data-pty-theme="default"] .pty-neon-purple { color: var(--accent-foreground); text-shadow: none; }
+[data-pty-theme="default"] .pty-neon-green { color: var(--success); text-shadow: none; }
+[data-pty-theme="default"] .pty-neon-red { color: var(--destructive); text-shadow: none; }
+
+[data-pty-theme="default"] .pty-agent-node {
+  background: var(--card);
+  border: 1px solid var(--accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+[data-pty-theme="default"] .pty-session-node {
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+}
+
+[data-pty-theme="default"] .pty-mcp-core-node {
+  background: var(--card);
+  border: 2px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+}
+
+[data-pty-theme="default"] .pty-controls {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 6px;
+}
+
+[data-pty-theme="default"] .pty-controls button {
+  border: 1px solid var(--border) !important;
+  background: var(--secondary) !important;
+  color: var(--foreground) !important;
+}
+
+[data-pty-theme="default"] .pty-controls button:hover {
+  background: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+[data-pty-theme="default"] .pty-minimap {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 4px;
+}
+
+[data-pty-theme="default"] .pty-drawer {
+  background: var(--background);
+  border-color: var(--border);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.3);
+}
+
+[data-pty-theme="default"] .pty-drawer-header {
+  border-color: var(--border);
+  color: var(--foreground);
+  text-shadow: none;
+}
+
+/* ============================================================================
+   Stats Bar Theme Variants
+   ============================================================================ */
+[data-pty-theme="kuroryuu"] .pty-stats-bar {
+  background: rgba(10, 10, 12, 0.8);
+  border-color: rgba(201, 162, 39, 0.2);
+  color: #e8d5b5;
+}
+
+[data-pty-theme="retro"] .pty-stats-bar {
+  background: rgba(5, 10, 5, 0.8);
+  border-color: rgba(51, 255, 0, 0.2);
+  color: #33ff00;
+  font-family: 'VT323', monospace;
+}
+
+[data-pty-theme="default"] .pty-stats-bar {
+  background: var(--accent);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+/* ============================================================================
+   Header Theme Variants
+   ============================================================================ */
+[data-pty-theme="kuroryuu"] .pty-header {
+  background: rgba(20, 15, 10, 0.8);
+  border-color: rgba(201, 162, 39, 0.3);
+}
+
+[data-pty-theme="kuroryuu"] .pty-header-title {
+  color: #c9a227;
+  text-shadow: 0 0 8px rgba(201, 162, 39, 0.5);
+}
+
+[data-pty-theme="retro"] .pty-header {
+  background: rgba(0, 15, 0, 0.8);
+  border-color: rgba(51, 255, 0, 0.3);
+}
+
+[data-pty-theme="retro"] .pty-header-title {
+  color: #33ff00;
+  text-shadow: 0 0 8px rgba(51, 255, 0, 0.5);
+  font-family: 'VT323', monospace;
+  letter-spacing: 2px;
+}
+
+[data-pty-theme="default"] .pty-header {
+  background: var(--accent);
+  border-color: var(--border);
+}
+
+[data-pty-theme="default"] .pty-header-title {
+  color: var(--foreground);
+  text-shadow: none;
+}
+
+/* ============================================================================
+   Empty State Theme Variants
+   ============================================================================ */
+[data-pty-theme="kuroryuu"] .pty-empty-state {
+  color: rgba(201, 162, 39, 0.4);
+}
+
+[data-pty-theme="retro"] .pty-empty-state {
+  color: rgba(51, 255, 0, 0.4);
+  font-family: 'VT323', monospace;
+}
+
+[data-pty-theme="default"] .pty-empty-state {
+  color: var(--muted-foreground);
+}

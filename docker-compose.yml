@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mcp_core:
+    build: ./apps/mcp_core
+    container_name: kuroryuu-mcp-core
+    ports:
+      - "8100:8100"
+    environment:
+      - KURORYUU_PROJECT_ROOT=/kuroryuu
+      - KURORYUU_MCP_HOST=0.0.0.0
+      - KURORYUU_MCP_PORT=8100
+    volumes:
+      - ./ai:/kuroryuu/ai
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  gateway:
+    build: ./apps/gateway
+    container_name: kuroryuu-gateway
+    ports:
+      - "8200:8200"
+    environment:
+      - KURORYUU_MCP_URL=http://mcp_core:8100
+      - KURORYUU_PROJECT_ROOT=/kuroryuu
+      - KURORYUU_GATEWAY_HOST=0.0.0.0
+      - KURORYUU_GATEWAY_PORT=8200
+    depends_on:
+      mcp_core:
+        condition: service_healthy
+    volumes:
+      - ./ai:/kuroryuu/ai
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8200/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  pty_daemon:
+    build: ./apps/pty_daemon
+    container_name: kuroryuu-pty-daemon
+    ports:
+      - "7072:7072"
+    environment:
+      - PTY_DAEMON_HOST=0.0.0.0
+      - PTY_DAEMON_PORT=7072
+
+  web:
+    build: ./apps/web
+    container_name: kuroryuu-web
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway:
+        condition: service_healthy

@@ -1,0 +1,15 @@
+{
+  "name": "kuro",
+  "version": "1.0.2",
+  "description": "Kuroryuu multi-agent orchestration CLI - session management, checkpoints, leader/worker coordination",
+  "author": {
+    "name": "Ryan Devlin"
+  },
+  "keywords": [
+    "kuroryuu",
+    "multi-agent",
+    "orchestration",
+    "session",
+    "checkpoint"
+  ]
+}

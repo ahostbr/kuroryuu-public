@@ -1,0 +1,20 @@
+{
+  "prds": [
+    {
+      "id": "PRD_20260123_230815_a-new-agent-cli",
+      "title": "a new agent cli",
+      "scope": "epic",
+      "status": "draft",
+      "created_at": "2026-01-23T23:08:15.072838",
+      "updated_at": "2026-01-23T23:08:15.072838"
+    },
+    {
+      "id": "PRD_20260125_121822_uber-clone",
+      "title": "uber clone",
+      "scope": "epic",
+      "status": "draft",
+      "created_at": "2026-01-25T12:18:22.598546",
+      "updated_at": "2026-01-25T12:18:22.598546"
+    }
+  ]
+}

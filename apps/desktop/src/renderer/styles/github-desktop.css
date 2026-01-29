@@ -1,0 +1,1146 @@
+/**
+ * GitHub Desktop Clone - Global Theme Integration
+ * Automatically adapts to all Kuroryuu themes (oscura-midnight, dusk, lime, ocean, retro, neo, forest, matrix, grunge, kuroryuu)
+ */
+
+/* ============================================================================
+   CSS Variables - Mapped to Global Theme System
+   ============================================================================ */
+
+:root {
+  /* Background colors - Use global theme variables */
+  --ghd-bg-primary: var(--background);
+  --ghd-bg-secondary: var(--card);
+  --ghd-bg-tertiary: var(--secondary);
+  --ghd-bg-canvas: var(--background);
+  --ghd-bg-input: var(--input);
+  --ghd-bg-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Border colors - Use global theme border */
+  --ghd-border-default: var(--border);
+  --ghd-border-muted: color-mix(in srgb, var(--border) 70%, transparent);
+  --ghd-border-subtle: color-mix(in srgb, var(--border) 40%, transparent);
+  --ghd-border-accent: var(--primary);
+
+  /* Text colors - Use global theme foreground */
+  --ghd-text-primary: var(--foreground);
+  --ghd-text-secondary: var(--muted-foreground);
+  --ghd-text-muted: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+  --ghd-text-link: var(--primary);
+  --ghd-text-danger: var(--destructive);
+
+  /* Accent colors - Use global primary/destructive */
+  --ghd-accent-gold: var(--primary);
+  --ghd-accent-gold-bright: color-mix(in srgb, var(--primary) 85%, white);
+  --ghd-accent-gold-dim: color-mix(in srgb, var(--primary) 70%, black);
+  --ghd-accent-red: var(--destructive);
+  --ghd-accent-red-bright: color-mix(in srgb, var(--destructive) 85%, white);
+
+  /* Button colors - Use global primary */
+  --ghd-btn-primary-bg: var(--primary);
+  --ghd-btn-primary-hover: color-mix(in srgb, var(--primary) 85%, white);
+  --ghd-btn-primary-text: var(--primary-foreground);
+  --ghd-btn-secondary-bg: var(--secondary);
+  --ghd-btn-secondary-hover: color-mix(in srgb, var(--secondary) 80%, var(--primary));
+  --ghd-btn-secondary-text: var(--secondary-foreground);
+
+  /* Diff colors - Use global success/destructive */
+  --ghd-diff-add-bg: color-mix(in srgb, var(--success) 15%, var(--background));
+  --ghd-diff-add-highlight: color-mix(in srgb, var(--success) 25%, var(--background));
+  --ghd-diff-add-text: color-mix(in srgb, var(--success) 70%, var(--foreground));
+  --ghd-diff-add-gutter: var(--success);
+  --ghd-diff-del-bg: color-mix(in srgb, var(--destructive) 15%, var(--background));
+  --ghd-diff-del-highlight: color-mix(in srgb, var(--destructive) 25%, var(--background));
+  --ghd-diff-del-text: color-mix(in srgb, var(--destructive) 70%, var(--foreground));
+  --ghd-diff-del-gutter: var(--destructive);
+  --ghd-diff-hunk-bg: var(--card);
+  --ghd-diff-hunk-text: var(--muted-foreground);
+  --ghd-diff-line-number: var(--muted-foreground);
+  --ghd-diff-context-bg: transparent;
+
+  /* Selection colors - Use primary with alpha */
+  --ghd-selection-bg: color-mix(in srgb, var(--primary) 15%, transparent);
+  --ghd-selection-border: var(--primary);
+
+  /* Status colors - Use global status colors */
+  --ghd-status-new: var(--success);
+  --ghd-status-modified: var(--warning);
+  --ghd-status-deleted: var(--destructive);
+  --ghd-status-renamed: color-mix(in srgb, var(--warning) 70%, var(--primary));
+  --ghd-status-conflicted: var(--destructive);
+
+  /* Spacing */
+  --ghd-spacing-xs: 4px;
+  --ghd-spacing-sm: 8px;
+  --ghd-spacing-md: 12px;
+  --ghd-spacing-lg: 16px;
+  --ghd-spacing-xl: 24px;
+
+  /* Typography - Use global fonts */
+  --ghd-font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif);
+  --ghd-font-mono: var(--font-mono, ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace);
+  --ghd-font-size-xs: 11px;
+  --ghd-font-size-sm: 12px;
+  --ghd-font-size-md: 13px;
+  --ghd-font-size-lg: 14px;
+
+  /* Layout */
+  --ghd-toolbar-height: 50px;
+  --ghd-tabbar-height: 35px;
+  --ghd-sidebar-width: 300px;
+  --ghd-sidebar-min-width: 200px;
+  --ghd-sidebar-max-width: 500px;
+  --ghd-file-row-height: 29px;
+  --ghd-commit-row-height: 50px;
+
+  /* Borders - Use global radius */
+  --ghd-border-radius: var(--radius, 0.5rem);
+  --ghd-border-radius-sm: calc(var(--radius, 0.5rem) * 0.5);
+
+  /* Glow effects - Dynamic based on primary color */
+  --ghd-glow-gold: 0 0 8px color-mix(in srgb, var(--primary) 30%, transparent);
+  --ghd-glow-gold-intense: 0 0 15px color-mix(in srgb, var(--primary) 50%, transparent);
+  --ghd-glow-red: 0 0 8px color-mix(in srgb, var(--destructive) 40%, transparent);
+}
+
+/* ============================================================================
+   Layout Components
+   ============================================================================ */
+
+.ghd-repository-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--ghd-bg-primary);
+  color: var(--ghd-text-primary);
+  font-family: var(--ghd-font-family);
+  font-size: var(--ghd-font-size-md);
+}
+
+.ghd-toolbar {
+  display: flex;
+  align-items: center;
+  height: var(--ghd-toolbar-height);
+  padding: 0 var(--ghd-spacing-lg);
+  background: var(--ghd-bg-secondary);
+  border-bottom: 2px solid var(--ghd-border-default);
+  flex-shrink: 0;
+}
+
+.ghd-toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  padding: 0 var(--ghd-spacing-md);
+  border-right: 1px solid var(--ghd-border-default);
+}
+
+.ghd-toolbar-section:last-child {
+  border-right: none;
+}
+
+.ghd-toolbar-dropdown {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  padding: var(--ghd-spacing-sm) var(--ghd-spacing-md);
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ghd-text-primary);
+  cursor: pointer;
+  border-radius: var(--ghd-border-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.ghd-toolbar-dropdown:hover {
+  background: var(--ghd-bg-tertiary);
+  border-color: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+.ghd-toolbar-dropdown-label {
+  font-size: var(--ghd-font-size-xs);
+  color: var(--ghd-text-secondary);
+}
+
+.ghd-toolbar-dropdown-value {
+  font-size: var(--ghd-font-size-md);
+  font-weight: 600;
+  color: var(--ghd-accent-gold);
+}
+
+.ghd-main-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   Tab Bar
+   ============================================================================ */
+
+.ghd-tabbar {
+  display: flex;
+  height: var(--ghd-tabbar-height);
+  background: var(--ghd-bg-secondary);
+  border-bottom: 2px solid var(--ghd-border-default);
+}
+
+.ghd-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  padding: 0 var(--ghd-spacing-lg);
+  background: transparent;
+  border: none;
+  color: var(--ghd-text-secondary);
+  font-size: var(--ghd-font-size-md);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.ghd-tab:hover {
+  color: var(--ghd-text-primary);
+  background: color-mix(in srgb, var(--primary) 5%, transparent);
+}
+
+.ghd-tab.active {
+  color: var(--ghd-accent-gold);
+  font-weight: 600;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+.ghd-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--ghd-accent-gold);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--primary) 50%, transparent);
+}
+
+.ghd-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  background: var(--ghd-accent-gold);
+  color: var(--ghd-bg-primary);
+  border-radius: 2px;
+  font-size: var(--ghd-font-size-xs);
+  font-weight: 700;
+}
+
+/* ============================================================================
+   Sidebar
+   ============================================================================ */
+
+.ghd-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: var(--ghd-sidebar-width);
+  min-width: var(--ghd-sidebar-min-width);
+  max-width: var(--ghd-sidebar-max-width);
+  background: var(--ghd-bg-secondary);
+  border-right: 2px solid var(--ghd-border-default);
+}
+
+.ghd-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ghd-spacing-sm);
+  border-bottom: 1px solid var(--ghd-border-default);
+  background: var(--ghd-bg-tertiary);
+}
+
+.ghd-filter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  margin-bottom: var(--ghd-spacing-sm);
+}
+
+.ghd-filter-button {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-xs);
+  padding: var(--ghd-spacing-sm);
+  background: var(--ghd-bg-input);
+  border: 1px solid var(--ghd-border-default);
+  border-right: none;
+  border-radius: var(--ghd-border-radius-sm) 0 0 var(--ghd-border-radius-sm);
+  color: var(--ghd-text-secondary);
+  font-size: var(--ghd-font-size-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ghd-filter-button:hover {
+  color: var(--ghd-accent-gold);
+  background: var(--ghd-bg-tertiary);
+  border-color: var(--ghd-accent-gold);
+}
+
+.ghd-filter-input {
+  flex: 1;
+  padding: var(--ghd-spacing-sm);
+  background: var(--ghd-bg-input);
+  border: 1px solid var(--ghd-border-default);
+  border-radius: 0 var(--ghd-border-radius-sm) var(--ghd-border-radius-sm) 0;
+  color: var(--ghd-text-primary);
+  font-size: var(--ghd-font-size-sm);
+  transition: all 0.15s ease;
+}
+
+.ghd-filter-input::placeholder {
+  color: var(--ghd-text-muted);
+}
+
+.ghd-filter-input:focus {
+  outline: none;
+  border-color: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+.ghd-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-secondary);
+}
+
+.ghd-checkbox-row input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--ghd-accent-gold);
+}
+
+/* ============================================================================
+   File List
+   ============================================================================ */
+
+.ghd-file-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ghd-file-item {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  height: var(--ghd-file-row-height);
+  padding: 0 var(--ghd-spacing-sm);
+  cursor: pointer;
+  border-bottom: 1px solid var(--ghd-border-subtle);
+  transition: all 0.1s ease;
+}
+
+.ghd-file-item:hover {
+  background: var(--ghd-bg-tertiary);
+  border-left: 2px solid var(--ghd-accent-gold);
+  padding-left: calc(var(--ghd-spacing-sm) - 2px);
+}
+
+.ghd-file-item.selected {
+  background: var(--ghd-selection-bg);
+  border-left: 2px solid var(--ghd-accent-gold);
+  padding-left: calc(var(--ghd-spacing-sm) - 2px);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.ghd-file-item input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  accent-color: var(--ghd-accent-gold);
+}
+
+.ghd-file-path {
+  flex: 1;
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ghd-file-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ghd-file-status.new {
+  background: var(--ghd-status-new);
+  color: var(--primary-foreground);
+}
+
+.ghd-file-status.modified {
+  background: var(--ghd-status-modified);
+  color: var(--primary-foreground);
+}
+
+.ghd-file-status.deleted {
+  background: var(--ghd-status-deleted);
+  color: var(--destructive-foreground);
+}
+
+.ghd-file-status.renamed {
+  background: var(--ghd-status-renamed);
+  color: var(--primary-foreground);
+}
+
+.ghd-file-status.conflicted {
+  background: var(--ghd-status-conflicted);
+  color: var(--destructive-foreground);
+}
+
+/* ============================================================================
+   Commit Message
+   ============================================================================ */
+
+.ghd-commit-box {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ghd-spacing-md);
+  background: var(--ghd-bg-tertiary);
+  border-top: 2px solid var(--ghd-border-default);
+}
+
+.ghd-commit-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  margin-bottom: var(--ghd-spacing-md);
+}
+
+.ghd-commit-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--ghd-bg-primary);
+  border: 1px solid var(--ghd-border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--ghd-accent-gold);
+}
+
+.ghd-commit-summary input {
+  flex: 1;
+  padding: var(--ghd-spacing-sm);
+  background: var(--ghd-bg-input);
+  border: 1px solid var(--ghd-border-default);
+  border-radius: var(--ghd-border-radius-sm);
+  color: var(--ghd-text-primary);
+  font-size: var(--ghd-font-size-sm);
+  transition: all 0.15s ease;
+}
+
+.ghd-commit-summary input::placeholder {
+  color: var(--ghd-text-muted);
+}
+
+.ghd-commit-summary input:focus {
+  outline: none;
+  border-color: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+.ghd-commit-description {
+  position: relative;
+  margin-bottom: var(--ghd-spacing-md);
+}
+
+.ghd-commit-description textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: var(--ghd-spacing-sm);
+  padding-bottom: 36px;
+  background: var(--ghd-bg-input);
+  border: 1px solid var(--ghd-border-default);
+  border-radius: var(--ghd-border-radius-sm);
+  color: var(--ghd-text-primary);
+  font-size: var(--ghd-font-size-sm);
+  font-family: var(--ghd-font-family);
+  resize: vertical;
+  transition: all 0.15s ease;
+}
+
+.ghd-commit-description textarea::placeholder {
+  color: var(--ghd-text-muted);
+}
+
+.ghd-commit-description textarea:focus {
+  outline: none;
+  border-color: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+.ghd-commit-action-bar {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  right: 1px;
+  display: flex;
+  gap: var(--ghd-spacing-sm);
+  padding: var(--ghd-spacing-sm);
+  background: var(--ghd-bg-secondary);
+  border-radius: 0 0 var(--ghd-border-radius-sm) var(--ghd-border-radius-sm);
+}
+
+.ghd-commit-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--ghd-text-secondary);
+  cursor: pointer;
+  border-radius: var(--ghd-border-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.ghd-commit-action-btn:hover {
+  color: var(--ghd-accent-gold);
+  background: var(--ghd-bg-tertiary);
+}
+
+.ghd-commit-button {
+  width: 100%;
+  padding: var(--ghd-spacing-sm) var(--ghd-spacing-md);
+  background: var(--ghd-btn-primary-bg);
+  border: none;
+  border-radius: var(--ghd-border-radius-sm);
+  color: var(--ghd-btn-primary-text);
+  font-size: var(--ghd-font-size-md);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ghd-commit-button:hover:not(:disabled) {
+  background: var(--ghd-btn-primary-hover);
+  box-shadow: var(--ghd-glow-gold-intense);
+}
+
+.ghd-commit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   Diff Viewer
+   ============================================================================ */
+
+.ghd-diff-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--ghd-bg-primary);
+  overflow: hidden;
+}
+
+.ghd-diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ghd-spacing-sm) var(--ghd-spacing-md);
+  background: var(--ghd-bg-tertiary);
+  border-bottom: 2px solid var(--ghd-border-default);
+}
+
+.ghd-diff-filepath {
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-primary);
+}
+
+.ghd-diff-stats {
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-secondary);
+}
+
+.ghd-diff-stats .additions {
+  color: var(--ghd-status-new);
+}
+
+.ghd-diff-stats .deletions {
+  color: var(--ghd-status-deleted);
+}
+
+.ghd-diff-actions {
+  display: flex;
+  gap: var(--ghd-spacing-sm);
+}
+
+.ghd-diff-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  color: var(--ghd-text-secondary);
+  cursor: pointer;
+  border-radius: var(--ghd-border-radius-sm);
+  transition: all 0.15s ease;
+}
+
+.ghd-diff-action-btn:hover {
+  color: var(--ghd-accent-gold);
+  background: var(--ghd-bg-secondary);
+}
+
+.ghd-diff-content {
+  flex: 1;
+  overflow: auto;
+  font-family: var(--ghd-font-mono);
+  font-size: var(--ghd-font-size-sm);
+}
+
+.ghd-diff-hunk-header {
+  display: flex;
+  align-items: center;
+  padding: var(--ghd-spacing-xs) var(--ghd-spacing-md);
+  background: var(--ghd-diff-hunk-bg);
+  color: var(--ghd-diff-hunk-text);
+  font-size: var(--ghd-font-size-xs);
+  border-top: 1px solid var(--ghd-border-muted);
+  border-bottom: 1px solid var(--ghd-border-muted);
+}
+
+.ghd-diff-line {
+  display: flex;
+  min-height: 20px;
+  line-height: 20px;
+}
+
+.ghd-diff-line-gutter {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.ghd-diff-line-number {
+  width: 50px;
+  padding: 0 var(--ghd-spacing-sm);
+  text-align: right;
+  color: var(--ghd-diff-line-number);
+  background: var(--ghd-bg-secondary);
+  border-right: 1px solid var(--ghd-border-muted);
+  user-select: none;
+}
+
+.ghd-diff-line-number.old {
+  border-right: 1px solid var(--ghd-border-muted);
+}
+
+.ghd-diff-line-number.new {
+  border-right: 3px solid var(--ghd-border-muted);
+}
+
+.ghd-diff-line-content {
+  flex: 1;
+  padding: 0 var(--ghd-spacing-sm);
+  white-space: pre;
+}
+
+.ghd-diff-line.add {
+  background: var(--ghd-diff-add-bg);
+}
+
+.ghd-diff-line.add .ghd-diff-line-number {
+  background: var(--ghd-diff-add-bg);
+  color: var(--ghd-diff-add-text);
+}
+
+.ghd-diff-line.add .ghd-diff-line-number.new {
+  border-right-color: var(--ghd-diff-add-gutter);
+}
+
+.ghd-diff-line.add .ghd-diff-line-content {
+  color: var(--ghd-diff-add-text);
+}
+
+.ghd-diff-line.delete {
+  background: var(--ghd-diff-del-bg);
+}
+
+.ghd-diff-line.delete .ghd-diff-line-number {
+  background: var(--ghd-diff-del-bg);
+  color: var(--ghd-diff-del-text);
+}
+
+.ghd-diff-line.delete .ghd-diff-line-number.new {
+  border-right-color: var(--ghd-diff-del-gutter);
+}
+
+.ghd-diff-line.delete .ghd-diff-line-content {
+  color: var(--ghd-diff-del-text);
+}
+
+.ghd-diff-line.context .ghd-diff-line-content {
+  color: var(--ghd-text-primary);
+}
+
+/* ============================================================================
+   History / Commit List
+   ============================================================================ */
+
+.ghd-commit-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ghd-commit-item {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ghd-spacing-sm) var(--ghd-spacing-md);
+  cursor: pointer;
+  border-bottom: 1px solid var(--ghd-border-subtle);
+  transition: all 0.1s ease;
+}
+
+.ghd-commit-item:hover {
+  background: var(--ghd-bg-tertiary);
+  border-left: 2px solid var(--ghd-accent-gold);
+  padding-left: calc(var(--ghd-spacing-md) - 2px);
+}
+
+.ghd-commit-item.selected {
+  background: var(--ghd-selection-bg);
+  border-left: 2px solid var(--ghd-accent-gold);
+  padding-left: calc(var(--ghd-spacing-md) - 2px);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+.ghd-commit-message {
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: var(--ghd-spacing-xs);
+}
+
+.ghd-commit-meta {
+  display: flex;
+  gap: var(--ghd-spacing-sm);
+  font-size: var(--ghd-font-size-xs);
+  color: var(--ghd-text-muted);
+}
+
+.ghd-commit-hash {
+  font-family: var(--ghd-font-mono);
+  color: var(--ghd-accent-gold-dim);
+}
+
+/* ============================================================================
+   Commit Details Panel
+   ============================================================================ */
+
+.ghd-commit-details {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ghd-commit-details-header {
+  padding: var(--ghd-spacing-md);
+  border-bottom: 2px solid var(--ghd-border-default);
+  background: var(--ghd-bg-tertiary);
+}
+
+.ghd-commit-details-title {
+  font-size: var(--ghd-font-size-lg);
+  font-weight: 600;
+  color: var(--ghd-accent-gold);
+  margin-bottom: var(--ghd-spacing-sm);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+
+.ghd-commit-details-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ghd-spacing-xs);
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-secondary);
+}
+
+.ghd-commit-details-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--ghd-spacing-md);
+}
+
+.ghd-commit-details-message {
+  padding: var(--ghd-spacing-md);
+  background: var(--ghd-bg-secondary);
+  border: 1px solid var(--ghd-border-default);
+  border-radius: var(--ghd-border-radius);
+  margin-bottom: var(--ghd-spacing-md);
+  white-space: pre-wrap;
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-primary);
+}
+
+.ghd-commit-details-files {
+  border-top: 1px solid var(--ghd-border-default);
+  padding-top: var(--ghd-spacing-md);
+}
+
+.ghd-commit-details-files-header {
+  font-size: var(--ghd-font-size-sm);
+  font-weight: 600;
+  color: var(--ghd-accent-gold);
+  margin-bottom: var(--ghd-spacing-sm);
+}
+
+/* ============================================================================
+   Empty States
+   ============================================================================ */
+
+.ghd-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--ghd-spacing-xl);
+  text-align: center;
+  color: var(--ghd-text-muted);
+}
+
+.ghd-empty-state-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--ghd-spacing-md);
+  opacity: 0.5;
+  color: var(--ghd-accent-gold-dim);
+}
+
+.ghd-empty-state-title {
+  font-size: var(--ghd-font-size-lg);
+  font-weight: 600;
+  margin-bottom: var(--ghd-spacing-sm);
+  color: var(--ghd-text-secondary);
+}
+
+.ghd-empty-state-description {
+  font-size: var(--ghd-font-size-sm);
+}
+
+/* ============================================================================
+   Resizable Handle
+   ============================================================================ */
+
+.ghd-resize-handle {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s;
+}
+
+.ghd-resize-handle:hover {
+  background: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+/* ============================================================================
+   Loading States
+   ============================================================================ */
+
+.ghd-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.ghd-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--ghd-border-default);
+  border-top-color: var(--ghd-accent-gold);
+  border-radius: 50%;
+  animation: ghd-spin 0.8s linear infinite;
+}
+
+@keyframes ghd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================================
+   Context Menu Styling (Radix UI)
+   ============================================================================ */
+
+.ghd-context-menu {
+  min-width: 180px;
+  background: var(--ghd-bg-secondary);
+  border: 1px solid var(--ghd-border-default);
+  border-radius: var(--ghd-border-radius);
+  padding: var(--ghd-spacing-xs) 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), var(--ghd-glow-gold);
+  z-index: 1000;
+}
+
+.ghd-context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-sm);
+  padding: var(--ghd-spacing-sm) var(--ghd-spacing-md);
+  font-size: var(--ghd-font-size-sm);
+  color: var(--ghd-text-primary);
+  cursor: pointer;
+  outline: none;
+  transition: all 0.1s ease;
+}
+
+.ghd-context-menu-item:hover,
+.ghd-context-menu-item:focus {
+  background: var(--ghd-selection-bg);
+  color: var(--ghd-accent-gold);
+}
+
+.ghd-context-menu-item.danger {
+  color: var(--ghd-accent-red);
+}
+
+.ghd-context-menu-item.danger:hover,
+.ghd-context-menu-item.danger:focus {
+  background: color-mix(in srgb, var(--destructive) 15%, transparent);
+  color: var(--ghd-accent-red-bright);
+}
+
+.ghd-context-menu-item:disabled {
+  color: var(--ghd-text-muted);
+  cursor: not-allowed;
+}
+
+.ghd-context-menu-separator {
+  height: 1px;
+  background: var(--ghd-border-default);
+  margin: var(--ghd-spacing-xs) 0;
+}
+
+.ghd-context-menu-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+
+/* ============================================================================
+   Worktree List Styling
+   ============================================================================ */
+
+.ghd-worktree-section {
+  padding: var(--ghd-spacing-md);
+}
+
+.ghd-worktree-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ghd-spacing-sm);
+  padding-bottom: var(--ghd-spacing-sm);
+  border-bottom: 1px solid var(--ghd-border-default);
+}
+
+.ghd-worktree-section-title {
+  font-size: var(--ghd-font-size-xs);
+  font-weight: 600;
+  color: var(--ghd-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ghd-worktree-section-count {
+  font-size: var(--ghd-font-size-xs);
+  color: var(--ghd-text-muted);
+}
+
+.ghd-worktree-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ghd-spacing-xs);
+}
+
+.ghd-worktree-item {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 var(--ghd-spacing-md);
+  gap: var(--ghd-spacing-md);
+  background: var(--ghd-bg-secondary);
+  border: 1px solid var(--ghd-border-default);
+  border-radius: var(--ghd-border-radius);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ghd-worktree-item:hover {
+  background: var(--ghd-bg-tertiary);
+  border-color: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+.ghd-worktree-item.selected {
+  background: var(--ghd-selection-bg);
+  border-color: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+.ghd-worktree-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--ghd-accent-gold);
+  flex-shrink: 0;
+}
+
+.ghd-worktree-name {
+  flex: 1;
+  font-size: var(--ghd-font-size-sm);
+  font-weight: 600;
+  color: var(--ghd-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ghd-worktree-path {
+  flex: 1;
+  font-size: var(--ghd-font-size-xs);
+  color: var(--ghd-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+.ghd-worktree-stats {
+  display: flex;
+  gap: var(--ghd-spacing-sm);
+  font-size: var(--ghd-font-size-xs);
+  color: var(--ghd-text-secondary);
+}
+
+.ghd-worktree-stats .ahead {
+  color: var(--ghd-status-new);
+}
+
+.ghd-worktree-stats .behind {
+  color: var(--ghd-accent-red);
+}
+
+.ghd-worktree-stats .uncommitted {
+  color: var(--ghd-status-modified);
+}
+
+.ghd-worktree-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: var(--ghd-font-size-xs);
+  font-weight: 600;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.ghd-worktree-status.clean {
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  color: var(--ghd-status-new);
+  border: 1px solid var(--ghd-status-new);
+}
+
+.ghd-worktree-status.dirty {
+  background: color-mix(in srgb, var(--warning) 20%, transparent);
+  color: var(--ghd-status-modified);
+  border: 1px solid var(--ghd-status-modified);
+}
+
+.ghd-worktree-status.detached {
+  background: color-mix(in srgb, var(--destructive) 20%, transparent);
+  color: var(--ghd-accent-red);
+  border: 1px solid var(--ghd-accent-red);
+}
+
+/* Worktree toolbar */
+.ghd-worktree-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ghd-spacing-sm);
+  padding: var(--ghd-spacing-sm) var(--ghd-spacing-md);
+  background: var(--ghd-bg-tertiary);
+  border-bottom: 1px solid var(--ghd-border-default);
+}
+
+.ghd-worktree-toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--ghd-spacing-xs);
+  padding: var(--ghd-spacing-sm) var(--ghd-spacing-md);
+  background: var(--ghd-btn-secondary-bg);
+  border: 1px solid var(--ghd-border-default);
+  border-radius: var(--ghd-border-radius);
+  color: var(--ghd-text-primary);
+  font-size: var(--ghd-font-size-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ghd-worktree-toolbar-btn:hover {
+  background: var(--ghd-btn-secondary-hover);
+  border-color: var(--ghd-accent-gold);
+  box-shadow: var(--ghd-glow-gold);
+}
+
+.ghd-worktree-toolbar-btn.primary {
+  background: var(--ghd-btn-primary-bg);
+  color: var(--ghd-btn-primary-text);
+  border-color: var(--ghd-btn-primary-bg);
+}
+
+.ghd-worktree-toolbar-btn.primary:hover {
+  background: var(--ghd-btn-primary-hover);
+  box-shadow: var(--ghd-glow-gold-intense);
+}
+
+/* ============================================================================
+   Scrollbar Styling
+   ============================================================================ */
+
+.ghd-repository-view ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.ghd-repository-view ::-webkit-scrollbar-track {
+  background: var(--ghd-bg-primary);
+}
+
+.ghd-repository-view ::-webkit-scrollbar-thumb {
+  background: var(--ghd-border-default);
+  border-radius: 4px;
+}
+
+.ghd-repository-view ::-webkit-scrollbar-thumb:hover {
+  background: var(--ghd-accent-gold-dim);
+}
