@@ -146,7 +146,10 @@ if ($SkipPython) {
         if (Test-Path $reqPath) {
             $appName = ($reqFile -split '\\')[1]
             Write-Host "  Installing $appName dependencies..." -ForegroundColor White
+            # Temporarily allow errors (pip outputs warnings to stderr)
+            $ErrorActionPreference = "Continue"
             & $pip install -r $reqPath -q 2>&1 | Out-Null
+            $ErrorActionPreference = "Stop"
         }
     }
     Write-Host "  Python dependencies installed" -ForegroundColor Green
@@ -187,7 +190,10 @@ if ($SkipNode) {
                 } else {
                     Write-Host "  $appName - installing..." -ForegroundColor White
                     Push-Location $appPath
+                    # Temporarily allow errors (npm outputs warnings to stderr)
+                    $ErrorActionPreference = "Continue"
                     & npm install --silent 2>&1 | Out-Null
+                    $ErrorActionPreference = "Stop"
                     Pop-Location
                     Write-Host "  $appName - done" -ForegroundColor Green
                 }
