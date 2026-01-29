@@ -48,9 +48,10 @@ import { useTheme, useIsThemedStyle } from './hooks/useTheme';
 import { MatrixRain } from './components/effects/MatrixRain';
 import { ThemedBackgroundOverlay } from './components/ui/ThemedBackground';
 import type { Task } from './types/task';
-import { initAgentConfigFromFile } from './stores/agent-config-store';
+import { initAgentConfigFromFile, useAgentConfigStore } from './stores/agent-config-store';
 import { gatewayWebSocket } from './lib/websocket-client';
 import { useTrafficStore } from './stores/traffic-store';
+import { useAgentStore } from './stores/agent-store';
 import { clearAllLocalStorage, clearAllIndexedDB } from './lib/storage-reset';
 
 export function App() {
@@ -198,7 +199,12 @@ export function App() {
   // Shutdown event listeners
   useEffect(() => {
     const unsubStart = window.electronAPI?.shutdown?.onStart?.(() => {
-      console.log('[App] Shutdown started');
+      console.log('[App] Shutdown started - stopping all polling and disconnecting');
+      // Stop all polling and heartbeats to prevent connection errors during shutdown
+      useAgentStore.getState().stopPolling();
+      useAgentConfigStore.getState().stopAllHeartbeats();
+      // Disconnect WebSocket to prevent further requests
+      gatewayWebSocket.disconnect();
       useShutdownStore.getState().openDialog();
     });
 
