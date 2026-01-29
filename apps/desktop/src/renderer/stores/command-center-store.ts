@@ -394,13 +394,11 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
             ...updatedServers[serverIndex],
             status: 'disconnected',
             lastPing: new Date().toISOString(),
-                responseTimeMs: Date.now() - startTime,
-                error: 'Not responding',
-              };
-              set({ servers: updatedServers });
-            }
-            return;
-          }
+            responseTimeMs: Date.now() - startTime,
+            error: 'Not responding',
+          };
+          set({ servers: updatedServers });
+          return;
         }
 
         const responseTimeMs = Date.now() - startTime;
@@ -457,10 +455,10 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
         } else if (serverId === 'pty-daemon') {
           result = await window.electronAPI.services.restartPtyDaemon();
         } else if (serverId === 'cliproxy') {
-          // CLIProxyAPI: Stop then start via docker compose
-          await window.electronAPI.cliproxy.container.stop();
+          // CLIProxyAPI: Use native mode (CLIProxyAPIPlus.exe)
+          await window.electronAPI.cliproxy.native.stop();
           await new Promise((r) => setTimeout(r, 1000));
-          const startResult = await window.electronAPI.cliproxy.container.start();
+          const startResult = await window.electronAPI.cliproxy.native.start();
           result = { ok: startResult.success, error: startResult.error };
         } else {
           return { ok: false, error: 'Unknown server' };

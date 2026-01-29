@@ -29,5 +29,10 @@
 		"serverUrl": "http://localhost:8000",
 		"autoSync": false
 	},
-	"_version": 1
+	"_version": 1,
+	"integrations": {
+		"trayCompanion": {
+			"launchOnStartup": true
+		}
+	}
 }
