@@ -930,7 +930,8 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   // @ Mention - Folder Navigation with IPC
   // ============================================================================
 
-  const DEFAULT_ROOT = process.cwd();
+  // Get project root from env or fallback to a sensible default
+  const DEFAULT_ROOT = import.meta.env.VITE_PROJECT_ROOT || window.KURORYUU_PROJECT_ROOT || '.';
   const [atCurrentFolder, setAtCurrentFolder] = useState<string>(DEFAULT_ROOT);
   const [atFolderContents, setAtFolderContents] = useState<MentionItem[]>([]);
   const [atFilesLoading, setAtFilesLoading] = useState(false);
