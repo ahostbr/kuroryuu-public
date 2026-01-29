@@ -3073,7 +3073,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
               <MessageCircleQuestion className="w-4 h-4" />
             </button>
 
-            {/* Ralph Leader Session - EXACT same pattern as Quizmaster */}
+            {/* NOTE: Ralph Leader button hidden for public release
             <button
               onClick={handleRalphLaunch}
               className={`p-1.5 rounded transition-colors ${
@@ -3085,6 +3085,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
             >
               <Crown className="w-4 h-4" />
             </button>
+            */}
 
             {/* Reset All Agents */}
             <button
