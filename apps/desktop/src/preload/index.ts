@@ -1525,13 +1525,27 @@ const api = {
     },
   },
 
-  // CLI Proxy APIs (Native mode - CLIProxyAPIPlus.exe)
+  // CLI Proxy APIs (Docker + Native + OAuth for CLIProxyAPI)
   cliproxy: {
+    docker: {
+      check: (): Promise<{ installed: boolean; running: boolean; error?: string }> =>
+        ipcRenderer.invoke('cliproxy:docker:check'),
+    },
+    container: {
+      status: (): Promise<{ running: boolean; status?: string; error?: string }> =>
+        ipcRenderer.invoke('cliproxy:container:status'),
+      start: (containerPath?: string): Promise<{ success: boolean; error?: string }> =>
+        ipcRenderer.invoke('cliproxy:container:start', containerPath),
+      stop: (): Promise<{ success: boolean; error?: string }> =>
+        ipcRenderer.invoke('cliproxy:container:stop'),
+    },
     oauth: {
+      start: (provider: string): Promise<{ url?: string; error?: string; authenticated?: boolean; waiting?: boolean; output?: string }> =>
+        ipcRenderer.invoke('cliproxy:oauth:start', provider),
       status: (): Promise<{ gemini: number; claude: number; openai: number; total: number; error?: string }> =>
         ipcRenderer.invoke('cliproxy:oauth:status'),
     },
-    // Native mode APIs (downloads and runs CLIProxyAPIPlus.exe)
+    // Native mode APIs (no Docker required)
     native: {
       /** Download and provision the CLIProxyAPI binary */
       provision: (): Promise<{ success: boolean; version?: string; error?: string }> =>

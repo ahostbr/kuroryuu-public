@@ -33,12 +33,13 @@ import { setupAgentIpc } from './agent-orchestrator';
 import { setupSecurityIpc } from './security-scanner';
 import { setupOrchestrationIpc } from './orchestration-client';
 import { mainLogger } from './utils/file-logger';
-import { restartService, getServiceHealth, checkPtyDaemonHealth } from './service-manager';
+import { restartService, getServiceHealth, checkPtyDaemonHealth, stopService } from './service-manager';
 import { registerBootstrapHandlers, launchTrayCompanion } from './ipc/bootstrap-handlers';
 import { getLeaderMonitor, configureLeaderMonitor, setupLeaderMonitorIpc } from './services/leader-monitor';
 import { registerTTSHandlers } from './ipc/tts-handlers';
 import { registerSpeechHandlers } from './ipc/speech-handlers';
 import { registerCLIProxyHandlers } from './ipc/cliproxy-handlers';
+import { getCLIProxyNativeManager } from './services/cliproxy-native';
 import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow } from './integrations/pccontrol-service';
 import { registerPythonHandlers, setMainWindow as setPythonMainWindow } from './integrations/python-service';
 import { transcribeAudio, voiceChat, type STTEngine } from './audio-service';
@@ -3085,7 +3086,7 @@ async function performShutdownSequence(win: BrowserWindow) {
     {
       name: 'Saving terminal sessions...',
       fn: async () => {
-        console.log('[Main] Step 1/5: Saving terminal sessions');
+        console.log('[Main] Step 1/8: Saving terminal sessions');
         win.webContents.send('pty:flush-persistence');
         await new Promise(resolve => setTimeout(resolve, 300));
       },
@@ -3094,7 +3095,7 @@ async function performShutdownSequence(win: BrowserWindow) {
     {
       name: 'Stopping Graphiti server...',
       fn: async () => {
-        console.log('[Main] Step 2/5: Stopping Graphiti server');
+        console.log('[Main] Step 2/8: Stopping Graphiti server');
         await cleanupGraphiti();
       },
       progress: 40
@@ -3102,7 +3103,7 @@ async function performShutdownSequence(win: BrowserWindow) {
     {
       name: 'Closing terminal connections...',
       fn: async () => {
-        console.log('[Main] Step 3/5: Closing terminal connections');
+        console.log('[Main] Step 3/8: Closing terminal connections');
         ptyManager?.dispose();
       },
       progress: 60
@@ -3110,15 +3111,44 @@ async function performShutdownSequence(win: BrowserWindow) {
     {
       name: 'Cleaning up file watchers...',
       fn: async () => {
-        console.log('[Main] Step 4/5: Cleaning up file watchers');
+        console.log('[Main] Step 4/8: Cleaning up file watchers');
         fileWatcher.dispose();
       },
-      progress: 80
+      progress: 70
+    },
+    {
+      name: 'Stopping CLIProxyAPI...',
+      fn: async () => {
+        console.log('[Main] Step 5/8: Stopping CLIProxyAPI');
+        try {
+          const manager = getCLIProxyNativeManager();
+          await manager.stop();
+        } catch (e) {
+          console.log('[Main] CLIProxyAPI stop skipped:', e);
+        }
+      },
+      progress: 75
+    },
+    {
+      name: 'Stopping Gateway...',
+      fn: async () => {
+        console.log('[Main] Step 6/8: Stopping Gateway');
+        await stopService('gateway');
+      },
+      progress: 85
+    },
+    {
+      name: 'Stopping MCP Core...',
+      fn: async () => {
+        console.log('[Main] Step 7/8: Stopping MCP Core');
+        await stopService('mcp');
+      },
+      progress: 95
     },
     {
       name: 'Finalizing cleanup...',
       fn: async () => {
-        console.log('[Main] Step 5/5: Finalizing cleanup');
+        console.log('[Main] Step 8/8: Finalizing cleanup');
         await new Promise(resolve => setTimeout(resolve, 200));
       },
       progress: 100

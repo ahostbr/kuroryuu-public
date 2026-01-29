@@ -245,3 +245,33 @@ export async function checkPtyDaemonHealth(): Promise<{
     port: 7072,
   };
 }
+
+/**
+ * Stop a service by killing the process on its port
+ */
+export async function stopService(serviceId: string): Promise<{ ok: boolean; error?: string }> {
+  const config = SERVICES[serviceId];
+  if (!config) {
+    return { ok: false, error: `Unknown service: ${serviceId}` };
+  }
+
+  try {
+    console.log(`[ServiceManager] Stopping ${config.name} on port ${config.port}...`);
+    await killByPort(config.port);
+
+    // Verify it stopped
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const stillRunning = await config.healthCheck();
+
+    if (stillRunning) {
+      // Try again with more force
+      await killByPort(config.port);
+    }
+
+    console.log(`[ServiceManager] ${config.name} stopped`);
+    return { ok: true };
+  } catch (error) {
+    console.error(`[ServiceManager] Error stopping ${config.name}:`, error);
+    return { ok: false, error: String(error) };
+  }
+}
