@@ -38,8 +38,14 @@
           ]
         }
       ],
-      "icon": "build/icon.png"
+      "icon": "build/icon.ico"
     },
+    "extraResources": [
+      {
+        "from": "resources/Kuroryuu_ico.ico",
+        "to": "icon.ico"
+      }
+    ],
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
