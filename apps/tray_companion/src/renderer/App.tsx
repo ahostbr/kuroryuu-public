@@ -90,7 +90,7 @@ const navItems: NavItem[] = [
   { id: 'hotkeys', label: 'Hotkeys', icon: Keyboard },
   { id: 'clipboard', label: 'Auto-speak', icon: Clipboard },
   { id: 'voice', label: 'Voice Assistant', icon: MessageSquare },
-  { id: 'mcp', label: 'MCP Core', icon: Database },
+  // { id: 'mcp', label: 'MCP Core', icon: Database }, // Hidden - MCP controls available in Desktop app
 ];
 
 function App(): React.JSX.Element {
