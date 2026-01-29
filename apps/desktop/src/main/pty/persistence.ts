@@ -247,33 +247,38 @@ class DesktopPtyPersistence {
    *
    * Deduplication logic:
    * - Main process saves with id = ptyId (e.g., "9fc5449d97dc9a8a")
-   * - Renderer saves with id = "term-..." and ptyId = "9fc5449d97dc9a8a"
-   * - If a term-* entry already exists for this ptyId, skip saving the bare ptyId entry
+   * - Renderer saves with id = "term-...", "quizmaster_terminal_...", etc. and ptyId = "9fc5449d97dc9a8a"
+   * - Main process saves with id = ptyId (bare ptyId like "9fc5449d97dc9a8a")
+   * - If a renderer entry already exists for this ptyId, skip saving the bare ptyId entry
    *
    * Uses ptyIdToTermSessionIndex for O(1) duplicate detection instead of O(n) iteration.
    */
   saveSession(session: TerminalSessionState): void {
     const ptyId = session.ptyId || session.id;
 
+    // Detect if this is a "bare ptyId" entry (main process pattern: id === ptyId)
+    // vs a renderer entry (id !== ptyId, e.g., "term-agent_123" or "quizmaster_terminal_123")
+    const isBarePtyIdEntry = session.id === ptyId;
+
     // Check for duplicate using O(1) index lookup:
-    // If this session's id is a bare ptyId (not term-*), check if a term-* entry already exists
-    if (!session.id.startsWith('term-') && ptyId) {
-      const existingTermSessionId = this.ptyIdToTermSessionIndex.get(ptyId);
-      if (existingTermSessionId) {
+    // If this is a bare ptyId entry from main process, check if renderer already saved an entry
+    if (isBarePtyIdEntry && ptyId) {
+      const existingRendererSessionId = this.ptyIdToTermSessionIndex.get(ptyId);
+      if (existingRendererSessionId) {
         // A renderer-created entry already exists for this ptyId
-        console.log(`[PtyPersistence] Skipping duplicate save for ptyId ${ptyId} - term-* entry exists: ${existingTermSessionId}`);
+        console.log(`[PtyPersistence] Skipping bare ptyId ${ptyId} - renderer entry exists: ${existingRendererSessionId}`);
         return;
       }
     }
 
-    // Also check reverse: if saving a term-* entry, remove any bare ptyId entry
-    if (session.id.startsWith('term-') && ptyId && this.sessions.has(ptyId)) {
-      console.log(`[PtyPersistence] Removing bare ptyId entry ${ptyId} in favor of term-* entry ${session.id}`);
+    // Also check reverse: if saving a renderer entry, remove any bare ptyId entry
+    if (!isBarePtyIdEntry && ptyId && this.sessions.has(ptyId)) {
+      console.log(`[PtyPersistence] Removing bare ptyId entry ${ptyId} in favor of renderer entry ${session.id}`);
       this.sessions.delete(ptyId);
     }
 
-    // Update the ptyId index for term-* sessions
-    if (session.id.startsWith('term-') && ptyId) {
+    // Update the ptyId index for renderer sessions (any non-bare-ptyId entry)
+    if (!isBarePtyIdEntry && ptyId) {
       this.ptyIdToTermSessionIndex.set(ptyId, session.id);
     }
 

@@ -700,6 +700,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
                 roleOverride: s.roleOverride,
                 viewMode: 'pending' as const, // Requires Start Terminal button to avoid race condition
                 showCogSettings: false,
+                agentConfig: s.agentConfig, // Restore agent config for Claude/Ralph mode
               };
             } else {
               fileLogger.log('TerminalGrid', 'PTY dead, setting pending for fresh start', { title: s.title, terminalId: s.id, oldPtyId: s.ptyId });
@@ -713,6 +714,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
                 roleOverride: s.roleOverride,
                 viewMode: 'pending' as const, // Requires Start Terminal button
                 showCogSettings: false,
+                agentConfig: s.agentConfig, // Restore agent config for Claude/Ralph mode
               };
             }
           });

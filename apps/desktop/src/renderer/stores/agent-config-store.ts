@@ -174,6 +174,7 @@ export async function checkAndClearStaleAgents(): Promise<{ hadStaleAgents: bool
 const runtimeState = {
   activeHeartbeats: new Map<string, ReturnType<typeof setInterval>>(),
   agentConfigs: new Map<string, AgentConfig>(), // Store configs for auto re-registration
+  isShuttingDown: false, // Flag to prevent heartbeats during shutdown
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -358,8 +359,14 @@ export const useAgentConfigStore = create<AgentConfigState>()(
 
         // Then start heartbeat interval with auto re-registration
         const interval = setInterval(async () => {
+          // Skip heartbeat if app is shutting down
+          if (runtimeState.isShuttingDown) return;
+
           const success = await sendHeartbeat(agentId);
           if (!success) {
+            // Skip re-registration attempts if shutting down
+            if (runtimeState.isShuttingDown) return;
+
             // Heartbeat failed (404 = agent was reaped by Gateway timeout)
             // Try to re-register instead of giving up
             console.warn(`Heartbeat failed for ${agentId}, attempting re-registration...`);
@@ -390,8 +397,11 @@ export const useAgentConfigStore = create<AgentConfigState>()(
         runtimeState.agentConfigs.delete(agentId);
       },
 
-      // Stop all heartbeats
+      // Stop all heartbeats (called during shutdown)
       stopAllHeartbeats: () => {
+        // Set flag FIRST to prevent in-flight heartbeats from re-registering
+        runtimeState.isShuttingDown = true;
+
         for (const [, interval] of runtimeState.activeHeartbeats) {
           clearInterval(interval);
         }

@@ -92,3 +92,5 @@ ai/agents_registry.json
 *.db
 /.cliproxyapi/auth
 nul
+ai/config/domain-config.json
+ai/current_run.json
