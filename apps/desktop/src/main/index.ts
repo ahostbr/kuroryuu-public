@@ -2522,12 +2522,13 @@ app.whenReady().then(async () => {
   // Spawns the startup .bat detached, then quits - user sees seamless restart
   ipcMain.handle('restart-app', async () => {
     const projectRoot = join(__dirname, '..', '..', '..', '..');
-    const startBat = join(projectRoot, 'Start Kuroryuu.bat');
+    const startBat = join(projectRoot, 'StartKuroryuu.bat');
 
     console.log('[Main] Restarting app via:', startBat);
 
     // Spawn the .bat detached so it survives our exit
-    spawn('cmd.exe', ['/c', 'start', '', startBat], {
+    // Use quoted path and empty title "" to handle spaces in path
+    spawn('cmd.exe', ['/c', 'start', '""', `"${startBat}"`], {
       detached: true,
       stdio: 'ignore',
       cwd: projectRoot,
