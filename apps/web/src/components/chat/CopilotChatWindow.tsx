@@ -32,7 +32,7 @@ interface CopilotChatWindowProps {
   backend: 'claude' | 'lmstudio';
 }
 
-export function CopilotChatWindow({ session, onUpdateMessages, backend }: CopilotChatWindowProps) {
+export function CopilotChatWindow({ session, onUpdateMessages, backend: _backend }: CopilotChatWindowProps) {
   const [isStreaming, setIsStreaming] = useState(false);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
