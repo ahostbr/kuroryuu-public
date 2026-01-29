@@ -2382,14 +2382,16 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
         >
           <Clipboard className="w-3 h-3" />
         </button>
-        <button
-          tabIndex={-1}
-          onClick={() => cycleStatusLineMode()}
-          className="p-1 rounded transition-colors text-muted-foreground hover:text-orange-400 hover:bg-secondary"
-          title={`Status line: ${statusLineMode.toUpperCase()} (click to cycle)`}
-        >
-          <Layers className="w-3 h-3" />
-        </button>
+        {term.claudeMode && (
+          <button
+            tabIndex={-1}
+            onClick={() => cycleStatusLineMode()}
+            className="p-1 rounded transition-colors text-muted-foreground hover:text-orange-400 hover:bg-secondary"
+            title={`Status line: ${statusLineMode.toUpperCase()} (click to cycle)`}
+          >
+            <Layers className="w-3 h-3" />
+          </button>
+        )}
         {/* NOTE: PM button hidden for public release - /plan command still works manually
         {term.claudeMode && (
           <button
@@ -2432,9 +2434,11 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
             <Skull className="w-3 h-3" />
           </button>
         )}
-        <button tabIndex={-1} onClick={() => setAgentWizardTerminalId(term.id)} className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10" title="Agent Launcher">
-          <Brain className="w-3 h-3" />
-        </button>
+        {term.claudeMode && (
+          <button tabIndex={-1} onClick={() => setAgentWizardTerminalId(term.id)} className="p-1 rounded text-muted-foreground hover:text-primary hover:bg-primary/10" title="Agent Launcher">
+            <Brain className="w-3 h-3" />
+          </button>
+        )}
         <button
           tabIndex={-1}
           onClick={() => toggleClaudeMode(term.id)}
@@ -3385,15 +3389,17 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
                     <Clipboard className="w-3 h-3" />
                   </button>
 
-                  {/* Status Line Mode Toggle */}
-                  <button
-                    tabIndex={-1}
-                    onClick={() => cycleStatusLineMode()}
-                    className="p-1 rounded transition-colors text-muted-foreground hover:text-orange-400 hover:bg-secondary"
-                    title={`Status line: ${statusLineMode.toUpperCase()} (click to cycle)`}
-                  >
-                    <Layers className="w-3 h-3" />
-                  </button>
+                  {/* Status Line Mode Toggle - only in Claude mode */}
+                  {term.claudeMode && (
+                    <button
+                      tabIndex={-1}
+                      onClick={() => cycleStatusLineMode()}
+                      className="p-1 rounded transition-colors text-muted-foreground hover:text-orange-400 hover:bg-secondary"
+                      title={`Status line: ${statusLineMode.toUpperCase()} (click to cycle)`}
+                    >
+                      <Layers className="w-3 h-3" />
+                    </button>
+                  )}
 
                   {/* NOTE: PM button hidden for public release - /plan command still works manually
                   {term.claudeMode && (
@@ -3451,14 +3457,16 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
                       <Skull className="w-3 h-3" />
                     </button>
                   )}
-                  {/* Agent Launcher Button */}
-                  <button
-                    onClick={() => setAgentWizardTerminalId(term.id)}
-                    className="p-1 rounded transition-colors text-muted-foreground hover:text-primary hover:bg-primary/10"
-                    title="Agent Launcher (Thinkers, Specialists, Workflow)"
-                  >
-                    <Brain className="w-3 h-3" />
-                  </button>
+                  {/* Agent Launcher Button - only in Claude mode */}
+                  {term.claudeMode && (
+                    <button
+                      onClick={() => setAgentWizardTerminalId(term.id)}
+                      className="p-1 rounded transition-colors text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      title="Agent Launcher (Thinkers, Specialists, Workflow)"
+                    >
+                      <Brain className="w-3 h-3" />
+                    </button>
+                  )}
                   {/* Claude Mode Toggle */}
                   <button
                     onClick={() => toggleClaudeMode(term.id)}
