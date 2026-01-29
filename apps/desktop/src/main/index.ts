@@ -2335,11 +2335,12 @@ function createWindow(): void {
   if (process.platform === 'win32') {
     // Try multiple locations for the icon
     const iconCandidates = [
-      join(process.resourcesPath || '', 'Kuroryuu_ico.ico'),  // Packaged app
+      join(process.resourcesPath || '', 'icon.ico'),           // Packaged (extraResources)
+      join(process.resourcesPath || '', 'Kuroryuu_ico.ico'),   // Packaged app (legacy)
       join(__dirname, '../../resources/Kuroryuu_ico.ico'),     // Dev build
       join(__dirname, '../../build/icon.ico'),                 // electron-builder build folder
     ];
-    iconPath = iconCandidates.find(p => fs.existsSync(p)) || iconCandidates[1];
+    iconPath = iconCandidates.find(p => fs.existsSync(p)) || iconCandidates[2];
   } else {
     const iconCandidates = [
       join(process.resourcesPath || '', 'Kuroryuu_png.png'),
@@ -2350,6 +2351,14 @@ function createWindow(): void {
   }
   console.log('[Main] Using window icon:', iconPath, 'exists:', fs.existsSync(iconPath));
 
+  // Load icon using nativeImage for better Windows compatibility
+  const appIcon = nativeImage.createFromPath(iconPath);
+  if (appIcon.isEmpty()) {
+    console.warn('[Main] Warning: App icon is empty!');
+  } else {
+    console.log('[Main] App icon loaded, size:', appIcon.getSize());
+  }
+
   mainWindow = new BrowserWindow({
     width: Math.min(WINDOW_WIDTH, screenWidth - 40),
     height: Math.min(WINDOW_HEIGHT, screenHeight - 40),
@@ -2358,7 +2367,7 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     title: 'Kuroryuu',
-    icon: iconPath,
+    icon: appIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -2371,7 +2380,16 @@ function createWindow(): void {
   // (Alt+M is needed for Claude Code plan mode toggle on Windows)
   mainWindow.setMenu(null);
 
+  // Force set icon again after window creation (helps with Windows taskbar in dev mode)
+  if (process.platform === 'win32' && !appIcon.isEmpty()) {
+    mainWindow.setIcon(appIcon);
+  }
+
   mainWindow.on('ready-to-show', () => {
+    // Set icon again when window is ready (ensures taskbar icon updates)
+    if (process.platform === 'win32' && !appIcon.isEmpty()) {
+      mainWindow?.setIcon(appIcon);
+    }
     mainWindow?.maximize();
     mainWindow?.show();
     if (isDev) {

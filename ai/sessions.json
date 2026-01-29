@@ -5472,6 +5472,19 @@
       "tool_calls": 0,
       "tool_successes": 0,
       "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_1d0254b6",
+      "process_id": "tray-companion-1769720074007",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-29T20:54:37.153569+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
     }
   ]
 }

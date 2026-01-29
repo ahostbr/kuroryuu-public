@@ -2,7 +2,7 @@
  * CLI Proxy IPC Handlers
  *
  * Main process handlers for CLI Proxy (CLIProxyAPIPlus) management.
- * Supports both Docker mode and Native mode.
+ * Native mode only - downloads and runs CLIProxyAPIPlus.exe directly.
  *
  * CLIProxyAPIPlus adds support for:
  * - GitHub Copilot (--github-copilot-login)
@@ -10,150 +10,15 @@
  */
 
 import { ipcMain } from 'electron';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { getCLIProxyNativeManager } from '../services/cliproxy-native';
-
-const execAsync = promisify(exec);
-
-// Docker container path - user-configurable via CLIProxyAPI Wizard
-// Set CLIPROXYAPI_DOCKER_PATH env var or configure in settings
-const DEFAULT_CONTAINER_PATH = process.env.CLIPROXYAPI_DOCKER_PATH || '';
 
 /**
  * Register CLI Proxy IPC handlers
  */
 export function registerCLIProxyHandlers(): void {
   // ─────────────────────────────────────────────────────────────────────────────
-  // Docker Status
+  // OAuth Status (works for both modes - just checks API)
   // ─────────────────────────────────────────────────────────────────────────────
-
-  ipcMain.handle('cliproxy:docker:check', async () => {
-    try {
-      // Check Docker version
-      await execAsync('docker --version');
-
-      // Check Docker daemon is running
-      await execAsync('docker info', { timeout: 10000 });
-
-      return { installed: true, running: true };
-    } catch (e) {
-      const error = e instanceof Error ? e.message : String(e);
-
-      // Distinguish between not installed and not running
-      if (error.includes('not recognized') || error.includes('not found')) {
-        return { installed: false, running: false, error: 'Docker not installed' };
-      }
-      if (error.includes('daemon') || error.includes('Cannot connect')) {
-        return { installed: true, running: false, error: 'Docker daemon not running' };
-      }
-
-      return { installed: false, running: false, error };
-    }
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Container Management
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  ipcMain.handle('cliproxy:container:status', async () => {
-    try {
-      const { stdout } = await execAsync(
-        'docker ps --filter name=cli-proxy-api --format "{{.Status}}"',
-        { timeout: 10000 }
-      );
-
-      const status = stdout.trim();
-      const running = status.toLowerCase().includes('up');
-
-      return { running, status: status || 'Not found' };
-    } catch (e) {
-      return { running: false, error: e instanceof Error ? e.message : String(e) };
-    }
-  });
-
-  ipcMain.handle('cliproxy:container:start', async (_event, containerPath?: string) => {
-    const path = containerPath || DEFAULT_CONTAINER_PATH;
-
-    try {
-      // Run docker compose up in the container directory
-      await execAsync(`cd /d "${path}" && docker compose up -d`, {
-        timeout: 60000,
-        shell: 'cmd.exe',
-      });
-
-      return { success: true };
-    } catch (e) {
-      return { success: false, error: e instanceof Error ? e.message : String(e) };
-    }
-  });
-
-  ipcMain.handle('cliproxy:container:stop', async () => {
-    try {
-      await execAsync(
-        `cd /d "${DEFAULT_CONTAINER_PATH}" && docker compose down`,
-        { timeout: 30000, shell: 'cmd.exe' }
-      );
-      return { success: true };
-    } catch (e) {
-      return { success: false, error: e instanceof Error ? e.message : String(e) };
-    }
-  });
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // OAuth Management
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  ipcMain.handle('cliproxy:oauth:start', async (_event, provider: string) => {
-    // Map provider names to CLI flags (CLIProxyAPIPlus)
-    const flags: Record<string, string> = {
-      gemini: '-login',
-      claude: '-claude-login',
-      codex: '-codex-login',
-      copilot: '-github-copilot-login',
-      kiro: '-kiro-aws-authcode',
-    };
-
-    const flag = flags[provider];
-    if (!flag) {
-      return { error: `Unknown provider: ${provider}` };
-    }
-
-    try {
-      // Start OAuth flow in container with no-browser flag
-      // This will output the URL for manual authentication
-      const { stdout, stderr } = await execAsync(
-        `docker exec cli-proxy-api /CLIProxyAPIPlus/CLIProxyAPIPlus ${flag} -no-browser -config /CLIProxyAPIPlus/config.yaml`,
-        { timeout: 15000 }
-      );
-
-      const output = stdout + stderr;
-
-      // Parse URL from output
-      // Look for patterns like "https://accounts.google.com/..." or "https://claude.ai/..." or "https://auth.openai.com/..."
-      const urlMatch = output.match(/https:\/\/[^\s\n]+/);
-
-      if (urlMatch) {
-        return { url: urlMatch[0], output };
-      }
-
-      // Check if already authenticated
-      if (output.includes('already authenticated') || output.includes('token valid')) {
-        return { authenticated: true, output };
-      }
-
-      return { error: 'Could not parse OAuth URL from output', output };
-    } catch (e) {
-      const error = e instanceof Error ? e.message : String(e);
-
-      // OAuth commands may "timeout" while waiting for callback - this is expected
-      if (error.includes('timeout') || error.includes('ETIMEDOUT')) {
-        return { waiting: true, error: 'OAuth waiting for browser callback' };
-      }
-
-      return { error };
-    }
-  });
 
   ipcMain.handle('cliproxy:oauth:status', async () => {
     try {
@@ -288,5 +153,5 @@ export function registerCLIProxyHandlers(): void {
     }
   });
 
-  console.log('[CLIProxy] IPC handlers registered');
+  console.log('[CLIProxy] IPC handlers registered (native mode)');
 }
