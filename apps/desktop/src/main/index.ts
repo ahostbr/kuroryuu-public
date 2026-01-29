@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen, ipcMain, shell, protocol, dialog } from 'electron';
+import { app, BrowserWindow, screen, ipcMain, shell, protocol, dialog, Tray, Menu, nativeImage } from 'electron';
 import { join, dirname } from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
@@ -60,6 +60,7 @@ let ptyManager: PtyManager | null = null;
 let ptyBridge: PtyBridge | null = null;
 let ttsModule: TTSModule | null = null;
 let ptyDaemonClient: PtyDaemonClient | null = null;
+let appTray: Tray | null = null;
 
 // PTY Bridge port for MCP registration
 const PTY_BRIDGE_PORT = parseInt(process.env.KURORYUU_PTY_BRIDGE_PORT || '8201', 10);
@@ -2328,12 +2329,27 @@ if (!gotTheLock) {
 
 function createWindow(): void {
   const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
-  
-  // Get icon path based on platform
-  const iconPath = process.platform === 'win32' 
-    ? join(__dirname, '../../resources/Kuroryuu_ico.ico')
-    : join(__dirname, '../../resources/Kuroryuu_png.png');
-  
+
+  // Get icon path based on platform - handle both dev and packaged builds
+  let iconPath: string;
+  if (process.platform === 'win32') {
+    // Try multiple locations for the icon
+    const iconCandidates = [
+      join(process.resourcesPath || '', 'Kuroryuu_ico.ico'),  // Packaged app
+      join(__dirname, '../../resources/Kuroryuu_ico.ico'),     // Dev build
+      join(__dirname, '../../build/icon.ico'),                 // electron-builder build folder
+    ];
+    iconPath = iconCandidates.find(p => fs.existsSync(p)) || iconCandidates[1];
+  } else {
+    const iconCandidates = [
+      join(process.resourcesPath || '', 'Kuroryuu_png.png'),
+      join(__dirname, '../../resources/Kuroryuu_png.png'),
+      join(__dirname, '../../build/icon.png'),
+    ];
+    iconPath = iconCandidates.find(p => fs.existsSync(p)) || iconCandidates[1];
+  }
+  console.log('[Main] Using window icon:', iconPath, 'exists:', fs.existsSync(iconPath));
+
   mainWindow = new BrowserWindow({
     width: Math.min(WINDOW_WIDTH, screenWidth - 40),
     height: Math.min(WINDOW_HEIGHT, screenHeight - 40),
@@ -2475,6 +2491,99 @@ function createCodeEditorWindow(): void {
   }
 
   console.log('[Main] CodeEditor window created');
+}
+
+/**
+ * Get the tray icon path that works in both dev and packaged builds.
+ * Uses .ico for Windows system tray.
+ */
+function getTrayIconPath(): string {
+  // Windows uses .ico files for tray icons
+  const iconCandidates = [
+    join(process.resourcesPath || '', 'icon.ico'),              // Packaged (extraResources)
+    join(process.resourcesPath || '', 'Kuroryuu_ico.ico'),      // Packaged (legacy)
+    join(__dirname, '../../build/icon.ico'),                     // Dev build folder
+    join(__dirname, '../../resources/Kuroryuu_ico.ico'),         // Dev resources folder
+  ];
+
+  for (const candidate of iconCandidates) {
+    if (fs.existsSync(candidate)) {
+      console.log('[Tray] Found icon at:', candidate);
+      return candidate;
+    }
+  }
+
+  // Last resort - return first candidate (will log warning if not found)
+  return iconCandidates[2]; // build/icon.ico
+}
+
+/**
+ * Create the system tray icon for the desktop app.
+ */
+function createAppTray(): void {
+  if (appTray) {
+    return; // Already created
+  }
+
+  try {
+    const iconPath = getTrayIconPath();
+    console.log('[Tray] Loading icon from:', iconPath);
+
+    let icon = nativeImage.createFromPath(iconPath);
+
+    if (icon.isEmpty()) {
+      console.warn('[Tray] Icon is empty, tray may not display correctly');
+    } else {
+      console.log('[Tray] Icon loaded, size:', icon.getSize());
+      // Resize for tray (16x16 on Windows)
+      icon = icon.resize({ width: 16, height: 16 });
+    }
+
+    appTray = new Tray(icon);
+    appTray.setToolTip('Kuroryuu Desktop');
+
+    // Build context menu
+    const contextMenu = Menu.buildFromTemplate([
+      {
+        label: 'Show Kuroryuu',
+        click: () => {
+          if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+          }
+        }
+      },
+      {
+        label: 'Open Code Editor',
+        click: () => {
+          createCodeEditorWindow();
+        }
+      },
+      { type: 'separator' },
+      {
+        label: 'Quit',
+        click: () => {
+          app.quit();
+        }
+      }
+    ]);
+
+    appTray.setContextMenu(contextMenu);
+
+    // Click on tray icon shows the main window
+    appTray.on('click', () => {
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+
+    console.log('[Tray] System tray icon created successfully');
+  } catch (error) {
+    console.error('[Tray] Failed to create system tray:', error);
+  }
 }
 
 app.whenReady().then(async () => {
