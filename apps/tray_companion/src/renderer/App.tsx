@@ -87,7 +87,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { id: 'tts', label: 'TTS Engine', icon: Settings },
-  { id: 'hotkeys', label: 'Hotkeys', icon: Keyboard },
+  // { id: 'hotkeys', label: 'Hotkeys', icon: Keyboard }, // Hidden - not working reliably
   { id: 'clipboard', label: 'Auto-speak', icon: Clipboard },
   { id: 'voice', label: 'Voice Assistant', icon: MessageSquare },
   // { id: 'mcp', label: 'MCP Core', icon: Database }, // Hidden - MCP controls available in Desktop app
