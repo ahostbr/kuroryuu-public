@@ -272,6 +272,14 @@ def main() -> int:
     except KeyboardInterrupt:
         print("\nInterrupted")
         return 0
+    except ConnectionError as e:
+        # Clean error for backend not available
+        print(f"\n  \033[91mConnection Error\033[0m")
+        print(f"  {'-' * 50}")
+        for line in str(e).split('\n'):
+            print(f"  {line}")
+        print()
+        return 1
 
 
 if __name__ == "__main__":
