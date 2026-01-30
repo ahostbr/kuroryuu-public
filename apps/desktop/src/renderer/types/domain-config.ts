@@ -27,7 +27,7 @@ export const PROVIDERS: ProviderInfo[] = [
     name: 'Gateway (Auto)',
     description: 'Automatic fallback chain - uses first healthy backend',
     color: 'purple',
-    healthEndpoint: 'http://127.0.0.1:8200/health',
+    healthEndpoint: 'http://127.0.0.1:8200/v1/health',
   },
   {
     id: 'lmstudio',

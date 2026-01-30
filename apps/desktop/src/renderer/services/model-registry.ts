@@ -246,7 +246,7 @@ export async function checkProviderHealth(provider: LLMProvider): Promise<Provid
   try {
     switch (provider) {
       case 'gateway-auto': {
-        const response = await fetch('http://127.0.0.1:8200/health', {
+        const response = await fetch('http://127.0.0.1:8200/v1/health', {
           signal: AbortSignal.timeout(3000),
         });
         result.healthy = response.ok;

@@ -64,7 +64,7 @@ export function StatusBar() {
   // Check gateway health
   const checkGateway = useCallback(async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8200/health', { 
+      const res = await fetch('http://127.0.0.1:8200/v1/health', {
         method: 'GET',
         signal: AbortSignal.timeout(2000)
       });
