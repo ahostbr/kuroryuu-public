@@ -261,7 +261,7 @@ def main() -> int:
     print(f"  Role:     {config.role}")
     print()
 
-    # Create and run REPL
+    # Create and run REPL with auto-start of services
     repl = KuroryuuREPL(config)
 
     try:
@@ -273,14 +273,68 @@ def main() -> int:
         print("\nInterrupted")
         return 0
     except ConnectionError as e:
-        # Clean error for backend not available
-        print(f"\n  \033[91mConnection Error\033[0m")
-        print(f"  {'-' * 50}")
-        for line in str(e).split('\n'):
-            print(f"  {line}")
-        print()
-        # Pause so user can read the error before window closes
-        input("  Press Enter to exit...")
+        # Backend not available - auto-start services
+        import subprocess
+        import time
+        import httpx
+
+        print(f"\n  \033[93mServices not running - starting automatically...\033[0m")
+
+        # Find run_all.ps1 relative to project root
+        run_all_script = config.project_root / "run_all.ps1"
+        if not run_all_script.exists():
+            # Try relative to CLI location
+            run_all_script = Path(__file__).parent.parent.parent / "run_all.ps1"
+
+        if not run_all_script.exists():
+            print(f"  \033[91mCannot find run_all.ps1\033[0m")
+            print(f"  Start services manually: .\\run_all.ps1")
+            input("\n  Press Enter to exit...")
+            return 1
+
+        # Start services in background
+        try:
+            subprocess.Popen(
+                ["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", str(run_all_script)],
+                cwd=str(run_all_script.parent),
+                creationflags=subprocess.CREATE_NEW_CONSOLE,
+            )
+            print(f"  Started: {run_all_script.name}")
+        except Exception as start_err:
+            print(f"  \033[91mFailed to start services: {start_err}\033[0m")
+            input("\n  Press Enter to exit...")
+            return 1
+
+        # Wait for services to come up (max 30 seconds)
+        print(f"  Waiting for services to start...")
+        gateway_url = config.gateway_url
+        mcp_url = config.mcp_url
+
+        for i in range(30):
+            time.sleep(1)
+            sys.stdout.write(f"\r  [{i+1}/30s] Checking...")
+            sys.stdout.flush()
+
+            try:
+                # Check both services
+                with httpx.Client(timeout=2.0) as client:
+                    gw_ok = client.get(f"{gateway_url}/v1/health").status_code == 200
+                    mcp_ok = client.get(f"{mcp_url}/health").status_code == 200
+
+                    if gw_ok and mcp_ok:
+                        print(f"\r  \033[92mServices ready!\033[0m                    ")
+                        # Retry the REPL
+                        repl = KuroryuuREPL(config)
+                        return asyncio.run(repl.run(
+                            initial_prompt=args.prompt,
+                            print_mode=args.print_mode,
+                        ))
+            except Exception:
+                pass  # Keep waiting
+
+        print(f"\r  \033[91mServices did not start within 30 seconds\033[0m")
+        print(f"  Check the service windows for errors.")
+        input("\n  Press Enter to exit...")
         return 1
 
 
