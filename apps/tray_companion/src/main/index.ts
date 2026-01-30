@@ -66,10 +66,13 @@ function createSettingsWindow(): void {
     settingsWindow = null;
   });
 
-  // Minimize to tray instead of taskbar
-  (settingsWindow as any).on('minimize', () => {
+  // Minimize to tray instead of taskbar - prevent minimize, hide directly
+  settingsWindow.on('minimize', () => {
+    // Hide immediately - the minimize animation may have started but hiding takes over
     settingsWindow?.hide();
-    console.log('[TrayCompanion] Window minimized to tray');
+    // Restore to prevent the window from staying in minimized state when shown again
+    settingsWindow?.restore();
+    console.log('[TrayCompanion] Window hidden to tray');
   });
 
   settingsWindow.webContents.setWindowOpenHandler((details) => {
@@ -162,11 +165,18 @@ app.whenReady().then(async () => {
   // Create tray with click handler that properly shows window
   createTray(() => {
     if (settingsWindow) {
+      // Handle both minimized and hidden states
       if (settingsWindow.isMinimized()) {
         settingsWindow.restore();
       }
-      settingsWindow.show();
+      if (!settingsWindow.isVisible()) {
+        settingsWindow.show();
+      }
       settingsWindow.focus();
+      // Windows quirk: force window to front by toggling alwaysOnTop
+      settingsWindow.setAlwaysOnTop(true);
+      settingsWindow.setAlwaysOnTop(false);
+      console.log('[TrayCompanion] Window shown from tray');
     } else {
       createSettingsWindow();
     }
