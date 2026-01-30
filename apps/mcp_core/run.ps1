@@ -70,7 +70,8 @@ if (Test-Path $secretFile) {
     # ai directory should exist from earlier in script, but ensure anyway
     $aiDir = Join-Path $ProjectRoot "ai"
     if (-not (Test-Path $aiDir)) { New-Item -ItemType Directory -Path $aiDir -Force | Out-Null }
-    $env:KURORYUU_INTERNAL_SECRET | Out-File -FilePath $secretFile -Encoding utf8NoBOM -NoNewline
+    # Write without BOM (compatible with all PowerShell versions)
+    [System.IO.File]::WriteAllText($secretFile, $env:KURORYUU_INTERNAL_SECRET)
 }
 
 Write-Host "=== Kuroryuu MCP_CORE ===" -ForegroundColor Cyan
