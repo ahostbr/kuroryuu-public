@@ -1,17 +1,17 @@
 # Kuroryuu Development Log
 
-> **Dynamous × Kiro Hackathon** — Complete development timeline (January 5-29, 2026)
+> **Dynamous × Kiro Hackathon** — Complete development timeline (January 5-30, 2026)
 
 ---
 
 ## 🏆 Hackathon Summary
 
-**Duration**: 25 days (January 5-30, 2026)
-**Development Days Completed**: 25 (Jan 5-29, 2026)
-**Total Sessions**: 437 development sessions
-**Tasks Completed**: 431 total (95 current + 336 legacy archive)
-**MCP Tools**: 16 routed tools → 118 actions
-**Final Status**: ✅ **PRODUCTION-READY** — Multi-agent AI harness with full orchestration + PROVEN parallelism
+**Duration**: 26 days (January 5-30, 2026)
+**Development Days Completed**: 26 (Jan 5-30, 2026)
+**Total Sessions**: 460+ development sessions
+**Tasks Completed**: 445 total (109 current + 336 legacy archive)
+**MCP Tools**: 15 routed tools → 107 actions
+**Final Status**: ✅ **SUBMITTED** — Multi-agent AI harness with full orchestration + PROVEN parallelism
 
 ---
 
@@ -19,11 +19,11 @@
 
 | Metric | Value | Notes |
 |--------|-------|-------|
-| **Development Days** | 25 | Jan 5-29, 2026 (hackathon ends Jan 30) |
-| **Total Sessions** | 437 | Full conversation transcripts preserved |
-| **Tasks Completed** | 431 | 95 current + 336 legacy (T001-T494 range) |
-| **MCP Tools** | 16 | Routed tool architecture |
-| **MCP Actions** | 118 | Total actions across all tools |
+| **Development Days** | 26 | Jan 5-30, 2026 (hackathon complete) |
+| **Total Sessions** | 460+ | Full conversation transcripts preserved |
+| **Tasks Completed** | 445 | 109 current + 336 legacy (T001-T494 range) |
+| **MCP Tools** | 15 | Routed tool architecture |
+| **MCP Actions** | 107 | Total actions across all tools |
 | **React Components** | 235 | Full Desktop UI |
 | **Desktop Screens** | 16 | Main navigation views |
 | **Desktop Modals** | 13 | Dialogs and wizards |
@@ -34,8 +34,8 @@
 | **CLI Providers** | 3 | LMStudio, Claude API, CLIProxyAPI |
 | **LLM Models** | 61+ | Via CLIProxyAPI multi-provider |
 | **Plugin Commands** | 20 | Kuro plugin slash commands |
-| **Worklogs** | 175+ | Comprehensive documentation |
-| **Checkpoints** | 100+ | Session state persistence |
+| **Worklogs** | 198 | Comprehensive documentation |
+| **Checkpoints** | 120+ | Session state persistence |
 | **Code Quality** | High | TypeScript, error handling, docs |
 | **Parallelism** | PROVEN | Multi-agent orchestration working |
 
@@ -3903,12 +3903,265 @@ elif event.type == "text_delta":
 
 ---
 
+#### Evening Session (21:00-24:00) - Major UI Overhaul
+
+**[21:05] Setup Wizard Removal:**
+- **Complete deletion** of 8-step onboarding wizard
+- 14 files deleted (entire `components/onboarding/` directory)
+- 8 files modified to remove references
+- App now goes directly to Welcome Screen on every launch
+- **Worklog:** `KiroWorkLog_20260129_210500_RemoveSetupWizard.md`
+- **Checkpoint:** `cp_20260129_210500_remove_wizard`
+
+**[21:26] Leader Setup Wizard Redesign:**
+- Animated backgrounds with gradient orbs and ambient particles
+- Glassmorphic selection cards with backdrop blur
+- Explanatory dropdowns for each backend option
+- Created comprehensive `Docs/KURO_PLUGIN_FEATURES.md` documenting:
+  - 14 slash commands
+  - 5 hook types
+  - 2 skills
+  - 11 agents
+  - 16 MCP tools (118 actions)
+- **Worklog:** `KiroWorkLog_20260129_212645_LeaderWizardRedesign.md`
+- **Checkpoint:** `cp_20260129_221727_leader_monitor_upgrades`
+
+**[22:17] Domain Config Import Fix:**
+- Fixed critical bug where store exported TO file on startup (overwriting external changes)
+- Changed `onRehydrateStorage` to import FROM file instead
+- Made repo_intel optional for roadmap/ideation endpoints
+- Switched to GitHub Copilot auth models (`claude-sonnet-4.5` instead of `claude-sonnet-4-20250514`)
+- **Worklog:** `KiroWorkLog_20260129_221740_DomainConfigImportFix.md`
+- **Checkpoint:** `cp_20260129_221740_domain-config-import-fix`
+
+**[23:58] Grandiose Quizmaster Card:**
+- Transformed Quizmaster role into cinematic "Secret Weapon" hero section
+- Visual effects: pulsing glow rings, floating particles, shimmer overlay
+- 3-stage flow diagram: Questions → Understanding → Perfect Plan
+- Prompt variant toggle (Concise vs Exhaustive)
+- Star placement at top of role selection with "Start Here" badge
+- **Worklog:** `KiroWorkLog_20260129_235833_GrandioseQuizmasterCard.md`
+- **Checkpoint:** `cp_20260129_235833_76b0401e`
+
+#### Files Modified (Day 25 Evening)
+
+**Created:**
+- `Docs/KURO_PLUGIN_FEATURES.md` - Comprehensive plugin documentation
+
+**Deleted (14 files):**
+- `apps/desktop/src/renderer/components/onboarding/*` - Entire directory
+- `apps/desktop/src/renderer/stores/onboarding-store.ts`
+- `apps/desktop/src/renderer/types/onboarding.ts`
+
+**Modified:**
+- `apps/desktop/src/renderer/App.tsx` - Removed wizard import/render
+- `apps/desktop/src/renderer/components/AgentSetupWizard.tsx` - Complete redesign
+- `apps/desktop/src/renderer/components/WorkerSetupWizard.tsx` - Quizmaster hero section
+- `apps/desktop/src/renderer/stores/domain-config-store.ts` - Import fix
+- `apps/desktop/src/main/index.ts` - domain-config:import IPC handler
+- `ai/config/domain-config.json` - Updated to cliproxyapi provider
+
+---
+
+### Day 26 (January 30) - Final Push 🏁
+
+**Sessions:** 20+ worklogs spanning 12-hour development sprint (00:00-12:00)
+**Worklogs:** 16 files
+**Checkpoints:** 15+ saved
+**Focus:** Video drag-drop, voice consolidation, Tray Companion fixes, Docker readiness, homescreen enhancements
+
+#### Work Timeline
+
+**Early Morning (00:00-02:00) - Critical Fixes:**
+
+**[01:05] Video Drag-Drop to Git Assets:**
+- Implemented video file copy to `assets/videos/` for git tracking
+- Added `video:copy-to-assets` IPC handler in main process
+- Created blob URLs for immediate playback
+- Electron 36+ compatibility with `webUtils.getPathForFile()`
+- CSP updated: `media-src 'self' blob: local-video: file:`
+- **Worklog:** `KiroWorkLog_20260130_010529_VideoDragDropGitAssets.md`
+- **Checkpoint:** `cp_20260130_010816`
+
+**[01:10] TypeScript Errors Fix (14 errors):**
+- Fixed missing JSX namespace in file-icons.tsx
+- Added `claude-cli` and `claude-cli-pty` provider entries
+- Fixed Zustand conditional spread type inference with type guards
+- Added `KURORYUU_PROJECT_ROOT` to Window interface
+- Added `quizmaster` to AgentConfig.role union
+- Added clawdbot API stub to preload
+- **Worklog:** `KiroWorkLog_20260130_011045_TypeScriptErrorsFix.md`
+- **Checkpoint:** `cp_20260130_011041`
+
+**[01:12] Insights Chat Claude Model Routing:**
+- Fixed bug where Claude models returned "No response received"
+- Root cause: model changed but provider stayed `lmstudio`
+- Solution: Auto-detect provider from model family in `handleModelChange`
+- Added safety check in `handleSendMessage` to auto-correct mismatches
+- **Worklog:** `KiroWorkLog_20260130_011200_InsightsChatClaudeRoutingFix.md`
+- **Checkpoint:** `cp_20260130_011213`
+
+**Morning (08:00-10:00) - Tray Companion & Voice:**
+
+**[08:32] Video Drag-Drop Fixes:**
+- Added X remove button to HeroVideo controls
+- Debug logging for IPC troubleshooting
+- **Worklog:** `KiroWorkLog_20260130_083200_VideoDragDropFixes.md`
+- **Checkpoint:** `cp_20260130_083512`
+
+**[08:37] Tray Companion + Claude Tasks Monitor Fix:**
+- **Critical:** Fixed settings scope mismatch (`integrations` → project scope)
+- Added error/exit event listeners on child process
+- Claude Tasks parser now scans ALL sections (not just `## Claude Tasks`)
+- Added `in_progress` status support for `[~]` checkbox
+- Leader Setup scroll fix when dropdown open
+- Used `/max-parallel` with 7 agents to investigate
+- **Worklog:** `KiroWorkLog_20260130_083700_TrayCompanionAndClaudeTasksFix.md`
+- **Checkpoint:** `cp_20260130_083735`
+
+**[09:11] Voice Input System Consolidation:**
+- Replaced broken MediaRecorder/Whisper with working Python speech API
+- Removed ~200 lines of broken code from TerminalGrid.tsx
+- Added ~60 lines using `speech.start()` / `speech.stop()` IPC
+- Unified voice infrastructure across Desktop Assistant, Terminal, Tray Companion
+- **Worklog:** `KiroWorkLog_20260130_091135_VoiceInputFix.md`
+- **Checkpoint:** `cp_20260130_091203`
+
+**[09:34] Voice Multi-Window Support:**
+- Fixed CodeEditor voice not working (events only sent to mainWindow)
+- Changed `safeSend()` to broadcast to ALL BrowserWindows
+- Fixed "Already listening" error (added `api.stop()` after transcript)
+- Desktop Assistant: input field instead of auto-send
+- **Worklog:** `KiroWorkLog_20260130_093425_VoiceMultiWindow.md`
+- **Checkpoint:** `cp_20260130_093425`
+
+**[09:34] Tray Companion Hidden Launch Fix:**
+- **Root Cause:** `windowsHide: true` + `detached: true` is a known Node.js bug (#21825)
+- **Solution:** `exec()` with PowerShell `Start-Process -WindowStyle Hidden`
+- Calls `electron.exe` directly (bypasses npm/cmd wrapper)
+- Same pattern as `service-manager.ts`
+- **Worklog:** `KiroWorkLog_20260130_093430_TrayCompanionHiddenLaunchFix.md`
+- **Checkpoint:** `cp_20260130_093423`
+
+**[09:35] Video Drag-Drop Complete:**
+- Full implementation verified working
+- Blob URLs for immediate playback
+- Files persist to `assets/videos/` for git
+- Stale URL detection on app restart
+- **Worklog:** `KiroWorkLog_20260130_093500_VideoDragDropFeature.md`
+- **Checkpoint:** `cp_20260130_093524`
+
+**Late Morning (10:00-12:00) - Polish & Docker:**
+
+**[10:44] TypeScript Errors Round 2:**
+- Removed unused `Database` import from tray_companion App.tsx
+- Removed unused temperature/maxTokens from VoiceAssistantControls.tsx
+- All 4 TypeScript apps now pass `tsc --noEmit`
+- **Worklog:** `KiroWorkLog_20260130_104405_FixTypescriptErrors.md`
+- **Checkpoint:** `cp_20260130_104405`
+
+**[10:44] Tray Companion Fixes:**
+- Auto-speak toggle now actually toggles (was just logging)
+- Tray click properly restores/shows/focuses window
+- Double-click handler added
+- Minimize now hides to tray instead of taskbar
+- CLI Section: Added Quick Start showing `kuroryuu-cli.bat`
+- **Worklog:** `KiroWorkLog_20260130_104406_TrayCompanionFixes.md`
+- **Checkpoint:** `cp_20260130_104406`
+
+**[10:48] Homescreen Plugin Section + ImageCarousel:**
+- **NEW Plugin Tab** with 7 collapsible sections:
+  1. Overview (16 MCP tools, 118 actions)
+  2. Slash Commands (12)
+  3. Hooks (5 Events)
+  4. Skills (2)
+  5. Agents (11)
+  6. MCP Tools (16)
+  7. Multi-Agent Coordination
+- **ImageCarousel component** for multi-screenshot navigation
+- Architecture page blurbs enriched from KURORYUU_TECHNICAL_OVERVIEW.md
+- Tray Section: replaced video placeholder with screenshot
+- Screenshots README documenting all 51 screenshots
+- **Worklog:** `KiroWorkLog_20260130_104800_HomescreenPluginCarousel.md`
+- **Checkpoint:** `cp_20260130_104823`
+
+**[11:13] k_interact Screenshot Removal:**
+- Removed phantom screenshot capability from k_interact
+- Screenshots now exclusively via k_capture
+- Fixed CapturePanel.tsx, FeaturesSection.tsx, mcp-overview.ts
+- Updated CLI permissions and action sets
+- **Worklog:** `KiroWorkLog_20260130_111330_FixKInteractScreenshot.md`
+- **Checkpoint:** `cp_20260130_111353`
+
+**[11:13] Docker Readiness Fixes:**
+- Created `.dockerignore` (excludes git, node_modules, desktop apps, runtime data)
+- Created `.env.example` with `ANTHROPIC_API_KEY` and optional settings
+- Updated `docker-compose.yml`:
+  - Health checks for all 4 services
+  - Restart policies: `unless-stopped`
+  - Resource limits: 256M-2G per service
+  - ANTHROPIC_API_KEY passthrough
+  - Named network: `kuroryuu-network`
+- Added PTY Daemon health endpoint (port 7073)
+- Updated README.md Docker section
+- **Worklog:** `KiroWorkLog_20260130_111340_DockerReadinessFixes.md`
+- **Checkpoint:** `cp_20260130_111340`
+
+#### Major Achievements (Day 26)
+
+1. **Video Drag-Drop Complete** - Full implementation for hackathon demo videos
+2. **Voice System Unified** - All voice input uses Python speech API
+3. **Tray Companion Polished** - Hidden launch, auto-speak, minimize to tray
+4. **Claude Tasks Monitor Working** - Parser scans all sections
+5. **TypeScript Clean** - All apps pass type checking
+6. **Homescreen Enhanced** - Plugin section, image carousel, enriched architecture
+7. **Docker Ready** - Health checks, .dockerignore, .env.example
+
+#### Components Modified (Day 26)
+
+**Desktop (20+ files):**
+- Video drag-drop infrastructure
+- Voice input consolidation
+- TypeScript fixes across stores and components
+- Homescreen plugin section and carousel
+- k_capture screenshot consolidation
+
+**Tray Companion (5 files):**
+- Hidden launch via exec+Start-Process
+- Auto-speak toggle, minimize to tray
+- TypeScript cleanup
+
+**Gateway (2 files):**
+- repo_intel made optional
+
+**Docker (4 files):**
+- `.dockerignore`, `.env.example`, `docker-compose.yml`, PTY health endpoint
+
+**Documentation:**
+- `Docs/KURO_PLUGIN_FEATURES.md`
+- `assets/screens/README.md`
+- Updated README.md Docker section
+
+#### Impact
+
+✅ Video drag-drop enables hackathon demo submission with embedded videos
+✅ Voice input unified across all components (Desktop Assistant, Terminal, Tray)
+✅ Tray Companion launch issues fully resolved
+✅ Claude Tasks monitor now shows all 145 tasks
+✅ Zero TypeScript errors across all apps
+✅ Homescreen documents full plugin capabilities
+✅ Docker deployment ready for backend devs/CI
+
+**Status:** ✅ COMPLETE - HACKATHON SUBMITTED
+
+---
+
 ## 🎉 Hackathon Completion (Updated)
 
-**Status**: ✅ **PUBLIC RELEASE READY**
+**Status**: ✅ **SUBMITTED**
 **Original Submission Date**: January 23, 2026
-**Extended Submission Date**: January 30, 2026
-**Continued Development**: Through January 29, 2026 (Days 20-25)
+**Final Submission Date**: January 30, 2026
+**Total Development**: 26 days (January 5-30, 2026)
 **Public Repository**: https://github.com/ahostbr/kuroryuu-public
 **Final Score**: 100/100 points (projected)
 
@@ -3926,7 +4179,27 @@ elif event.type == "text_delta":
 
 ---
 
-**Kuroryuu represents 25 days of intensive development, resulting in a production-ready multi-agent AI harness with desktop automation capabilities. The project demonstrates technical excellence, innovative design, comprehensive Kiro CLI integration, Ralph leader agent for autonomous task orchestration, pure PowerShell desktop control, and is now PUBLIC at https://github.com/ahostbr/kuroryuu-public** 🏆🚀
+**Kuroryuu represents 26 days of intensive development, resulting in a production-ready multi-agent AI harness with desktop automation capabilities. The project demonstrates technical excellence, innovative design, comprehensive Kiro CLI integration, Ralph leader agent for autonomous task orchestration, pure PowerShell desktop control, Docker deployment ready, and is PUBLIC at https://github.com/ahostbr/kuroryuu-public** 🏆🚀
+
+---
+
+## 📊 Final Statistics (Day 26)
+
+| Category | Count | Details |
+|----------|-------|---------|
+| **Development Days** | 26 | Jan 5-30, 2026 |
+| **Total Sessions** | 460+ | Conversation transcripts |
+| **Tasks Completed** | 445 | T001-T494 range |
+| **MCP Tools** | 15 | Clawdbot removed for public release |
+| **MCP Actions** | 107 | Across all tools |
+| **React Components** | 235 | Desktop + Web UI |
+| **Worklogs** | 198 | Comprehensive documentation |
+| **Checkpoints** | 120+ | Session state persistence |
+| **Desktop Screens** | 16 | Main navigation views |
+| **Desktop Modals** | 13 | Dialogs and wizards |
+| **CLI Commands** | 24 | Full REPL |
+| **Plugin Commands** | 20 | Kuro plugin slash commands |
+| **LLM Models** | 61+ | Via CLIProxyAPI multi-provider |
 
 ---
 
