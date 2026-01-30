@@ -72,20 +72,43 @@ class SessionManager:
         await self.gateway_client.connect()
         await self.mcp_client.connect()
 
-        # Check services health
-        gateway_health = await self.gateway_client.health_check()
-        mcp_health = await self.mcp_client.health_check()
+        # Check services health with clear error messages
+        try:
+            gateway_health = await self.gateway_client.health_check()
+        except Exception as e:
+            raise ConnectionError(
+                f"Cannot reach Gateway at {self.config.gateway_url}\n"
+                f"  Error: {e}\n\n"
+                "  Start services with: .\\run_all.ps1\n"
+                "  Or start Gateway only: .\\apps\\gateway\\run.ps1"
+            )
+
+        try:
+            mcp_health = await self.mcp_client.health_check()
+        except Exception as e:
+            raise ConnectionError(
+                f"Cannot reach MCP Core at {self.config.mcp_url}\n"
+                f"  Error: {e}\n\n"
+                "  Start services with: .\\run_all.ps1\n"
+                "  Or start MCP Core only: .\\apps\\mcp_core\\run.ps1"
+            )
 
         if not gateway_health.get("ok"):
+            error_detail = gateway_health.get("error", "Not responding")
             raise ConnectionError(
-                f"Gateway not available at {self.config.gateway_url}. "
-                "Run .\\run_all.ps1 to start services."
+                f"Gateway not available at {self.config.gateway_url}\n"
+                f"  Status: {error_detail}\n\n"
+                "  Start services with: .\\run_all.ps1\n"
+                "  Or start Gateway only: .\\apps\\gateway\\run.ps1"
             )
 
         if not mcp_health.get("ok"):
+            error_detail = mcp_health.get("error", "Not responding")
             raise ConnectionError(
-                f"MCP server not available at {self.config.mcp_url}. "
-                "Run .\\run_all.ps1 to start services."
+                f"MCP Core not available at {self.config.mcp_url}\n"
+                f"  Status: {error_detail}\n\n"
+                "  Start services with: .\\run_all.ps1\n"
+                "  Or start MCP Core only: .\\apps\\mcp_core\\run.ps1"
             )
 
         # Register with Gateway
