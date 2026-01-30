@@ -63,24 +63,6 @@ const MIGRATION_MAP: Record<string, { scope: 'user' | 'project'; namespace: stri
     },
   },
 
-  // Onboarding store (Zustand persist format)
-  'kuroryuu-onboarding': {
-    scope: 'project',
-    namespace: 'onboarding',
-    transform: (value) => {
-      if (typeof value === 'object' && value !== null) {
-        const v = value as Record<string, unknown>;
-        const state = (v.state || v) as Record<string, unknown>;
-        return {
-          completedSteps: Array.isArray(state.completedSteps) ? state.completedSteps : [],
-          currentStep: state.currentStep ?? null,
-          isComplete: state.isComplete ?? false,
-        };
-      }
-      return DEFAULT_PROJECT_SETTINGS.onboarding;
-    },
-  },
-
   // App settings (Zustand persist format)
   'kuroryuu-settings': {
     scope: 'user',

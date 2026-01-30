@@ -1755,6 +1755,20 @@ function setupSettingsIpc(): void {
     }
   });
 
+  ipcMain.handle('domain-config:import', async () => {
+    try {
+      const projectRoot = process.env.KURORYUU_ROOT || join(__dirname, '../../../..');
+      const configPath = join(projectRoot, 'ai', 'config', 'domain-config.json');
+      const data = await fs.promises.readFile(configPath, 'utf-8');
+      const parsed = JSON.parse(data);
+      console.log('[DomainConfig] Imported from:', configPath);
+      return { success: true, data: parsed };
+    } catch (error) {
+      console.error('[DomainConfig] Import failed:', error);
+      return { success: false, error: String(error) };
+    }
+  });
+
   // ============================================================================
   // FULL RESET & BACKUP MANAGEMENT
   // ============================================================================

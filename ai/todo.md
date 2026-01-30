@@ -10,6 +10,9 @@
 ## Claude Tasks
 <!-- Claude Code TaskCreate/Update syncs here -->
 
+- [x] T130: Transform Quizmaster info panel into cinematic "secret weapon" hero section with: pulsing glow rings, floating particles, shimmer effects, animated gradient title, 3-stage flow diagram, prompt vari... @agent [worklog: pending] (created: 2026-01-29 23:49) (completed: 2026-01-29 23:51)
+- [x] T129: 1. Fix provider descriptions (remove Max/Pro reference from cliproxyapi) 2. Add model shorthands (opus, sonnet, codex, etc.) 3. Update /model command to support all providers 4. Add /auth command f... @agent [worklog: pending] (created: 2026-01-29 23:25) (completed: 2026-01-29 23:28)
+- [x] T128: Completely remove the 8-step Setup Wizard so the app always goes directly to the Welcome Screen. This involves modifying 7 files and deleting 14 files (the entire onboarding/ directory plus store a... @agent [worklog: pending] (created: 2026-01-29 20:52) (completed: 2026-01-29 21:00)
 - [x] T127: Add platform detection to auto-disable Windows-only tools on Linux while keeping Windows behavior unchanged @agent [worklog: pending] (created: 2026-01-28 20:33) (completed: 2026-01-28 20:44)
 - [ ] T126: Create docker-compose.yml, Dockerfiles for gateway/mcp_core/pty_daemon/web, nginx.conf, and .dockerignore files @agent [worklog: pending] (created: 2026-01-28 20:33)
 - [x] T125: Update rag-interactive-gate.ps1, rag-interactive-toggle.ps1, and take_screenshot.ps1 to use portable path resolution. @agent [worklog: pending] (created: 2026-01-28 18:23) (completed: 2026-01-28 18:27)
@@ -509,3 +512,10 @@
 - 2026-01-28 20:33 - TaskCreate: T126 - Create docker-compose.yml, Dockerfiles for gateway
 - 2026-01-28 20:33 - TaskCreate: T127 - Add platform detection to auto-disable Windows-onl
 - 2026-01-28 20:44 - TaskUpdate: T127 completed
+- 2026-01-29 20:52 - TaskCreate: T128 - Completely remove the 8-step Setup Wizard so the a
+- 2026-01-29 21:00 - TaskUpdate: T128 completed
+- 2026-01-30 02:19:56 — Tool called: k_files
+- 2026-01-29 23:25 - TaskCreate: T129 - 1. Fix provider descriptions (remove Max/Pro refer
+- 2026-01-29 23:28 - TaskUpdate: T129 completed
+- 2026-01-29 23:49 - TaskCreate: T130 - Transform Quizmaster info panel into cinematic "se
+- 2026-01-29 23:51 - TaskUpdate: T130 completed

@@ -56,7 +56,7 @@
     "publish": {
       "provider": "github",
       "owner": "ahostbr",
-      "repo": "Kuroryuu"
+      "repo": "kuroryuu-public"
     }
   },
   "dependencies": {

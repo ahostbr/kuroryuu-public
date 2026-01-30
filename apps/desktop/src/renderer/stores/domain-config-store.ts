@@ -58,6 +58,7 @@ interface DomainConfigState {
   openDialog: () => void;
   closeDialog: () => void;
   exportToFile: () => Promise<{ success: boolean; path?: string; error?: string } | undefined>;
+  importFromFile: () => Promise<{ success: boolean; error?: string }>;
 
   // Selectors
   getConfigForDomain: (domain: DomainId) => DomainConfig;
@@ -241,6 +242,22 @@ export const useDomainConfigStore = create<DomainConfigState>()(
           return { success: false, error: String(error) };
         }
       },
+
+      // Import configs from shared file
+      importFromFile: async () => {
+        try {
+          const result = await (window as any).electronAPI?.domainConfig?.import?.();
+          if (result?.success && result?.data?.configs) {
+            set({ configs: result.data.configs });
+            console.log('[DomainConfigStore] Imported config from file');
+            return { success: true };
+          }
+          return { success: false, error: result?.error || 'No config data found' };
+        } catch (error) {
+          console.error('[DomainConfigStore] Failed to import config:', error);
+          return { success: false, error: String(error) };
+        }
+      },
     }),
     {
       name: 'kuroryuu-domain-config',
@@ -249,12 +266,18 @@ export const useDomainConfigStore = create<DomainConfigState>()(
         configs: state.configs,
       }),
       onRehydrateStorage: () => (state) => {
-        // After hydration from localStorage, export to shared file
-        // This ensures Tray Companion has access to config on Desktop startup
-        if (state?.configs) {
-          setTimeout(() => {
-            state.exportToFile?.();
-            console.log('[DomainConfigStore] Auto-exported config on hydration');
+        // After hydration from localStorage, import from shared file
+        // This allows external tools (CLI, manual edits) to update config
+        if (state?.importFromFile) {
+          setTimeout(async () => {
+            const result = await state.importFromFile?.();
+            if (result?.success) {
+              console.log('[DomainConfigStore] Auto-imported config from file on hydration');
+            } else {
+              // File doesn't exist or failed - export current state
+              state.exportToFile?.();
+              console.log('[DomainConfigStore] No file to import, exported current config');
+            }
           }, 1000); // Delay to ensure Electron APIs are ready
         }
       },

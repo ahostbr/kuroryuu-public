@@ -24,7 +24,6 @@ export {
   type AudioSettings,
   type AgentConfig,
   type AgentSettings,
-  type OnboardingSettings,
   type SettingsNamespace,
   type SettingsScope,
   type SettingsChangeEvent,

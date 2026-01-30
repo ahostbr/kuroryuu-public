@@ -771,39 +771,126 @@ None
 
         Usage:
             /model              - Show current model and list available
-            /model <name>       - Switch to a different model
+            /model help         - Show all model shorthands
+            /model <name>       - Switch to a different model (supports shorthands)
         """
         import httpx
+        from .config import MODEL_SHORTHANDS, resolve_model_shorthand
 
-        if not args:
-            # Show current and list available
-            ui.print_text(f"\nCurrent model: {self.repl.config.model}")
+        provider = self.repl.config.llm_provider
 
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    resp = await client.get(f"{self.repl.config.lmstudio_url}/v1/models")
-                    if resp.status_code == 200:
-                        models = resp.json().get("data", [])
-                        if models:
-                            ui.print_text("\nAvailable models:")
-                            for m in models[:10]:  # Limit to 10
-                                model_id = m.get("id", "unknown")
-                                ui.print_text(f"  - {model_id}")
-                        else:
-                            ui.print_info("No models loaded in LLM server")
-            except Exception as e:
-                ui.print_warning(f"Could not list models: {e}")
+        if args.lower().strip() == "help":
+            # Show all model shorthands
+            ui.print_text("\n" + "=" * 60)
+            ui.print_text("MODEL SHORTHANDS (for cliproxyapi)")
+            ui.print_text("=" * 60)
+
+            ui.print_text("\nClaude (Anthropic) - All support tools")
+            ui.print_text("-" * 40)
+            ui.print_text("  opus      → claude-opus-4-5-20251101    (most capable)")
+            ui.print_text("  sonnet    → claude-sonnet-4-5-20250929  (balanced)")
+            ui.print_text("  haiku     → claude-haiku-4-5-20251001   (fastest)")
+            ui.print_text("  opus4     → claude-opus-4-20250514")
+            ui.print_text("  sonnet4   → claude-sonnet-4-20250514")
+
+            ui.print_text("\nOpenAI/GPT - All support tools")
+            ui.print_text("-" * 40)
+            ui.print_text("  gpt5      → gpt-5")
+            ui.print_text("  codex     → gpt-5-codex                 (code-optimized)")
+            ui.print_text("  codex-max → gpt-5.1-codex-max           (maximum)")
+
+            ui.print_text("\nGemini (Google) - All support tools")
+            ui.print_text("-" * 40)
+            ui.print_text("  gemini    → gemini-2.5-pro")
+            ui.print_text("  flash     → gemini-2.5-flash            (fast)")
+
+            ui.print_text("\nGitHub Copilot - Supports tools")
+            ui.print_text("-" * 40)
+            ui.print_text("  copilot   → gpt-4o")
+            ui.print_text("  gpt4o     → gpt-4o")
+
+            ui.print_text("\nKiro/AWS - NO tool support")
+            ui.print_text("-" * 40)
+            ui.print_text("  kiro      → kiro-auto                   (auto-routing)")
+            ui.print_text("  kiro-opus → kiro-claude-opus-4-5")
+            ui.print_text("  kiro-sonnet → kiro-claude-sonnet-4-5")
+
+            ui.print_text("\n" + "=" * 60)
+            ui.print_text("Example: /model opus")
+            ui.print_text("=" * 60)
 
             return True, None
 
-        # Switch model
-        old_model = self.repl.config.model
-        self.repl.config.model = args
-        ui.print_success(f"Model switched: {old_model} -> {args}")
+        if not args:
+            # Show current model based on provider
+            if provider == "cliproxyapi":
+                current = self.repl.config.cliproxy_model
+            elif provider == "claude":
+                current = self.repl.config.claude_model
+            else:
+                current = self.repl.config.model
+
+            ui.print_text(f"\nProvider: {provider}")
+            ui.print_text(f"Current model: {current}")
+
+            # Fetch available models
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    if provider == "cliproxyapi":
+                        headers = {"Authorization": "Bearer kuroryuu-local"}
+                        resp = await client.get(
+                            f"{self.repl.config.cliproxy_url}/v1/models",
+                            headers=headers
+                        )
+                    else:
+                        resp = await client.get(f"{self.repl.config.lmstudio_url}/v1/models")
+
+                    if resp.status_code == 200:
+                        models = resp.json().get("data", [])
+                        if models:
+                            ui.print_text(f"\nAvailable models ({len(models)}):")
+                            for m in models[:15]:  # Limit to 15
+                                model_id = m.get("id", "unknown")
+                                marker = "→" if model_id == current else " "
+                                ui.print_text(f"  {marker} {model_id}")
+                            if len(models) > 15:
+                                ui.print_info(f"  ... and {len(models) - 15} more")
+                        else:
+                            ui.print_info("No models available")
+                    else:
+                        ui.print_warning(f"Could not list models: HTTP {resp.status_code}")
+            except Exception as e:
+                ui.print_warning(f"Could not list models: {e}")
+
+            # Show shorthands for cliproxyapi
+            if provider == "cliproxyapi":
+                ui.print_text("\nShorthands: opus, sonnet, haiku, codex, gpt5, gemini, flash, copilot, kiro")
+
+            return True, None
+
+        # Switch model - resolve shorthand if applicable
+        model = resolve_model_shorthand(args) if provider == "cliproxyapi" else args
+
+        if provider == "cliproxyapi":
+            old_model = self.repl.config.cliproxy_model
+            self.repl.config.cliproxy_model = model
+        elif provider == "claude":
+            old_model = self.repl.config.claude_model
+            self.repl.config.claude_model = model
+        else:
+            old_model = self.repl.config.model
+            self.repl.config.model = model
+
+        # Show resolved shorthand if different
+        if args != model:
+            ui.print_success(f"Model switched: {old_model} -> {model} (from '{args}')")
+        else:
+            ui.print_success(f"Model switched: {old_model} -> {model}")
+
         ui.print_info("Note: Change applies to new messages only")
 
         await self.repl.session_manager.log_progress(
-            f"Command: /model - Switched from {old_model} to {args}"
+            f"Command: /model - Switched from {old_model} to {model}"
         )
 
         return True, None
@@ -813,27 +900,74 @@ None
 
         Usage:
             /provider              - Show current provider and list available
+            /provider help         - Detailed explanation of each provider
             /provider <name>       - Switch to a different provider
-
-        Available providers:
-            lmstudio     - Local LM Studio (with CLIProxy fallback)
-            claude       - Direct Anthropic Claude API
-            cliproxyapi  - CLI Proxy API (61 models, 6 providers)
         """
         PROVIDERS = {
             "lmstudio": {
                 "name": "LM Studio",
-                "desc": "Local LLM server (with CLIProxy fallback)",
+                "desc": "Local LLM server (Devstral, Qwen, etc.)",
             },
             "claude": {
                 "name": "Claude API",
-                "desc": "Direct Anthropic API (requires API key or OAuth)",
+                "desc": "Direct Anthropic API (requires ANTHROPIC_API_KEY)",
             },
             "cliproxyapi": {
                 "name": "CLI Proxy API",
-                "desc": "61 models via Claude, OpenAI, Gemini, Copilot, Kiro",
+                "desc": "OAuth: Claude, OpenAI, Gemini, Copilot, Kiro (61 models)",
             },
         }
+
+        if args.lower().strip() == "help":
+            # Detailed provider help
+            ui.print_text("\n" + "=" * 60)
+            ui.print_text("PROVIDER GUIDE")
+            ui.print_text("=" * 60)
+
+            ui.print_text("\n[1] cliproxyapi (RECOMMENDED)")
+            ui.print_text("-" * 40)
+            ui.print_text("  URL: http://127.0.0.1:8317")
+            ui.print_text("  Auth: OAuth (per-provider login via CLIProxyAPI)")
+            ui.print_text("  Models: 61 models across 6 providers")
+            ui.print_text("")
+            ui.print_text("  Supported providers:")
+            ui.print_text("    - Claude (Anthropic): opus, sonnet, haiku")
+            ui.print_text("    - OpenAI: gpt5, codex")
+            ui.print_text("    - Gemini (Google): gemini, flash")
+            ui.print_text("    - GitHub Copilot: copilot, gpt4o")
+            ui.print_text("    - Kiro (AWS): kiro, kiro-sonnet")
+            ui.print_text("    - Antigravity: thinking models")
+            ui.print_text("")
+            ui.print_text("  Setup: Start CLIProxyAPI, then /provider cliproxyapi")
+            ui.print_text("  Model: /model opus (or any shorthand)")
+
+            ui.print_text("\n[2] lmstudio")
+            ui.print_text("-" * 40)
+            ui.print_text("  URL: http://127.0.0.1:1234")
+            ui.print_text("  Auth: None (local)")
+            ui.print_text("  Models: Whatever you load in LM Studio")
+            ui.print_text("")
+            ui.print_text("  Good for: Offline use, privacy, experimentation")
+            ui.print_text("  Popular: Devstral, Qwen-Coder, DeepSeek-Coder")
+            ui.print_text("")
+            ui.print_text("  Setup: Start LM Studio, load a model, /provider lmstudio")
+
+            ui.print_text("\n[3] claude")
+            ui.print_text("-" * 40)
+            ui.print_text("  Auth: ANTHROPIC_API_KEY (environment variable)")
+            ui.print_text("  Models: claude-opus-4-5, claude-sonnet-4-5, etc.")
+            ui.print_text("")
+            ui.print_text("  NOTE: Requires paid API key from console.anthropic.com")
+            ui.print_text("  OAuth tokens (Max/Pro) are BLOCKED by Anthropic for")
+            ui.print_text("  direct API use. Use cliproxyapi for OAuth instead.")
+            ui.print_text("")
+            ui.print_text("  Setup: export ANTHROPIC_API_KEY=sk-ant-...")
+
+            ui.print_text("\n" + "=" * 60)
+            ui.print_text("Quick start: /provider cliproxyapi && /model opus")
+            ui.print_text("=" * 60)
+
+            return True, None
 
         if not args:
             # Show current provider and list available
@@ -849,6 +983,8 @@ None
                 marker = "→" if key == current else " "
                 ui.print_text(f"  {marker} {key}: {info['name']}")
                 ui.print_text(f"      {info['desc']}")
+
+            ui.print_text("\nTip: /provider help for detailed guide")
 
             return True, None
 
@@ -884,6 +1020,89 @@ None
         except Exception as e:
             ui.print_error(f"Failed to switch provider: {e}")
             logger.error(f"/provider failed: {e}")
+
+        return True, None
+
+    async def cmd_auth(self, args: str) -> Tuple[bool, Optional[str]]:
+        """Check authentication status for providers.
+
+        Usage:
+            /auth              - Show auth status for current provider
+            /auth claude       - Check Claude OAuth status
+            /auth status       - Show all provider auth status
+        """
+        import httpx
+
+        if not args or args == "status":
+            # Show auth status for CLIProxyAPI (OAuth-based)
+            ui.print_text("\nAuthentication Status")
+            ui.print_text("-" * 40)
+
+            # Check CLIProxyAPI
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    headers = {"Authorization": "Bearer kuroryuu-local"}
+                    resp = await client.get(
+                        f"{self.repl.config.cliproxy_url}/v1/models",
+                        headers=headers
+                    )
+                    if resp.status_code == 200:
+                        models = resp.json().get("data", [])
+                        ui.print_success(f"CLIProxyAPI: Connected ({len(models)} models)")
+                    else:
+                        ui.print_warning(f"CLIProxyAPI: HTTP {resp.status_code}")
+            except httpx.ConnectError:
+                ui.print_error("CLIProxyAPI: Not running (start CLIProxyAPI on port 8317)")
+            except Exception as e:
+                ui.print_error(f"CLIProxyAPI: {e}")
+
+            # Check Claude API key
+            if self.repl.config.claude_api_key:
+                ui.print_success("Claude API: Key configured")
+            else:
+                ui.print_info("Claude API: No API key (use CLIProxyAPI for OAuth)")
+
+            # Check LMStudio
+            try:
+                async with httpx.AsyncClient(timeout=2.0) as client:
+                    resp = await client.get(f"{self.repl.config.lmstudio_url}/v1/models")
+                    if resp.status_code == 200:
+                        ui.print_success("LMStudio: Connected")
+                    else:
+                        ui.print_warning(f"LMStudio: HTTP {resp.status_code}")
+            except httpx.ConnectError:
+                ui.print_info("LMStudio: Not running")
+            except Exception:
+                ui.print_info("LMStudio: Not available")
+
+            return True, None
+
+        # Provider-specific auth check
+        provider = args.lower().strip()
+
+        if provider == "claude":
+            # Check kuroryuu OAuth tokens
+            try:
+                from .anthropic_oauth import load_tokens
+                import time
+
+                tokens = load_tokens()
+                if tokens is None:
+                    ui.print_error("Claude OAuth: Not authenticated")
+                    ui.print_info("Note: OAuth tokens are blocked for direct API use")
+                    ui.print_info("Use CLIProxyAPI instead: /provider cliproxyapi")
+                elif tokens.is_expired():
+                    ui.print_warning(f"Claude OAuth: Token expired ({time.ctime(tokens.expires_at)})")
+                else:
+                    ui.print_success(f"Claude OAuth: Authenticated until {time.ctime(tokens.expires_at)}")
+                    if tokens.email:
+                        ui.print_info(f"  Email: {tokens.email}")
+                    ui.print_warning("Note: OAuth tokens blocked by Anthropic for direct API")
+            except ImportError:
+                ui.print_error("OAuth module not available")
+
+        else:
+            ui.print_info(f"Use '/auth status' to see all provider status")
 
         return True, None
 

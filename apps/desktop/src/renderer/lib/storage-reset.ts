@@ -8,7 +8,6 @@
 // localStorage keys used by Kuroryuu (Zustand persist stores and other app data)
 export const KURORYUU_LOCALSTORAGE_KEYS = [
   // Core stores
-  'kuroryuu-onboarding',          // Onboarding wizard state, API keys, OAuth
   'kuroryuu-subagent-configs',    // Sub-agent configurations
   'kuroryuu-conversations',       // Chat threads and messages
   'kuroryuu-projects',            // Project list and active project

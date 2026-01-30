@@ -15,6 +15,7 @@ interface HeroVideoProps {
   posterSrc?: string;
   captions?: VideoCaption[];
   className?: string;
+  videoId?: string; // Unique ID for storing video path
 }
 
 export function HeroVideo({
@@ -22,15 +23,28 @@ export function HeroVideo({
   posterSrc,
   captions = [],
   className,
+  videoId = 'hero',
 }: HeroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { videoMuted, videoPaused, toggleMute, togglePause, videoPaths } = useWelcomeStore();
+
+  // Use stored path or prop src
+  const effectiveSrc = videoPaths[videoId] || src;
+
   const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error' | 'placeholder'>(
-    src ? 'loading' : 'placeholder'
+    effectiveSrc ? 'loading' : 'placeholder'
   );
   const [currentTime, setCurrentTime] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
 
-  const { videoMuted, videoPaused, toggleMute, togglePause } = useWelcomeStore();
+  // Update state when effectiveSrc changes
+  useEffect(() => {
+    if (effectiveSrc) {
+      setVideoState('loading');
+    } else {
+      setVideoState('placeholder');
+    }
+  }, [effectiveSrc]);
 
   // Handle video load
   const handleCanPlay = useCallback(() => {
@@ -74,12 +88,13 @@ export function HeroVideo({
     (c) => currentTime >= c.startTime && currentTime < c.endTime
   );
 
-  // Show placeholder if no source
-  if (!src || videoState === 'placeholder') {
+  // Show placeholder if no source (with drag-drop support)
+  if (!effectiveSrc || videoState === 'placeholder') {
     return (
       <VideoPlaceholder
         message="Hero Video Montage"
         className={className}
+        videoId={videoId}
       />
     );
   }
@@ -108,7 +123,7 @@ export function HeroVideo({
       {/* Video element */}
       <video
         ref={videoRef}
-        src={src}
+        src={effectiveSrc}
         poster={posterSrc}
         autoPlay
         muted={videoMuted}

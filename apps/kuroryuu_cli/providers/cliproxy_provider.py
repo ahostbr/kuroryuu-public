@@ -52,7 +52,8 @@ class CLIProxyProvider(LLMProvider):
         """
         try:
             url = f"{config.cliproxy_url}/v1/models"
-            resp = await self._http_client.get(url, timeout=5.0)
+            headers = {"Authorization": "Bearer kuroryuu-local"}
+            resp = await self._http_client.get(url, timeout=5.0, headers=headers)
             resp.raise_for_status()
             data = resp.json()
 
@@ -132,9 +133,18 @@ class CLIProxyProvider(LLMProvider):
             payload["tool_choice"] = "auto"
             logger.debug(f"Sending {len(tools)} tools to CLIProxyAPI")
 
+        # CLIProxyAPI requires Bearer auth
+        headers = {"Authorization": "Bearer kuroryuu-local"}
+
         try:
-            async with self._http_client.stream("POST", url, json=payload) as response:
-                response.raise_for_status()
+            async with self._http_client.stream("POST", url, json=payload, headers=headers) as response:
+                # Check status before streaming - read error body if failed
+                if response.status_code >= 400:
+                    error_body = await response.aread()
+                    yield AgentEvent(type="error", data={
+                        "message": f"HTTP {response.status_code}: {error_body.decode()[:500]}"
+                    })
+                    return
 
                 pending_tool_calls: Dict[int, Dict[str, Any]] = {}
                 response_usage: Dict[str, int] = {}
@@ -226,8 +236,9 @@ class CLIProxyProvider(LLMProvider):
             })
 
         except httpx.HTTPStatusError as e:
+            # Should not reach here with new status check, but keep as fallback
             yield AgentEvent(type="error", data={
-                "message": f"HTTP {e.response.status_code}: {e.response.text[:200]}"
+                "message": f"HTTP error: {e}"
             })
 
         except Exception as e:

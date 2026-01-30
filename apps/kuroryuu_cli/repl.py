@@ -58,35 +58,36 @@ PT_STYLE = PTStyle.from_dict({
 # Slash commands with descriptions (command, description)
 SLASH_COMMANDS = [
     # Core
-    ("/help", "Show available commands"),
-    ("/status", "Show agent status and connection info"),
+    ("/help", "Show this help"),
+    ("/status", "Agent status and connection info"),
     ("/clear", "Clear conversation history"),
-    ("/exit", "Exit the CLI"),
-    ("/quit", "Exit the CLI"),
-    # Context management
+    ("/exit", "Exit CLI"),
+    # Provider & Model (key commands)
+    ("/provider", "Switch provider: lmstudio | cliproxyapi | claude"),
+    ("/model", "Switch model (shorthands: opus, sonnet, codex, gemini, copilot, kiro)"),
+    ("/auth", "Check OAuth/API auth status for all providers"),
+    # Context
     ("/context", "Show context window usage"),
     ("/compact", "Compact conversation to save tokens"),
     ("/history", "Show conversation history"),
     # Configuration
     ("/config", "View/modify configuration"),
-    ("/model", "Switch LLM model"),
-    ("/provider", "Switch LLM provider (lmstudio/claude/cliproxyapi)"),
-    ("/mode", "Switch conversation/operation mode"),
-    ("/permissions", "View/manage tool approval permissions"),
+    ("/mode", "Switch operation mode (normal/plan/read)"),
+    ("/permissions", "Manage tool approval permissions"),
     # System
-    ("/doctor", "Check system health"),
+    ("/doctor", "Check system health (gateway, MCP, providers)"),
     ("/init", "Initialize project files"),
-    ("/memory", "View/edit working memory"),
+    ("/memory", "View/edit working memory (goal, blockers, todo)"),
     # Tools
     ("/tools", "List available MCP tools"),
     ("/review", "Request code review"),
     # Agent orchestration
-    ("/plan", "Enter plan mode (Ultimate Quizzer)"),
+    ("/plan", "Enter plan mode"),
     ("/execute", "Execute next task step"),
     ("/agents", "List registered agents"),
     # Human-in-the-loop
-    ("/ask", "Ask user a question (leader)"),
-    ("/approve", "Request user approval (leader)"),
+    ("/ask", "Ask user a question (leader only)"),
+    ("/approve", "Request user approval (leader only)"),
 ]
 
 

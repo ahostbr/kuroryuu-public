@@ -125,7 +125,7 @@ export function FullResetDialog({ open, onOpenChange }: FullResetDialogProps) {
   const handleResetAgentsOnly = async () => {
     const yes = await confirmDestructive({
       title: 'Reset Agents',
-      message: 'Reset agent configuration? This will stop all agents, clear all terminals, and show the setup wizard.',
+      message: 'Reset agent configuration? This will stop all agents and clear all terminals.',
       confirmLabel: 'Reset Agents',
       cancelLabel: 'Cancel',
     });
@@ -294,7 +294,7 @@ export function FullResetDialog({ open, onOpenChange }: FullResetDialogProps) {
                       </div>
                       <div>
                         <h4 className="text-sm font-medium text-foreground">Reset Agents Only</h4>
-                        <p className="text-xs text-muted-foreground">Stop all agents, clear terminals, show setup wizard</p>
+                        <p className="text-xs text-muted-foreground">Stop all agents, clear terminals</p>
                       </div>
                     </div>
                     <button
@@ -344,7 +344,7 @@ export function FullResetDialog({ open, onOpenChange }: FullResetDialogProps) {
                       checked={options.resetProjectSettings}
                       onChange={handleOptionChange('resetProjectSettings')}
                       label="Project settings"
-                      description="Audio, agents, onboarding, graphiti config"
+                      description="Audio, agents, graphiti config"
                     />
                     <Checkbox
                       checked={options.clearPTY}
@@ -376,7 +376,7 @@ export function FullResetDialog({ open, onOpenChange }: FullResetDialogProps) {
                     {options.clearPTY && <li>• All terminal sessions will be terminated</li>}
                     {options.clearLocalStorage && <li>• {activeLocalStorageKeys} localStorage keys will be cleared</li>}
                     {options.clearIndexedDB && <li>• {activeIndexedDBs} IndexedDB databases will be deleted</li>}
-                    <li className="text-primary">• App will reload and show the startup wizard</li>
+                    <li className="text-primary">• App will reload</li>
                   </ul>
                 </div>
               </div>

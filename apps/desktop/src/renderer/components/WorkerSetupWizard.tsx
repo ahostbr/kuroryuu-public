@@ -48,6 +48,7 @@ import {
   Code,
   Settings,
   Trophy,
+  MessageCircleQuestion,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAgentConfigStore, type AgentConfig } from '../stores/agent-config-store';
@@ -55,7 +56,7 @@ import { useWorktreesStore } from '../stores/worktrees-store';
 import type { Worktree } from '../types/worktree';
 
 type CliProvider = 'claude' | 'kuroryuu' | 'shell';
-type AgentRole = 'worker' | 'thinker' | 'specialist' | 'workflow';
+type AgentRole = 'worker' | 'thinker' | 'specialist' | 'workflow' | 'quizmaster';
 
 interface CliDetectionResult {
   available: boolean;
@@ -85,6 +86,7 @@ interface RoleOption {
   icon: LucideIcon;
   color: string;
   hasSubtypes: boolean;
+  requiresClaude?: boolean; // Only show this role when Claude Code is selected
 }
 
 interface SubtypeOption {
@@ -167,6 +169,15 @@ const AGENT_ROLES: RoleOption[] = [
     color: '#8B5CF6',
     hasSubtypes: true,
   },
+  {
+    id: 'quizmaster',
+    name: 'Quizmaster',
+    description: 'Planning & requirements gathering',
+    icon: MessageCircleQuestion,
+    color: '#F97316',
+    hasSubtypes: false,
+    requiresClaude: true,
+  },
 ];
 
 const THINKER_PERSONAS: SubtypeOption[] = [
@@ -202,7 +213,7 @@ const WORKFLOW_TYPES: SubtypeOption[] = [
 ];
 
 // Get bootstrap @ files based on role and subtype
-function getBootstrapFiles(role: AgentRole, subtype: string | null): string[] {
+function getBootstrapFiles(role: AgentRole, subtype: string | null, quizmasterVariant: 'small' | 'full' = 'small'): string[] {
   switch (role) {
     case 'worker':
       return ['KURORYUU_WORKER.md'];
@@ -224,6 +235,10 @@ function getBootstrapFiles(role: AgentRole, subtype: string | null): string[] {
         return [`ai/prompt_packs/workflow_specialists/${subtype}.md`];
       }
       return [];
+    case 'quizmaster':
+      return quizmasterVariant === 'full'
+        ? ['ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER PROMPT_full.md']
+        : ['ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_small.md'];
     default:
       return [];
   }
@@ -237,11 +252,12 @@ interface Props {
   projectRoot?: string;
   onLaunchThinker?: (basePath: string, personaPath: string, personaName: string) => void;
   onLaunchWorkflowSpecialist?: (promptPath: string, specialistName: string, profile: string) => void;
+  onLaunchQuizmaster?: () => void;
 }
 
 type WorktreeMode = 'none' | 'shared' | 'per-worker';
 
-export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, projectRoot = '', onLaunchThinker, onLaunchWorkflowSpecialist }: Props) {
+export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, projectRoot = '', onLaunchThinker, onLaunchWorkflowSpecialist, onLaunchQuizmaster }: Props) {
   // Store actions
   const { addWorkerAgent } = useAgentConfigStore();
   const { worktrees, refreshWorktrees, isLoading: isLoadingWorktrees } = useWorktreesStore();
@@ -274,11 +290,14 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
   // Launching state for thinkers/specialists
   const [isLaunching, setIsLaunching] = useState(false);
 
+  // Quizmaster prompt variant toggle
+  const [quizmasterVariant, setQuizmasterVariant] = useState<'small' | 'full'>('small');
+
   // Computed bootstrap files
   const bootstrapFiles = useMemo(() => {
     if (!selectedRole) return [];
-    return getBootstrapFiles(selectedRole, selectedSubtype);
-  }, [selectedRole, selectedSubtype]);
+    return getBootstrapFiles(selectedRole, selectedSubtype, quizmasterVariant);
+  }, [selectedRole, selectedSubtype, quizmasterVariant]);
 
   // Get subtypes for selected role
   const subtypes = useMemo((): SubtypeOption[] => {
@@ -384,6 +403,13 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
 
   const handleCreate = async () => {
     if (!selectedProvider) return;
+
+    // Handle quizmaster launch - direct spawn like the hidden toolbar button
+    if (selectedRole === 'quizmaster' && onLaunchQuizmaster) {
+      onLaunchQuizmaster();
+      onCancel();
+      return;
+    }
 
     // Handle thinker launch via existing API
     if (selectedRole === 'thinker' && selectedSubtype && onLaunchThinker) {
@@ -612,6 +638,248 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
                   : 'Select a role for this agent'}
               </p>
             </div>
+          )}
+
+          {/* Section 3a: Quizmaster Info Panel - THE SECRET WEAPON */}
+          {selectedRole === 'quizmaster' && (
+            <>
+              {/* CSS Keyframes for Quizmaster animations */}
+              <style>{`
+                @keyframes quizmasterGlow {
+                  0%, 100% {
+                    box-shadow: 0 0 30px rgba(201, 162, 39, 0.3), 0 0 60px rgba(201, 162, 39, 0.1);
+                    border-color: rgba(201, 162, 39, 0.4);
+                  }
+                  50% {
+                    box-shadow: 0 0 50px rgba(201, 162, 39, 0.5), 0 0 100px rgba(201, 162, 39, 0.2);
+                    border-color: rgba(201, 162, 39, 0.7);
+                  }
+                }
+                @keyframes quizmasterFloat {
+                  0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.6; }
+                  50% { transform: translateY(-20px) rotate(5deg); opacity: 1; }
+                }
+                @keyframes quizmasterShimmer {
+                  0% { background-position: -200% center; }
+                  100% { background-position: 200% center; }
+                }
+                @keyframes quizmasterReveal {
+                  0% { opacity: 0; transform: scale(0.9); }
+                  100% { opacity: 1; transform: scale(1); }
+                }
+                @keyframes quizmasterPulseRing {
+                  0% { transform: scale(0.8); opacity: 0.8; }
+                  100% { transform: scale(1.5); opacity: 0; }
+                }
+                @keyframes gradientFlow {
+                  0% { background-position: 0% 50%; }
+                  50% { background-position: 100% 50%; }
+                  100% { background-position: 0% 50%; }
+                }
+                .quizmaster-title {
+                  background: linear-gradient(90deg, #c9a227, #fbbf24, #f59e0b, #c9a227);
+                  background-size: 200% auto;
+                  -webkit-background-clip: text;
+                  background-clip: text;
+                  -webkit-text-fill-color: transparent;
+                  animation: gradientFlow 3s ease infinite;
+                }
+              `}</style>
+
+              <div
+                className="animate-in fade-in slide-in-from-top-2 duration-500"
+                style={{ animation: 'quizmasterReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1)' }}
+              >
+                <div className="h-px bg-border mb-6" />
+
+                {/* Main Hero Card */}
+                <div
+                  className="relative overflow-hidden rounded-2xl border-2 transition-all duration-500 hover:scale-[1.01]"
+                  style={{
+                    animation: 'quizmasterGlow 3s ease-in-out infinite',
+                    background: 'linear-gradient(135deg, rgba(201, 162, 39, 0.15) 0%, rgba(139, 30, 30, 0.1) 50%, rgba(201, 162, 39, 0.05) 100%)'
+                  }}
+                >
+                  {/* Animated Background Elements */}
+                  <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    {/* Pulsing glow rings */}
+                    <div
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-[#c9a227]/30"
+                      style={{ animation: 'quizmasterPulseRing 3s ease-out infinite' }}
+                    />
+                    <div
+                      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full border border-[#c9a227]/20"
+                      style={{ animation: 'quizmasterPulseRing 3s ease-out infinite 1s' }}
+                    />
+
+                    {/* Floating particles */}
+                    {[...Array(8)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-1 h-1 rounded-full bg-[#c9a227]"
+                        style={{
+                          left: `${10 + i * 12}%`,
+                          bottom: '10%',
+                          animation: `quizmasterFloat ${4 + i * 0.5}s ease-in-out infinite`,
+                          animationDelay: `${i * 0.3}s`,
+                        }}
+                      />
+                    ))}
+
+                    {/* Shimmer overlay */}
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        background: 'linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.1), transparent)',
+                        backgroundSize: '200% 100%',
+                        animation: 'quizmasterShimmer 4s linear infinite',
+                      }}
+                    />
+                  </div>
+
+                  {/* Content */}
+                  <div className="relative z-10 p-6">
+                    {/* Header Section */}
+                    <div className="text-center mb-6">
+                      {/* Secret Weapon Tag */}
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#c9a227]/20 border border-[#c9a227]/40 mb-3">
+                        <Trophy className="w-3.5 h-3.5 text-[#c9a227]" />
+                        <span className="text-xs font-bold tracking-wider text-[#c9a227] uppercase">Secret Weapon</span>
+                      </div>
+
+                      {/* Main Title */}
+                      <h3 className="text-2xl font-bold quizmaster-title mb-2">
+                        The Ultimate Quizzer
+                      </h3>
+
+                      {/* Tagline */}
+                      <p className="text-sm text-zinc-400 italic">
+                        "Stop guessing. Start knowing."
+                      </p>
+                    </div>
+
+                    {/* 3-Stage Flow Diagram */}
+                    <div className="bg-black/30 rounded-xl p-4 mb-5 border border-[#c9a227]/20">
+                      <div className="flex items-center justify-between gap-2">
+                        {/* Stage 1: Questions */}
+                        <div className="flex-1 text-center group cursor-default">
+                          <div className="w-12 h-12 mx-auto rounded-xl bg-[#c9a227]/20 flex items-center justify-center mb-2 transition-all group-hover:bg-[#c9a227]/30 group-hover:scale-110">
+                            <MessageCircleQuestion className="w-6 h-6 text-[#c9a227]" />
+                          </div>
+                          <div className="text-xs font-semibold text-[#c9a227] mb-1">Questions</div>
+                          <div className="text-[10px] text-zinc-500">6-12 per turn</div>
+                        </div>
+
+                        {/* Arrow 1 */}
+                        <div className="text-[#c9a227]/50 text-lg">→</div>
+
+                        {/* Stage 2: Understanding */}
+                        <div className="flex-1 text-center group cursor-default">
+                          <div className="w-12 h-12 mx-auto rounded-xl bg-[#c9a227]/20 flex items-center justify-center mb-2 transition-all group-hover:bg-[#c9a227]/30 group-hover:scale-110">
+                            <Brain className="w-6 h-6 text-[#c9a227]" />
+                          </div>
+                          <div className="text-xs font-semibold text-[#c9a227] mb-1">Understanding</div>
+                          <div className="text-[10px] text-zinc-500">Known / Unknown / Assumed</div>
+                        </div>
+
+                        {/* Arrow 2 */}
+                        <div className="text-[#c9a227]/50 text-lg">→</div>
+
+                        {/* Stage 3: Perfect Plan */}
+                        <div className="flex-1 text-center group cursor-default">
+                          <div className="w-12 h-12 mx-auto rounded-xl bg-[#c9a227]/20 flex items-center justify-center mb-2 transition-all group-hover:bg-[#c9a227]/30 group-hover:scale-110">
+                            <Sparkles className="w-6 h-6 text-[#c9a227]" />
+                          </div>
+                          <div className="text-xs font-semibold text-[#c9a227] mb-1">Perfect Plan</div>
+                          <div className="text-[10px] text-zinc-500">Only when you say "go"</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Key Capabilities */}
+                    <div className="grid grid-cols-2 gap-3 mb-5">
+                      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#c9a227] mt-1.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-xs font-medium text-zinc-300">10 Domains</div>
+                          <div className="text-[10px] text-zinc-500">Systematic coverage</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#c9a227] mt-1.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-xs font-medium text-zinc-300">Risk-First</div>
+                          <div className="text-[10px] text-zinc-500">Prevents wasted work</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#c9a227] mt-1.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-xs font-medium text-zinc-300">Ambiguity Resolver</div>
+                          <div className="text-[10px] text-zinc-500">Forces clear decisions</div>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#c9a227] mt-1.5 flex-shrink-0" />
+                        <div>
+                          <div className="text-xs font-medium text-zinc-300">AskUserQuestion</div>
+                          <div className="text-[10px] text-zinc-500">Structured input collection</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Prompt Variant Toggle */}
+                    <div className="p-3 rounded-xl bg-black/30 border border-[#c9a227]/20">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-zinc-400">Prompt Depth</span>
+                        <div className="flex items-center gap-2 p-1 rounded-lg bg-black/40">
+                          <button
+                            onClick={() => setQuizmasterVariant('small')}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                              quizmasterVariant === 'small'
+                                ? 'bg-[#c9a227] text-black'
+                                : 'text-zinc-400 hover:text-zinc-300'
+                            }`}
+                          >
+                            Concise
+                          </button>
+                          <button
+                            onClick={() => setQuizmasterVariant('full')}
+                            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                              quizmasterVariant === 'full'
+                                ? 'bg-[#c9a227] text-black'
+                                : 'text-zinc-400 hover:text-zinc-300'
+                            }`}
+                          >
+                            Exhaustive
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-zinc-500">
+                        {quizmasterVariant === 'small'
+                          ? 'Efficient 6-12 questions per turn, focused on high-impact unknowns'
+                          : 'Complete 10-domain coverage with exhaustive risk analysis'
+                        }
+                      </div>
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <FileText className="w-3 h-3 text-[#c9a227]/60" />
+                        <code className="text-[10px] text-[#c9a227]/80 bg-black/30 px-1.5 py-0.5 rounded">
+                          @{bootstrapFiles[0]?.split('/').pop() || 'ULTIMATE_QUIZZER_PROMPT.md'}
+                        </code>
+                      </div>
+                    </div>
+
+                    {/* Bottom Note */}
+                    <div className="mt-4 pt-3 border-t border-[#c9a227]/10 text-center">
+                      <p className="text-[10px] text-zinc-500">
+                        <span className="text-[#c9a227]/70 font-medium">The key to perfect plans:</span>{' '}
+                        Claude asks before it builds. No more hallucinated implementations.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
           {/* Section 3: Subtype Selection (for roles with subtypes) */}
@@ -895,11 +1163,13 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
               </>
             ) : (
               <>
-                {selectedRole === 'thinker' ? <Brain className="w-4 h-4" /> :
+                {selectedRole === 'quizmaster' ? <MessageCircleQuestion className="w-4 h-4" /> :
+                 selectedRole === 'thinker' ? <Brain className="w-4 h-4" /> :
                  selectedRole === 'workflow' ? <Workflow className="w-4 h-4" /> :
                  selectedRole === 'specialist' ? <Sparkles className="w-4 h-4" /> :
                  <User className="w-4 h-4" />}
-                {selectedRole === 'thinker' ? 'Launch Thinker' :
+                {selectedRole === 'quizmaster' ? 'Launch Quizmaster' :
+                 selectedRole === 'thinker' ? 'Launch Thinker' :
                  selectedRole === 'workflow' ? 'Launch Specialist' :
                  selectedRole === 'specialist' ? 'Add Specialist' :
                  'Add Worker'}
