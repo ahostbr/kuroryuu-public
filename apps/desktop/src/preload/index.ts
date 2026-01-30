@@ -162,6 +162,8 @@ const api = {
     },
     readDir: (path: string): Promise<string[]> =>
       ipcRenderer.invoke('fs:readDir', path),
+    exists: (path: string): Promise<boolean> =>
+      ipcRenderer.invoke('fs:exists', path),
     readTree: (path: string, maxDepth?: number): Promise<Array<{
       name: string;
       path: string;

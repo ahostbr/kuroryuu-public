@@ -1,6 +1,6 @@
 /**
  * Integrations Settings Dialog
- * LLM provider API keys (Anthropic, OpenAI) and SCM OAuth (GitHub, GitLab, Bitbucket)
+ * LLM provider API keys (Anthropic) and SCM OAuth (GitHub, GitLab, Bitbucket)
  */
 
 import { useState, useEffect } from 'react';
@@ -610,15 +610,10 @@ export function IntegrationsDialog() {
                   onDisconnect={() => handleDisconnect('anthropic')}
                   verifyKey={handleVerifyAnthropicKey}
                 />
-                <ApiKeyInput
-                  provider="openai"
-                  label="OpenAI (GPT)"
-                  docsUrl="https://platform.openai.com/api-keys"
-                  isConnected={statuses.openai?.connected ?? false}
-                  onSetKey={handleSetOpenAIKey}
-                  onDisconnect={() => handleDisconnect('openai')}
-                  verifyKey={handleVerifyOpenAIKey}
-                />
+                <p className="text-[10px] text-muted-foreground mt-2 px-1">
+                  Used by the Gateway's direct Claude backend for API calls.
+                  Not required if using CLI Proxy API (which uses your Claude subscription instead).
+                </p>
               </div>
 
               {/* Source Control Column */}

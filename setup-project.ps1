@@ -39,7 +39,7 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
 Write-Host ""
 
 $stepNum = 1
-$totalSteps = 6
+$totalSteps = 7
 
 # ============================================================================
 # Step 1: Set persistent environment variable
@@ -241,6 +241,66 @@ if ((Test-Path $srcPng) -and -not (Test-Path $iconPng)) {
 if (-not (Test-Path $iconIco) -and -not (Test-Path $iconPng)) {
     Write-Host "  WARNING: No build icons found" -ForegroundColor DarkYellow
     Write-Host "  Copy icons from apps/desktop/resources/ to apps/desktop/build/" -ForegroundColor Yellow
+}
+
+# ============================================================================
+# Step 7: Download FFmpeg (for screen capture feature)
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Setting up FFmpeg for screen capture..." -ForegroundColor Yellow
+$stepNum++
+
+$ffmpegDir = Join-Path $ProjectRoot "ffmpeg\win64"
+$ffmpegBin = Join-Path $ffmpegDir "bin\ffmpeg.exe"
+
+if (Test-Path $ffmpegBin) {
+    Write-Host "  FFmpeg already installed" -ForegroundColor Green
+} else {
+    Write-Host "  Downloading FFmpeg (GPL build from BtbN)..." -ForegroundColor White
+    $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+    $zipPath = Join-Path $env:TEMP "ffmpeg-kuroryuu.zip"
+    $extractPath = Join-Path $env:TEMP "ffmpeg-kuroryuu-extract"
+
+    try {
+        # Download
+        Invoke-WebRequest -Uri $ffmpegUrl -OutFile $zipPath -UseBasicParsing
+        Write-Host "  Downloaded (~80MB)" -ForegroundColor DarkGray
+
+        # Extract to temp
+        if (Test-Path $extractPath) {
+            Remove-Item -Recurse -Force $extractPath
+        }
+        Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+        Write-Host "  Extracted" -ForegroundColor DarkGray
+
+        # Find the extracted folder (name varies: ffmpeg-master-latest-win64-gpl)
+        $extractedDir = Get-ChildItem $extractPath -Directory | Where-Object { $_.Name -like "ffmpeg-*" } | Select-Object -First 1
+
+        if ($extractedDir) {
+            # Create target directory structure
+            $ffmpegParent = Join-Path $ProjectRoot "ffmpeg"
+            if (-not (Test-Path $ffmpegParent)) {
+                New-Item -ItemType Directory -Path $ffmpegParent -Force | Out-Null
+            }
+
+            # Move extracted contents to ffmpeg/win64
+            if (Test-Path $ffmpegDir) {
+                Remove-Item -Recurse -Force $ffmpegDir
+            }
+            Move-Item $extractedDir.FullName $ffmpegDir -Force
+            Write-Host "  FFmpeg installed to ffmpeg/win64/bin/" -ForegroundColor Green
+        } else {
+            Write-Host "  WARNING: Could not find extracted FFmpeg folder" -ForegroundColor DarkYellow
+        }
+
+        # Cleanup
+        Remove-Item $zipPath -ErrorAction SilentlyContinue
+        Remove-Item -Recurse -Force $extractPath -ErrorAction SilentlyContinue
+    } catch {
+        Write-Host "  WARNING: Failed to download FFmpeg: $_" -ForegroundColor DarkYellow
+        Write-Host "  Download manually from: https://github.com/BtbN/FFmpeg-Builds/releases" -ForegroundColor Yellow
+        Write-Host "  Extract to: $ffmpegDir" -ForegroundColor Yellow
+    }
 }
 
 # ============================================================================

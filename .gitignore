@@ -94,3 +94,5 @@ ai/agents_registry.json
 nul
 ai/config/domain-config.json
 ai/current_run.json
+ai/current_run.json
+ai/config/domain-config.json
