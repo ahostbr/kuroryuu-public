@@ -3,7 +3,9 @@
 > **YOU ARE THE LEADER.** This file defines your responsibilities.
 > Read after `KURORYUU_BOOTSTRAP.md`. Full architecture: `Docs/Plans/LEADER_FOLLOWER_ARCHITECTURE.md`
 >
-> **Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 16 MCP tools → 118 actions
+> **Related:** `KURORYUU_WORKER.md` (worker counterpart), `KURORYUU_LAWS.md` (operational rules)
+>
+> **Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 15 MCP tools → 107 actions
 
 ---
 
@@ -50,15 +52,15 @@ The PRD (Product Requirements Document) is your **north star**. All work derives
 
 | Phase | Prompt | Purpose |
 |-------|--------|---------|
-| Prime | `ai/prompts/leader_prime.md` | Load context, check PRD, identify work |
-| Plan | `ai/prompts/leader_plan_feature.md` | Create implementation plan |
-| Breakdown | `ai/prompts/leader_breakdown.md` | Convert plan to subtasks |
-| Nudge | `ai/prompts/leader_nudge.md` | Help stuck workers |
-| Finalize | `ai/prompts/leader_finalize.md` | Complete task, trigger reviews |
+| Prime | `ai/prompts/leader/leader_prime.md` | Load context, check PRD, identify work |
+| Plan | `ai/prompts/leader/leader_plan_feature.md` | Create implementation plan |
+| Breakdown | `ai/prompts/leader/leader_breakdown.md` | Convert plan to subtasks |
+| Nudge | `ai/prompts/leader/leader_nudge.md` | Help stuck workers |
+| Finalize | `ai/prompts/leader/leader_finalize.md` | Complete task, trigger reviews |
 
 ### 1.3 PRD is the North Star
 
-**Location:** `ai/prds/{project}.md`
+**Location:** `Docs/Plans/{project}.md` or `ai/prd/{project}.md`
 
 The PRD is created ONCE at project inception using `ai/prompts/create-prd.md`. You do NOT regenerate it. You READ it to:
 - Understand project mission and scope
@@ -74,7 +76,7 @@ The PRD is created ONCE at project inception using `ai/prompts/create-prd.md`. Y
 
 ### 2.1 PRIME (Session Start)
 
-Load `ai/prompts/leader_prime.md` and execute:
+Load `ai/prompts/leader/leader_prime.md` and execute:
 
 ```
 1. Register as leader:
@@ -105,7 +107,7 @@ Load `ai/prompts/leader_prime.md` and execute:
        print("[INFO] No index - will be created on first send")
 
 3. Load PRD (north star):
-   Read ai/prds/*.md
+   Read Docs/Plans/*.md or ai/prd/*.md
 
 4. Load todo.md (SOURCE OF TRUTH):
    - ai/todo.md — THE canonical source for all tasks
@@ -113,9 +115,9 @@ Load `ai/prompts/leader_prime.md` and execute:
    - Check Active for in-progress tasks
    - Check Done for recent completions
 
-5. Check orchestration state (coordination only):
+5. Check orchestration state (DEPRECATED - coordination only):
    GET /v1/orchestration/tasks?status=ACTIVE
-   Note: This API uses in-memory storage only. todo.md is the source of truth.
+   ⚠️ DEPRECATED: This API uses in-memory storage only. Use todo.md as source of truth.
 
 6. Load harness state:
    - Docs/DEVLOG.md — development history for context
@@ -128,7 +130,7 @@ Load `ai/prompts/leader_prime.md` and execute:
 
 ### 2.2 PLAN FEATURE
 
-When a new feature request arrives, load `ai/prompts/leader_plan_feature.md`:
+When a new feature request arrives, load `ai/prompts/leader/leader_plan_feature.md`:
 
 ```
 1. Verify PRD alignment:
@@ -147,32 +149,26 @@ When a new feature request arrives, load `ai/prompts/leader_plan_feature.md`:
 4. Save plan:
    ai/plans/{feature-name}.md
 
-5. Update task status:
-   PATCH /v1/orchestration/tasks/{id} { "status": "PLANNED" }
+5. Update task status in todo.md:
+   Move task from Backlog to Active section
+   (Optional: PATCH /v1/orchestration/tasks/{id} for coordination - DEPRECATED)
 ```
 
 ### 2.3 BREAKDOWN
 
-Load `ai/prompts/leader_breakdown.md` to convert plan into subtasks:
+Load `ai/prompts/leader/leader_breakdown.md` to convert plan into subtasks:
 
 ```
 1. Parse plan phases and tasks
 
-2. Create subtasks with context:
-   POST /v1/orchestration/subtasks
-   {
-     "task_id": "...",
-     "title": "...",
-     "description": "{{full context injection}}",
-     "prompt_ref": "worker_iterate",
-     "max_iterations": 4,
-     "needs": ["{{blocked_by_ids}}"]
-   }
+2. Create subtasks via k_inbox (PREFERRED):
+   k_inbox(action="send", to_agent="worker_id", subject="T054: Subtask title",
+           body="Full context injection with files, criteria, etc.")
 
-3. Set dependencies (blocked_by)
+3. Set dependencies (document in task description)
 
-4. Mark task IN_PROGRESS:
-   PATCH /v1/orchestration/tasks/{id} { "status": "IN_PROGRESS" }
+4. Mark task IN_PROGRESS in todo.md:
+   Move from Backlog to Active section
 ```
 
 ### 2.3.1 Pattern Query Before Subtask Creation
@@ -183,14 +179,11 @@ Before creating each subtask, query collective intelligence for relevant pattern
 # Query patterns relevant to the subtask domain
 patterns = k_collective(action="query_patterns", query="<domain keywords>")
 
-# If relevant patterns found, share with worker via file + inbox
+# If relevant patterns found, share with worker via inbox
 if patterns["context_hint"]:
-    k_files(action="write", path=f"ai/collective/patterns_{worker_id}.md", content=patterns["context_hint"])
-    k_inbox(action="send", to_agent=worker_id, subject="Read patterns before starting",
-            body=f"Read ai/collective/patterns_{worker_id}.md for relevant approaches")
+    k_inbox(action="send", to_agent=worker_id, subject="Patterns for your task",
+            body=f"Relevant patterns from collective intelligence:\n\n{patterns['context_hint']}")
 ```
-
-**File location:** `ai/collective/patterns_<worker_id>.md` (per-worker, overwritten each task)
 
 See `ai/prompts/leader/leader_breakdown.md` Step 4.5 for detailed guidance.
 
@@ -216,21 +209,25 @@ See `ai/prompts/leader/leader_breakdown.md` Step 3.1 for detailed auto-sizing gu
 
 ### 2.4 MONITOR (Delegate & Watch)
 
-Workers will poll and claim subtasks. You monitor:
+Workers will poll inbox and claim tasks. You monitor via PTY or inbox:
 
-```
-GET /v1/orchestration/tasks/{task_id}
+```python
+# Primary: Read worker terminal directly
+k_pty(action="term_read", session_id=worker_pty, mode="tail", max_lines=10)
+
+# Secondary: Check inbox for worker messages
+k_inbox(action="list", folder="new", filter_from="worker_*")
 ```
 
 Watch for:
 - **Subtasks DONE** → check if all complete
-- **Worker STUCK** → load `leader_nudge.md`
+- **Worker STUCK** → load `ai/prompts/leader/leader_nudge.md`
 - **Worker BLOCKED** → investigate, clarify, or decompose
 - **Worker PROGRESS** → track iteration counts
 
 ### 2.5 NUDGE (Help Stuck Workers)
 
-When a worker reports `<promise>STUCK:reason</promise>`, load `ai/prompts/leader_nudge.md`:
+When a worker reports `<promise>STUCK:reason</promise>`, load `ai/prompts/leader/leader_nudge.md`:
 
 ```
 1. Analyze iteration history
@@ -249,7 +246,7 @@ When a worker reports `<promise>STUCK:reason</promise>`, load `ai/prompts/leader
 
 ### 2.6 FINALIZE
 
-When ALL subtasks are DONE, load `ai/prompts/leader_finalize.md`:
+When ALL subtasks are DONE, load `ai/prompts/leader/leader_finalize.md`:
 
 ```
 1. Verify all subtasks DONE:
@@ -345,13 +342,12 @@ k_interact(
 
 ## 5. MCP TOOLS & HARNESS INTEGRATION
 
-### 5.1 MCP Tools You Use (16 Tools → 118 Actions)
+### 5.1 MCP Tools You Use (15 Tools → 107 Actions)
 
 | Tool | Actions | Count | Purpose |
 |------|---------|-------|---------|
 | `k_rag` | query, status, index, hybrid, semantic, agentic... | 12 | Multi-strategy code search |
 | `k_pty` | list, term_read, send_line, talk, resolve, spawn_cli... | 12 | PTY control (all agents) |
-| `k_clawd` | status, submit, cancel, list, configure... | 11 | Clawdbot orchestration (OPT-IN) |
 | `k_inbox` | send, list, read, claim, complete, stats... | 8 | Maildir messaging |
 | `k_capture` | start, stop, screenshot, poll, get_latest... | 8 | Screen capture |
 | `k_pccontrol` | click, type, launch, find_element... | 8 | WinAppDriver (OPT-IN) |
@@ -360,13 +356,14 @@ k_interact(
 | `k_graphiti_migrate` | status, migrate, rollback, verify... | 6 | Knowledge graph |
 | `k_collective` | record_success, record_failure, query_patterns... | 6 | Collective intelligence |
 | `k_repo_intel` | status, run, get, list, refresh | 5 | Structured analysis |
-| `k_files` | read, write, list, delete, move | 5 | File operations |
+| `k_files` | read, list, search, stat | 4 | File operations (read-only) |
 | `k_checkpoint` | save, list, load, delete | 4 | Session persistence |
 | `k_thinker_channel` | send_line, read, list | 3 | Thinker debate channel |
 | `k_interact` | ask, approve, plan | 3 | Human-in-the-loop (LEADER-ONLY) |
 | `k_help` | - | - | Help system |
+| `k_MCPTOOLSEARCH` | search | 1 | Search deferred MCP tools |
 
-**OPT-IN Tools:** `k_pccontrol` and `k_clawd` require explicit enable via environment variables.
+**OPT-IN Tools:** `k_pccontrol` requires explicit enable via environment variable `KURORYUU_PC_CONTROL=true`.
 
 **Search Priority:** Always use k_rag → k_repo_intel → git → fallback order.
 See KURORYUU_LAWS.md §8.0 for full decision matrix.
@@ -391,18 +388,27 @@ See KURORYUU_LAWS.md §8.0 for full decision matrix.
 
 Track your state with `k_memory`:
 
-```json
-// Set current goal
+```python
+# Set current goal
 k_memory(action="set_goal", goal="Implement dark mode feature")
 
-// Add blocker
+# Add blocker
 k_memory(action="add_blocker", blocker="Worker stuck on CSS variables")
 
-// Set next steps
+# Set next steps
 k_memory(action="set_steps", steps=["Nudge worker", "Check test results"])
 
-// Get current state
+# Track worker assignments
+k_memory(action="set", key="workers", value={
+    "worker_A": {"task": "T054", "pty": "shell_abc123", "status": "in_progress"},
+    "worker_B": {"task": "T055", "pty": "shell_def456", "status": "waiting"}
+})
+
+# Get current state
 k_memory(action="get")
+
+# Clear state (session end)
+k_memory(action="clear")
 ```
 
 ---
@@ -615,11 +621,11 @@ LEADER ACTIONS:
 
 | Prompt | When |
 |--------|------|
-| `leader_prime.md` | Session start |
-| `leader_plan_feature.md` | New feature request |
-| `leader_breakdown.md` | After planning |
-| `leader_nudge.md` | Worker STUCK/BLOCKED |
-| `leader_finalize.md` | All subtasks DONE |
+| `ai/prompts/leader/leader_prime.md` | Session start |
+| `ai/prompts/leader/leader_plan_feature.md` | New feature request |
+| `ai/prompts/leader/leader_breakdown.md` | After planning |
+| `ai/prompts/leader/leader_nudge.md` | Worker STUCK/BLOCKED |
+| `ai/prompts/leader/leader_finalize.md` | All subtasks DONE |
 
 ### MCP Tools
 
@@ -629,7 +635,7 @@ LEADER ACTIONS:
 | `k_interact` | Human-in-the-loop |
 | `k_memory` | Working state |
 | `k_rag` | Code search |
-| `k_files` | File operations |
+| `k_files` | File read operations |
 | `k_inbox` | Worker messaging (unified canonical inbox) |
 
 ---
@@ -816,20 +822,15 @@ Each PTY can have owner metadata:
 # Use resolve or send_line_to_agent directly
 ```
 
-**Option B: Adopt existing PTY (for legacy PTYs)**
+**Option B: Match by label or cli_type**
 ```python
 # 1. List sessions to find the target
 k_pty(action="list")
-# Returns: [{"session_id": "shell_abc123", "cli_type": "claude", ...}]
+# Returns: [{"session_id": "shell_abc123", "cli_type": "claude", "label": "Worker A", ...}]
 
-# 2. Adopt the PTY (assign owner metadata)
-k_pty(
-    action="adopt",
-    session_id="shell_abc123",
-    owner_agent_id="worker_A",
-    owner_role="worker",
-    label="Worker A"
-)
+# 2. Use resolve with label to find specific worker
+k_pty(action="resolve", label="Worker A")
+# Returns: {"ok": true, "session_id": "shell_abc123", ...}
 ```
 
 #### 12.3.3 Targeting Workers
@@ -855,13 +856,6 @@ k_pty(
 # Internally: resolve -> send_line
 ```
 
-#### 12.3.4 Disowning
-
-```python
-# Clear ownership metadata
-k_pty(action="disown", session_id="shell_abc123")
-```
-
 ### 12.4 Evidence Requirement
 
 **Any action taken via PTY MUST produce an inbox artifact:**
@@ -876,18 +870,15 @@ k_pty(action="disown", session_id="shell_abc123")
 # List active PTY sessions (now includes owner metadata)
 k_pty(action="list")
 
-# Targeted routing (NEW)
+# Targeted routing
 k_pty(action="resolve", agent_id="worker_A")           # Find by agent_id
 k_pty(action="resolve", owner_session_id="sess_xyz")   # Find by k_session id
 k_pty(action="resolve", label="Worker A")              # Find by label
-k_pty(action="adopt", session_id="...", owner_agent_id="worker_A", label="Worker A")
-k_pty(action="disown", session_id="...")               # Clear ownership
 k_pty(action="send_line_to_agent", agent_id="worker_A", data="...")  # Target by owner
 
 # Direct session operations (unchanged)
 k_pty(action="talk", session_id="pty_abc", command="git status")
-k_pty(action="read", session_id="pty_abc")
-k_pty(action="write", session_id="pty_abc", data="Y\r\n")
+k_pty(action="term_read", session_id="pty_abc", mode="tail", max_lines=20)
 k_pty(action="send_line", session_id="pty_abc", data="git status")
 ```
 
@@ -935,9 +926,8 @@ curl "http://127.0.0.1:8201/pty/is-leader?session_id=<session_id>"
 
 ### 12.7 Full Documentation
 
-**See:** `ai/prompts/leader_pty_module.md`
-**Spec:** `Docs/Specs/PTY_DAEMON_SPEC.md`
-**Plan:** `Docs/Plans/PLAN_PTY_TargetedRouting.md`
+**See:** `ai/prompts/leader/leader_pty_module.md`
+**Spec:** `Docs/Architecture/PTY_DAEMON_SPEC.md`
 
 ---
 
@@ -955,7 +945,7 @@ k_capture(action="start", fps=1.0, digest=True, digest_fps=0.1)
 
 **latest.jpg location:**
 ```
-E:\SAS\Kuroryuu\ai\capture\output\VisualDigest\latest\latest.jpg
+<PROJECT_ROOT>/ai/capture/output/VisualDigest/latest/latest.jpg
 ```
 
 Read `latest.jpg` via multimodal vision to see all worker terminals.
@@ -997,7 +987,7 @@ When worker at ≤20%:
    ⚠️ ONE ESC per visual check - multiple ESCs triggers REWIND!
 
    a. Send SINGLE ESC:
-      k_pty(action="write", session_id=..., data="\x1b")
+      k_pty(action="send_line", session_id=..., data="\x1b")
 
    b. WAIT - Check latest.jpg - is worker stopped?
 
@@ -1054,7 +1044,7 @@ An alternative to vision-based monitoring that reads terminal buffer text direct
 
 **Enable (Desktop UI or env):**
 ```bash
-export KURORYUU_TERM_BUFFER_ACCESS=on  # default is 'on', use 'off' to disable
+export KURORYUU_TERM_BUFFER_ACCESS=true  # default is 'true', use 'false' to disable
 ```
 
 **Benefits:**
@@ -1119,19 +1109,22 @@ Leaders can spawn **thinker debates** for complex decisions requiring multiple p
 ```python
 # Step 1: Select appropriate pairing (see §14.4)
 
-# Step 2: Spawn thinkers via k_pty
-k_pty(action="spawn_cli", cli_provider="claude", role="worker",
-      custom_prompt=k_files(action="read", path="ai/prompt_packs/thinkers/visionary.md"))
+# Step 2: Create thinker PTY sessions via k_pty
+# Use action="create" to spawn new terminal sessions
+k_pty(action="create", cli_type="claude", label="visionary_001")
+k_pty(action="create", cli_type="claude", label="skeptic_001")
 
-k_pty(action="spawn_cli", cli_provider="claude", role="worker",
-      custom_prompt=k_files(action="read", path="ai/prompt_packs/thinkers/skeptic.md"))
+# Step 3: Load thinker prompts and inject debate topic
+visionary_pty = k_pty(action="resolve", label="visionary_001")["session_id"]
+k_pty(action="send_line", session_id=visionary_pty,
+      data="/read ai/prompt_packs/thinkers/visionary.md")
+k_pty(action="send_line", session_id=visionary_pty,
+      data="Topic: Should we use PostgreSQL or keep file-based storage?")
 
-# Step 3: Inject debate topic
-k_thinker_channel(action="send_line", target_agent_id="visionary_001",
-                  data="Topic: Should we use PostgreSQL or keep file-based storage?")
-
-# Step 4: Monitor debate via k_capture
+# Step 4: Monitor debate via k_capture or term_read
 k_capture(action="get_latest")
+# Or use buffer-first monitoring:
+k_pty(action="term_read", session_id=visionary_pty, mode="tail", max_lines=20)
 ```
 
 ### 14.3 Debate Protocol
@@ -1150,7 +1143,17 @@ k_capture(action="get_latest")
 | Architecture | first_principles + systems_thinker | Deep analysis |
 | UX decisions | user_advocate + pragmatist | User focus + feasibility |
 
-**Full personas:** `ai/prompt_packs/thinkers/`
+**Thinker personas available:**
+- `visionary.md` - Future-focused, innovation-driven
+- `skeptic.md` - Critical analysis, risk identification
+- `red_team.md` - Adversarial security testing
+- `blue_team.md` - Defensive security measures
+- `first_principles.md` - Fundamental reasoning
+- `systems_thinker.md` - Holistic system analysis
+- `user_advocate.md` - User experience focus
+- `pragmatist.md` - Practical feasibility
+
+**Location:** `ai/prompt_packs/thinkers/`
 
 ### 14.5 Recording Outcomes
 
