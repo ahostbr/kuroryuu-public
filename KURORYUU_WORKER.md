@@ -3,7 +3,9 @@
 > **YOU ARE A WORKER.** This file defines your responsibilities.
 > Read after `KURORYUU_BOOTSTRAP.md`. Full architecture: `Docs/Plans/LEADER_FOLLOWER_ARCHITECTURE.md`
 >
-> **Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 16 MCP tools → 118 actions
+> **Related:** `KURORYUU_LEADER.md` (leader counterpart), `KURORYUU_LAWS.md` (operational rules)
+>
+> **Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 15 MCP tools → 107 actions
 
 ---
 
@@ -45,8 +47,8 @@ You are a **WORKER AGENT** in the Kuroryuu multi-agent orchestration system.
 
 | Phase | Prompt | Purpose |
 |-------|--------|---------|
-| Loop | `ai/prompts/worker_loop.md` | Poll-claim-execute lifecycle |
-| Execute | `ai/prompts/worker_iterate.md` | Single iteration execution |
+| Loop | `ai/prompts/worker/worker_loop.md` | Poll-claim-execute lifecycle |
+| Execute | `ai/prompts/worker/worker_iterate.md` | Single iteration execution |
 
 ---
 
