@@ -631,6 +631,12 @@ ${content}`;
                             percentage: usedTokens / maxTokens,
                           },
                         });
+
+                        // Extract PTY session ID for claude-cli-pty backend integration
+                        if (usage.pty_session_id) {
+                          console.log('[LMStudioChat] Got PTY session ID:', usage.pty_session_id);
+                          get().setPtySessionId(usage.pty_session_id);
+                        }
                       }
                       continue;
                     }

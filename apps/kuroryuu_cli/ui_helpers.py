@@ -248,8 +248,11 @@ class UIHelpers:
             # Use plain ASCII version
             print(DRAGON_LOGO_ASCII)
 
-    def print_banner(self, role: str, model: str, session_id: str, project_root: str = ""):
+    def print_banner(self, role: str, model: str, session_id: str, project_root: str = "", stateless: bool = True):
         """Print startup banner with Claude-style formatting."""
+        mode_text = "STATELESS" if stateless else "STATEFUL"
+        mode_style = "magenta" if stateless else "green"
+
         if self.console:
             # Role badge
             role_style = "bold yellow" if role == "leader" else "bold cyan"
@@ -266,6 +269,9 @@ class UIHelpers:
             content.append(f"{ICONS['box_mid']}  ", style="dim cyan")
             content.append(f"Model:   ", style="dim")
             content.append(f"{model}\n", style="green")
+            content.append(f"{ICONS['box_mid']}  ", style="dim cyan")
+            content.append(f"Mode:    ", style="dim")
+            content.append(f"{mode_text}\n", style=mode_style)
             content.append(f"{ICONS['box_mid']}  ", style="dim cyan")
             content.append(f"Root:    ", style="dim")
             content.append(f"{project_root}\n", style="white")
@@ -285,6 +291,7 @@ class UIHelpers:
         else:
             print(f"\n=== Kuroryuu CLI [{role.upper()}] ===")
             print(f"Model: {model}")
+            print(f"Mode: {mode_text}")
             print(f"Root: {project_root}")
             print(f"Session: {session_id}")
             print("=" * 40)

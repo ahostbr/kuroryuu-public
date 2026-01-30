@@ -697,6 +697,16 @@ class ClaudePTYManager:
                 },
             }
 
+    def get_session_id(self, conversation_id: str) -> Optional[str]:
+        """Get the PTY session ID for a conversation.
+
+        Returns:
+            The session_id string, or None if no session exists.
+        """
+        with self._lock:
+            session = self._sessions.get(conversation_id)
+            return session.session_id if session else None
+
     def shutdown(self) -> None:
         """Shutdown manager and cleanup all sessions."""
         self._stop_cleanup = True

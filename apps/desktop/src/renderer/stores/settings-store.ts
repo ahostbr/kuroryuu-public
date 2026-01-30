@@ -23,6 +23,16 @@ import type {
 } from '../types/settings';
 import { AGENT_PHASE_CONFIG } from '../types/settings';
 
+// Type guards for settings loaded from IPC
+const isString = (v: unknown): v is string => typeof v === 'string';
+const isNumber = (v: unknown): v is number => typeof v === 'number';
+const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean';
+const isThemeId = (v: unknown): v is ThemeId => isString(v) && ['base', 'hacker', 'minimal', 'kuroryuu'].includes(v);
+const isUIScale = (v: unknown): v is UIScale => isNumber(v) && [0.8, 0.9, 1, 1.1, 1.2].includes(v);
+const isLanguage = (v: unknown): v is Language => isString(v) && ['en', 'ja', 'pt-BR'].includes(v);
+const isTerminalFont = (v: unknown): v is TerminalFont => isString(v) && ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Monaco', 'Menlo', 'Consolas'].includes(v);
+const isGraphitiRetention = (v: unknown): v is GraphitiRetentionPeriod => isString(v) && ['7d', '30d', '90d', 'forever'].includes(v);
+
 type SettingsDialog = 'app' | 'project' | 'claude-profiles' | 'model-config' | 'domain-config' | 'integrations' | null;
 
 interface SettingsState {
@@ -445,34 +455,32 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         window.electronAPI?.settings?.get?.('graphiti.retention'),
       ]);
 
-      // Merge loaded values with defaults (only override if value exists)
-      set((state) => ({
-        appSettings: {
-          ...state.appSettings,
-          ...(theme !== undefined && { theme }),
-          ...(uiScale !== undefined && { uiScale }),
-          ...(language !== undefined && { language }),
-          ...(terminalFont !== undefined && { terminalFont }),
-          ...(terminalFontSize !== undefined && { terminalFontSize }),
-          ...(checkUpdatesOnStartup !== undefined && { checkUpdatesOnStartup }),
-          ...(showWelcomeOnStartup !== undefined && { showWelcomeOnStartup }),
-          ...(enableAnimations !== undefined && { enableAnimations }),
-          ...(matrixRainOpacity !== undefined && { matrixRainOpacity }),
-          ...(kuroryuuDecorativeFrames !== undefined && { kuroryuuDecorativeFrames }),
-          integrations: {
-            ...state.appSettings.integrations,
-            trayCompanion: {
-              ...state.appSettings.integrations.trayCompanion,
-              ...(trayCompanionLaunchOnStartup !== undefined && { launchOnStartup: trayCompanionLaunchOnStartup }),
-            },
-          },
-          graphiti: {
-            ...state.appSettings.graphiti,
-            ...(graphitiEnabled !== undefined && { enabled: graphitiEnabled }),
-            ...(graphitiRetention !== undefined && { retention: graphitiRetention }),
-          },
-        },
-      }));
+      // Merge loaded values with defaults (only override if value is valid type)
+      set((state) => {
+        const newSettings = { ...state.appSettings };
+        if (isThemeId(theme)) newSettings.theme = theme;
+        if (isUIScale(uiScale)) newSettings.uiScale = uiScale;
+        if (isLanguage(language)) newSettings.language = language;
+        if (isTerminalFont(terminalFont)) newSettings.terminalFont = terminalFont;
+        if (isNumber(terminalFontSize)) newSettings.terminalFontSize = terminalFontSize;
+        if (isBoolean(checkUpdatesOnStartup)) newSettings.checkUpdatesOnStartup = checkUpdatesOnStartup;
+        if (isBoolean(showWelcomeOnStartup)) newSettings.showWelcomeOnStartup = showWelcomeOnStartup;
+        if (isBoolean(enableAnimations)) newSettings.enableAnimations = enableAnimations;
+        if (isNumber(matrixRainOpacity)) newSettings.matrixRainOpacity = matrixRainOpacity;
+        if (isBoolean(kuroryuuDecorativeFrames)) newSettings.kuroryuuDecorativeFrames = kuroryuuDecorativeFrames;
+        if (isBoolean(trayCompanionLaunchOnStartup)) {
+          newSettings.integrations = {
+            ...newSettings.integrations,
+            trayCompanion: { ...newSettings.integrations.trayCompanion, launchOnStartup: trayCompanionLaunchOnStartup },
+          };
+        }
+        if (isBoolean(graphitiEnabled) || isGraphitiRetention(graphitiRetention)) {
+          newSettings.graphiti = { ...newSettings.graphiti };
+          if (isBoolean(graphitiEnabled)) newSettings.graphiti.enabled = graphitiEnabled;
+          if (isGraphitiRetention(graphitiRetention)) newSettings.graphiti.retention = graphitiRetention;
+        }
+        return { appSettings: newSettings };
+      });
 
       console.log('[settings-store] Settings loaded successfully');
     } catch (err) {

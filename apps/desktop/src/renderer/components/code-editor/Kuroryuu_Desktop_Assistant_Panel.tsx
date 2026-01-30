@@ -930,11 +930,24 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   // @ Mention - Folder Navigation with IPC
   // ============================================================================
 
-  // Get project root from env or fallback to a sensible default
-  const DEFAULT_ROOT = import.meta.env.VITE_PROJECT_ROOT || window.KURORYUU_PROJECT_ROOT || '.';
-  const [atCurrentFolder, setAtCurrentFolder] = useState<string>(DEFAULT_ROOT);
+  // Get project root via IPC (async) with sensible fallback
+  const [projectRoot, setProjectRoot] = useState<string>('.');
+  const [atCurrentFolder, setAtCurrentFolder] = useState<string>('.');
   const [atFolderContents, setAtFolderContents] = useState<MentionItem[]>([]);
   const [atFilesLoading, setAtFilesLoading] = useState(false);
+
+  // Fetch project root once on mount
+  useEffect(() => {
+    window.electronAPI?.app?.getProjectRoot?.()
+      .then((root: string) => {
+        console.log('[AtMention] Got project root:', root);
+        setProjectRoot(root);
+        setAtCurrentFolder(root);
+      })
+      .catch((err: Error) => {
+        console.warn('[AtMention] Failed to get project root, using fallback:', err);
+      });
+  }, []);
 
   // Fetch folder contents via IPC when @ menu opens or folder changes
   useEffect(() => {
@@ -991,10 +1004,10 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
 
   // Reset folder when @ menu closes
   useEffect(() => {
-    if (!showAtMenu) {
-      setAtCurrentFolder(DEFAULT_ROOT);
+    if (!showAtMenu && projectRoot) {
+      setAtCurrentFolder(projectRoot);
     }
-  }, [showAtMenu]);
+  }, [showAtMenu, projectRoot]);
 
   // Split folder contents into files and directories for category view
   const atFiles: MentionItem[] = useMemo(() => {
@@ -1432,7 +1445,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
             <ConversationList />
           ) : sidebarView === 'files' ? (
             <FileExplorerPanel
-              projectRoot={DEFAULT_ROOT}
+              projectRoot={projectRoot}
               onFileSelect={(filePath) => {
                 // Insert @filepath into the input
                 const newInput = input.trim() ? `${input} @${filePath} ` : `@${filePath} `;
@@ -1446,7 +1459,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
             <InsightsTerminalPanel
               ptySessionId={ptySessionId}
               onPtyReady={handlePtyReady}
-              cwd={DEFAULT_ROOT}
+              cwd={projectRoot}
             />
           ) : null}
           */}

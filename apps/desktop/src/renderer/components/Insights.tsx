@@ -1345,17 +1345,41 @@ export function Insights() {
   }, [updateDomainConfig, fetchModelsForProvider]);
 
   // Model change handler - updates state AND persists to domain config
+  // Also auto-detects the correct provider based on model family
   const handleModelChange = useCallback((modelId: InsightsModel) => {
     setSelectedModel(modelId);
     // Persist to domain config so it survives session restarts
     const availableModels = useDomainConfigStore.getState().availableModels;
     const modelInfo = availableModels.find(m => m.id === modelId);
+
+    // Auto-detect provider based on model family
+    // Claude, OpenAI, Gemini, Copilot, Kiro, etc. all go through CLIProxyAPI
+    // Only local models (devstral, mistral, llama) use LMStudio
+    const family = getModelFamily(modelId);
+    let newProvider: LLMProvider = domainConfig.provider; // Keep current by default
+
+    if (family === 'local') {
+      // Local models → LMStudio
+      newProvider = 'lmstudio';
+    } else if (['claude', 'openai', 'gpt5', 'gemini', 'copilot', 'kiro', 'qwen', 'deepseek'].includes(family)) {
+      // Cloud models → CLIProxyAPI
+      newProvider = 'cliproxyapi';
+    }
+
+    const providerChanged = newProvider !== domainConfig.provider;
     updateDomainConfig('code-editor', {
       modelId,
-      modelName: modelInfo?.name || modelId
+      modelName: modelInfo?.name || modelId,
+      ...(providerChanged ? { provider: newProvider } : {})
     });
-    console.log('[Insights] Model changed:', { modelId, modelName: modelInfo?.name });
-  }, [updateDomainConfig]);
+    console.log('[Insights] Model changed:', {
+      modelId,
+      modelName: modelInfo?.name,
+      family,
+      provider: newProvider,
+      providerChanged
+    });
+  }, [updateDomainConfig, domainConfig.provider]);
   
   // Stop generation handler
   const handleStopGeneration = useCallback(() => {
@@ -1426,10 +1450,23 @@ export function Insights() {
       chatMessages.push({ role: 'user' as const, content });
 
       // Call gateway chat endpoint with direct mode option and domain config
-      const backendParam = domainConfig.provider !== 'gateway-auto' ? domainConfig.provider : undefined;
+      // Safety check: ensure model/provider consistency at request time
+      const family = getModelFamily(selectedModel);
+      let backendParam: LLMProvider | undefined = domainConfig.provider !== 'gateway-auto' ? domainConfig.provider : undefined;
+
+      // Auto-correct model/provider mismatch (shouldn't happen, but safety check)
+      if (family === 'local' && backendParam !== 'lmstudio') {
+        console.warn('[Insights] Model/provider mismatch: local model with non-lmstudio provider, auto-correcting');
+        backendParam = 'lmstudio';
+      } else if (['claude', 'openai', 'gpt5', 'gemini', 'copilot', 'kiro', 'qwen', 'deepseek'].includes(family) && backendParam === 'lmstudio') {
+        console.warn('[Insights] Model/provider mismatch: cloud model with lmstudio provider, auto-correcting to cliproxyapi');
+        backendParam = 'cliproxyapi';
+      }
+
       console.log('[Insights] Chat request:', {
         model: selectedModel,
-        provider: domainConfig.provider,
+        family,
+        configProvider: domainConfig.provider,
         backend: backendParam,
         directMode,
       });

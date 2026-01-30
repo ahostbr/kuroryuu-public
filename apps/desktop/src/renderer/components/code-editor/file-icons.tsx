@@ -5,6 +5,7 @@
  * Used by AtMentionPicker and other components for consistent file type display.
  */
 
+import type { JSX } from 'react';
 import {
   File,
   FileCode,

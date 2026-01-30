@@ -209,40 +209,4 @@ class Config:
         return self.project_root / self.history_file
 
 
-# Model shorthands for CLIProxyAPI (matches gateway CLI)
-MODEL_SHORTHANDS = {
-    # Claude family
-    "opus": "claude-opus-4-5-20251101",
-    "opus4.5": "claude-opus-4-5-20251101",
-    "opus4": "claude-opus-4-20250514",
-    "sonnet": "claude-sonnet-4-5-20250929",
-    "sonnet4.5": "claude-sonnet-4-5-20250929",
-    "sonnet4": "claude-sonnet-4-20250514",
-    "haiku": "claude-haiku-4-5-20251001",
-    "haiku4.5": "claude-haiku-4-5-20251001",
-    # OpenAI/GPT family
-    "gpt5": "gpt-5",
-    "codex": "gpt-5-codex",
-    "codex5": "gpt-5-codex",
-    "codex-max": "gpt-5.1-codex-max",
-    # Gemini family
-    "gemini": "gemini-2.5-pro",
-    "gemini-pro": "gemini-2.5-pro",
-    "flash": "gemini-2.5-flash",
-    "gemini-flash": "gemini-2.5-flash",
-    # GitHub Copilot
-    "copilot": "gpt-4o",
-    "gpt4o": "gpt-4o",
-    # Kiro/AWS
-    "kiro": "kiro-auto",
-    "kiro-opus": "kiro-claude-opus-4-5",
-    "kiro-sonnet": "kiro-claude-sonnet-4-5",
-}
-
-
-def resolve_model_shorthand(model: str) -> str:
-    """Resolve a model shorthand to full model ID."""
-    return MODEL_SHORTHANDS.get(model.lower(), model)
-
-
-__all__ = ["Config", "OperationMode", "ClaudeAuthMode", "MODEL_SHORTHANDS", "resolve_model_shorthand"]
+__all__ = ["Config", "OperationMode", "ClaudeAuthMode"]

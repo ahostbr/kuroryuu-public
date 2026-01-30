@@ -136,7 +136,7 @@ export function SecurityAlert({ alert, onDismiss, onViewInTraffic }: SecurityAle
           >
           {/* Animated border glow */}
           <div
-            className="absolute inset-0 rounded-xl border-2 border-red-500"
+            className="absolute inset-0 rounded-xl border-2 border-red-500 pointer-events-none"
             style={{ animation: 'pulse 1s ease-in-out infinite' }}
           />
 

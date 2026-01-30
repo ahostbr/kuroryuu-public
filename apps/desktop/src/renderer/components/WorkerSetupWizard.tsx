@@ -606,8 +606,51 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
               <label className="block text-sm font-medium text-foreground mb-3">
                 Agent Role
               </label>
+
+              {/* Quizmaster - The Star of the Show */}
+              <div className="flex justify-center mb-4">
+                <button
+                  onClick={() => setSelectedRole('quizmaster')}
+                  className={`relative px-6 py-4 rounded-xl border-2 text-center transition-all min-w-[200px] ${
+                    selectedRole === 'quizmaster'
+                      ? 'border-[#c9a227] bg-gradient-to-br from-[#c9a227]/20 to-[#8b1e1e]/10 ring-2 ring-[#c9a227]/50'
+                      : 'border-[#c9a227]/40 bg-gradient-to-br from-[#c9a227]/10 to-transparent hover:border-[#c9a227]/70 hover:from-[#c9a227]/15'
+                  }`}
+                  style={{
+                    boxShadow: selectedRole === 'quizmaster'
+                      ? '0 0 30px rgba(201, 162, 39, 0.3)'
+                      : '0 0 15px rgba(201, 162, 39, 0.1)'
+                  }}
+                >
+                  {/* Recommended badge */}
+                  <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-[#c9a227] text-[9px] font-bold text-black uppercase tracking-wider">
+                    Start Here
+                  </div>
+                  <div className="flex items-center justify-center gap-3">
+                    <div
+                      className="inline-flex items-center justify-center w-10 h-10 rounded-xl"
+                      style={{ backgroundColor: 'rgba(201, 162, 39, 0.2)' }}
+                    >
+                      <MessageCircleQuestion className="w-5 h-5 text-[#c9a227]" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm font-semibold text-[#c9a227]">Quizmaster</div>
+                      <div className="text-[10px] text-[#c9a227]/70">The Secret Weapon</div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Divider with "or" */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">or choose a role</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              {/* Other Roles */}
               <div className="grid grid-cols-4 gap-2">
-                {AGENT_ROLES.map((role) => {
+                {AGENT_ROLES.filter(r => r.id !== 'quizmaster').map((role) => {
                   const Icon = role.icon;
                   const isSelected = selectedRole === role.id;
 

@@ -117,7 +117,8 @@ export const useWelcomeStore = create<WelcomeState>()(
     {
       name: 'kuroryuu-welcome-store',
       partialize: (state) => ({
-        // Only persist video preferences, completion, and video paths
+        // Persist video preferences, completion, and video paths
+        // videoPaths use local-video:// protocol which persists across restarts
         videoMuted: state.videoMuted,
         completedSections: state.completedSections,
         videoPaths: state.videoPaths,

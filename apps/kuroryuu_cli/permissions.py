@@ -78,6 +78,20 @@ class ToolPermissionManager:
             "k_pty": {"send_line", "write", "talk", "create", "send_line_to_agent"},
         }
 
+        # Safe paths that are exempt from dangerous tool checks (auto-allowed)
+        # These are agent working files, not user code
+        self.SAFE_WRITE_PATHS: Set[str] = {
+            "ai/agent_context.md",
+            "ai/todo.md",
+            "ai/progress.md",
+            "ai/sessions.json",
+        }
+        # Safe path prefixes (anything under these directories)
+        self.SAFE_WRITE_PREFIXES: tuple = (
+            "ai/checkpoints/",
+            "ai/inbox/",
+        )
+
     def should_auto_approve(
         self, tool_name: str, args: Optional[Dict[str, Any]] = None
     ) -> bool:
@@ -137,7 +151,21 @@ class ToolPermissionManager:
         if args and tool_name in self.DANGEROUS_ACTIONS:
             action = args.get("action", "")
             if action in self.DANGEROUS_ACTIONS[tool_name]:
-                return True
+                # Check if path is in safe whitelist (k_files writes to ai/ files)
+                if tool_name == "k_files" and action in {"write", "edit"}:
+                    path = args.get("path", "")
+                    # Normalize path separators
+                    path_normalized = path.replace("\\", "/")
+
+                    # Check exact matches
+                    if path_normalized in self.SAFE_WRITE_PATHS:
+                        return False  # Safe - auto-allow
+
+                    # Check prefix matches
+                    if path_normalized.startswith(self.SAFE_WRITE_PREFIXES):
+                        return False  # Safe - auto-allow
+
+                return True  # Dangerous - require confirmation
             # Safe actions (like "read", "list") are not dangerous
             return False
 

@@ -1,14 +1,14 @@
 /**
  * Claude Task Monitor
  *
- * Real-time visualization of Claude Code's TaskCreate/TaskUpdate activity.
- * Displays tasks from the ## Claude Tasks section of ai/todo.md.
+ * Real-time visualization of tasks from ai/todo.md (T### format).
+ * Parses all sections (Backlog, Active, Done) for task entries.
  *
  * Features:
- * - Progress donut chart (pending vs completed)
- * - Gantt timeline (elapsed time for in-progress tasks)
+ * - Progress donut chart (pending, in-progress, completed)
+ * - Gantt timeline (elapsed time per task)
  * - Task list with status badges and worklog links
- * - File watcher for real-time updates
+ * - File watcher for real-time updates (2s polling fallback)
  */
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
@@ -26,26 +26,31 @@ import { useSettingsStore } from '../../stores/settings-store';
 import { useFileWatch } from '../../hooks/use-file-watch';
 
 // ============================================================================
-// Progress Donut Chart - SVG-based
+// Progress Donut Chart - SVG-based with 3 segments
 // ============================================================================
 interface DonutChartProps {
   completed: number;
+  inProgress: number;
   pending: number;
   size?: number;
 }
 
-function DonutChart({ completed, pending, size = 160 }: DonutChartProps) {
-  const total = completed + pending;
+function DonutChart({ completed, inProgress, pending, size = 160 }: DonutChartProps) {
+  const total = completed + inProgress + pending;
   const completedPct = total > 0 ? (completed / total) * 100 : 0;
+  const inProgressPct = total > 0 ? (inProgress / total) * 100 : 0;
   const radius = 60;
   const strokeWidth = 16;
   const circumference = 2 * Math.PI * radius;
+
+  // Calculate offsets for stacked segments
   const completedOffset = circumference - (completedPct / 100) * circumference;
+  const inProgressOffset = circumference - ((completedPct + inProgressPct) / 100) * circumference;
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox="0 0 160 160" className="transform -rotate-90">
-        {/* Background circle */}
+        {/* Background circle (pending) */}
         <circle
           cx="80"
           cy="80"
@@ -55,7 +60,22 @@ function DonutChart({ completed, pending, size = 160 }: DonutChartProps) {
           strokeWidth={strokeWidth}
           className="text-secondary/50"
         />
-        {/* Completed arc */}
+        {/* In Progress arc (amber) - drawn first so completed overlaps */}
+        {inProgress > 0 && (
+          <circle
+            cx="80"
+            cy="80"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={inProgressOffset}
+            strokeLinecap="round"
+            className="text-amber-500 transition-all duration-500 ease-out"
+          />
+        )}
+        {/* Completed arc (green) */}
         <circle
           cx="80"
           cy="80"
@@ -97,7 +117,8 @@ function GanttBar({ task, maxElapsed }: GanttBarProps) {
   const widthPct = maxElapsed > 0 ? Math.min((elapsed / maxElapsed) * 100, 100) : 0;
 
   const isCompleted = task.status === 'completed';
-  const barColor = isCompleted ? 'bg-emerald-500' : 'bg-amber-500';
+  const isInProgress = task.status === 'in_progress';
+  const barColor = isCompleted ? 'bg-emerald-500' : isInProgress ? 'bg-amber-500' : 'bg-zinc-500';
 
   return (
     <div className="group flex items-center gap-3 py-2 hover:bg-secondary/30 rounded-lg px-2 transition-colors">
@@ -124,8 +145,10 @@ function GanttBar({ task, maxElapsed }: GanttBarProps) {
       {/* Status icon */}
       {isCompleted ? (
         <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-      ) : (
+      ) : isInProgress ? (
         <Clock className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
+      ) : (
+        <div className="w-4 h-4 rounded-full border-2 border-zinc-500 shrink-0" />
       )}
     </div>
   );
@@ -140,13 +163,18 @@ interface TaskRowProps {
 
 function TaskRow({ task }: TaskRowProps) {
   const isCompleted = task.status === 'completed';
+  const isInProgress = task.status === 'in_progress';
+
+  const statusColor = isCompleted ? 'text-emerald-500' : isInProgress ? 'text-amber-500' : 'text-muted-foreground';
 
   return (
     <div className="flex items-start gap-3 py-3 px-4 hover:bg-secondary/30 rounded-lg transition-colors border-b border-border/30 last:border-0">
       {/* Status badge */}
-      <div className={`mt-0.5 shrink-0 ${isCompleted ? 'text-emerald-500' : 'text-amber-500'}`}>
+      <div className={`mt-0.5 shrink-0 ${statusColor}`}>
         {isCompleted ? (
           <CheckCircle2 className="w-5 h-5" />
+        ) : isInProgress ? (
+          <Clock className="w-5 h-5 animate-pulse" />
         ) : (
           <div className="w-5 h-5 rounded-full border-2 border-current" />
         )}
@@ -362,10 +390,9 @@ export function ClaudeTaskMonitor() {
           <div className="p-4 rounded-full bg-secondary/50 mb-4">
             <Activity className="w-8 h-8 text-muted-foreground" />
           </div>
-          <h2 className="text-lg font-medium text-foreground mb-2">No Claude Tasks Yet</h2>
+          <h2 className="text-lg font-medium text-foreground mb-2">No Tasks Found</h2>
           <p className="text-sm text-muted-foreground max-w-md">
-            When Claude Code creates tasks using TaskCreate, they will appear here.
-            Tasks are synced to the ## Claude Tasks section in ai/todo.md.
+            Tasks from ai/todo.md will appear here. Format: <code className="text-xs bg-secondary px-1 rounded">- [ ] T###: description</code>
           </p>
         </div>
       )}
@@ -374,7 +401,7 @@ export function ClaudeTaskMonitor() {
       {tasks.length > 0 && (
         <div className="flex-1 overflow-auto p-6 space-y-6">
           {/* Stats row */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <StatCard
               label="Total Tasks"
               value={stats.total}
@@ -382,8 +409,14 @@ export function ClaudeTaskMonitor() {
               color="text-blue-400"
             />
             <StatCard
-              label="Pending"
+              label="Backlog"
               value={stats.pending}
+              icon={<FileText className="w-5 h-5" />}
+              color="text-muted-foreground"
+            />
+            <StatCard
+              label="In Progress"
+              value={stats.inProgress}
               icon={<Clock className="w-5 h-5" />}
               color="text-amber-400"
             />
@@ -407,16 +440,24 @@ export function ClaudeTaskMonitor() {
             <div className="p-6 bg-secondary/20 rounded-2xl border border-border/50">
               <h3 className="text-sm font-medium text-muted-foreground mb-4">Progress</h3>
               <div className="flex items-center justify-center">
-                <DonutChart completed={stats.completed} pending={stats.pending} />
+                <DonutChart
+                  completed={stats.completed}
+                  inProgress={stats.inProgress}
+                  pending={stats.pending}
+                />
               </div>
-              <div className="flex justify-center gap-6 mt-4 text-xs">
+              <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                  <span className="text-muted-foreground">Completed ({stats.completed})</span>
+                  <span className="text-muted-foreground">Done ({stats.completed})</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-amber-500" />
+                  <span className="text-muted-foreground">Active ({stats.inProgress})</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-secondary" />
-                  <span className="text-muted-foreground">Pending ({stats.pending})</span>
+                  <span className="text-muted-foreground">Backlog ({stats.pending})</span>
                 </div>
               </div>
             </div>

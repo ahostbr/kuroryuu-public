@@ -345,7 +345,7 @@ See KURORYUU_LAWS.md §8.0 for full decision matrix.
 
 **NOT available to workers:**
 - `k_interact` (leader-only) - Human-in-the-loop interactions
-- `k_pccontrol` (leader-only, OPT-IN) - WinAppDriver automation
+- `k_pccontrol` (leader-only, OPT-IN) - PowerShell Win32 APIs automation
 - `k_clawd` (leader-only, OPT-IN) - Clawdbot orchestration
 
 **Note:** Workers use k_inbox for task coordination and worker-to-worker communication. Workers can use k_pty to communicate with the LEADER only (for real-time dialogue). Thinkers use PTY for direct real-time dialogue with each other.

@@ -1,5 +1,5 @@
-import { app, BrowserWindow, screen, ipcMain, shell, protocol, dialog, Tray, Menu, nativeImage } from 'electron';
-import { join, dirname } from 'path';
+import { app, BrowserWindow, screen, ipcMain, shell, protocol, dialog, Tray, Menu, nativeImage, net } from 'electron';
+import { join, dirname, extname } from 'path';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
 import { readFile, writeFile, readdir } from 'fs/promises';
@@ -2287,7 +2287,8 @@ function registerOAuthProtocol(): void {
   // Register kuroryuu:// as a standard scheme before app is ready
   if (protocol.registerSchemesAsPrivileged) {
     protocol.registerSchemesAsPrivileged([
-      { scheme: 'kuroryuu', privileges: { standard: true, secure: true } }
+      { scheme: 'kuroryuu', privileges: { standard: true, secure: true } },
+      { scheme: 'local-video', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }
     ]);
   }
 }
@@ -2636,6 +2637,14 @@ app.whenReady().then(async () => {
   // Register custom protocol for OAuth callbacks (kuroryuu://)
   app.setAsDefaultProtocolClient('kuroryuu');
 
+  // Register local-video:// protocol for serving local video files
+  // Format: local-video://C:/Users/path/to/video.mp4
+  protocol.handle('local-video', (request) => {
+    // Extract file path from URL (remove protocol prefix)
+    const filePath = decodeURIComponent(request.url.replace('local-video://', ''));
+    return net.fetch('file:///' + filePath);
+  });
+
   // Handle deep links on macOS
   app.on('open-url', (event, url) => {
     event.preventDefault();
@@ -2657,6 +2666,28 @@ app.whenReady().then(async () => {
 
   // IPC handler for renderer to get the Desktop secret (for role changes)
   ipcMain.handle('get-desktop-secret', () => DESKTOP_SECRET);
+
+  // IPC handler for copying video files to assets folder (for git commit)
+  ipcMain.handle('video:copy-to-assets', async (_, sourcePath: string, videoId: string) => {
+    try {
+      const projectRoot = join(__dirname, '..', '..', '..', '..');
+      const assetsDir = join(projectRoot, 'assets', 'videos');
+      const ext = extname(sourcePath);
+      const destPath = join(assetsDir, `${videoId}${ext}`);
+
+      // Create directory if not exists
+      await fs.promises.mkdir(assetsDir, { recursive: true });
+
+      // Copy file
+      await fs.promises.copyFile(sourcePath, destPath);
+
+      console.log(`[Video] Copied ${sourcePath} -> ${destPath}`);
+      return { ok: true, relativePath: `assets/videos/${videoId}${ext}` };
+    } catch (error) {
+      console.error('[Video] Copy failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
 
   // IPC handlers for leader registration with MCP Core
   ipcMain.handle('register-leader-mcp', async (_, agentId: string) => {
@@ -2778,8 +2809,8 @@ app.whenReady().then(async () => {
   setupOrchestrationIpc();
   registerBootstrapHandlers();
 
-  // Auto-launch tray companion if enabled
-  const autoLaunchEnabled = settingsService.get('integrations.trayCompanion.launchOnStartup', 'user') as boolean;
+  // Auto-launch tray companion if enabled (uses project scope via resolveScope)
+  const autoLaunchEnabled = settingsService.get('integrations.trayCompanion.launchOnStartup') as boolean;
   console.log('[Main] Tray companion launchOnStartup setting:', autoLaunchEnabled, '(type:', typeof autoLaunchEnabled, ')');
   if (autoLaunchEnabled) {
     mainLogger.log('Main', 'Auto-launching tray companion (startup setting enabled)');

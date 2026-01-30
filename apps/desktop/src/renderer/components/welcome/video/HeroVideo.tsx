@@ -117,6 +117,12 @@ export function HeroVideo({
         <div className="absolute inset-0 bg-secondary flex flex-col items-center justify-center gap-2 text-destructive">
           <AlertCircle className="w-12 h-12" />
           <span className="text-sm">Failed to load video</span>
+          <button
+            onClick={() => useWelcomeStore.getState().clearVideoPath(videoId)}
+            className="mt-2 px-3 py-1 text-xs rounded bg-background/80 hover:bg-background border border-border text-foreground"
+          >
+            Clear & Try Again
+          </button>
         </div>
       )}
 

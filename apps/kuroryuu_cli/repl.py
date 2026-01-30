@@ -27,6 +27,7 @@ try:
     from prompt_toolkit.history import FileHistory
     from prompt_toolkit.patch_stdout import patch_stdout
     from prompt_toolkit.completion import Completer, Completion
+    from prompt_toolkit.auto_suggest import AutoSuggestFromHistory, AutoSuggest, Suggestion
     from prompt_toolkit.styles import Style as PTStyle
     from prompt_toolkit.formatted_text import FormattedText
     from prompt_toolkit.input import create_input
@@ -116,8 +117,69 @@ SHIMMER_COLORS = [
 RESET = "\033[0m"
 
 
+class SlashCommandAutoSuggest(AutoSuggest):
+    """Auto-suggest for slash commands - shows ghost text inline."""
+
+    def get_suggestion(self, buffer, document):
+        text = document.text_before_cursor
+
+        # Only suggest if starts with /
+        if not text.startswith("/"):
+            return None
+
+        # Don't suggest if there's already a space (completing args)
+        if " " in text:
+            return None
+
+        word = text.lstrip("/").lower()
+        if not word:
+            return None
+
+        # Find first matching command
+        for cmd, _ in SLASH_COMMANDS:
+            cmd_name = cmd.lstrip("/").lower()
+            if cmd_name.startswith(word) and cmd_name != word:
+                # Return the rest of the command as suggestion
+                suggestion = cmd[len(text):]
+                return Suggestion(suggestion)
+
+        return None
+
+
 class SlashCommandCompleter(Completer):
-    """Custom completer for slash commands with descriptions."""
+    """Custom completer for slash commands, model shorthands, and providers."""
+
+    # Model shorthands - import from canonical gateway source
+    try:
+        from apps.gateway.cli.model_shorthands import MODEL_SHORTHANDS as _CANONICAL_SHORTHANDS
+        MODEL_SHORTHANDS = list(_CANONICAL_SHORTHANDS.items())
+    except ImportError:
+        # Fallback if gateway not importable
+        MODEL_SHORTHANDS = [
+            ("opus", "claude-opus-4-5-20251101"),
+            ("sonnet", "claude-sonnet-4-5-20250929"),
+            ("haiku", "claude-haiku-4-5-20251001"),
+            ("codex", "gpt-5-codex"),
+            ("gpt5", "gpt-5"),
+            ("gemini", "gemini-2.5-pro"),
+            ("flash", "gemini-2.5-flash"),
+            ("copilot", "gpt-4o"),
+            ("kiro", "kiro-auto"),
+        ]
+
+    # Try to get dynamic count from canonical source
+    try:
+        from apps.gateway.cli.model_shorthands import get_source_counts
+        _total = sum(get_source_counts().values())
+        _cliproxy_desc = f"{_total} models: Claude, OpenAI, Gemini, Copilot, Kiro, Antigravity"
+    except ImportError:
+        _cliproxy_desc = "62 models: Claude, OpenAI, Gemini, Copilot, Kiro, Antigravity"
+
+    PROVIDERS = [
+        ("cliproxyapi", _cliproxy_desc),
+        ("lmstudio", "Local LLM server"),
+        ("claude", "Direct Anthropic API"),
+    ]
 
     def get_completions(self, document, complete_event):
         text = document.text_before_cursor
@@ -126,18 +188,64 @@ class SlashCommandCompleter(Completer):
         if not text.startswith("/"):
             return
 
-        # Get the word being typed
-        word = text.lstrip("/").lower()
+        # Check if we're completing a subcommand
+        parts = text.split()
 
-        for cmd, desc in SLASH_COMMANDS:
-            cmd_name = cmd.lstrip("/").lower()
-            if cmd_name.startswith(word):
-                yield Completion(
-                    cmd,
-                    start_position=-len(text),
-                    display=cmd,
-                    display_meta=desc,
-                )
+        if len(parts) == 1:
+            # Completing command name (e.g., /mo -> /model)
+            word = text.lstrip("/").lower()
+            for cmd, desc in SLASH_COMMANDS:
+                cmd_name = cmd.lstrip("/").lower()
+                if cmd_name.startswith(word):
+                    yield Completion(
+                        cmd,
+                        start_position=-len(text),
+                        display=cmd,
+                        display_meta=desc,
+                    )
+
+        elif len(parts) >= 2:
+            # Completing argument for a command
+            cmd = parts[0].lower()
+            arg = parts[-1].lower() if len(parts) > 1 else ""
+
+            if cmd == "/model":
+                # Complete model shorthands
+                for short, full in self.MODEL_SHORTHANDS:
+                    if short.startswith(arg):
+                        yield Completion(
+                            short,
+                            start_position=-len(arg),
+                            display=short,
+                            display_meta=full,
+                        )
+                # Also complete "help"
+                if "help".startswith(arg):
+                    yield Completion(
+                        "help",
+                        start_position=-len(arg),
+                        display="help",
+                        display_meta="Show all model shorthands",
+                    )
+
+            elif cmd == "/provider":
+                # Complete provider names
+                for name, desc in self.PROVIDERS:
+                    if name.startswith(arg):
+                        yield Completion(
+                            name,
+                            start_position=-len(arg),
+                            display=name,
+                            display_meta=desc,
+                        )
+                # Also complete "help"
+                if "help".startswith(arg):
+                    yield Completion(
+                        "help",
+                        start_position=-len(arg),
+                        display="help",
+                        display_meta="Detailed provider guide",
+                    )
 
 
 class KuroryuuREPL:
@@ -175,6 +283,7 @@ class KuroryuuREPL:
                     complete_while_typing=True,
                     complete_in_thread=True,
                     reserve_space_for_menu=8,
+                    auto_suggest=SlashCommandAutoSuggest(),  # Ghost text suggestions
                     bottom_toolbar=lambda: self._format_context_toolbar(),
                     refresh_interval=0.5,
                     style=PT_STYLE,
@@ -267,11 +376,19 @@ class KuroryuuREPL:
             # Print logo and startup banner (skip in print mode for cleaner output)
             if not print_mode:
                 ui.print_logo()
+                # Get model based on active provider
+                if self.config.llm_provider == "cliproxyapi":
+                    display_model = self.config.cliproxy_model
+                elif self.config.llm_provider == "claude":
+                    display_model = self.config.claude_model
+                else:
+                    display_model = self.config.model
                 ui.print_banner(
                     role=session_info.get("role", "unknown"),
-                    model=self.config.model,
+                    model=display_model,
                     session_id=session_info.get("session_id", "unknown"),
                     project_root=str(self.config.project_root),
+                    stateless=self.config.stateless,
                 )
                 ui.print_text("")
 

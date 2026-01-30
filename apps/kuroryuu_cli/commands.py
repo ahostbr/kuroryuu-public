@@ -128,7 +128,7 @@ class CommandHandler:
         prompt_content = None
         for prompt_path in prompt_paths:
             if prompt_path.exists():
-                prompt_content = prompt_path.read_text()
+                prompt_content = prompt_path.read_text(encoding="utf-8")
                 ui.print_success(f"Entering plan mode (Ultimate Quizzer)")
                 ui.print_info(f"Loaded: {prompt_path.name}")
                 break
@@ -165,7 +165,7 @@ class CommandHandler:
             ui.print_error(f"Execute prompt not found: {prompt_path}")
             return True, None
 
-        prompt_content = prompt_path.read_text()
+        prompt_content = prompt_path.read_text(encoding="utf-8")
         ui.print_success("Executing next task step")
 
         # Log progress
@@ -756,7 +756,7 @@ None
             if todo_path.exists():
                 ui.print_text("\nai/todo.md:")
                 ui.print_text("-" * 40)
-                ui.print_text(todo_path.read_text()[:2000])
+                ui.print_text(todo_path.read_text(encoding="utf-8")[:2000])
             else:
                 ui.print_error("ai/todo.md not found. Run /init first.")
 
@@ -767,113 +767,152 @@ None
         return True, None
 
     async def cmd_model(self, args: str) -> Tuple[bool, Optional[str]]:
-        """Switch LLM model.
+        """Switch LLM model with interactive selection.
 
         Usage:
-            /model              - Show current model and list available
+            /model              - Interactive provider/model selection
             /model help         - Show all model shorthands
-            /model <name>       - Switch to a different model (supports shorthands)
+            /model <shorthand>  - Switch directly (opus, sonnet, codex, etc.)
         """
         import httpx
-        from .config import MODEL_SHORTHANDS, resolve_model_shorthand
+        from apps.gateway.cli.model_shorthands import (
+            resolve_model, get_model_family, model_supports_tools, MODEL_SHORTHANDS,
+            get_models_by_source, get_source_counts, SOURCE_DISPLAY_NAMES,
+            TOOL_SUPPORTED_SOURCES,
+        )
 
         provider = self.repl.config.llm_provider
 
         if args.lower().strip() == "help":
-            # Show all model shorthands
+            # Show all shorthands from canonical source
             ui.print_text("\n" + "=" * 60)
-            ui.print_text("MODEL SHORTHANDS (for cliproxyapi)")
+            ui.print_text("MODEL SHORTHANDS")
             ui.print_text("=" * 60)
 
-            ui.print_text("\nClaude (Anthropic) - All support tools")
-            ui.print_text("-" * 40)
-            ui.print_text("  opus      → claude-opus-4-5-20251101    (most capable)")
-            ui.print_text("  sonnet    → claude-sonnet-4-5-20250929  (balanced)")
-            ui.print_text("  haiku     → claude-haiku-4-5-20251001   (fastest)")
-            ui.print_text("  opus4     → claude-opus-4-20250514")
-            ui.print_text("  sonnet4   → claude-sonnet-4-20250514")
+            # Group shorthands by family
+            by_family = {}
+            for short, full in MODEL_SHORTHANDS.items():
+                family = get_model_family(full)
+                by_family.setdefault(family, []).append((short, full))
 
-            ui.print_text("\nOpenAI/GPT - All support tools")
-            ui.print_text("-" * 40)
-            ui.print_text("  gpt5      → gpt-5")
-            ui.print_text("  codex     → gpt-5-codex                 (code-optimized)")
-            ui.print_text("  codex-max → gpt-5.1-codex-max           (maximum)")
+            family_order = ["claude", "openai", "gemini", "copilot", "kiro", "antigravity"]
+            family_names = {
+                "claude": "Claude (Anthropic) [tools]",
+                "openai": "OpenAI/GPT [tools]",
+                "gemini": "Gemini (Google) [tools]",
+                "copilot": "GitHub Copilot [tools]",
+                "kiro": "Kiro/AWS [completion]",
+                "antigravity": "Antigravity [completion]",
+            }
 
-            ui.print_text("\nGemini (Google) - All support tools")
-            ui.print_text("-" * 40)
-            ui.print_text("  gemini    → gemini-2.5-pro")
-            ui.print_text("  flash     → gemini-2.5-flash            (fast)")
-
-            ui.print_text("\nGitHub Copilot - Supports tools")
-            ui.print_text("-" * 40)
-            ui.print_text("  copilot   → gpt-4o")
-            ui.print_text("  gpt4o     → gpt-4o")
-
-            ui.print_text("\nKiro/AWS - NO tool support")
-            ui.print_text("-" * 40)
-            ui.print_text("  kiro      → kiro-auto                   (auto-routing)")
-            ui.print_text("  kiro-opus → kiro-claude-opus-4-5")
-            ui.print_text("  kiro-sonnet → kiro-claude-sonnet-4-5")
+            for family in family_order:
+                if family in by_family:
+                    ui.print_text(f"\n{family_names.get(family, family)}")
+                    ui.print_text("-" * 40)
+                    for short, full in sorted(by_family[family], key=lambda x: x[0]):
+                        ui.print_text(f"  {short:15} → {full}")
 
             ui.print_text("\n" + "=" * 60)
-            ui.print_text("Example: /model opus")
+            ui.print_text("Usage: /model <shorthand>  (e.g., /model opus)")
             ui.print_text("=" * 60)
 
             return True, None
 
         if not args:
-            # Show current model based on provider
-            if provider == "cliproxyapi":
-                current = self.repl.config.cliproxy_model
-            elif provider == "claude":
-                current = self.repl.config.claude_model
-            else:
-                current = self.repl.config.model
+            # Interactive mode - show provider menu
+            if provider != "cliproxyapi":
+                # For LMStudio/Claude, just show models
+                current = self.repl.config.model if provider == "lmstudio" else self.repl.config.claude_model
+                ui.print_text(f"\nProvider: {provider}")
+                ui.print_text(f"Current: {current}")
+                ui.print_info("Use /model <name> to switch")
+                return True, None
 
-            ui.print_text(f"\nProvider: {provider}")
-            ui.print_text(f"Current model: {current}")
+            current = self.repl.config.cliproxy_model
 
-            # Fetch available models
-            try:
-                async with httpx.AsyncClient(timeout=5.0) as client:
-                    if provider == "cliproxyapi":
-                        headers = {"Authorization": "Bearer kuroryuu-local"}
-                        resp = await client.get(
-                            f"{self.repl.config.cliproxy_url}/v1/models",
-                            headers=headers
-                        )
-                    else:
-                        resp = await client.get(f"{self.repl.config.lmstudio_url}/v1/models")
+            # Use static model list (canonical source matching desktop)
+            by_source = get_models_by_source()
+            source_counts = get_source_counts()
+            total_models = sum(source_counts.values())
 
-                    if resp.status_code == 200:
-                        models = resp.json().get("data", [])
-                        if models:
-                            ui.print_text(f"\nAvailable models ({len(models)}):")
-                            for m in models[:15]:  # Limit to 15
-                                model_id = m.get("id", "unknown")
-                                marker = "→" if model_id == current else " "
-                                ui.print_text(f"  {marker} {model_id}")
-                            if len(models) > 15:
-                                ui.print_info(f"  ... and {len(models) - 15} more")
-                        else:
-                            ui.print_info("No models available")
-                    else:
-                        ui.print_warning(f"Could not list models: HTTP {resp.status_code}")
-            except Exception as e:
-                ui.print_warning(f"Could not list models: {e}")
+            # Show provider menu
+            ui.print_text(f"\nCurrent: {current}")
+            family = get_model_family(current)
+            tools = "[tools]" if model_supports_tools(current) else "[completion]"
+            ui.print_text(f"Family: {family} {tools}")
 
-            # Show shorthands for cliproxyapi
-            if provider == "cliproxyapi":
-                ui.print_text("\nShorthands: opus, sonnet, haiku, codex, gpt5, gemini, flash, copilot, kiro")
+            ui.print_text(f"\nProviders ({total_models} models available):")
+            ui.print_text("-" * 50)
+
+            # Display in canonical order
+            source_order = ["claude", "openai", "gemini", "github-copilot", "kiro", "antigravity"]
+            for i, source in enumerate(source_order, 1):
+                display_name = SOURCE_DISPLAY_NAMES.get(source, source.title())
+                count = source_counts.get(source, 0)
+                tools_tag = "[tools]" if source in TOOL_SUPPORTED_SOURCES else "[completion]"
+                status = f"{count:>2} models" if count > 0 else " 0 models"
+                ui.print_text(f"  [{i}] {display_name:12} {status}  {tools_tag}")
+
+            ui.print_text("\nShorthands: opus, sonnet, haiku, codex, gpt5, gemini, flash, kiro")
+            ui.print_text("")
+            ui.print_text("Usage:")
+            ui.print_text("  /model <shorthand>         - Quick switch (opus, codex, etc.)")
+            ui.print_text("  /model <source>:<model>    - Specify source (copilot:gpt-5.2)")
+            ui.print_text("  /model help                - Show all shorthands")
 
             return True, None
 
-        # Switch model - resolve shorthand if applicable
-        model = resolve_model_shorthand(args) if provider == "cliproxyapi" else args
+        # Direct model switch - supports multiple formats:
+        #   /model opus              -> shorthand resolution
+        #   /model gpt-5.2           -> exact model ID
+        #   /model copilot:gpt-5.2   -> source:model format (for duplicates)
+        #   /model copilot gpt-5.2   -> source model format (space separated)
 
+        parts = args.strip().split()
+        source_hint = None
+
+        if len(parts) == 1:
+            # Single argument - could be shorthand, model ID, or source:model
+            if ":" in parts[0]:
+                # source:model format
+                source_hint, model_arg = parts[0].split(":", 1)
+            else:
+                model_arg = parts[0]
+        elif len(parts) == 2:
+            # Two arguments - source model
+            source_hint = parts[0].lower()
+            model_arg = parts[1]
+        else:
+            # Too many args
+            ui.print_error("Usage: /model <shorthand> or /model <source>:<model>")
+            ui.print_info("Examples: /model opus, /model copilot:gpt-5.2, /model openai gpt-5")
+            return True, None
+
+        # Resolve shorthand
+        model = resolve_model(model_arg) if provider == "cliproxyapi" else model_arg
+
+        # If source hint provided, format as source:model for CLIProxyAPI
+        if source_hint:
+            # Normalize source names
+            source_map = {
+                "copilot": "github-copilot",
+                "openai": "openai",
+                "claude": "claude",
+                "gemini": "gemini",
+                "kiro": "kiro",
+                "antigravity": "antigravity",
+            }
+            source = source_map.get(source_hint.lower(), source_hint.lower())
+            # Some APIs use source:model format, others use model@source
+            # Try the model with source prefix for routing
+            display_model = f"{source}:{model}"
+        else:
+            display_model = model
+
+        # Update config based on provider
         if provider == "cliproxyapi":
             old_model = self.repl.config.cliproxy_model
-            self.repl.config.cliproxy_model = model
+            self.repl.config.cliproxy_model = model  # Store just the model ID
         elif provider == "claude":
             old_model = self.repl.config.claude_model
             self.repl.config.claude_model = model
@@ -881,13 +920,23 @@ None
             old_model = self.repl.config.model
             self.repl.config.model = model
 
-        # Show resolved shorthand if different
-        if args != model:
-            ui.print_success(f"Model switched: {old_model} -> {model} (from '{args}')")
-        else:
-            ui.print_success(f"Model switched: {old_model} -> {model}")
+        # Rebuild system prompt with new model name
+        self.repl.agent_core.rebuild_system_prompt()
 
-        ui.print_info("Note: Change applies to new messages only")
+        # Show result with family info
+        family = get_model_family(model)
+        tools = "[tools]" if model_supports_tools(model) else "[completion]"
+
+        if source_hint:
+            ui.print_success(f"Switched: {model} (source: {source_hint})")
+        elif model_arg.lower() != model.lower():
+            ui.print_success(f"Switched: {model} (from '{model_arg}')")
+        else:
+            ui.print_success(f"Switched: {model}")
+        ui.print_info(f"  Family: {family} {tools}")
+
+        if source_hint:
+            ui.print_warning(f"  Note: Source routing ({source_hint}) requires CLIProxyAPI support")
 
         await self.repl.session_manager.log_progress(
             f"Command: /model - Switched from {old_model} to {model}"
@@ -896,25 +945,38 @@ None
         return True, None
 
     async def cmd_provider(self, args: str) -> Tuple[bool, Optional[str]]:
-        """Switch LLM provider at runtime.
+        """Switch LLM provider with health dashboard.
 
         Usage:
-            /provider              - Show current provider and list available
+            /provider              - Show provider health dashboard
             /provider help         - Detailed explanation of each provider
-            /provider <name>       - Switch to a different provider
+            /provider <name>       - Switch to provider (cliproxyapi/lmstudio/claude)
         """
+        import httpx
+        from apps.gateway.cli.model_shorthands import (
+            get_model_family, model_supports_tools,
+            get_source_counts, SOURCE_DISPLAY_NAMES, TOOL_SUPPORTED_SOURCES,
+        )
+
+        # Get static model counts
+        source_counts = get_source_counts()
+        total_static = sum(source_counts.values())
+
         PROVIDERS = {
+            "cliproxyapi": {
+                "name": "CLI Proxy API",
+                "desc": f"{total_static} models: Claude, OpenAI, Gemini, Copilot, Kiro, Antigravity",
+                "url": self.repl.config.cliproxy_url,
+            },
             "lmstudio": {
                 "name": "LM Studio",
-                "desc": "Local LLM server (Devstral, Qwen, etc.)",
+                "desc": "Local LLM server",
+                "url": self.repl.config.lmstudio_url,
             },
             "claude": {
                 "name": "Claude API",
                 "desc": "Direct Anthropic API (requires ANTHROPIC_API_KEY)",
-            },
-            "cliproxyapi": {
-                "name": "CLI Proxy API",
-                "desc": "OAuth: Claude, OpenAI, Gemini, Copilot, Kiro (61 models)",
+                "url": "api.anthropic.com",
             },
         }
 
@@ -926,65 +988,109 @@ None
 
             ui.print_text("\n[1] cliproxyapi (RECOMMENDED)")
             ui.print_text("-" * 40)
-            ui.print_text("  URL: http://127.0.0.1:8317")
-            ui.print_text("  Auth: OAuth (per-provider login via CLIProxyAPI)")
-            ui.print_text("  Models: 61 models across 6 providers")
+            ui.print_text(f"  URL: {self.repl.config.cliproxy_url}")
+            ui.print_text("  Auth: Bearer token (local)")
+            ui.print_text(f"  Models: {total_static} models across 6 providers")
             ui.print_text("")
-            ui.print_text("  Supported providers:")
-            ui.print_text("    - Claude (Anthropic): opus, sonnet, haiku")
-            ui.print_text("    - OpenAI: gpt5, codex")
-            ui.print_text("    - Gemini (Google): gemini, flash")
-            ui.print_text("    - GitHub Copilot: copilot, gpt4o")
-            ui.print_text("    - Kiro (AWS): kiro, kiro-sonnet")
-            ui.print_text("    - Antigravity: thinking models")
+            ui.print_text("  Providers: Claude, OpenAI, Gemini, Copilot, Kiro, Antigravity")
+            ui.print_text("  OAuth handled by CLIProxyAPI binary per-provider")
             ui.print_text("")
-            ui.print_text("  Setup: Start CLIProxyAPI, then /provider cliproxyapi")
-            ui.print_text("  Model: /model opus (or any shorthand)")
+            ui.print_text("  Quick start:")
+            ui.print_text("    /provider cliproxyapi")
+            ui.print_text("    /model opus")
 
             ui.print_text("\n[2] lmstudio")
             ui.print_text("-" * 40)
-            ui.print_text("  URL: http://127.0.0.1:1234")
+            ui.print_text(f"  URL: {self.repl.config.lmstudio_url}")
             ui.print_text("  Auth: None (local)")
             ui.print_text("  Models: Whatever you load in LM Studio")
             ui.print_text("")
-            ui.print_text("  Good for: Offline use, privacy, experimentation")
-            ui.print_text("  Popular: Devstral, Qwen-Coder, DeepSeek-Coder")
-            ui.print_text("")
-            ui.print_text("  Setup: Start LM Studio, load a model, /provider lmstudio")
+            ui.print_text("  Good for: Offline, privacy, local models")
 
             ui.print_text("\n[3] claude")
             ui.print_text("-" * 40)
-            ui.print_text("  Auth: ANTHROPIC_API_KEY (environment variable)")
-            ui.print_text("  Models: claude-opus-4-5, claude-sonnet-4-5, etc.")
-            ui.print_text("")
-            ui.print_text("  NOTE: Requires paid API key from console.anthropic.com")
-            ui.print_text("  OAuth tokens (Max/Pro) are BLOCKED by Anthropic for")
-            ui.print_text("  direct API use. Use cliproxyapi for OAuth instead.")
-            ui.print_text("")
-            ui.print_text("  Setup: export ANTHROPIC_API_KEY=sk-ant-...")
+            ui.print_text("  Auth: ANTHROPIC_API_KEY environment variable")
+            ui.print_text("  Note: Requires paid API key (OAuth blocked)")
 
             ui.print_text("\n" + "=" * 60)
-            ui.print_text("Quick start: /provider cliproxyapi && /model opus")
-            ui.print_text("=" * 60)
 
             return True, None
 
         if not args:
-            # Show current provider and list available
+            # Show provider health dashboard
             current = self.repl.config.llm_provider
-            current_info = PROVIDERS.get(current, {"name": current, "desc": ""})
 
-            ui.print_text(f"\nCurrent provider: {current_info['name']}")
-            if current_info.get("desc"):
-                ui.print_text(f"  {current_info['desc']}")
+            ui.print_text("\n" + "=" * 60)
+            ui.print_text("PROVIDER HEALTH DASHBOARD")
+            ui.print_text("=" * 60)
 
-            ui.print_text("\nAvailable providers:")
-            for key, info in PROVIDERS.items():
-                marker = "→" if key == current else " "
-                ui.print_text(f"  {marker} {key}: {info['name']}")
-                ui.print_text(f"      {info['desc']}")
+            # Check CLIProxyAPI connectivity
+            cliproxy_status = "[--]"
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    headers = {"Authorization": "Bearer kuroryuu-local"}
+                    resp = await client.get(
+                        f"{self.repl.config.cliproxy_url}/v1/models",
+                        headers=headers
+                    )
+                    if resp.status_code == 200:
+                        cliproxy_status = "[OK]"
+            except httpx.ConnectError:
+                cliproxy_status = "[--]"
+            except Exception:
+                cliproxy_status = "[??]"
 
-            ui.print_text("\nTip: /provider help for detailed guide")
+            # Check LMStudio
+            lmstudio_status = "[--]"
+            lmstudio_models = 0
+            try:
+                async with httpx.AsyncClient(timeout=2.0) as client:
+                    resp = await client.get(f"{self.repl.config.lmstudio_url}/v1/models")
+                    if resp.status_code == 200:
+                        lmstudio_status = "[OK]"
+                        lmstudio_models = len(resp.json().get("data", []))
+            except Exception:
+                pass
+
+            # Check Claude API key
+            claude_status = "[OK]" if self.repl.config.claude_api_key else "[--]"
+
+            # Display backend status
+            ui.print_text("\nBackends:")
+            marker = "→" if current == "cliproxyapi" else " "
+            ui.print_text(f"  {marker} {cliproxy_status} cliproxyapi  {total_static:>3} models  {self.repl.config.cliproxy_url}")
+            marker = "→" if current == "lmstudio" else " "
+            ui.print_text(f"  {marker} {lmstudio_status} lmstudio     {lmstudio_models:>3} models  {self.repl.config.lmstudio_url}")
+            marker = "→" if current == "claude" else " "
+            status_note = "API key set" if self.repl.config.claude_api_key else "no API key"
+            ui.print_text(f"  {marker} {claude_status} claude             ({status_note})")
+
+            # Display CLIProxyAPI provider breakdown using static list
+            ui.print_text("\nCLIProxyAPI Providers:")
+            source_order = ["claude", "openai", "gemini", "github-copilot", "kiro", "antigravity"]
+            for source in source_order:
+                display_name = SOURCE_DISPLAY_NAMES.get(source, source.title())
+                count = source_counts.get(source, 0)
+                tools_tag = "[tools]" if source in TOOL_SUPPORTED_SOURCES else "[completion]"
+                status = "[OK]" if count > 0 else "[--]"
+                ui.print_text(f"  {status} {display_name:12} {count:>2} models  {tools_tag}")
+
+            # Show current model info
+            if current == "cliproxyapi":
+                model = self.repl.config.cliproxy_model
+            elif current == "claude":
+                model = self.repl.config.claude_model
+            else:
+                model = self.repl.config.model
+
+            family = get_model_family(model)
+            tools = "[tools]" if model_supports_tools(model) else "[completion]"
+            ui.print_text(f"\nCurrent: {current} | Model: {model}")
+            ui.print_text(f"Family: {family} {tools}")
+
+            ui.print_text("\n" + "=" * 60)
+            ui.print_text("Switch: /provider <name>  |  Help: /provider help")
+            ui.print_text("=" * 60)
 
             return True, None
 
@@ -1002,15 +1108,18 @@ None
             await self.repl.agent_core.switch_provider(provider)
 
             ui.print_success(f"Switched to {PROVIDERS[provider]['name']}")
-            ui.print_info(f"  {PROVIDERS[provider]['desc']}")
 
             # Show current model for new provider
             if provider == "cliproxyapi":
-                ui.print_info(f"  Model: {self.repl.config.cliproxy_model}")
+                model = self.repl.config.cliproxy_model
             elif provider == "claude":
-                ui.print_info(f"  Model: {self.repl.config.claude_model}")
+                model = self.repl.config.claude_model
             else:
-                ui.print_info(f"  Model: {self.repl.config.model}")
+                model = self.repl.config.model
+
+            family = get_model_family(model)
+            tools = "[tools]" if model_supports_tools(model) else "[completion]"
+            ui.print_info(f"  Model: {model} ({family} {tools})")
 
             # Log progress
             await self.repl.session_manager.log_progress(
@@ -1349,7 +1458,7 @@ Focus on:
             return True, None
 
         try:
-            content = file_path.read_text()
+            content = file_path.read_text(encoding="utf-8")
 
             # Truncate if too long
             if len(content) > 10000:

@@ -422,7 +422,9 @@ export function getModelFamily(modelId: string): 'claude' | 'openai' | 'gpt5' | 
  * - Gemini: ALL models support tools
  * - Copilot: Supports tools
  * - Local (devstral, mistral, llama): Support tools via MCP
- * - Qwen/DeepSeek/Kiro: No tool support
+ * - Qwen/DeepSeek: No tool support
+ * - Kiro base: No tool support (code completion only)
+ * - Kiro agentic: Supports tools (agentic mode enables tool use)
  */
 export function modelSupportsTools(modelId: string): boolean {
   const family = getModelFamily(modelId);
@@ -442,7 +444,10 @@ export function modelSupportsTools(modelId: string): boolean {
   if (family === 'local') return true; // Local models can use MCP tools
   if (family === 'qwen') return false; // Qwen Code typically doesn't support tools
   if (family === 'deepseek') return false; // DeepSeek doesn't support tools
-  if (family === 'kiro') return false; // Kiro/CodeWhisperer - code completion only
+  if (family === 'kiro') {
+    // Kiro agentic models support tools, base models do not
+    return id.includes('agentic');
+  }
 
   // Special models from GitHub Copilot that have unique IDs
   if (id.includes('grok')) return true; // Grok Code Fast
@@ -525,16 +530,16 @@ export function getStaticCLIProxyModels(): ModelInfo[] {
     { id: 'grok-code-fast-1', name: 'Grok Code Fast 1', provider: 'cliproxyapi', source: 'github-copilot', contextWindow: 128000, supportsTools: true },
     { id: 'oswe-vscode-prime', name: 'Raptor mini (Preview)', provider: 'cliproxyapi', source: 'github-copilot', contextWindow: 128000, supportsTools: true },
 
-    // ===== KIRO (9) - NO TOOLS =====
+    // ===== KIRO (9) - Base models NO TOOLS, Agentic models HAVE TOOLS =====
     { id: 'kiro-auto', name: 'Kiro Auto', provider: 'cliproxyapi', source: 'kiro', contextWindow: 128000, supportsTools: false },
     { id: 'kiro-claude-opus-4-5', name: 'Kiro Claude Opus 4.5', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
     { id: 'kiro-claude-sonnet-4-5', name: 'Kiro Claude Sonnet 4.5', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
     { id: 'kiro-claude-sonnet-4', name: 'Kiro Claude Sonnet 4', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
     { id: 'kiro-claude-haiku-4-5', name: 'Kiro Claude Haiku 4.5', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
-    { id: 'kiro-claude-opus-4-5-agentic', name: 'Kiro Claude Opus 4.5 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
-    { id: 'kiro-claude-sonnet-4-5-agentic', name: 'Kiro Claude Sonnet 4.5 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
-    { id: 'kiro-claude-sonnet-4-agentic', name: 'Kiro Claude Sonnet 4 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
-    { id: 'kiro-claude-haiku-4-5-agentic', name: 'Kiro Claude Haiku 4.5 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: false },
+    { id: 'kiro-claude-opus-4-5-agentic', name: 'Kiro Claude Opus 4.5 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: true },
+    { id: 'kiro-claude-sonnet-4-5-agentic', name: 'Kiro Claude Sonnet 4.5 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: true },
+    { id: 'kiro-claude-sonnet-4-agentic', name: 'Kiro Claude Sonnet 4 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: true },
+    { id: 'kiro-claude-haiku-4-5-agentic', name: 'Kiro Claude Haiku 4.5 (Agentic)', provider: 'cliproxyapi', source: 'kiro', contextWindow: 200000, supportsTools: true },
 
     // ===== GEMINI (5) =====
     { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'cliproxyapi', source: 'gemini', contextWindow: 1000000, supportsTools: true },

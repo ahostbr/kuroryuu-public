@@ -7,7 +7,7 @@ import { create } from 'zustand';
 export interface ClaudeTask {
   id: string;           // T001, T002, etc.
   description: string;  // Task description
-  status: 'pending' | 'completed';
+  status: 'pending' | 'in_progress' | 'completed';
   worklog?: string;     // Path to worklog if linked
   createdAt?: Date;     // Parsed from (created: timestamp)
   completedAt?: Date;   // Parsed from (completed: timestamp)
@@ -16,6 +16,7 @@ export interface ClaudeTask {
 export interface ClaudeTaskStats {
   total: number;
   pending: number;
+  inProgress: number;
   completed: number;
   completionRate: number; // 0-100
 }
@@ -38,7 +39,8 @@ interface ClaudeTaskStore {
 }
 
 /**
- * Parse the ## Claude Tasks section from todo.md content
+ * Parse all T### tasks from todo.md content
+ * Searches all sections (Backlog, Active, Done, etc.) for task lines
  */
 function parseClaudeTasks(content: string): ClaudeTask[] {
   const tasks: ClaudeTask[] = [];
@@ -46,20 +48,17 @@ function parseClaudeTasks(content: string): ClaudeTask[] {
   // Normalize line endings (Windows CRLF -> LF)
   const normalizedContent = content.replace(/\r\n/g, '\n');
 
-  // Extract ## Claude Tasks section
-  // Note: \z is not valid JS, use $ for end of string. Also handle --- or next ## header
-  const sectionMatch = normalizedContent.match(/## Claude Tasks[^\n]*\n([\s\S]*?)(?=\n## |\n---|\n*$)/);
-  if (!sectionMatch) return tasks;
-
-  const section = sectionMatch[1];
-
-  // Match task lines: - [ ] T###: description @agent [worklog: ...] (created: ...) (completed: ...)
-  // or: - [x] T###: ...
-  const taskPattern = /^- \[([ x])\] (T\d{3,}):\s*(.+)$/gm;
+  // Match task lines anywhere in the file:
+  // - [ ] T###: description @agent [worklog: ...] (created: ...) (completed: ...)
+  // - [x] T###: ...
+  // - [~] T###: ... (in progress)
+  const taskPattern = /^- \[([ x~])\] (T\d{3,}):\s*(.+)$/gm;
   let match;
 
-  while ((match = taskPattern.exec(section)) !== null) {
-    const isCompleted = match[1] === 'x';
+  while ((match = taskPattern.exec(normalizedContent)) !== null) {
+    const checkbox = match[1];
+    const isCompleted = checkbox === 'x';
+    const isInProgress = checkbox === '~';
     const id = match[2];
     const rest = match[3];
 
@@ -96,7 +95,7 @@ function parseClaudeTasks(content: string): ClaudeTask[] {
     tasks.push({
       id,
       description,
-      status: isCompleted ? 'completed' : 'pending',
+      status: isCompleted ? 'completed' : isInProgress ? 'in_progress' : 'pending',
       worklog,
       createdAt,
       completedAt,
@@ -112,10 +111,11 @@ function parseClaudeTasks(content: string): ClaudeTask[] {
 function calculateStats(tasks: ClaudeTask[]): ClaudeTaskStats {
   const total = tasks.length;
   const completed = tasks.filter(t => t.status === 'completed').length;
-  const pending = total - completed;
+  const inProgress = tasks.filter(t => t.status === 'in_progress').length;
+  const pending = tasks.filter(t => t.status === 'pending').length;
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  return { total, pending, completed, completionRate };
+  return { total, pending, inProgress, completed, completionRate };
 }
 
 export const useClaudeTaskStore = create<ClaudeTaskStore>((set, get) => ({
@@ -124,7 +124,7 @@ export const useClaudeTaskStore = create<ClaudeTaskStore>((set, get) => ({
   isLoading: false,
   error: null,
   displayLimit: 0, // 0 = all
-  stats: { total: 0, pending: 0, completed: 0, completionRate: 0 },
+  stats: { total: 0, pending: 0, inProgress: 0, completed: 0, completionRate: 0 },
 
   setTodoPath: (path) => set({ todoPath: path }),
 

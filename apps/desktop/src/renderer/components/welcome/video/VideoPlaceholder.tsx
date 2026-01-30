@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Video, Play, Upload, X } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Video, Play, Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useWelcomeStore } from '../../../stores/welcome-store';
 
@@ -19,8 +19,22 @@ export function VideoPlaceholder({
   videoId = 'default',
 }: VideoPlaceholderProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
+  const [projectRoot, setProjectRoot] = useState('');
   const { videoPaths, setVideoPath, clearVideoPath } = useWelcomeStore();
   const currentVideoPath = videoPaths[videoId];
+
+  // Get project root on mount for resolving relative paths
+  useEffect(() => {
+    window.electronAPI?.app?.getProjectRoot?.().then(setProjectRoot).catch(() => {});
+  }, []);
+
+  // Resolve relative path to absolute file:// URL
+  const resolvedVideoSrc = currentVideoPath
+    ? currentVideoPath.startsWith('file:/') || currentVideoPath.startsWith('blob:') || currentVideoPath.startsWith('local-video:')
+      ? currentVideoPath
+      : `file:///${projectRoot.replace(/\\/g, '/')}/${currentVideoPath}`
+    : '';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -39,19 +53,45 @@ export function VideoPlaceholder({
     setIsDragging(false);
   }, []);
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
 
     const files = e.dataTransfer.files;
+    console.log('[VideoPlaceholder] Drop event, files:', files.length);
     if (files.length > 0) {
       const file = files[0];
+      console.log('[VideoPlaceholder] File type:', file.type, 'path:', (file as any).path);
       // Check if it's a video file
       if (file.type.startsWith('video/')) {
-        // Use the file path (Electron provides this)
-        const filePath = (file as any).path || URL.createObjectURL(file);
-        setVideoPath(videoId, filePath);
+        const rawPath = (file as any).path;
+        console.log('[VideoPlaceholder] rawPath:', rawPath);
+        console.log('[VideoPlaceholder] electronAPI.video:', window.electronAPI?.video);
+        console.log('[VideoPlaceholder] copyToAssets fn:', window.electronAPI?.video?.copyToAssets);
+        if (rawPath && window.electronAPI?.video?.copyToAssets) {
+          // Copy to assets/videos/ for git tracking
+          setIsCopying(true);
+          console.log('[VideoPlaceholder] Calling IPC copyToAssets...');
+          try {
+            const result = await window.electronAPI.video.copyToAssets(rawPath, videoId);
+            console.log('[VideoPlaceholder] IPC result:', result);
+            if (result.ok && result.relativePath) {
+              // Store relative path (e.g., "assets/videos/hero.mp4")
+              setVideoPath(videoId, result.relativePath);
+            } else {
+              console.error('[Video] Copy failed:', result.error);
+            }
+          } catch (err) {
+            console.error('[Video] Copy error:', err);
+          } finally {
+            setIsCopying(false);
+          }
+        } else {
+          // Fallback to blob URL for non-Electron (won't persist)
+          console.log('[VideoPlaceholder] FALLBACK to blob URL (no IPC available)');
+          setVideoPath(videoId, URL.createObjectURL(file));
+        }
       }
     }
   }, [videoId, setVideoPath]);
@@ -62,24 +102,29 @@ export function VideoPlaceholder({
   }, [videoId, clearVideoPath]);
 
   // If video is set, show video player
-  if (currentVideoPath) {
+  if (currentVideoPath && resolvedVideoSrc) {
     return (
-      <div className={cn('relative w-full aspect-video rounded-xl overflow-hidden', className)}>
-        <video
-          src={currentVideoPath}
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-        />
-        <button
-          onClick={handleClear}
-          className="absolute top-2 right-2 p-2 rounded-lg bg-background/80 hover:bg-background border border-border text-foreground transition-colors"
-          aria-label="Remove video"
-        >
-          <X className="w-4 h-4" />
-        </button>
+      <div className={cn('flex flex-col gap-2', className)}>
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden">
+          <video
+            src={resolvedVideoSrc}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="flex items-center justify-center gap-4">
+          <span className="text-xs text-muted-foreground">{currentVideoPath}</span>
+          <button
+            onClick={handleClear}
+            className="px-3 py-1 rounded-lg bg-background/80 hover:bg-destructive/20 border border-border text-muted-foreground hover:text-destructive text-xs transition-colors flex items-center gap-1"
+          >
+            <X className="w-3 h-3" />
+            Remove
+          </button>
+        </div>
       </div>
     );
   }
@@ -115,10 +160,12 @@ export function VideoPlaceholder({
       <div className="relative">
         <div className={cn(
           "absolute -inset-4 rounded-full bg-primary/10",
-          isDragging ? "animate-ping" : "animate-pulse"
+          isDragging ? "animate-ping" : isCopying ? "" : "animate-pulse"
         )} />
         <div className="relative w-16 h-16 rounded-full bg-background/80 border border-border flex items-center justify-center">
-          {isDragging ? (
+          {isCopying ? (
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          ) : isDragging ? (
             <Upload className="w-8 h-8 text-primary" />
           ) : (
             <Video className="w-8 h-8 text-primary" />
@@ -129,10 +176,10 @@ export function VideoPlaceholder({
       {/* Message */}
       <div className="text-center z-10">
         <p className="text-lg font-medium text-foreground">
-          {isDragging ? 'Drop video here' : message}
+          {isCopying ? 'Copying video...' : isDragging ? 'Drop video here' : message}
         </p>
         <p className="text-sm text-muted-foreground mt-1">
-          {isDragging ? 'Release to add video' : 'Drag & drop a video file here'}
+          {isCopying ? 'Saving to assets/videos/' : isDragging ? 'Release to add video' : 'Drag & drop a video file here'}
         </p>
       </div>
 

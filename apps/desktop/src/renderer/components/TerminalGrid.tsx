@@ -626,6 +626,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
           linkedAgentId?: string;
           roleOverride?: 'leader' | 'worker';
           viewMode?: 'terminal';
+          agentConfig?: AgentConfig;
         };
         const rawState = result?.terminals || result;
         const savedState: PersistedTerminal[] | null = Array.isArray(rawState) ? rawState as PersistedTerminal[] : null;
@@ -2588,6 +2589,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
           }, 100);
         }}
         onLaunchWorkflowSpecialist={handleWorkflowSpecialistLaunch}
+        onLaunchQuizmaster={handleQuizmasterLaunch}
       />
 
       {/* Leader Monitor Modal */}
