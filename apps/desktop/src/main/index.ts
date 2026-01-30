@@ -1317,6 +1317,16 @@ function setupFsIpc(): void {
     }
   });
 
+  ipcMain.handle('fs:exists', async (_, path: string) => {
+    try {
+      const { access } = await import('fs/promises');
+      await access(resolvePath(path));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
   // Recursive directory tree for file explorer
   ipcMain.handle('fs:readTree', async (_, rootPath: string, maxDepth = 3) => {
     const IGNORED = new Set([

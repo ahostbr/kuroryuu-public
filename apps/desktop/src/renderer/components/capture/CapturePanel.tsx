@@ -25,6 +25,8 @@ import {
   Info,
   AlertCircle,
   Radio,
+  Download,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from '../ui/toast';
 import { useCaptureStore } from '@/stores/capture-store';
@@ -85,6 +87,7 @@ export const CapturePanel: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
   const [latestImage, setLatestImage] = useState<string | null>(null);
+  const [ffmpegAvailable, setFfmpegAvailable] = useState<boolean | null>(null); // null = checking
 
   // Duration timer - uses global store state
   useEffect(() => {
@@ -102,6 +105,32 @@ export const CapturePanel: React.FC = () => {
   // Check status on mount
   useEffect(() => {
     checkStatus();
+  }, []);
+
+  // Check FFmpeg availability on mount
+  useEffect(() => {
+    const checkFfmpeg = async () => {
+      try {
+        const projectRoot = await window.electronAPI?.app?.getProjectRoot?.();
+        if (projectRoot) {
+          const ffmpegPath = `${projectRoot}/ffmpeg/win64/bin/ffmpeg.exe`;
+          const exists = await window.electronAPI?.fs?.exists?.(ffmpegPath);
+          setFfmpegAvailable(exists ?? false);
+        } else {
+          setFfmpegAvailable(false);
+        }
+      } catch {
+        setFfmpegAvailable(false);
+      }
+    };
+    checkFfmpeg();
+  }, []);
+
+  // Open FFmpeg download page in default browser
+  const handleDownloadFfmpeg = useCallback(() => {
+    window.electronAPI?.shell?.openExternal?.(
+      'https://github.com/BtbN/FFmpeg-Builds/releases'
+    );
   }, []);
 
   // SAFETY: Stop recording on unmount or window close
@@ -350,6 +379,32 @@ export const CapturePanel: React.FC = () => {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* FFmpeg Missing Warning */}
+        {ffmpegAvailable === false && (
+          <div className="p-4 rounded-xl border border-amber-500/50 bg-amber-500/10">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-amber-400">FFmpeg Not Found</p>
+                <p className="text-xs text-amber-300/70 mt-1">
+                  Screen recording requires FFmpeg. Run <code className="bg-amber-500/20 px-1 rounded">setup-project.ps1</code> to install automatically, or download manually:
+                </p>
+                <button
+                  onClick={handleDownloadFfmpeg}
+                  className="mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors text-sm"
+                >
+                  <Download size={14} />
+                  Download FFmpeg
+                  <ExternalLink size={12} />
+                </button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Extract to: <code className="bg-secondary px-1 rounded">ffmpeg/win64/bin/</code>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Status Banner */}
         <div className={`p-4 rounded-xl border transition-all duration-300 ${
           isRecording

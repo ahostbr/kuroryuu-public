@@ -158,9 +158,20 @@ VISUAL_DIGEST_DIR = Path(os.environ.get(
     str(_get_project_root() / "ai" / "capture" / "output" / "VisualDigest" / "latest")
 )).resolve()
 
-# Path to ffmpeg executable - uses system PATH by default
+# Path to ffmpeg executable - uses project's ffmpeg by default
 # Set FFMPEG_PATH env var to override
-FFMPEG_EXE = Path(os.environ.get("FFMPEG_PATH", "ffmpeg"))
+def _get_ffmpeg_path() -> Path:
+    """Get FFmpeg path, preferring project installation."""
+    if "FFMPEG_PATH" in os.environ:
+        return Path(os.environ["FFMPEG_PATH"])
+    # Check project's ffmpeg installation
+    project_ffmpeg = _get_project_root() / "ffmpeg" / "win64" / "bin" / "ffmpeg.exe"
+    if project_ffmpeg.exists():
+        return project_ffmpeg
+    # Fall back to system PATH
+    return Path("ffmpeg")
+
+FFMPEG_EXE = _get_ffmpeg_path()
 
 # Persistent state file for active recording (survives across HTTP requests)
 ACTIVE_RECORDING_FILE = Path(__file__).parent / "active_recording.json"
