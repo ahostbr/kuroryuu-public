@@ -1,4 +1,4 @@
-# Kuroryuu Task Tracking
+﻿# Kuroryuu Task Tracking
 
 ## Claude Tasks
 <!-- Tasks created by Claude agents appear here -->
