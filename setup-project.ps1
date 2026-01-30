@@ -8,8 +8,10 @@
     2. Generates .mcp.json from template with resolved paths
     3. Creates Python 3.12 virtual environment
     4. Installs ALL Python dependencies (mcp_core, gateway, mcp_stdio)
-    5. Installs ALL Node.js dependencies (desktop, pty_daemon, web)
+    5. Installs ALL Node.js dependencies (desktop, pty_daemon, web, tray_companion)
     6. Copies build assets if missing
+    7. Builds Electron apps (desktop, tray_companion)
+    8. Downloads FFmpeg for screen capture
 
 .EXAMPLE
     .\setup-project.ps1
@@ -39,7 +41,7 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
 Write-Host ""
 
 $stepNum = 1
-$totalSteps = 7
+$totalSteps = 8
 
 # ============================================================================
 # Step 1: Set persistent environment variable
@@ -252,7 +254,46 @@ if (-not (Test-Path $iconIco) -and -not (Test-Path $iconPng)) {
 }
 
 # ============================================================================
-# Step 7: Download FFmpeg (for screen capture feature)
+# Step 7: Build Electron apps (desktop and tray companion)
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Building Electron apps..." -ForegroundColor Yellow
+$stepNum++
+
+if ($SkipNode) {
+    Write-Host "  Skipped (-SkipNode)" -ForegroundColor DarkYellow
+} else {
+    $electronApps = @(
+        @{ Path = "apps\tray_companion"; Name = "tray_companion" },
+        @{ Path = "apps\desktop"; Name = "desktop" }
+    )
+
+    foreach ($app in $electronApps) {
+        $appPath = Join-Path $ProjectRoot $app.Path
+        $outDir = Join-Path $appPath "out"
+
+        if (Test-Path (Join-Path $appPath "package.json")) {
+            if (Test-Path $outDir) {
+                Write-Host "  $($app.Name) - already built" -ForegroundColor DarkGray
+            } else {
+                Write-Host "  $($app.Name) - building..." -ForegroundColor White
+                Push-Location $appPath
+                $ErrorActionPreference = "Continue"
+                & npm run build 2>&1 | Out-Null
+                $ErrorActionPreference = "Stop"
+                Pop-Location
+                if (Test-Path $outDir) {
+                    Write-Host "  $($app.Name) - done" -ForegroundColor Green
+                } else {
+                    Write-Host "  $($app.Name) - build may have failed (check manually)" -ForegroundColor Yellow
+                }
+            }
+        }
+    }
+}
+
+# ============================================================================
+# Step 8: Download FFmpeg (for screen capture feature)
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Setting up FFmpeg for screen capture..." -ForegroundColor Yellow
