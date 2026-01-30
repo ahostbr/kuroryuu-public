@@ -13,6 +13,7 @@
  */
 
 import * as net from 'net';
+import * as http from 'http';
 import { PTYManager } from './pty-manager';
 import {
   JsonRpcRequest,
@@ -38,6 +39,7 @@ import {
 
 const PORT = parseInt(process.env.PTY_DAEMON_PORT || '7072', 10);
 const HOST = process.env.PTY_DAEMON_HOST || '127.0.0.1';
+const HEALTH_PORT = parseInt(process.env.PTY_HEALTH_PORT || '7073', 10);
 
 // ============================================================================
 // JSON-RPC Handler
@@ -430,7 +432,30 @@ function startServer(): void {
 }
 
 // ============================================================================
+// HTTP Health Server (for Docker health checks)
+// ============================================================================
+
+function startHealthServer(): http.Server {
+  const healthServer = http.createServer((req, res) => {
+    if (req.url === '/health' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, status: 'running', port: PORT }));
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+
+  healthServer.listen(HEALTH_PORT, HOST, () => {
+    console.log(`[PTY] Health endpoint: http://${HOST}:${HEALTH_PORT}/health`);
+  });
+
+  return healthServer;
+}
+
+// ============================================================================
 // Entry Point
 // ============================================================================
 
 startServer();
+startHealthServer();

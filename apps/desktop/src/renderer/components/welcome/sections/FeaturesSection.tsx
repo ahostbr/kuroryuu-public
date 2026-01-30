@@ -20,7 +20,6 @@ import {
   Plug,
   AppWindow,
   Globe,
-  Bot,
   Zap,
   MousePointer,
   Brain,
@@ -28,6 +27,53 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+import { ImageCarousel } from '../ImageCarousel';
+
+// Screenshot imports - Dojo (4)
+import screenshotDojo1 from '../../../../../../../assets/screens/dojo_1.jpg';
+import screenshotDojo2 from '../../../../../../../assets/screens/dojo_2.jpg';
+import screenshotDojo3 from '../../../../../../../assets/screens/dojo_3.jpg';
+import screenshotDojo4 from '../../../../../../../assets/screens/dojo_4.jpg';
+
+// Screenshot imports - Kanban (2)
+import screenshotKanban1 from '../../../../../../../assets/screens/kanban_1.jpg';
+import screenshotKanban2 from '../../../../../../../assets/screens/kanban_2.jpg';
+
+// Screenshot imports - Terminals (3)
+import screenshotTerminals1 from '../../../../../../../assets/screens/TERMINALS_1.jpg';
+import screenshotTerminals2 from '../../../../../../../assets/screens/TERMINALS_2.jpg';
+import screenshotTerminals3 from '../../../../../../../assets/screens/TERMINALS_3.jpg';
+
+// Screenshot imports - Insights (2)
+import screenshotInsights1 from '../../../../../../../assets/screens/insights_1.jpg';
+import screenshotInsights2 from '../../../../../../../assets/screens/insights_2.jpg';
+
+// Screenshot imports - Code Editor (3)
+import screenshotCodeEditor1 from '../../../../../../../assets/screens/CODE_EDITOR_SCREENSHOT_1.jpg';
+import screenshotCodeEditor2 from '../../../../../../../assets/screens/CODE_EDITOR_SCREENSHOT_2.jpg';
+import screenshotCodeEditor3 from '../../../../../../../assets/screens/CODE_EDITOR_SCREENSHOT_3.jpg';
+
+// Screenshot imports - HTTP Traffic (3)
+import screenshotHttp1 from '../../../../../../../assets/screens/http_1.jpg';
+import screenshotHttp2 from '../../../../../../../assets/screens/http_2.jpg';
+import screenshotHttp3 from '../../../../../../../assets/screens/http_3.jpg';
+
+// Screenshot imports - Command Center (2)
+import screenshotCommandCenter1 from '../../../../../../../assets/screens/command_center_1.jpg';
+import screenshotCommandCenter2 from '../../../../../../../assets/screens/command_center_2.jpg';
+
+// Screenshot imports - Integrations (3)
+import screenshotIntegrations1 from '../../../../../../../assets/screens/integrations_1.jpg';
+import screenshotIntegrations2 from '../../../../../../../assets/screens/integrations_2.jpg';
+import screenshotIntegrations3 from '../../../../../../../assets/screens/integrations_3.jpg';
+
+// Screenshot imports - Single screenshots
+import screenshotClaudeTasks from '../../../../../../../assets/screens/claudetasks_1.jpg';
+import screenshotPty from '../../../../../../../assets/screens/pty_1.jpg';
+import screenshotCapture from '../../../../../../../assets/screens/capture_1.jpg';
+import screenshotTranscripts from '../../../../../../../assets/screens/transcripts_1.jpg';
+import screenshotMemory from '../../../../../../../assets/screens/memory_1.jpg';
+import screenshotGithub from '../../../../../../../assets/screens/github_1.jpg';
 
 // Helper to navigate to a view by dispatching a custom event
 function navigateToView(route: string) {
@@ -44,6 +90,7 @@ interface Feature {
   bullets: string[];
   route?: string;
   customWidget?: React.ComponentType;
+  screenshots?: string[];
 }
 
 const features: Feature[] = [
@@ -77,6 +124,7 @@ const features: Feature[] = [
       'Recording indicator integration',
     ],
     route: 'dojo',
+    screenshots: [screenshotDojo1, screenshotDojo2, screenshotDojo3, screenshotDojo4],
   },
   {
     id: 'kanban',
@@ -91,6 +139,7 @@ const features: Feature[] = [
       'Evidence chain to worklogs',
     ],
     route: 'kanban',
+    screenshots: [screenshotKanban1, screenshotKanban2],
   },
 
   // === BUILD Group ===
@@ -107,6 +156,7 @@ const features: Feature[] = [
       'Resizable grid layout',
     ],
     route: 'terminals',
+    screenshots: [screenshotTerminals1, screenshotTerminals2, screenshotTerminals3],
   },
   {
     id: 'ralph',
@@ -135,6 +185,7 @@ const features: Feature[] = [
       'Open explorer/terminal per worktree',
     ],
     route: 'worktrees',
+    screenshots: [screenshotGithub],
   },
   {
     id: 'insights',
@@ -149,6 +200,7 @@ const features: Feature[] = [
       'Direct mode for raw queries',
     ],
     route: 'insights',
+    screenshots: [screenshotInsights1, screenshotInsights2],
   },
   {
     id: 'code-editor',
@@ -161,6 +213,7 @@ const features: Feature[] = [
       'Full editor capabilities',
       'Separate from main app',
     ],
+    screenshots: [screenshotCodeEditor1, screenshotCodeEditor2, screenshotCodeEditor3],
     // No route - launches external window
   },
 
@@ -178,6 +231,7 @@ const features: Feature[] = [
       'Detailed payload inspection',
     ],
     route: 'traffic-flow',
+    screenshots: [screenshotHttp1, screenshotHttp2, screenshotHttp3],
   },
   {
     id: 'claude-tasks',
@@ -192,6 +246,7 @@ const features: Feature[] = [
       'Worklog link tracking',
     ],
     route: 'claude-tasks',
+    screenshots: [screenshotClaudeTasks],
   },
   {
     id: 'pty-traffic',
@@ -206,6 +261,7 @@ const features: Feature[] = [
       'Terminal session tracking',
     ],
     route: 'pty-traffic',
+    screenshots: [screenshotPty],
   },
   {
     id: 'command-center',
@@ -220,6 +276,7 @@ const features: Feature[] = [
       'Graphiti knowledge graph (if enabled)',
     ],
     route: 'command-center',
+    screenshots: [screenshotCommandCenter1, screenshotCommandCenter2],
   },
   {
     id: 'capture',
@@ -228,12 +285,13 @@ const features: Feature[] = [
     shortDesc: 'Recording, screenshots, and visual digest',
     longDesc: 'Human-controlled capture via k_capture MCP tool. Screenshots, recordings, and AI-powered visual digests.',
     bullets: [
-      'Screenshots via k_interact',
-      'Screen recording start/stop',
-      'AI visual digest summaries',
-      'Agents check latest.jpg for context',
+      'Screenshots via k_capture(action="screenshot")',
+      'Recording via k_capture(action="start/stop")',
+      'VisualDigest writes latest.jpg every 10 seconds',
+      'Agents check via k_capture(action="get_latest")',
     ],
     route: 'capture',
+    screenshots: [screenshotCapture],
   },
   {
     id: 'transcripts',
@@ -248,6 +306,7 @@ const features: Feature[] = [
       'Export and review',
     ],
     route: 'transcripts',
+    screenshots: [screenshotTranscripts],
   },
 
   // === SYSTEM Group ===
@@ -290,6 +349,7 @@ const features: Feature[] = [
       'Powered by Graphiti (when enabled)',
     ],
     route: 'memory',
+    screenshots: [screenshotMemory],
   },
   {
     id: 'pccontrol',
@@ -317,6 +377,7 @@ const features: Feature[] = [
       'Connection verification',
       'Secure credential storage',
     ],
+    screenshots: [screenshotIntegrations1, screenshotIntegrations2, screenshotIntegrations3],
     // No route - opens dialog
   },
   {
@@ -433,7 +494,7 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
               <div
                 className={cn(
                   'overflow-hidden transition-all duration-300',
-                  isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                  isExpanded ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'
                 )}
               >
                 <div className="px-4 pb-4 pt-0 border-t border-border">
@@ -455,18 +516,40 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
                           </li>
                         ))}
                       </ul>
+
+                      {/* Centered button above screenshot carousel */}
                       {feature.route && (
-                        <button
-                          onClick={() => handleJump(feature.route!)}
-                          className={cn(
-                            'mt-4 flex items-center gap-2 px-4 py-2 rounded-lg',
-                            'bg-primary text-primary-foreground hover:bg-primary/90',
-                            'font-medium text-sm transition-colors'
+                        <div className="mt-4 flex flex-col items-center gap-4">
+                          <button
+                            onClick={() => handleJump(feature.route!)}
+                            className={cn(
+                              'flex items-center gap-2 px-4 py-2 rounded-lg',
+                              'bg-primary text-primary-foreground hover:bg-primary/90',
+                              'font-medium text-sm transition-colors'
+                            )}
+                          >
+                            Open {feature.title}
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+
+                          {/* Screenshot Carousel */}
+                          {feature.screenshots && feature.screenshots.length > 0 && (
+                            <ImageCarousel
+                              images={feature.screenshots}
+                              alt={`${feature.title} screenshot`}
+                            />
                           )}
-                        >
-                          Open {feature.title}
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
+                        </div>
+                      )}
+
+                      {/* Screenshot only (no route) */}
+                      {!feature.route && feature.screenshots && feature.screenshots.length > 0 && (
+                        <div className="mt-4">
+                          <ImageCarousel
+                            images={feature.screenshots}
+                            alt={`${feature.title} screenshot`}
+                          />
+                        </div>
                       )}
                     </>
                   )}

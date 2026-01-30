@@ -2,7 +2,7 @@ import { Tray, Menu, nativeImage, app, clipboard } from 'electron';
 import { join } from 'path';
 import { existsSync } from 'fs';
 import { speakText, stopSpeaking } from './tts/tts-manager';
-import { getSettings } from './settings';
+import { getSettings, updateSettings } from './settings';
 import { getLMStudioInstance } from './lmstudio-integration';
 import { getMCPInstance } from './mcp-integration';
 
@@ -71,7 +71,10 @@ export function createTray(onSettingsClick: () => void): void {
   
   // Handle tray click (show settings)
   tray.on('click', onSettingsClick);
-  
+
+  // Handle double-click (also show settings)
+  tray.on('double-click', onSettingsClick);
+
   console.log('Tray created successfully');
 }
 
@@ -133,7 +136,10 @@ function rebuildTrayMenu(): void {
       type: 'checkbox',
       checked: settings.autoSpeak,
       click: () => {
-        console.log('Toggle auto-speak');
+        const current = getSettings();
+        updateSettings({ autoSpeak: !current.autoSpeak });
+        updateTrayIcon(currentState); // Rebuild menu to reflect change
+        console.log('[Tray] Auto-speak toggled to:', !current.autoSpeak);
       }
     },
     {

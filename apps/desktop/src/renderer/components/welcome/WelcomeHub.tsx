@@ -8,6 +8,7 @@ import {
   CLISection,
   FeaturesSection,
   ArchitectureSection,
+  PluginSection,
 } from './sections';
 import { useWelcomeStore, WelcomeSection } from '../../stores/welcome-store';
 
@@ -23,6 +24,7 @@ const sectionComponents: Record<WelcomeSection, React.ComponentType<{ className?
   cli: CLISection,
   features: FeaturesSection,
   architecture: ArchitectureSection,
+  plugin: PluginSection,
 };
 
 export function WelcomeHub({ className }: WelcomeHubProps) {

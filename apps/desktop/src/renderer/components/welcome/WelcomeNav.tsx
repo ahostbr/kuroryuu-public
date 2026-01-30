@@ -6,6 +6,7 @@ import {
   Command,
   Layers,
   GitBranch,
+  Puzzle,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useWelcomeStore, WelcomeSection } from '../../stores/welcome-store';
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
   { id: 'cli', label: 'CLI', icon: Terminal },
   { id: 'features', label: 'Features', icon: Layers },
   { id: 'architecture', label: 'Architecture', icon: GitBranch },
+  { id: 'plugin', label: 'Plugin', icon: Puzzle },
 ];
 
 interface WelcomeNavProps {

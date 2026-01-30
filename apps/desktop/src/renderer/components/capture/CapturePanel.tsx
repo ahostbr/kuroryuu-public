@@ -3,7 +3,7 @@
  *
  * Human-controlled capture interface.
  * Connects to Kuroryuu MCP tools via gateway:
- * - Screenshots via k_interact (action: 'screenshot')
+ * - Screenshots via k_capture (action: 'screenshot')
  * - Screen recording via k_capture (start/stop/digest)
  * - Latest image via k_capture (get_latest)
  *
@@ -257,11 +257,11 @@ export const CapturePanel: React.FC = () => {
   const handleScreenshot = useCallback(async () => {
     setLoading(true);
     try {
-      // Use k_interact for screenshots (human-in-the-loop tool)
-      const result = await callMcpTool('k_interact', {
+      // Use k_capture for screenshots
+      const result = await callMcpTool('k_capture', {
         action: 'screenshot',
-        monitor: 0,
-        output_path: `ai/captures/screenshot_${Date.now()}.png`,
+        monitor_index: 0,
+        out: `ai/captures/screenshot_${Date.now()}.png`,
       });
 
       // Gateway returns result as string - parse it
@@ -531,7 +531,7 @@ export const CapturePanel: React.FC = () => {
           <h3 className="text-sm font-medium text-foreground mb-2">How Capture Works</h3>
           <ul className="text-xs text-muted-foreground space-y-1">
             <li>- Human controls capture (agents never start recording)</li>
-            <li>- Screenshots use <code className="text-primary">k_interact(action="screenshot")</code></li>
+            <li>- Screenshots use <code className="text-primary">k_capture(action="screenshot")</code></li>
             <li>- Recording uses <code className="text-primary">k_capture(action="start/stop")</code></li>
             <li>- VisualDigest writes to latest.jpg every 10 seconds</li>
             <li>- Agents check via <code className="text-primary">k_capture(action="get_latest")</code></li>

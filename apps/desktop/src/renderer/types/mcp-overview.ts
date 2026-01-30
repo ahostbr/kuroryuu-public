@@ -234,6 +234,6 @@ export const DEFAULT_TOOLS: MCPTool[] = [
   { name: 'k_session', description: 'Session operations: start, end, pre_tool, post_tool, log, context', category: 'other', enabled: true },
   { name: 'k_files', description: 'File operations: read, write, list', category: 'file', enabled: true },
   { name: 'k_memory', description: 'Working memory: get, set_goal, add_blocker, clear_blockers, set_steps, reset', category: 'other', enabled: true },
-  { name: 'k_interact', description: 'Human-in-the-loop: ask, approve, plan, screenshot (LEADER-ONLY)', category: 'other', enabled: true },
-  { name: 'k_capture', description: 'Visual capture: start, stop, screenshot, poll', category: 'other', enabled: true },
+  { name: 'k_interact', description: 'Human-in-the-loop: ask, approve, plan (LEADER-ONLY)', category: 'other', enabled: true },
+  { name: 'k_capture', description: 'Visual capture: screenshot, start, stop, poll, get_latest', category: 'other', enabled: true },
 ];

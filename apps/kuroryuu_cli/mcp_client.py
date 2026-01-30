@@ -37,7 +37,7 @@ K_RAG_ACTIONS: Set[str] = {
     "query_reranked", "query_multi", "query_reflective", "query_agentic",
     "query_interactive", "index_semantic"
 }
-K_INTERACT_ACTIONS: Set[str] = {"help", "ask", "approve", "plan", "screenshot"}
+K_INTERACT_ACTIONS: Set[str] = {"help", "ask", "approve", "plan"}
 
 # Additional tool action sets
 K_PTY_ACTIONS: Set[str] = {
