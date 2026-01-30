@@ -94,5 +94,22 @@ ai/agents_registry.json
 nul
 ai/config/domain-config.json
 ai/current_run.json
-ai/current_run.json
-ai/config/domain-config.json
+
+# User runtime state (added for public release)
+ai/sessions.json
+ai/agent_context.md
+ai/inbox_messages.json
+ai/artifacts/
+ai/inbox/new/
+ai/inbox/done/
+ai/inbox/cur/
+ai/inbox/dead/
+ai/inbox/tmp/
+ai/inbox/.index/
+ai/chat_history/
+ai/cli_sessions/
+ai/collective/patterns.jsonl
+ai/collective/skill_matrix.json
+ai/config/*.flag
+ai/capture/output/
+ai/.internal_secret

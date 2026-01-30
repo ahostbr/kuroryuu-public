@@ -1,3 +1,0 @@
-{
-  "markdown": "# Kuroryuu Architecture\n\n## Components\n\n- **MCP Core** - Tool server on port 8100\n- **Gateway** - FastAPI on port 8200\n- **Desktop** - Electron app\n- **Web** - Next.js frontend\n\n## Multi-Agent System\n\n1. Leader coordinates workers\n2. Workers execute tasks\n3. k_inbox for messaging\n4. k_pty for terminal control"
-}
