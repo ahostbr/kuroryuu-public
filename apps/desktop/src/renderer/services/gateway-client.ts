@@ -201,18 +201,21 @@ export async function generateRoadmap(
 ): Promise<GatewayResult<{ features: unknown[] }>> {
   // Try repo_intel-powered endpoint first
   try {
+    const requestBody = {
+      product_vision: config?.productVision || projectDescription,
+      target_audience: config?.targetAudience || '',
+      timeframe: config?.timeframe || 'quarter',
+      focus_areas: config?.focusAreas || [],
+      max_features: 12,
+      model,
+      backend: config?.provider, // Gateway uses 'backend' parameter
+    };
+    console.log('[gateway-client] Roadmap request:', { model, backend: config?.provider, provider: config?.provider });
+
     const response = await fetch('http://127.0.0.1:8200/v1/repo_intel/roadmap', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        product_vision: config?.productVision || projectDescription,
-        target_audience: config?.targetAudience || '',
-        timeframe: config?.timeframe || 'quarter',
-        focus_areas: config?.focusAreas || [],
-        max_features: 12,
-        model,
-        backend: config?.provider, // Gateway uses 'backend' parameter
-      }),
+      body: JSON.stringify(requestBody),
     });
     
     if (response.ok) {
@@ -287,6 +290,7 @@ export async function generateIdeas(
     };
 
     const apiCategories = categories.map(c => categoryMap[c] || c.toLowerCase());
+    console.log('[gateway-client] Ideas request:', { model, backend: config?.provider, provider: config?.provider });
 
     const response = await fetch('http://127.0.0.1:8200/v1/repo_intel/ideas', {
       method: 'POST',

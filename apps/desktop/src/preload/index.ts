@@ -1277,6 +1277,9 @@ const api = {
     /** Export domain configs to shared JSON file */
     export: (data: { version: number; lastUpdated: string; configs: Record<string, unknown> }): Promise<{ success: boolean; path?: string; error?: string }> =>
       ipcRenderer.invoke('domain-config:export', data),
+    /** Import domain configs from shared JSON file */
+    import: (): Promise<{ success: boolean; data?: { version: number; lastUpdated: string; configs: Record<string, unknown> }; error?: string }> =>
+      ipcRenderer.invoke('domain-config:import'),
   },
   /**
    * Auto-Updater API

@@ -10,7 +10,6 @@
  */
 
 import { usePRDStore } from './stores/prd-store';
-import { useOnboardingStore } from './stores/onboarding-store';
 import { useSettingsStore } from './stores/settings-store';
 import type { WorkflowType, PRDStatus } from './types/prd';
 
@@ -231,13 +230,6 @@ export function initE2ETestHooks(): void {
   }
 
   console.log('[E2E] Test mode detected, initializing test hooks...');
-
-  // Skip onboarding in test mode
-  const onboardingStore = useOnboardingStore.getState();
-  if (!onboardingStore.isComplete) {
-    console.log('[E2E] Skipping onboarding wizard...');
-    useOnboardingStore.setState({ isComplete: true });
-  }
 
   // Disable animations for test stability (prevents "element not stable" errors)
   console.log('[E2E] Disabling animations for test stability...');

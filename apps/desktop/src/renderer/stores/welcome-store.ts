@@ -37,6 +37,11 @@ interface WelcomeState {
   setActiveArchComponent: (id: string | null) => void;
   activeSuggestedPath: string | null;
   setActiveSuggestedPath: (id: string | null) => void;
+
+  // Video paths (persisted) - keyed by video ID
+  videoPaths: Record<string, string>;
+  setVideoPath: (videoId: string, path: string) => void;
+  clearVideoPath: (videoId: string) => void;
 }
 
 export const useWelcomeStore = create<WelcomeState>()(
@@ -98,13 +103,24 @@ export const useWelcomeStore = create<WelcomeState>()(
       setActiveArchComponent: (id) => set({ activeArchComponent: id }),
       activeSuggestedPath: null,
       setActiveSuggestedPath: (id) => set({ activeSuggestedPath: id }),
+
+      // Video paths
+      videoPaths: {},
+      setVideoPath: (videoId, path) => set((s) => ({
+        videoPaths: { ...s.videoPaths, [videoId]: path }
+      })),
+      clearVideoPath: (videoId) => set((s) => {
+        const { [videoId]: _, ...rest } = s.videoPaths;
+        return { videoPaths: rest };
+      }),
     }),
     {
       name: 'kuroryuu-welcome-store',
       partialize: (state) => ({
-        // Only persist video preferences and completion
+        // Only persist video preferences, completion, and video paths
         videoMuted: state.videoMuted,
         completedSections: state.completedSections,
+        videoPaths: state.videoPaths,
       }),
     }
   )

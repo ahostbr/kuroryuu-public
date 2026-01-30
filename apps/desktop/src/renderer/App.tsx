@@ -34,13 +34,11 @@ import {
   DomainConfigDialog,
   IntegrationsDialog,
 } from './components/settings';
-import { OnboardingWizard } from './components/onboarding';
 import { InitializeProjectDialog } from './components/project';
 import { UpdateNotification } from './components/UpdateNotification';
 import { LeaderDeathWarning } from './components/LeaderDeathWarning';
 import { SecurityAlert, type SecurityAlertData } from './components/SecurityAlert';
 import { ShutdownProgressModal } from './components/ShutdownProgressModal';
-import { useIsOnboardingComplete } from './stores/onboarding-store';
 import { useSettingsStore } from './stores/settings-store';
 import { useShutdownStore } from './stores/shutdown-store';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -99,9 +97,6 @@ export function App() {
   const [terminalMounted, setTerminalMounted] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
   
-  // Onboarding state
-  const isOnboardingComplete = useIsOnboardingComplete();
-  const [showOnboarding, setShowOnboarding] = useState(!isOnboardingComplete);
 
   // Leader death detection - blocks UI and requires app restart
   const [leaderDead, setLeaderDead] = useState(false);
@@ -145,7 +140,7 @@ export function App() {
       if (opts.clearIndexedDB) {
         await clearAllIndexedDB();
       }
-      // Reload to show onboarding wizard
+      // Reload to apply reset
       window.location.reload();
     });
     return () => { cleanup?.(); };
@@ -268,7 +263,7 @@ export function App() {
     setActiveView('capture');
   }, []);
 
-  // Disabled: useKeyboardShortcuts(setActiveView, handleOpenSettings, !showOnboarding && !modalOpen);
+  // Disabled: useKeyboardShortcuts(setActiveView, handleOpenSettings, !modalOpen);
 
   // Apply theme
   useTheme();
@@ -392,14 +387,6 @@ export function App() {
         {/* EditDoc Modal - Global markdown editor */}
         <EditDocModal />
 
-        {/* Onboarding Wizard */}
-        <OnboardingWizard
-          open={showOnboarding}
-          onComplete={() => {
-            setShowOnboarding(false);
-            setActiveView('kanban');
-          }}
-        />
 
         {/* Global Recording Indicator - visible on all pages except terminals (has header indicator) */}
         <GlobalRecordingIndicator onNavigateToCapture={handleNavigateToCapture} activeView={activeView} />

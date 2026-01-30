@@ -412,34 +412,30 @@ class AgentCore:
         from .providers.lmstudio_provider import LMStudioProvider
         from .providers.claude_provider import ClaudeProvider
         from .providers.cliproxy_provider import CLIProxyProvider
-        from .config import ClaudeAuthMode
+        from .config import ClaudeAuthMode, Config
 
         # Clear existing provider
         self._provider = None
 
         # Create new provider based on selection
         if provider == "claude":
-            # Claude requires auth handling
-            if self.config.claude_auth_mode == ClaudeAuthMode.OAUTH:
-                if self.config.claude_oauth_token:
-                    self._provider = ClaudeProvider(
-                        oauth_access_token=self.config.claude_oauth_token,
-                        auth_mode="oauth",
-                    )
-                elif self.config.claude_api_key:
-                    self._provider = ClaudeProvider(
-                        api_key=self.config.claude_api_key,
-                        auth_mode="api_key",
-                    )
-                else:
-                    raise ValueError("Claude not authenticated. Run: kuroryuu-cli login")
-            else:
-                if not self.config.claude_api_key:
-                    raise ValueError("Claude API key not found.")
-                self._provider = ClaudeProvider(
-                    api_key=self.config.claude_api_key,
-                    auth_mode="api_key",
+            # Claude direct API - requires ANTHROPIC_API_KEY (OAuth tokens are blocked)
+            # For Max/Pro subscription users, use 'cliproxyapi' instead which wraps Claude CLI
+            if not self.config.claude_api_key:
+                self.config.claude_api_key = Config._load_claude_api_key()
+
+            if not self.config.claude_api_key:
+                raise ValueError(
+                    "Claude direct API requires ANTHROPIC_API_KEY.\n"
+                    "OAuth tokens are blocked by Anthropic for direct API use.\n"
+                    "For Max/Pro subscription: use '/provider cliproxyapi' instead."
                 )
+
+            self._provider = ClaudeProvider(
+                api_key=self.config.claude_api_key,
+                auth_mode="api_key",
+            )
+            self.config.claude_auth_mode = ClaudeAuthMode.API_KEY
             self.context_window = await self._provider.get_context_window()
 
         elif provider == "cliproxyapi":

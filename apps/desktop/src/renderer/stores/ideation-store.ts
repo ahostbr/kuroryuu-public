@@ -234,6 +234,7 @@ export const useIdeationStore = create<IdeationStore>((set, get) => ({
 
     // Get domain-specific model config
     const domainConfig = useDomainConfigStore.getState().getConfigForDomain('ideation');
+    console.log('[Ideation] Domain config:', { provider: domainConfig.provider, modelId: domainConfig.modelId, modelName: domainConfig.modelName });
 
     // Call Gateway API with repo_intel-enhanced config
     const result = await gatewayClient.generate.ideas(

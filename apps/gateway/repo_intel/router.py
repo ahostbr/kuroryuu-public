@@ -565,13 +565,13 @@ async def generate_roadmap(request: RoadmapRequest) -> RoadmapResponse:
             ok=False,
             error="Repo intel not indexed. Call POST /v1/repo_intel/refresh first."
         )
-    
+
     # Build context from repo_intel
     context = build_codebase_context()
-    
+
     # Build prompt
     prompt = build_roadmap_prompt(request, context)
-    
+
     # Call LLM
     try:
         from ..llm.backends.base import LLMConfig
@@ -582,6 +582,7 @@ async def generate_roadmap(request: RoadmapRequest) -> RoadmapResponse:
             or (request.config.get("backend") if request.config else None)
             or os.environ.get("KURORYUU_LLM_BACKEND", "lmstudio")
         )
+        print(f"[roadmap] request.backend={request.backend}, request.model={request.model}, resolved backend={backend_name}")
         backend = get_backend(backend_name)
 
         messages = [
@@ -639,13 +640,13 @@ async def generate_ideas(request: IdeaRequest) -> IdeaResponse:
             ok=False,
             error="Repo intel not indexed. Call POST /v1/repo_intel/refresh first."
         )
-    
+
     # Build context from repo_intel
     context = build_codebase_context()
-    
+
     # Build prompt
     prompt = build_ideas_prompt(request, context)
-    
+
     # Call LLM
     try:
         from ..llm.backends.base import LLMConfig
@@ -656,6 +657,7 @@ async def generate_ideas(request: IdeaRequest) -> IdeaResponse:
             or (request.config.get("backend") if request.config else None)
             or os.environ.get("KURORYUU_LLM_BACKEND", "lmstudio")
         )
+        print(f"[ideas] request.backend={request.backend}, request.model={request.model}, resolved backend={backend_name}")
         backend = get_backend(backend_name)
 
         messages = [

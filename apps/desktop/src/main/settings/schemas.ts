@@ -84,12 +84,6 @@ export interface AgentSettings {
   workerAgents: AgentConfig[];
 }
 
-export interface OnboardingSettings {
-  completedSteps: string[];
-  currentStep: string | null;
-  isComplete: boolean;
-}
-
 export interface GraphitiSettings {
   enabled: boolean;
   serverUrl: string;
@@ -99,7 +93,6 @@ export interface GraphitiSettings {
 export interface ProjectSettings {
   audio: AudioSettings;
   agents: AgentSettings;
-  onboarding: OnboardingSettings;
   graphiti: GraphitiSettings;
   _version: number;
   _migratedAt?: number;
@@ -156,11 +149,6 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
     leaderAgent: null,
     workerAgents: [],
   },
-  onboarding: {
-    completedSteps: [],
-    currentStep: null,
-    isComplete: false,
-  },
   graphiti: {
     enabled: false,
     serverUrl: 'http://localhost:8000',
@@ -189,7 +177,6 @@ export type SettingsNamespace =
   | 'audio.mic'
   | 'audio.tts'
   | 'agents'
-  | 'onboarding'
   | 'graphiti'
   | 'graphiti.enabled'
   | 'graphiti.serverUrl'

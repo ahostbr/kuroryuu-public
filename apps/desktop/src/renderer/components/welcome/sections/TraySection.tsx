@@ -63,7 +63,7 @@ export function TraySection({ className }: TraySectionProps) {
       </div>
 
       {/* Video placeholder */}
-      <VideoPlaceholder message="Tray Companion Demo" />
+      <VideoPlaceholder message="Tray Companion Demo" videoId="tray-companion" />
 
       {/* Feature grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

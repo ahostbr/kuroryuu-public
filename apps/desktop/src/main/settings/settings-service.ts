@@ -329,7 +329,6 @@ export class SettingsService {
         return 'user';
       case 'audio':
       case 'agents':
-      case 'onboarding':
       case 'graphiti':
         return 'project';
       default:

@@ -2551,6 +2551,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
         projectRoot={projectRoot}
         onLaunchThinker={handleThinkerFromWizard}
         onLaunchWorkflowSpecialist={handleWorkflowSpecialistFromWizard}
+        onLaunchQuizmaster={handleQuizmasterLaunch}
       />
       {/* Thinker Wizard Modal */}
       <ThinkerWizard
@@ -3064,7 +3065,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
               <Plus className="w-4 h-4" />
             </button>
 
-            {/* Quizmaster Planning Session */}
+            {/* NOTE: Quizmaster Planning Session button hidden for now
             <button
               onClick={handleQuizmasterLaunch}
               className={`p-1.5 rounded transition-colors ${
@@ -3076,6 +3077,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
             >
               <MessageCircleQuestion className="w-4 h-4" />
             </button>
+            */}
 
             {/* NOTE: Ralph Leader button hidden for public release
             <button
