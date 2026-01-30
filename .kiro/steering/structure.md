@@ -40,7 +40,7 @@ Kuroryuu/
 │   │   │   ├── tools_clawd.py      # Clawdbot (11 actions)
 │   │   │   ├── tools_inbox.py      # Inbox (8 actions)
 │   │   │   ├── tools_capture.py    # Capture (8 actions)
-│   │   │   ├── tools_pccontrol.py  # WinAppDriver (8 actions)
+│   │   │   ├── tools_pccontrol.py  # PowerShell Win32 APIs (8 actions)
 │   │   │   └── ...                 # Other tools
 │   │   └── run.ps1                 # Launcher script
 │   │

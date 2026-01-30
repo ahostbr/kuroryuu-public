@@ -152,6 +152,13 @@ if ($SkipPython) {
             $ErrorActionPreference = "Stop"
         }
     }
+
+    # Install desktop app Python dependencies (voice input, audio transcription)
+    Write-Host "  Installing desktop speech/audio dependencies..." -ForegroundColor White
+    $ErrorActionPreference = "Continue"
+    & $pip install SpeechRecognition pyaudio -q 2>&1 | Out-Null
+    $ErrorActionPreference = "Stop"
+
     Write-Host "  Python dependencies installed" -ForegroundColor Green
 } else {
     Write-Host "  ERROR: pip not found at $pip" -ForegroundColor Red

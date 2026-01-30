@@ -43,7 +43,7 @@ export function FullDesktopSection() {
       setStatus(newStatus);
     });
 
-    return () => cleanup?.();
+    return () => { cleanup?.(); };
   }, []);
 
   const refreshStatus = async () => {

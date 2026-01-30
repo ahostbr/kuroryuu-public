@@ -5589,6 +5589,97 @@
       "tool_calls": 0,
       "tool_successes": 0,
       "tool_failures": 0
+    },
+    {
+      "session_id": "kuroryuu_cli_kuroryuu_cli_20260129_235839_f7883c96_4eda7162",
+      "process_id": 27040,
+      "cli_type": "kuroryuu_cli",
+      "agent_id": "kuroryuu_cli_20260129_235839_f7883c96",
+      "feature_id": null,
+      "status": "ended",
+      "start_time": "2026-01-30T04:58:39.169256+00:00",
+      "end_time": "2026-01-30T05:01:29.638399+00:00",
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "kuroryuu_cli_kuroryuu_cli_20260130_001133_11185c2a_d0c2ebaf",
+      "process_id": 35048,
+      "cli_type": "kuroryuu_cli",
+      "agent_id": "kuroryuu_cli_20260130_001133_11185c2a",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T05:11:33.130346+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "kuroryuu_cli_kuroryuu_cli_20260130_001745_8a7eae12_c6504031",
+      "process_id": 31552,
+      "cli_type": "kuroryuu_cli",
+      "agent_id": "kuroryuu_cli_20260130_001745_8a7eae12",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T05:17:45.267202+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "claude_kuroryuu_main_a7b02511",
+      "process_id": 1234,
+      "cli_type": "claude",
+      "agent_id": "kuroryuu_main",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T05:23:57.296416+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "kuroryuu_cli_kuroryuu_cli_20260130_003131_ebc51b9b_765d6cd4",
+      "process_id": 28788,
+      "cli_type": "kuroryuu_cli",
+      "agent_id": "kuroryuu_cli_20260130_003131_ebc51b9b",
+      "feature_id": null,
+      "status": "ended",
+      "start_time": "2026-01-30T05:31:31.401804+00:00",
+      "end_time": "2026-01-30T05:33:59.208009+00:00",
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "kuroryuu_cli_kuroryuu_cli_20260130_003421_6ee6cb5a_b919cb1e",
+      "process_id": 13440,
+      "cli_type": "kuroryuu_cli",
+      "agent_id": "kuroryuu_cli_20260130_003421_6ee6cb5a",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T05:34:21.645415+00:00",
+      "end_time": null,
+      "tool_calls": 41,
+      "tool_successes": 41,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "kuroryuu_cli_kuroryuu_cli_20260130_072320_4b1b2c2d_575041a0",
+      "process_id": 41112,
+      "cli_type": "kuroryuu_cli",
+      "agent_id": "kuroryuu_cli_20260130_072320_4b1b2c2d",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T12:23:20.014443+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
     }
   ]
 }

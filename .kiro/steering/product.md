@@ -27,7 +27,7 @@ Kuroryuu (黒き幻影の霧の龍 - "Black Dragon of Illusionary Fog") is a pro
 | k_clawd | 11 | Clawdbot orchestration (OPT-IN) |
 | k_inbox | 8 | Maildir messaging |
 | k_capture | 8 | Screen capture |
-| k_pccontrol | 8 | Desktop automation via WinAppDriver (OPT-IN) |
+| k_pccontrol | 8 | Desktop automation via PowerShell Win32 APIs (OPT-IN) |
 | k_session | 7 | Session lifecycle |
 | k_memory | 7 | Working memory |
 | k_graphiti_migrate | 6 | Knowledge graph migration |

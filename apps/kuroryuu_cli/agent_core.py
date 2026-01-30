@@ -501,8 +501,16 @@ class AgentCore:
         Args:
             context_override: Fresh context from k_session, if available
         """
+        # Get current model based on active provider
+        if self.config.llm_provider == "cliproxyapi":
+            current_model = self.config.cliproxy_model
+        elif self.config.llm_provider == "claude":
+            current_model = self.config.claude_model
+        else:
+            current_model = self.config.model
+
         # Check for Devstral-specific prompt (optimized for local Devstral models)
-        model_lower = self.config.model.lower()
+        model_lower = current_model.lower()
         is_devstral = "devstral" in model_lower
         is_lmstudio = self.config.llm_provider == "lmstudio"
 
@@ -539,11 +547,7 @@ Model: {{model}}
         context_block = f"\n\n# Current Context\n{dynamic_context}" if dynamic_context else ""
 
         # Get model name from provider or config
-        model_name = "unknown"
-        if self.config.llm_provider == "claude":
-            model_name = self.config.claude_model
-        else:
-            model_name = self.config.model
+        model_name = current_model
 
         # Substitute template variables
         prompt = template.replace("{{role}}", self.session_manager.role or "unknown")
@@ -559,8 +563,13 @@ Model: {{model}}
         """Check if current model supports native tool calling."""
         if self._provider:
             return self._provider.supports_native_tools
-        # Fallback during init
-        model_lower = self.config.model.lower()
+        # Fallback during init - get model based on provider
+        if self.config.llm_provider == "cliproxyapi":
+            model_lower = self.config.cliproxy_model.lower()
+        elif self.config.llm_provider == "claude":
+            model_lower = self.config.claude_model.lower()
+        else:
+            model_lower = self.config.model.lower()
         return any(p in model_lower for p in self.NATIVE_TOOL_MODELS)
 
     async def refresh_context(self) -> None:
@@ -1466,6 +1475,19 @@ Model: {{model}}
         """Clear conversation history, keeping system prompt."""
         system_msg = self.messages[0] if self.messages and self.messages[0].role == "system" else None
         self.messages = [system_msg] if system_msg else []
+
+    def rebuild_system_prompt(self) -> None:
+        """Rebuild system prompt with current config values.
+
+        Call this after changing model or provider to update the system prompt
+        with the correct model name and settings.
+        """
+        new_prompt = self._build_system_prompt()
+        if self.messages and self.messages[0].role == "system":
+            self.messages[0] = Message(role="system", content=new_prompt)
+        else:
+            self.messages.insert(0, Message(role="system", content=new_prompt))
+        logger.info("System prompt rebuilt with current config")
 
     def get_message_count(self) -> int:
         """Get number of messages in history."""

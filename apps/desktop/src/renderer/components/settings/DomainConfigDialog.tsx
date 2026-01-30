@@ -211,6 +211,8 @@ export function DomainConfigDialog() {
     'lmstudio': providerHealth['lmstudio']?.healthy ?? false,
     'cliproxyapi': providerHealth['cliproxyapi']?.healthy ?? false,
     'claude': providerHealth['claude']?.healthy ?? true, // Assume healthy
+    'claude-cli': providerHealth['claude-cli']?.healthy ?? false,
+    'claude-cli-pty': providerHealth['claude-cli-pty']?.healthy ?? false,
   };
 
   const handleRefresh = async () => {

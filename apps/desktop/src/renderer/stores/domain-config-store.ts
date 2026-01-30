@@ -83,6 +83,8 @@ const initialProviderHealth: Record<LLMProvider, ProviderHealth> = {
   'lmstudio': { provider: 'lmstudio', healthy: false, lastChecked: 0 },
   'cliproxyapi': { provider: 'cliproxyapi', healthy: true, lastChecked: 0 }, // Primary provider via Claude Code CLI
   'claude': { provider: 'claude', healthy: false, lastChecked: 0 }, // Requires API key
+  'claude-cli': { provider: 'claude-cli', healthy: false, lastChecked: 0 },
+  'claude-cli-pty': { provider: 'claude-cli-pty', healthy: false, lastChecked: 0 },
 };
 
 // ============================================================================

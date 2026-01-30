@@ -944,6 +944,15 @@ const api = {
     },
   },
   /**
+   * Video Assets API
+   * For copying video files to assets folder for git commit
+   */
+  video: {
+    /** Copy a video file to assets/videos/ for git tracking */
+    copyToAssets: (sourcePath: string, videoId: string): Promise<{ ok: boolean; relativePath?: string; error?: string }> =>
+      ipcRenderer.invoke('video:copy-to-assets', sourcePath, videoId),
+  },
+  /**
    * Thinker Wizard API
    * For discovering and launching thinker debate personas
    */
@@ -1332,6 +1341,26 @@ const api = {
     /** Get health status for any service by ID */
     getHealth: (serviceId: string): Promise<{ ok: boolean; status: 'connected' | 'disconnected' | 'error'; port: number; name: string }> =>
       ipcRenderer.invoke('service:health', serviceId),
+  },
+
+  /**
+   * Clawdbot API (OPT-IN, Docker-based)
+   * Local chatbot container management
+   */
+  clawdbot: {
+    /** Get current status */
+    status: (): Promise<{
+      enabled: boolean;
+      dockerAvailable: boolean;
+      containerExists: boolean;
+      containerRunning: boolean;
+    }> => ipcRenderer.invoke('clawdbot:status'),
+    /** Start the container */
+    start: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('clawdbot:start'),
+    /** Stop the container */
+    stop: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('clawdbot:stop'),
   },
 
   /**

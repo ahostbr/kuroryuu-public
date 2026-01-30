@@ -166,12 +166,16 @@ class ClaudeCliPTYBackend(LLMBackend):
                     yield StreamEvent(type="delta", text=new_content)
                     last_clean_position = len(cleaned)
 
+            # Get the PTY session ID for Desktop integration
+            pty_session_id = manager.get_session_id(conversation_id)
+
             yield StreamEvent(
                 type="done",
                 stop_reason="end_turn",
                 usage={
                     "session_type": "persistent_pty",
                     "conversation_id": conversation_id,
+                    "pty_session_id": pty_session_id,
                 },
             )
 

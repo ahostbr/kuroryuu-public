@@ -324,12 +324,13 @@ export function AgentSetupWizard({ onComplete, projectRoot = '', onCreateLeaderT
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 w-full h-full flex items-center justify-center p-8">
-        <div
-          className={`w-full max-w-md transition-all duration-700 ease-out ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
-          }`}
-        >
+      <div className="relative z-10 w-full h-full overflow-y-auto">
+        <div className="min-h-full flex items-center justify-center p-8">
+          <div
+            className={`w-full max-w-md transition-all duration-700 ease-out ${
+              mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+            }`}
+          >
           {/* Header */}
           <div className="text-center mb-10">
             {/* Crown icon with glow */}
@@ -435,18 +436,26 @@ export function AgentSetupWizard({ onComplete, projectRoot = '', onCreateLeaderT
 
                     {/* Info dropdown toggle */}
                     {template.explanation && (
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowExplanation(showExplanation === template.id ? null : template.id);
                         }}
-                        className="ml-2 p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation();
+                            setShowExplanation(showExplanation === template.id ? null : template.id);
+                          }
+                        }}
+                        className="ml-2 p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                         title="Learn more"
                       >
                         <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform duration-200 ${
                           showExplanation === template.id ? 'rotate-180 text-amber-400' : ''
                         }`} />
-                      </button>
+                      </div>
                     )}
                   </div>
 
@@ -699,6 +708,7 @@ export function AgentSetupWizard({ onComplete, projectRoot = '', onCreateLeaderT
           <p className="text-center text-xs text-zinc-600 mt-6">
             Click <span className="text-zinc-500">+</span> to add worker terminals after setup
           </p>
+        </div>
         </div>
       </div>
 

@@ -1,521 +1,144 @@
-﻿# Kuroryuu Tasks
-
-## Active Focus
-- Feature: Kuroryuu Development
-- Goal: Build multi-agent orchestration system
-- Next: Continue development
-
----
-
-## Claude Tasks
-<!-- Claude Code TaskCreate/Update syncs here -->
-
-- [x] T130: Transform Quizmaster info panel into cinematic "secret weapon" hero section with: pulsing glow rings, floating particles, shimmer effects, animated gradient title, 3-stage flow diagram, prompt vari... @agent [worklog: pending] (created: 2026-01-29 23:49) (completed: 2026-01-29 23:51)
-- [x] T129: 1. Fix provider descriptions (remove Max/Pro reference from cliproxyapi) 2. Add model shorthands (opus, sonnet, codex, etc.) 3. Update /model command to support all providers 4. Add /auth command f... @agent [worklog: pending] (created: 2026-01-29 23:25) (completed: 2026-01-29 23:28)
-- [x] T128: Completely remove the 8-step Setup Wizard so the app always goes directly to the Welcome Screen. This involves modifying 7 files and deleting 14 files (the entire onboarding/ directory plus store a... @agent [worklog: pending] (created: 2026-01-29 20:52) (completed: 2026-01-29 21:00)
-- [x] T127: Add platform detection to auto-disable Windows-only tools on Linux while keeping Windows behavior unchanged @agent [worklog: pending] (created: 2026-01-28 20:33) (completed: 2026-01-28 20:44)
-- [ ] T126: Create docker-compose.yml, Dockerfiles for gateway/mcp_core/pty_daemon/web, nginx.conf, and .dockerignore files @agent [worklog: pending] (created: 2026-01-28 20:33)
-- [x] T125: Update rag-interactive-gate.ps1, rag-interactive-toggle.ps1, and take_screenshot.ps1 to use portable path resolution. @agent [worklog: pending] (created: 2026-01-28 18:23) (completed: 2026-01-28 18:27)
-- [x] T124: Create setup script that sets KURORYUU_PROJECT_ROOT env var, generates .mcp.json from template, and creates venv if missing. @agent [worklog: pending] (created: 2026-01-28 18:23) (completed: 2026-01-28 18:25)
-- [x] T123: Create the MCP configuration template with {{KURORYUU_ROOT}} and {{KURORYUU_VENV}} placeholders. Remove SOTS_MCP_CORE section entirely. @agent [worklog: pending] (created: 2026-01-28 18:23) (completed: 2026-01-28 18:25)
-- [ ] T122: Debug why tray companion is not launching via button or on startup. Check git history, checkpoints, worklogs to find recent breaking changes. @agent [worklog: pending] (created: 2026-01-28 12:02)
-- [x] T121: Add file size filtering to git:status handler in git-service.ts to prevent files over 99MB from appearing in the GitHub commit panel. This avoids accidental commits of large files that would be rej... @agent [worklog: pending] (created: 2026-01-28 11:56) (completed: 2026-01-28 11:57)
-- [x] T120: Add 5 new feature cards and update 3 outdated descriptions in FeaturesSection.tsx @agent [worklog: pending] (created: 2026-01-28 11:52) (completed: 2026-01-28 11:54)
-- [x] T119: Fix the filtering regression where chat shows "No response received." because stripInputEcho() is too aggressive. Replace with conservative version that has safety guards. @agent [worklog: pending] (created: 2026-01-28 11:50) (completed: 2026-01-28 11:50)
-- [x] T118: Lines 58, 66: Remove references to "WinAppDriver running on port 4723" - now uses PowerShell directly. @agent [worklog: pending] (created: 2026-01-28 11:21) (completed: 2026-01-28 11:22)
-- [ ] T117: Line 6: Change "desktop automation via WinAppDriver" to "desktop automation via PowerShell Win32 APIs". Line 131: Update k_pccontrol table row. @agent [worklog: pending] (created: 2026-01-28 11:21)
-- [x] T116: Update arch-data.json to add 3 missing components (CLIProxyAPI, Ralph, k_pccontrol), fix broken jumpRoute values, update component descriptions, and add new suggested paths. @agent [worklog: pending] (created: 2026-01-28 11:07) (completed: 2026-01-28 11:07)
-- [x] T115: Add function to strip user input echo from PTY response beginning @agent [worklog: pending] (created: 2026-01-28 11:02) (completed: 2026-01-28 11:03)
-- [x] T114: Add filterTerminalOutput call in lmstudio-chat-store.ts SSE delta handler @agent [worklog: pending] (created: 2026-01-28 11:02) (completed: 2026-01-28 11:06)
-- [x] T113: Remove winappdriver bindings from preload/index.ts and main/index.ts, add simple pccontrol bindings @agent [worklog: pending] (created: 2026-01-28 10:52) (completed: 2026-01-28 10:57)
-- [x] T112: Remove WinAppDriver client class and implement all actions via PowerShell/Win32 APIs: click (done), doubleclick, rightclick, type, keypress, launch_app, get_windows @agent [worklog: pending] (created: 2026-01-28 10:52) (completed: 2026-01-28 10:54)
-- [ ] T111: The Terminal tab shows "No PTY Session Active" because Gateway's claude-cli-pty backend spawns a Python PTY, but Desktop never gets that session ID. Need to either: (A) Have chat spawn Desktop-side... @agent [worklog: pending] (created: 2026-01-28 10:35)
-- [x] T110: The Terminal tab should connect to existing PTY sessions, not auto-spawn new ones. The current implementation tries to spawn 'claude' directly which fails because it's not in PATH. Fix to only show... @agent [worklog: pending] (created: 2026-01-28 10:29) (completed: 2026-01-28 10:30)
-- [x] T109: Update sections/index.ts to export CLIProxyAPISection, remove misleading You're All Set banner from LMStudioSection @agent [worklog: pending] (created: 2026-01-28 07:57) (completed: 2026-01-28 07:59)
-- [x] T108: Add PTY session ID state, k_pty-based message sending, and output polling/streaming logic. Keep existing HTTP path as fallback for non-PTY models. Include localStorage persistence for session recov... @agent [worklog: pending] (created: 2026-01-28 07:43) (completed: 2026-01-28 07:45)
-- [x] T107: Add 'terminal' to sidebarView state type and add Terminal tab button in sidebar toggle. Update the sidebar content section to conditionally render the InsightsTerminalPanel component. @agent [worklog: pending] (created: 2026-01-28 07:43) (completed: 2026-01-28 07:44)
-- [x] T106: Create a slash command skill that maximizes parallelism in Claude's execution. Follow TDD: baseline test first, write skill, verify behavior change. @agent [worklog: pending] (created: 2026-01-28 07:17) (completed: 2026-01-28 07:20)
-- [x] T105: Implement the debugging plan for Claude PTY backend: 1. Restart the Gateway completely to load new code 2. Test end-to-end with OPUS4.5-PTY model 3. Check Gateway logs for PTY session creation 4. A... @agent [worklog: pending] (created: 2026-01-27 23:31) (completed: 2026-01-28 00:11)
-- [x] T104: The claude_cli_pty.py backend fails when conversation_id is None. The code `config.extra.get("conversation_id", default)` returns None when the key exists with None value (default only used when ke... @agent [worklog: pending] (created: 2026-01-27 22:47) (completed: 2026-01-27 22:47)
-- [x] T103: Add missing switch cases for `claude-cli` and `claude-cli-pty` in model-registry.ts checkProviderHealth function, and update checkAllProvidersHealth to include new providers. This fixes the red err... @agent [worklog: pending] (created: 2026-01-27 22:43) (completed: 2026-01-27 22:43)
-- [x] T102: The fileLogger.log('Terminal', 'Component mounted', ...) at line 59 of Terminal.tsx is in the component body, causing it to log on every render instead of just once on mount. Move it to a useEffect... @agent [worklog: pending] (created: 2026-01-27 21:47) (completed: 2026-01-27 21:47)
-- [x] T101: Create apps/gateway/llm/backends/claude_cli_pty.py implementing LLMBackend interface: - stream_chat() routes to PTY manager - Extracts conversation_id from config metadata - Sends only latest user ... @agent [worklog: pending] (created: 2026-01-27 20:17) (completed: 2026-01-27 20:19)
-- [x] T100: Update TerminalGrid.tsx to: 1. Update leader terminal init to UPDATE existing terminals (not just create if empty) 2. Force viewMode: 'terminal' to trigger auto-spawn on session restore 3. Remove r... @agent [worklog: pending] (created: 2026-01-27 18:36) (completed: 2026-01-27 18:37)
-- [x] T099: Update MessageViewer.tsx: - Import inferSourceFromId from model-registry - Replace hardcoded 'Claude' with derived source name - Show model ID alongside source name @agent [worklog: pending] (created: 2026-01-27 18:12) (completed: 2026-01-27 18:18)
-- [x] T098: Update KURORYUU_BOOTSTRAP.md, KURORYUU_LAWS.md, and KURORYUU_LAWS_INDEX.md with current stats (16 MCP tools, 118 actions), new tools (k_pccontrol, k_clawd), and version bump. @agent [worklog: pending] (created: 2026-01-27 12:45) (completed: 2026-01-27 12:46)
-- [x] T097: Update product.md, tech.md, and structure.md to reflect current state: 16 MCP tools (118 actions), 235 React components, Gateway + MCP Core + Desktop + CLI architecture, Ralph leader orchestration,... @agent [worklog: pending] (created: 2026-01-27 12:39) (completed: 2026-01-27 12:42)
-- [x] T096: Update Docs/DEVLOG.md stats sections and README.md with the real numbers discovered: - 431 total tasks - 16 MCP tools with 118 routed actions - 235 React components - 9,030 line CLI with 24 command... @agent [worklog: pending] (created: 2026-01-27 12:06) (completed: 2026-01-27 12:08)
-- [x] T095: Update Ralph prompt files to be aware of k_pccontrol desktop automation capability: 1. ralph_prime.md - Add Step 3.5 capability check 2. ralph_loop.md - Add Desktop Automation section 3. ralph_inte... @agent [worklog: pending] (created: 2026-01-27 11:24) (completed: 2026-01-27 11:25)
-- [x] T094: Modify files: - `apps/desktop/src/preload/index.ts`: Add python namespace with detectEnv, installAppium, verifyAppium, onPipOutput - Wire up IPC handlers in main process @agent [worklog: pending] (created: 2026-01-27 11:19) (completed: 2026-01-27 11:21)
-- [x] T093: Create apps/desktop/src/main/integrations/winappdriver-service.ts with detect, download, start/stop, health check functions and IPC handlers @agent [worklog: pending] (created: 2026-01-27 11:00) (completed: 2026-01-27 11:03)
-- [x] T092: Create Playwright E2E tests to verify the auto-updater UI flow: 1. Shows update available notification 2. Shows download progress 3. Shows update ready with restart button 4. Shows "up to date" mes... @agent [worklog: pending] (created: 2026-01-27 10:21) (completed: 2026-01-27 10:25)
-- [x] T091: The loadSettings function is a stub that never loads. Implement it to fetch all app settings via IPC and update the Zustand store so toggles like "Launch on startup" persist across restarts. @agent [worklog: pending] (created: 2026-01-27 10:05) (completed: 2026-01-27 10:06)
-- [x] T090: Find the old system prompt from git history (~1-2 weeks ago, before cliproxyapi support) and restore it as the LMStudio/Devstral-specific prompt. Add routing logic in _build_system_prompt() to use ... @agent [worklog: pending] (created: 2026-01-27 10:03) (completed: 2026-01-27 10:08)
-- [x] T089: When assistant is open in another view (Code Editor vs Insights), add a button to force-steal the lock and bring the chat to the current view, instead of just showing "Please close it there first". @agent [worklog: pending] (created: 2026-01-27 09:57) (completed: 2026-01-27 09:57)
-- [x] T088: Canvas 2D context can't parse CSS variables like `hsl(var(--card))`. Fix by using getComputedStyle() to resolve the variables before using them in canvas fillStyle/strokeStyle. @agent [worklog: pending] (created: 2026-01-27 09:50) (completed: 2026-01-27 09:50)
-- [x] T087: Add CSS styles to copilot-theme.css for breadcrumb navigation, navigable folder indicators, and sidebar view toggle buttons. @agent [worklog: pending] (created: 2026-01-27 09:27) (completed: 2026-01-27 09:30)
-- [x] T086: Add CSS theme bridges to copilot-theme.css so the Assistant Panel respects global theme settings. Kuroryuu theme should show pure black background with gold accents. @agent [worklog: pending] (created: 2026-01-27 08:49) (completed: 2026-01-27 08:51)
-- [x] T085: Replace the entire getStaticCLIProxyModels() function in model-registry.ts with the exact 61 models from the gateway master list @agent [worklog: pending] (created: 2026-01-26 19:50) (completed: 2026-01-26 19:51)
-- [x] T084: Update apps/desktop/src/renderer/types/domain-config.ts to add optional source?: string field to ModelInfo interface @agent [worklog: pending] (created: 2026-01-26 19:24) (completed: 2026-01-26 19:25)
-- [x] T083: Messages are being cleared after each response instead of accumulating in chat history @agent [worklog: pending] (created: 2026-01-26 18:44) (completed: 2026-01-26 18:48)
-- [x] T082: Add tool_calls field to LLMMessage, update tool_loop.py and lmstudio.py to propagate tool_calls for assistant messages @agent [worklog: pending] (created: 2026-01-26 18:36) (completed: 2026-01-26 18:37)
-- [x] T081: Fix lmstudio.py stream_chat() to include tool_call_id in message conversion for proper tool loop continuation @agent [worklog: pending] (created: 2026-01-26 18:12) (completed: 2026-01-26 18:13)
-- [x] T080: Update streaming parser to handle v2 events: text_delta, tool_start, tool_end, done @agent [worklog: pending] (created: 2026-01-26 13:36) (completed: 2026-01-26 13:40)
-- [x] T079: Modify apps/gateway/llm/backends/lmstudio.py to capture and display HTTP error body from CLIProxyAPI responses. Currently shows generic "HTTP {code} from cliproxyapi" - should show actual error rea... @agent [worklog: pending] (created: 2026-01-26 12:18) (completed: 2026-01-26 12:18)
-- [x] T078: Update server health cards to display server-specific metrics: - MCP Core: Tools (existing) - Gateway: Agents count from /v1/system/stats - PTY Daemon: Sessions count from pty:list - CLIProxyAPI: M... @agent [worklog: pending] (created: 2026-01-26 12:00) (completed: 2026-01-26 12:02)
-- [x] T077: Full system migration from CLIProxyAPI to CLIProxyAPIPlus across Desktop, Tray Companion, Gateway, and CLI. Adds GitHub Copilot and Kiro/CodeWhisperer support. @agent [worklog: pending] (created: 2026-01-26 00:35) (completed: 2026-01-26 00:37)
-- [x] T076: The plan implementation is complete. Need to verify: 1. Test CLIProxyAPI models endpoint returns claude-opus-4-5-20251101 2. Test direct API call with Opus model responds correctly 3. Review gatewa... @agent [worklog: pending] (created: 2026-01-26 00:30) (completed: 2026-01-26 00:42)
-- [x] T075: Update docstring URL, add copilot/kiro model families in apps/gateway/llm/backends/cliproxyapi.py @agent [worklog: pending] (created: 2026-01-26 00:28) (completed: 2026-01-26 00:33)
-- [x] T074: Add native binary mode as alternative to Docker for running CLIProxyAPI. This includes creating the native manager service, IPC handlers, wizard modifications, and settings persistence. @agent [worklog: pending] (created: 2026-01-26 00:06) (completed: 2026-01-26 00:14)
-- [x] T073: Add 'Bearer kuroryuu-local-key' Authorization header to all direct CLIProxyAPI calls in lmstudio-integration.ts (chat completions, fallback, model fetching) @agent [worklog: pending] (created: 2026-01-25 23:52) (completed: 2026-01-25 23:53)
-- [x] T072: The gateway chat_proxy.py only checks for 'cliproxyapi' backend but doesn't handle 'claude'. When domain config has provider 'claude', it falls through to lmstudio. Need to route both 'claude' and ... @agent [worklog: pending] (created: 2026-01-25 23:46) (completed: 2026-01-25 23:48)
-- [x] T071: Convert static ConnectionIndicator to ProviderSelector dropdown. Shows current provider with health status, model, latency. Dropdown lists all providers with health indicators. On selection updates... @agent [worklog: pending] (created: 2026-01-25 23:28) (completed: 2026-01-25 23:28)
-- [x] T070: Fix tray companion issues: speech event channel mismatch, provider health check, voice enabled race condition, and port configuration. Files: preload/index.ts, main/index.ts, lmstudio-integration.t... @agent [worklog: pending] (created: 2026-01-25 23:19) (completed: 2026-01-25 23:21)
-- [x] T069: Convert the static "CLI PROXY" connection indicator into a dropdown that allows switching between providers (CLI Proxy, LM Studio, Gateway Auto, Claude API). Create ProviderSelector component simil... @agent [worklog: pending] (created: 2026-01-25 23:07) (completed: 2026-01-25 23:08)
-- [x] T068: Bug: Model selector shows Haiku but LLM identifies as Sonnet. Root cause: ToolLoop hardcodes model="" in LLMConfig. Fix: Add model parameter to ToolLoop.run() and pass it to LLMConfig. @agent [worklog: pending] (created: 2026-01-25 22:43) (completed: 2026-01-25 22:45)
-- [x] T067: Polish the Insights chat interface: 1. Make sidebar collapsible with smooth animation 2. Hide "Direct ON" button (keep code, just hide) 3. Enhanced connection indicator showing model, provider, lat... @agent [worklog: pending] (created: 2026-01-25 22:36) (completed: 2026-01-25 22:38)
-- [x] T066: Restore the Roadmap feature deleted in commit f28e8ca by recovering 3 files from commit 248b890 and adding a Roadmap tab to Dojo.tsx. Files to restore: Roadmap.tsx, roadmap-store.ts, roadmap.ts typ... @agent [worklog: pending] (created: 2026-01-25 22:36) (completed: 2026-01-25 22:38)
-- [x] T065: Redesign the Tray Companion UI to be provider-agnostic instead of LMStudio-focused. Rename all "devstral" references to "voice" and update UI labels while preserving the existing Kuroryuu shrine/dr... @agent [worklog: pending] (created: 2026-01-25 22:18) (completed: 2026-01-25 22:24)
-- [x] T064: Fixed Command Center Servers tab health checks: - CLIProxyAPI: Changed from IPC Docker check to direct HTTP health check on port 8317 - Clawdbot: Changed from IPC status check to direct HTTP health... @agent [worklog: pending] (created: 2026-01-25 21:28) (completed: 2026-01-25 21:28)
-- [x] T063: Update the Insights chat component to use dynamic models from domain config instead of hardcoded 7-model list. Changes: 1. Update types/insights.ts - change InsightsModel to string 2. Update Insigh... @agent [worklog: pending] (created: 2026-01-25 21:23) (completed: 2026-01-25 21:25)
-- [x] T062: Add health checks for CLI Proxy (port 8317) and Gateway (port 8200) to the Tray Companion so provider dots accurately reflect their status. @agent [worklog: pending] (created: 2026-01-25 21:03) (completed: 2026-01-25 21:04)
-- [x] T061: Expand width from 550px to 750px, create two-column grid layout with grouped sections: API Keys | Source Control, Local Services (CLI Proxy + Clawdbot), Optional (CLI Bootstrap + Graphiti) @agent [worklog: pending] (created: 2026-01-25 21:01) (completed: 2026-01-25 21:07)
-- [x] T060: Flip the narrative: CLIProxyAPI is primary, LMStudio is optional. Replace warning banner with success banner, update fallback info to optional section. @agent [worklog: pending] (created: 2026-01-25 20:55) (completed: 2026-01-25 20:56)
-- [x] T059: Systematically verify all 14 LLM generation domains in Kuroryuu Desktop are working correctly with their configured providers. Test PRD Generation, Changelog, Ideation, Roadmap, Spec Phase, Plannin... @agent [worklog: pending] (created: 2026-01-25 20:46) (completed: 2026-01-25 20:50)
-- [x] T058: Expand getStaticCLIProxyModels() in model-registry.ts with full provider list including GPT-5, Gemini 3, Copilot, Kiro, etc. Also update ModelFamily types in domain-config.ts. @agent [worklog: pending] (created: 2026-01-25 20:44) (completed: 2026-01-25 20:46)
-- [x] T057: Remove duplicate Anthropic/OpenAI API key inputs from ClawdbotProvidersConfig. Instead, check if keys are configured in main Integrations and reuse them.  Changes: 1. Add state to track main integr... @agent [worklog: pending] (created: 2026-01-25 20:32) (completed: 2026-01-25 20:36)
-- [x] T056: Add two missing servers to the Command Center Server Health panel: 1. CLIProxyAPI (port 8317) - Docker-based, uses docker-compose 2. Clawdbot (port 18790) - Docker-based, opt-in service  Implementa... @agent [worklog: pending] (created: 2026-01-25 20:23) (completed: 2026-01-25 20:25)
-- [x] T055: Add IPC handlers to clawdbot-service.ts for: getProviderConfig, setProviderConfig, testProvider. Also add auto-start logic for container on app launch if enabled. @agent [worklog: pending] (created: 2026-01-25 19:46) (completed: 2026-01-25 19:48)
-- [x] T054: Expose window.__ZUSTAND_STORE__ and window.__MOCK_ELECTRON_API__ when E2E_TEST_MODE=true so Playwright tests can interact with app state @agent [worklog: pending] (created: 2026-01-25 18:31) (completed: 2026-01-25 18:51)
-- [x] T053: Add microsoft/playwright-mcp server entry to .mcp.json for browser automation capabilities @agent [worklog: pending] (created: 2026-01-25 18:20) (completed: 2026-01-25 18:25)
-- [x] T052: Fix three bugs: 1. CLIProxyAPIBackend._model → default_model attribute mismatch (lines 75, 82, 104) 2. CLIProxyWizard Dialog.Content missing z-50 (line 485) 3. Add debug logging to Insights.tsx for... @agent [worklog: pending] (created: 2026-01-25 18:14) (completed: 2026-01-25 18:15)
-- [x] T051: Add a Clawdbot section to the IntegrationsDialog in Kuroryuu Desktop. Should include: enable toggle, container status indicator, start/stop buttons, and link to clawdbot configuration. @agent [worklog: pending] (created: 2026-01-25 18:11) (completed: 2026-01-25 18:16)
-- [x] T050: Create the k_clawd MCP tool that allows Kuroryuu to communicate with the Clawdbot Docker container as an autonomous worker. Actions: help, status, start, stop, task, cancel, results, inbox, reply, ... @agent [worklog: pending] (created: 2026-01-25 18:04) (completed: 2026-01-25 18:09)
-- [x] T049: Add debug logging to Insights.tsx to trace why requests go to LMStudio instead of CLI Proxy when CLI Proxy is selected in Domain Config. Check domainConfig.provider value being sent. @agent [worklog: pending] (created: 2026-01-25 17:17) (completed: 2026-01-25 17:27)
-- [x] T048: Multi-step wizard: Docker check, Container setup, Gemini/Claude/OpenAI OAuth, Verification @agent [worklog: pending] (created: 2026-01-25 16:56) (completed: 2026-01-25 16:59)
-- [x] T047: Fix model-registry.ts:217-223 to use /v1/models with Bearer auth instead of /health which returns 404 @agent [worklog: pending] (created: 2026-01-25 16:56) (completed: 2026-01-25 16:56)
-- [x] T046: Step 1: Update domain-config.ts to: 1. Add 'deepseek' to ModelFamily type 2. Add deepseek detection in getModelFamily() 3. Add DeepSeek label to MODEL_FAMILY_LABELS 4. Add FAMILY_SORT_ORDER constan... @agent [worklog: pending] (created: 2026-01-25 15:57) (completed: 2026-01-25 15:59)
-- [x] T045: Add inline grouping functions and update model dropdown in DevstralControls.tsx to use optgroup for consistent family-based organization @agent [worklog: pending] (created: 2026-01-25 15:49) (completed: 2026-01-25 16:01)
-- [x] T044: Replace flat select in ModelConfigDialog's PhaseModelCard with GroupedModelSelect component for consistent grouped display across all dialogs @agent [worklog: pending] (created: 2026-01-25 15:46) (completed: 2026-01-25 17:05)
-- [x] T043: Update AVAILABLE_MODELS in types/settings.ts to include all providers: add Gemini (4 models) and Qwen (2 models) alongside existing Claude and OpenAI @agent [worklog: pending] (created: 2026-01-25 15:46) (completed: 2026-01-25 17:05)
-- [x] T042: Add export for GroupedModelSelect in components/settings/index.ts @agent [worklog: pending] (created: 2026-01-25 15:42) (completed: 2026-01-25 17:05)
-- [x] T041: Update apps/desktop/src/renderer/services/model-registry.ts to include ALL known models in fallback: Claude, GPT-4o, o1-preview, Gemini, Qwen. @agent [worklog: pending] (created: 2026-01-25 15:27) (completed: 2026-01-25 15:28)
-- [x] T040: Update Tray Companion to dynamically fetch models from CLIProxyAPI (/v1/models) when that provider is selected. CLIProxyAPI supports many models including Claude, OpenAI (GPT-4o, o1), Gemini, etc. ... @agent [worklog: pending] (created: 2026-01-25 15:08) (completed: 2026-01-25 17:06)
-- [x] T039: Create apps/tray_companion/src/main/domain-config-reader.ts with file reading, watching, and event emission for config changes. @agent [worklog: pending] (created: 2026-01-25 14:56) (completed: 2026-01-25 14:59)
-- [x] T038: Update prd-store.ts, ideation-store.ts, changelog-store.ts, lmstudio-chat-store.ts, insights-store.ts, and settings-store.ts to read from domain-config-store @agent [worklog: pending] (created: 2026-01-25 14:14) (completed: 2026-01-25 14:23)
-- [x] T037: Create stores/domain-config-store.ts as central Zustand store for all 14 domain configurations with persistence @agent [worklog: pending] (created: 2026-01-25 14:14) (completed: 2026-01-25 14:17)
-- [x] T036: Delete duplicate retrospective sections: Days 13-14 Graphiti, Days 15-16 Code Editor, Day 15 Tray, Day 16 OAuth, Day 16 Modals, Days 17-18 Final Polish @agent [worklog: pending] (created: 2026-01-25 14:10) (completed: 2026-01-25 14:13)
-- [x] T035: Update apps/gateway/changelog/router.py to use get_healthy_backend() from the registry for fallback support @agent [worklog: pending] (created: 2026-01-25 14:03) (completed: 2026-01-25 14:04)
-- [x] T034: Update apps/desktop/src/renderer/stores/prd-store.ts to query the active backend and set author dynamically (Claude CLI vs LMStudio) @agent [worklog: pending] (created: 2026-01-25 14:03) (completed: 2026-01-25 14:04)
-- [x] T033: Add comprehensive Day 20 entry with 9 major achievements: terminal fixes, task hooks, k_interact removal, k_capture rename, checkpoints panel, cross-reference rules, dialog system, welcome encyclop... @agent [worklog: pending] (created: 2026-01-25 14:00) (completed: 2026-01-25 14:03)
-- [x] T032: Update LMStudioSection.tsx to: 1. Add Zap icon to imports 2. Add blue info banner about CLIProxyAPI fallback after the warning banner 3. Update skip option text to mention fallback @agent [worklog: pending] (created: 2026-01-25 13:51) (completed: 2026-01-25 13:52)
-- [x] T031: Update desktop GUI components to reflect the new CLIProxyAPI fallback backend: 1. StatusBar - Show active backend with color coding (≡ƒƒó LMStudio, ≡ƒö╡ CLIProxyAPI, ≡ƒƒí Claude, ≡ƒö┤ Offline) 2. S... @agent [worklog: pending] (created: 2026-01-25 13:51) (completed: 2026-01-25 13:56)
-- [x] T030: Update apps/kuroryuu_cli/config.py and providers/lmstudio_provider.py to add cliproxy_url and fallback chain @agent [worklog: pending] (created: 2026-01-25 13:43) (completed: 2026-01-25 13:46)
-- [x] T029: Update apps/desktop/.../lmstudio-chat-store.ts and LMStudioPanel.tsx to support fallback @agent [worklog: pending] (created: 2026-01-25 13:43) (completed: 2026-01-25 17:06)
-- [x] T028: Modify apps/gateway/llm/backends/registry.py to add circuit breaker pattern with get_healthy_backend() function. Add BackendState dataclass, FAILURE_THRESHOLD, COOLDOWN_SECONDS, health cache with TTL. @agent [worklog: pending] (created: 2026-01-25 13:33) (completed: 2026-01-25 13:36)
-- [x] T027: Create tools/cliproxyapi/README.md and tools/cliproxyapi/config.yaml with setup instructions for CLIProxyAPI (Go binary from https://github.com/router-for-me/CLIProxyAPI). Port 8317 default. @agent [worklog: pending] (created: 2026-01-25 13:33) (completed: 2026-01-25 13:34)
-- [x] T026: Phase 5 of PRD workflow implementation - set up Playwright E2E testing infrastructure.  Phases: - 5.1: Install dependencies (@playwright/test, playwright-core) - 5.2: Create playwright.config.ts - ... @agent [worklog: pending] (created: 2026-01-25 13:14) (completed: 2026-01-25 13:20)
-- [x] T025: Major refactor of WorkerSetupWizard.tsx: - Remove tabs, replace with progressive disclosure flow - Provider selection ΓåÆ Role selection (Claude only) ΓåÆ Subtype selection ΓåÆ Config - Auto-popula... @agent [worklog: pending] (created: 2026-01-25 12:50) (completed: 2026-01-25 12:54)
-- [x] T024: Implement the full PRD workflow button execution: 1. Add WORKFLOW_PROMPT_MAP with Quizmaster + Specialist paths 2. Update handleExecute() to spawn PTY correctly 3. Add executingWorkflows state to p... @agent [worklog: pending] (created: 2026-01-25 12:47) (completed: 2026-01-25 12:56)
-- [x] T023: The PreCompact hook in .claude/settings.json has two bugs: 1. Timeout is 30 (milliseconds) - way too short, causing checkpoint saves to fail/timeout 2. Checkpoint data only saves {"trigger": "preco... @agent [worklog: pending] (created: 2026-01-25 11:40) (completed: 2026-01-25 11:40)
-- [x] T022: Transform Sub-agent Export from basic templates to AI-powered prompt generation: 1. Gateway: New enhancement prompt with real tool docs in router.py 2. Desktop: LMStudio URL field, preview in Agent... @agent [worklog: pending] (created: 2026-01-25 11:37) (completed: 2026-01-25 11:42)
-- [x] T021: Fix WebSocket connection showing "CONNECTED" when not actually connected: 1. Add connection verification with retry after onopen fires 2. Add periodic state sync to detect stale connections 3. Add ... @agent [worklog: pending] (created: 2026-01-25 11:14) (completed: 2026-01-25 11:16)
-- [x] T020: Use numeric timestamp comparison instead of creating new Date objects per event. Location: traffic-store.ts:83-88 @agent [worklog: pending] (created: 2026-01-25 10:56) (completed: 2026-01-25 10:57)
-- [x] T019: Replace composite key with index that causes remounts with stable unique ID. Location: PTYTrafficPanel.tsx:142-144 @agent [worklog: pending] (created: 2026-01-25 10:56) (completed: 2026-01-25 17:08)
-- [x] T018: Perform meta-level analysis of the Recharts→ECharts migration implementation (T016). Analyze divergences between plan and execution, classify them, trace root causes, and generate improvement sugge... @agent [worklog: pending] (created: 2026-01-25 10:29) (completed: 2026-01-25 10:31)
-- [x] T017: Add 9 missing features to FeaturesSection.tsx and update TraySection.tsx with accurate content. Before: 6 features, After: 15 features covering all sidebar capabilities. @agent [worklog: pending] (created: 2026-01-24 22:49) (completed: 2026-01-24 22:57)
-- [x] T016: Replace Recharts with ECharts in EndpointDetailDrawer.tsx: 1. Install echarts + echarts-for-react 2. Migrate latency sparkline (AreaChart → ECharts line) 3. Migrate status donut (PieChart → ECharts... @agent [checkpoint: cp_20260124_220954_c4cc1a0a] [worklog: Docs/worklogs/KiroWorkLog_20260124_220700_RechartsToEChartsMigration.md] (created: 2026-01-24 22:05) (completed: 2026-01-24 22:07)
-- [x] T015: Verify and complete Phase 2 content population for Home Screen Encyclopedia:  **Verification Checklist:** - [x] All 5 tour slides have complete content (hotspot-data.json) - [x] LMStudio wizard has... @agent [worklog: pending] (created: 2026-01-24 21:52) (completed: 2026-01-24 21:53)
-- [x] T014: Implement the interactive framework for Home Screen Encyclopedia redesign: - Create component structure (WelcomeHub, WelcomeNav, GuidedTour, sections, hotspots, architecture, video) - Build hotspot... @agent [worklog: pending] (created: 2026-01-24 21:37) (completed: 2026-01-24 21:49)
-- [x] T013: Modify KuroryuuDialog.tsx to respect the enableAnimations app setting. When disabled: no fog entrance, no pulse, no mist particles. Dialogs should appear/disappear instantly. @agent [worklog: pending] (created: 2026-01-24 20:26) (completed: 2026-01-24 20:26)
-- [x] T012: Add max-height constraint and scrollable content area to InitializeProjectDialog.tsx to prevent the dialog from being cut off on smaller screens. Four CSS class additions following the established ... @agent [worklog: pending] (created: 2026-01-24 20:19) (completed: 2026-01-24 20:20)
-- [x] T011: Implement a unified dialog system replacing all window.confirm() calls and Electron native dialogs with themed modals featuring fog entrance animations, golden dragon frames, and mystical particle ... @agent [worklog: pending] (created: 2026-01-24 20:11) (completed: 2026-01-24 20:20)
-- [x] T010: Update 18 files to establish mandatory cross-referencing between checkpoints, plan files, and worklogs. Priority order: Core docs (3), Commands/Skills (6), Agent Commands (6), Prompt Templates (2). @agent [worklog: pending] (created: 2026-01-24 20:01) (completed: 2026-01-24 20:07)
-- [x] T009: Implement the complete Checkpoints Panel feature including: 1. Fix preload IPC bindings for k_checkpoint 2. Create/update Zustand store 3. Create CheckpointCard, CheckpointDetailPanel, CheckpointsP... @agent [worklog: pending] (created: 2026-01-24 19:59) (completed: 2026-01-24 20:00)
-- [x] T008: When Graphiti is disabled in Integrations, display a Checkpoints panel instead of "AI Memory Disabled" placeholder. Design aesthetic: Dark luxury meets terminal - a dragon's hoard of crystallized s... @agent [worklog: pending] (created: 2026-01-24 19:26) (completed: 2026-01-24 19:31)
-- [x] T007: Create Pinokio-style 1-click installer for hackathon judges: 1. Create packaging/kuroryuu-install.ps1 - Main bootstrap installer script 2. Create packaging/Start-Kuroryuu.ps1 - Combined service + a... @agent [worklog: pending] (created: 2026-01-24 19:14) (completed: 2026-01-24 19:18)
-- [x] T006: 1. Change publish provider to GitHub in package.json 2. Wire up the ui.checkUpdatesOnStartup setting in updater.ts @agent [worklog: pending] (created: 2026-01-24 18:43) (completed: 2026-01-24 18:44)
-- [x] T005: Rename the sots_capture MCP tool to k_capture to follow the k_* naming convention, and move capture-related files from WORKING/ to ai/capture/. This involves: 1. Moving files from WORKING/ to ai/ca... @agent [worklog: pending] (created: 2026-01-24 18:20) (completed: 2026-01-24 18:30)
-- [x] T004: Remove "Reset All Settings" and standalone "Reset Agents" from AppSettingsDialog, keep only "Full App Reset" button. Add "Reset Agents Only" quick action to FullResetDialog. @agent [worklog: pending] (created: 2026-01-24 17:58) (completed: 2026-01-24 18:00)
-- [x] T003: Phase 7: Update k-mcptoolsearch.md, SKILL.md, orchestration-patterns.md, tool-patterns.md @agent [worklog: pending] (created: 2026-01-24 17:54) (completed: 2026-01-24 17:59)
-- [x] T002: Externalize hardcoded credentials and settings from Gateway into proper configuration with environment variable support. Includes: config.py dataclass, .env.example, updating server.py, mcp clients... @agent [worklog: pending] (created: 2026-01-24 16:09) (completed: 2026-01-24 16:19)
-- [x] T001: Fix reset terminal crash (error -1073741510) by adding restartCount to TerminalInstance and including it in Terminal key. Remove redundant Shield icon since Brain is the unified launcher. @agent [worklog: pending] (created: 2026-01-24 08:29) (completed: 2026-01-24 08:33)
----
+# Tasks
 
 ## Backlog
+- [ ] T133: Extract hardcoded credentials from setup-github-oauth.js @@agent
+- [ ] T134: Implement rate limiting for API endpoints @@agent
+- [ ] T135: Optimize file size validation to prevent memory issues @@agent
 
 ## Active
+- [x] T126: Create docker-compose.yml, Dockerfiles for gateway/mcp_core/pty_daemon/web, nginx.conf, and .dockerignore files  [worklog: pending] (created: 2026-01-28 20:33) (completed: 2026-01-30 08:15) @agent
+- [x] T122: Debug why tray companion is not launching via button or on startup. Fix: Added 'integrations' to user scope in settings-service.ts resolveScope().  [worklog: pending] (created: 2026-01-28 12:02) (completed: 2026-01-30 08:20) @agent
+- [x] T117: Line 6: Change "desktop automation via WinAppDriver" to "desktop automation via PowerShell Win32 APIs". Updated 4 docs: product.md, KURORYUU_LAWS_INDEX.md, KURORYUU_WORKER.md, structure.md.  [worklog: pending] (created: 2026-01-28 11:21) (completed: 2026-01-30 08:20) @agent
+- [x] T111: The Terminal tab shows "No PTY Session Active" - Fixed PTY session ID handoff: Gateway now includes pty_session_id in done event, Desktop extracts it and calls setPtySessionId().  [worklog: pending] (created: 2026-01-28 10:35) (completed: 2026-01-30 08:25) @agent
 
 ## Delayed
 
 ## Done
-
----
-
-## Current Blockers
-- None
-
----
-
-## Links / Evidence Index
-- Worklogs: Docs/worklogs/
-- Checkpoints: ai/checkpoints/
-
----
-
-## Change History (append-only)
-- 2026-01-24 08:15 - Reset todo.md for fresh tasks (backed up test tasks to todo_task-hooks-testing-backup.md)
-- 2026-01-24 08:16 - TaskCreate: T001 - Verify hook creates T001 in the reset todo.md
-- 2026-01-24 08:29 - TaskCreate: T001 - Fix reset terminal crash (error -1073741510) by ad
-- 2026-01-24 08:33 - TaskUpdate: T001 completed
-- 2026-01-24 16:09 - TaskCreate: T002 - Externalize hardcoded credentials and settings fro
-- 2026-01-24 16:19 - TaskUpdate: T002 completed
-- 2026-01-24 17:54 - TaskCreate: T003 - Phase 7: Update k-mcptoolsearch.md, SKILL.md, orch
-- 2026-01-24 17:55 - TaskUpdate: T001 completed
-- 2026-01-24 17:58 - TaskCreate: T004 - Remove "Reset All Settings" and standalone "Reset
-- 2026-01-24 17:59 - TaskUpdate: T003 completed
-- 2026-01-24 18:00 - TaskUpdate: T004 completed
-- 2026-01-24 18:20 - TaskCreate: T005 - Rename the sots_capture MCP tool to k_capture to f
-- 2026-01-24 18:30 - TaskUpdate: T005 completed
-- 2026-01-24 18:43 - TaskCreate: T006 - 1. Change publish provider to GitHub in package.js
-- 2026-01-24 18:44 - TaskUpdate: T006 completed
-- 2026-01-24 19:14 - TaskCreate: T007 - Create Pinokio-style 1-click installer for hackath
-- 2026-01-24 19:18 - TaskUpdate: T007 completed
-- 2026-01-24 19:26 - TaskCreate: T008 - When Graphiti is disabled in Integrations, display
-- 2026-01-24 19:31 - TaskUpdate: T008 completed
-- 2026-01-24 19:59 - TaskCreate: T009 - Implement the complete Checkpoints Panel feature i
-- 2026-01-24 20:00 - TaskUpdate: T009 completed
-- 2026-01-24 20:01 - TaskCreate: T010 - Update 18 files to establish mandatory cross-refer
-- 2026-01-24 20:07 - TaskUpdate: T010 completed
-- 2026-01-24 20:11 - TaskCreate: T011 - Implement a unified dialog system replacing all wi
-- 2026-01-24 20:19 - TaskCreate: T012 - Add max-height constraint and scrollable content a
-- 2026-01-24 20:20 - TaskUpdate: T011 completed
-- 2026-01-24 20:20 - TaskUpdate: T012 completed
-- 2026-01-24 20:26 - TaskCreate: T013 - Modify KuroryuuDialog.tsx to respect the enableAni
-- 2026-01-24 20:26 - TaskUpdate: T013 completed
-- 2026-01-24 21:37 - TaskCreate: T014 - Implement the interactive framework for Home Scree
-- 2026-01-24 21:49 - TaskUpdate: T014 completed
-- 2026-01-24 21:52 - TaskUpdate: T001 completed
-- 2026-01-24 21:52 - TaskCreate: T015 - Verify and complete Phase 2 content population for
-- 2026-01-24 21:53 - TaskUpdate: T015 completed
-- 2026-01-24 22:05 - TaskCreate: T016 - Replace Recharts with ECharts in EndpointDetailDra
-- 2026-01-24 22:07 - TaskUpdate: T016 completed
-- 2026-01-24 22:49 - TaskCreate: T017 - Add 9 missing features to FeaturesSection.tsx and
-- 2026-01-24 22:57 - TaskUpdate: T017 completed
-- 2026-01-25 10:29 - TaskCreate: T018 - Perform meta-level analysis of the Recharts→EChart
-- 2026-01-25 10:31 - TaskUpdate: T018 completed
-- 2026-01-25 10:56 - TaskCreate: T019 - Replace composite key with index that causes remou
-- 2026-01-25 10:56 - TaskCreate: T020 - Use numeric timestamp comparison instead of creati
-- 2026-01-25 10:57 - TaskUpdate: T020 completed
-- 2026-01-25 11:00 - TaskUpdate: T003 completed
-- 2026-01-25 11:14 - TaskCreate: T021 - Fix WebSocket connection showing "CONNECTED" when
-- 2026-01-25 11:16 - TaskUpdate: T021 completed
-- 2026-01-25 11:37 - TaskCreate: T022 - Transform Sub-agent Export from basic templates to
-- 2026-01-25 11:40 - TaskCreate: T023 - The PreCompact hook in .claude/settings.json has t
-- 2026-01-25 11:40 - TaskUpdate: T023 completed
-- 2026-01-25 11:42 - TaskUpdate: T022 completed
-- 2026-01-25 12:47 - TaskCreate: T024 - Implement the full PRD workflow button execution:
-- 2026-01-25 12:50 - TaskCreate: T025 - Major refactor of WorkerSetupWizard.tsx:
-- Remove
-- 2026-01-25 12:54 - TaskUpdate: T025 completed
-- 2026-01-25 12:56 - TaskUpdate: T024 completed
-- 2026-01-25 13:14 - TaskCreate: T026 - Phase 5 of PRD workflow implementation - set up Pl
-- 2026-01-25 13:20 - TaskUpdate: T026 completed
-- 2026-01-25 13:33 - TaskCreate: T027 - Create tools/cliproxyapi/README.md and tools/clipr
-- 2026-01-25 13:33 - TaskCreate: T028 - Modify apps/gateway/llm/backends/registry.py to ad
-- 2026-01-25 13:34 - TaskUpdate: T027 completed
-- 2026-01-25 13:36 - TaskUpdate: T028 completed
-- 2026-01-25 13:43 - TaskCreate: T029 - Update apps/desktop/.../lmstudio-chat-store.ts and
-- 2026-01-25 13:43 - TaskCreate: T030 - Update apps/kuroryuu_cli/config.py and providers/l
-- 2026-01-25 13:44 - TaskUpdate: T027 completed
-- 2026-01-25 13:46 - TaskUpdate: T030 completed
-- 2026-01-25 13:47 - TaskUpdate: T028 completed
-- 2026-01-25 13:51 - TaskCreate: T031 - Update desktop GUI components to reflect the new C
-- 2026-01-25 13:51 - TaskCreate: T032 - Update LMStudioSection.tsx to:
-1. Add Zap icon to
-- 2026-01-25 13:52 - TaskUpdate: T032 completed
-- 2026-01-25 13:56 - TaskUpdate: T031 completed
-- 2026-01-25 14:00 - TaskCreate: T033 - Add comprehensive Day 20 entry with 9 major achiev
-- 2026-01-25 14:01 - TaskUpdate: T001 completed
-- 2026-01-25 14:03 - TaskUpdate: T033 completed
-- 2026-01-25 14:03 - TaskCreate: T034 - Update apps/desktop/src/renderer/stores/prd-store.
-- 2026-01-25 14:03 - TaskCreate: T035 - Update apps/gateway/changelog/router.py to use get
-- 2026-01-25 14:03 - TaskUpdate: T001 completed
-- 2026-01-25 14:03 - TaskUpdate: T030 completed
-- 2026-01-25 14:04 - TaskUpdate: T034 completed
-- 2026-01-25 14:04 - TaskUpdate: T035 completed
-- 2026-01-25 14:04 - TaskUpdate: T028 completed
-- 2026-01-25 14:04 - TaskUpdate: T020 completed
-- 2026-01-25 14:04 - TaskUpdate: T035 completed
-- 2026-01-25 14:05 - TaskUpdate: T003 completed
-- 2026-01-25 14:10 - TaskCreate: T036 - Delete duplicate retrospective sections: Days 13-1
-- 2026-01-25 14:13 - TaskUpdate: T036 completed
-- 2026-01-25 14:14 - TaskCreate: T037 - Create stores/domain-config-store.ts as central Zu
-- 2026-01-25 14:14 - TaskCreate: T038 - Update prd-store.ts, ideation-store.ts, changelog-
-- 2026-01-25 14:16 - TaskUpdate: T001 completed
-- 2026-01-25 14:16 - TaskUpdate: T030 completed
-- 2026-01-25 14:17 - TaskUpdate: T037 completed
-- 2026-01-25 14:18 - TaskUpdate: T035 completed
-- 2026-01-25 14:23 - TaskUpdate: T038 completed
-- 2026-01-25 14:27 - TaskUpdate: T003 completed
-- 2026-01-25 14:56 - TaskCreate: T039 - Create apps/tray_companion/src/main/domain-config-
-- 2026-01-25 14:58 - TaskUpdate: T001 completed
-- 2026-01-25 14:59 - TaskUpdate: T039 completed
-- 2026-01-25 15:00 - TaskUpdate: T037 completed
-- 2026-01-25 15:05 - TaskUpdate: T035 completed
-- 2026-01-25 15:08 - TaskCreate: T040 - Update Tray Companion to dynamically fetch models
-- 2026-01-25 15:27 - TaskCreate: T041 - Update apps/desktop/src/renderer/services/model-re
-- 2026-01-25 15:28 - TaskUpdate: T041 completed
-- 2026-01-25 15:29 - TaskUpdate: T037 completed
-- 2026-01-25 15:30 - TaskUpdate: T041 completed
-- 2026-01-25 15:31 - TaskUpdate: T038 completed
-- 2026-01-25 15:42 - TaskCreate: T042 - Add export for GroupedModelSelect in components/se
-- 2026-01-25 15:46 - TaskCreate: T043 - Update AVAILABLE_MODELS in types/settings.ts to in
-- 2026-01-25 15:46 - TaskCreate: T044 - Replace flat select in ModelConfigDialog's PhaseMo
-- 2026-01-25 15:49 - TaskCreate: T045 - Add inline grouping functions and update model dro
-- 2026-01-25 15:57 - TaskCreate: T046 - Step 1: Update domain-config.ts to:
-1. Add 'deepse
-- 2026-01-25 15:58 - TaskUpdate: T001 completed
-- 2026-01-25 15:58 - TaskUpdate: T030 completed
-- 2026-01-25 15:58 - TaskUpdate: T028 completed
-- 2026-01-25 15:59 - TaskUpdate: T046 completed
-- 2026-01-25 15:59 - TaskUpdate: T020 completed
-- 2026-01-25 16:00 - TaskUpdate: T003 completed
-- 2026-01-25 16:01 - TaskUpdate: T045 completed
-- 2026-01-25 16:56 - TaskCreate: T047 - Fix model-registry.ts:217-223 to use /v1/models wi
-- 2026-01-25 16:56 - TaskCreate: T048 - Multi-step wizard: Docker check, Container setup,
-- 2026-01-25 16:56 - TaskUpdate: T047 completed
-- 2026-01-25 16:59 - TaskUpdate: T048 completed
-- 2026-01-25 17:01 - TaskUpdate: T035 completed
-- 2026-01-25 17:17 - TaskCreate: T049 - Add debug logging to Insights.tsx to trace why req
-- 2026-01-25 17:17 - TaskUpdate: T047 completed
-- 2026-01-25 17:27 - TaskUpdate: T049 completed
-- 2026-01-25 18:04 - TaskCreate: T050 - Create the k_clawd MCP tool that allows Kuroryuu t
-- 2026-01-25 18:09 - TaskUpdate: T050 completed
-- 2026-01-25 18:11 - TaskCreate: T051 - Add a Clawdbot section to the IntegrationsDialog i
-- 2026-01-25 18:14 - TaskCreate: T052 - Fix three bugs:
-1. CLIProxyAPIBackend._model → def
-- 2026-01-25 18:15 - TaskUpdate: T052 completed
-- 2026-01-25 18:16 - TaskUpdate: T051 completed
-- 2026-01-25 18:20 - TaskCreate: T053 - Add microsoft/playwright-mcp server entry to .mcp.
-- 2026-01-25 18:24 - TaskUpdate: T001 completed
-- 2026-01-25 18:25 - TaskUpdate: T053 completed
-- 2026-01-25 18:31 - TaskCreate: T054 - Expose window.__ZUSTAND_STORE__ and window.__MOCK_
-- 2026-01-25 18:51 - TaskUpdate: T054 completed
-- 2026-01-25 19:46 - TaskCreate: T055 - Add IPC handlers to clawdbot-service.ts for: getPr
-- 2026-01-25 19:47 - TaskUpdate: T028 completed
-- 2026-01-25 19:48 - TaskUpdate: T055 completed
-- 2026-01-25 19:49 - TaskUpdate: T030 completed
-- 2026-01-25 19:50 - TaskUpdate: T035 completed
-- 2026-01-25 19:51 - TaskUpdate: T020 completed
-- 2026-01-25 19:52 - TaskUpdate: T003 completed
-- 2026-01-25 20:23 - TaskCreate: T056 - Add two missing servers to the Command Center Serv
-- 2026-01-25 20:25 - TaskUpdate: T056 completed
-- 2026-01-25 20:32 - TaskCreate: T057 - Remove duplicate Anthropic/OpenAI API key inputs f
-- 2026-01-25 20:36 - TaskUpdate: T057 completed
-- 2026-01-25 20:44 - TaskCreate: T058 - Expand getStaticCLIProxyModels() in model-registry
-- 2026-01-25 20:46 - TaskCreate: T059 - Systematically verify all 14 LLM generation domain
-- 2026-01-25 20:46 - TaskUpdate: T058 completed
-- 2026-01-25 20:50 - TaskUpdate: T059 completed
-- 2026-01-25 20:55 - TaskCreate: T060 - Flip the narrative: CLIProxyAPI is primary, LMStud
-- 2026-01-25 20:56 - TaskUpdate: T060 completed
-- 2026-01-25 21:01 - TaskCreate: T061 - Expand width from 550px to 750px, create two-colum
-- 2026-01-25 21:03 - TaskCreate: T062 - Add health checks for CLI Proxy (port 8317) and Ga
-- 2026-01-25 21:04 - TaskUpdate: T062 completed
-- 2026-01-25 21:07 - TaskUpdate: T061 completed
-- 2026-01-25 21:23 - TaskCreate: T063 - Update the Insights chat component to use dynamic
-- 2026-01-25 21:25 - TaskUpdate: T063 completed
-- 2026-01-25 21:28 - TaskCreate: T064 - Fixed Command Center Servers tab health checks:
--
-- 2026-01-25 21:28 - TaskUpdate: T064 completed
-- 2026-01-25 22:18 - TaskCreate: T065 - Redesign the Tray Companion UI to be provider-agno
-- 2026-01-25 22:24 - TaskUpdate: T065 completed
-- 2026-01-25 22:36 - TaskCreate: T066 - Restore the Roadmap feature deleted in commit f28e
-- 2026-01-25 22:36 - TaskCreate: T067 - Polish the Insights chat interface:
-1. Make sideba
-- 2026-01-25 22:38 - TaskUpdate: T066 completed
-- 2026-01-25 22:38 - TaskUpdate: T067 completed
-- 2026-01-25 22:43 - TaskCreate: T068 - Bug: Model selector shows Haiku but LLM identifies
-- 2026-01-25 22:45 - TaskUpdate: T068 completed
-- 2026-01-25 23:07 - TaskCreate: T069 - Convert the static "CLI PROXY" connection indicato
-- 2026-01-25 23:08 - TaskUpdate: T069 completed
-- 2026-01-25 23:19 - TaskCreate: T070 - Fix tray companion issues: speech event channel mi
-- 2026-01-25 23:21 - TaskUpdate: T070 completed
-- 2026-01-25 23:28 - TaskCreate: T071 - Convert static ConnectionIndicator to ProviderSele
-- 2026-01-25 23:28 - TaskUpdate: T071 completed
-- 2026-01-25 23:46 - TaskCreate: T072 - The gateway chat_proxy.py only checks for 'cliprox
-- 2026-01-25 23:48 - TaskUpdate: T072 completed
-- 2026-01-25 23:52 - TaskCreate: T073 - Add 'Bearer kuroryuu-local-key' Authorization head
-- 2026-01-25 23:53 - TaskUpdate: T073 completed
-- 2026-01-26 00:06 - TaskCreate: T074 - Add native binary mode as alternative to Docker fo
-- 2026-01-26 00:14 - TaskUpdate: T074 completed
-- 2026-01-26 00:28 - TaskCreate: T075 - Update docstring URL, add copilot/kiro model famil
-- 2026-01-26 00:30 - TaskCreate: T076 - The plan implementation is complete. Need to verif
-- 2026-01-26 00:32 - TaskUpdate: T001 completed
-- 2026-01-26 00:33 - TaskUpdate: T075 completed
-- 2026-01-26 00:34 - TaskUpdate: T028 completed
-- 2026-01-26 00:34 - TaskUpdate: T035 completed
-- 2026-01-26 00:35 - TaskCreate: T077 - Full system migration from CLIProxyAPI to CLIProxy
-- 2026-01-26 00:37 - TaskUpdate: T077 completed
-- 2026-01-26 00:42 - TaskUpdate: T076 completed
-- 2026-01-26 13:35:30 — Tool called: k_rag
-- 2026-01-26 12:00 - TaskCreate: T078 - Update server health cards to display server-speci
-- 2026-01-26 12:02 - TaskUpdate: T078 completed
-- 2026-01-26 17:09:17 — Tool called: k_session
-- 2026-01-26 17:09:20 — Tool called: k_session
-- 2026-01-26 12:18 - TaskCreate: T079 - Modify apps/gateway/llm/backends/lmstudio.py to ca
-- 2026-01-26 12:18 - TaskUpdate: T079 completed
-- 2026-01-26 12:21 - TaskUpdate: T030 completed
-- 2026-01-26 13:36 - TaskCreate: T080 - Update streaming parser to handle v2 events: text_
-- 2026-01-26 13:38 - TaskUpdate: T001 completed
-- 2026-01-26 13:38 - TaskUpdate: T030 completed
-- 2026-01-26 13:39 - TaskUpdate: T028 completed
-- 2026-01-26 13:40 - TaskUpdate: T080 completed
-- 2026-01-26 13:40 - TaskUpdate: T020 completed
-- 2026-01-26 21:34:58 — Tool called: k_files
-- 2026-01-26 18:12 - TaskCreate: T081 - Fix lmstudio.py stream_chat() to include tool_call
-- 2026-01-26 18:13 - TaskUpdate: T081 completed
-- 2026-01-26 23:34:54 — Tool called: k_files
-- 2026-01-26 23:35:56 — Tool called: k_files
-- 2026-01-26 18:36 - TaskCreate: T082 - Add tool_calls field to LLMMessage, update tool_lo
-- 2026-01-26 18:37 - TaskUpdate: T082 completed
-- 2026-01-26 23:40:58 — Tool called: k_session
-- 2026-01-26 23:41:01 — Tool called: k_files
-- 2026-01-26 23:42:10 — Tool called: k_files
-- 2026-01-26 23:43:14 — Tool called: k_files
-- 2026-01-26 23:43:23 — Tool called: k_files
-- 2026-01-26 18:44 - TaskCreate: T083 - Messages are being cleared after each response ins
-- 2026-01-26 18:48 - TaskUpdate: T083 completed
-- 2026-01-26 19:24 - TaskCreate: T084 - Update apps/desktop/src/renderer/types/domain-conf
-- 2026-01-26 19:25 - TaskUpdate: T084 completed
-- 2026-01-26 19:25 - TaskUpdate: T030 completed
-- 2026-01-26 19:26 - TaskUpdate: T028 completed
-- 2026-01-26 19:27 - TaskUpdate: T035 completed
-- 2026-01-26 19:50 - TaskCreate: T085 - Replace the entire getStaticCLIProxyModels() funct
-- 2026-01-26 19:51 - TaskUpdate: T085 completed
-- 2026-01-26 19:51 - TaskUpdate: T030 completed
-- 2026-01-27 01:15:42 — Tool called: k_files
-- 2026-01-27 07:36 - TaskUpdate: T001 completed
-- 2026-01-27 07:59 - TaskUpdate: T001 completed
-- 2026-01-27 08:49 - TaskCreate: T086 - Add CSS theme bridges to copilot-theme.css so the
-- 2026-01-27 08:51 - TaskUpdate: T086 completed
-- 2026-01-27 09:27 - TaskCreate: T087 - Add CSS styles to copilot-theme.css for breadcrumb
-- 2026-01-27 09:28 - TaskUpdate: T001 completed
-- 2026-01-27 09:29 - TaskUpdate: T030 completed
-- 2026-01-27 09:30 - TaskUpdate: T087 completed
-- 2026-01-27 09:31 - TaskUpdate: T001 completed
-- 2026-01-27 09:32 - TaskUpdate: T035 completed
-- 2026-01-27 09:50 - TaskCreate: T088 - Canvas 2D context can't parse CSS variables like `
-- 2026-01-27 09:50 - TaskUpdate: T088 completed
-- 2026-01-27 09:57 - TaskCreate: T089 - When assistant is open in another view (Code Edito
-- 2026-01-27 09:57 - TaskUpdate: T089 completed
-- 2026-01-27 10:03 - TaskCreate: T090 - Find the old system prompt from git history (~1-2
-- 2026-01-27 10:05 - TaskCreate: T091 - The loadSettings function is a stub that never loa
-- 2026-01-27 10:06 - TaskUpdate: T091 completed
-- 2026-01-27 10:08 - TaskUpdate: T090 completed
-- 2026-01-27 10:21 - TaskCreate: T092 - Create Playwright E2E tests to verify the auto-upd
-- 2026-01-27 10:25 - TaskUpdate: T092 completed
-- 2026-01-27 11:00 - TaskCreate: T093 - Create apps/desktop/src/main/integrations/winappdr
-- 2026-01-27 11:02 - TaskUpdate: T030 completed
-- 2026-01-27 11:03 - TaskUpdate: T093 completed
-- 2026-01-27 11:04 - TaskUpdate: T035 completed
-- 2026-01-27 11:06 - TaskUpdate: T020 completed
-- 2026-01-27 11:19 - TaskCreate: T094 - Modify files:
-- `apps/desktop/src/preload/index.ts
-- 2026-01-27 11:20 - TaskUpdate: T030 completed
-- 2026-01-27 11:21 - TaskUpdate: T094 completed
-- 2026-01-27 11:23 - TaskUpdate: T028 completed
-- 2026-01-27 11:23 - TaskUpdate: T035 completed
-- 2026-01-27 11:24 - TaskCreate: T095 - Update Ralph prompt files to be aware of k_pccontr
-- 2026-01-27 11:25 - TaskUpdate: T095 completed
-- 2026-01-27 11:30 - TaskUpdate: T001 completed
-- 2026-01-27 12:06 - TaskCreate: T096 - Update Docs/DEVLOG.md stats sections and README.md
-- 2026-01-27 12:08 - TaskUpdate: T096 completed
-- 2026-01-27 12:39 - TaskCreate: T097 - Update product.md, tech.md, and structure.md to re
-- 2026-01-27 12:42 - TaskUpdate: T097 completed
-- 2026-01-27 12:45 - TaskCreate: T098 - Update KURORYUU_BOOTSTRAP.md, KURORYUU_LAWS.md, an
-- 2026-01-27 12:46 - TaskUpdate: T098 completed
-- 2026-01-27 22:50:35 — Tool called: k_files
-- 2026-01-27 22:55:16 — Tool called: k_files
-- 2026-01-27 18:12 - TaskCreate: T099 - Update MessageViewer.tsx:
-- Import inferSourceFrom
-- 2026-01-27 18:13 - TaskUpdate: T001 completed
-- 2026-01-27 18:14 - TaskUpdate: T030 completed
-- 2026-01-27 18:15 - TaskUpdate: T028 completed
-- 2026-01-27 18:17 - TaskUpdate: T035 completed
-- 2026-01-27 18:18 - TaskUpdate: T099 completed
-- 2026-01-27 18:36 - TaskCreate: T100 - Update TerminalGrid.tsx to:
-1. Update leader termi
-- 2026-01-27 18:37 - TaskUpdate: T100 completed
-- 2026-01-28 00:01:05 — Tool called: k_files
-- 2026-01-28 00:01:12 — Tool called: k_files
-- 2026-01-27 20:17 - TaskCreate: T101 - Create apps/gateway/llm/backends/claude_cli_pty.py
-- 2026-01-27 20:18 - TaskUpdate: T001 completed
-- 2026-01-27 20:19 - TaskUpdate: T101 completed
-- 2026-01-27 20:24 - TaskUpdate: T028 completed
-- 2026-01-27 21:47 - TaskCreate: T102 - The fileLogger.log('Terminal', 'Component mounted'
-- 2026-01-27 21:47 - TaskUpdate: T102 completed
-- 2026-01-27 22:43 - TaskCreate: T103 - Add missing switch cases for `claude-cli` and `cla
-- 2026-01-27 22:43 - TaskUpdate: T103 completed
-- 2026-01-27 22:47 - TaskCreate: T104 - The claude_cli_pty.py backend fails when conversat
-- 2026-01-27 22:47 - TaskUpdate: T104 completed
-- 2026-01-27 23:31 - TaskCreate: T105 - Implement the debugging plan for Claude PTY backen
-- 2026-01-28 00:11 - TaskUpdate: T105 completed
-- 2026-01-28 07:17 - TaskCreate: T106 - Create a slash command skill that maximizes parall
-- 2026-01-28 07:20 - TaskUpdate: T106 completed
-- 2026-01-28 07:43 - TaskCreate: T107 - Add 'terminal' to sidebarView state type and add T
-- 2026-01-28 07:43 - TaskCreate: T108 - Add PTY session ID state, k_pty-based message send
-- 2026-01-28 07:43 - TaskUpdate: T030 completed
-- 2026-01-28 07:44 - TaskUpdate: T107 completed
-- 2026-01-28 07:45 - TaskUpdate: T108 completed
-- 2026-01-28 07:47 - TaskUpdate: T035 completed
-- 2026-01-28 07:57 - TaskCreate: T109 - Update sections/index.ts to export CLIProxyAPISect
-- 2026-01-28 07:59 - TaskUpdate: T030 completed
-- 2026-01-28 07:59 - TaskUpdate: T109 completed
-- 2026-01-28 10:29 - TaskCreate: T110 - The Terminal tab should connect to existing PTY se
-- 2026-01-28 10:30 - TaskUpdate: T110 completed
-- 2026-01-28 10:35 - TaskCreate: T111 - The Terminal tab shows "No PTY Session Active" bec
-- 2026-01-28 10:52 - TaskCreate: T112 - Remove WinAppDriver client class and implement all
-- 2026-01-28 10:52 - TaskCreate: T113 - Remove winappdriver bindings from preload/index.ts
-- 2026-01-28 10:54 - TaskUpdate: T112 completed
-- 2026-01-28 10:55 - TaskUpdate: T030 completed
-- 2026-01-28 10:55 - TaskUpdate: T028 completed
-- 2026-01-28 10:57 - TaskUpdate: T113 completed
-- 2026-01-28 11:02 - TaskCreate: T114 - Add filterTerminalOutput call in lmstudio-chat-sto
-- 2026-01-28 11:02 - TaskCreate: T115 - Add function to strip user input echo from PTY res
-- 2026-01-28 11:03 - TaskUpdate: T045 completed
-- 2026-01-28 11:03 - TaskUpdate: T115 completed
-- 2026-01-28 11:04 - TaskUpdate: T001 completed
-- 2026-01-28 11:06 - TaskUpdate: T114 completed
-- 2026-01-28 11:07 - TaskCreate: T116 - Update arch-data.json to add 3 missing components
-- 2026-01-28 11:07 - TaskUpdate: T116 completed
-- 2026-01-28 11:21 - TaskCreate: T117 - Line 6: Change "desktop automation via WinAppDrive
-- 2026-01-28 11:21 - TaskCreate: T118 - Lines 58, 66: Remove references to "WinAppDriver r
-- 2026-01-28 11:22 - TaskUpdate: T118 completed
-- 2026-01-28 11:50 - TaskCreate: T119 - Fix the filtering regression where chat shows "No
-- 2026-01-28 11:50 - TaskUpdate: T119 completed
-- 2026-01-28 11:52 - TaskCreate: T120 - Add 5 new feature cards and update 3 outdated desc
-- 2026-01-28 11:54 - TaskUpdate: T120 completed
-- 2026-01-28 11:56 - TaskCreate: T121 - Add file size filtering to git:status handler in g
-- 2026-01-28 11:57 - TaskUpdate: T121 completed
-- 2026-01-28 12:02 - TaskCreate: T122 - Debug why tray companion is not launching via butt
-- 2026-01-28 18:23 - TaskCreate: T123 - Create the MCP configuration template with {{KUROR
-- 2026-01-28 18:23 - TaskCreate: T124 - Create setup script that sets KURORYUU_PROJECT_ROO
-- 2026-01-28 18:23 - TaskCreate: T125 - Update rag-interactive-gate.ps1, rag-interactive-t
-- 2026-01-28 18:25 - TaskUpdate: T123 completed
-- 2026-01-28 18:25 - TaskUpdate: T124 completed
-- 2026-01-28 18:26 - TaskUpdate: T003 completed
-- 2026-01-28 18:27 - TaskUpdate: T020 completed
-- 2026-01-28 18:27 - TaskUpdate: T125 completed
-- 2026-01-28 18:29 - TaskUpdate: T114 completed
-- 2026-01-28 18:29 - TaskUpdate: T001 completed
-- 2026-01-28 20:33 - TaskCreate: T126 - Create docker-compose.yml, Dockerfiles for gateway
-- 2026-01-28 20:33 - TaskCreate: T127 - Add platform detection to auto-disable Windows-onl
-- 2026-01-28 20:44 - TaskUpdate: T127 completed
-- 2026-01-29 20:52 - TaskCreate: T128 - Completely remove the 8-step Setup Wizard so the a
-- 2026-01-29 21:00 - TaskUpdate: T128 completed
-- 2026-01-30 02:19:56 — Tool called: k_files
-- 2026-01-29 23:25 - TaskCreate: T129 - 1. Fix provider descriptions (remove Max/Pro refer
-- 2026-01-29 23:28 - TaskUpdate: T129 completed
-- 2026-01-29 23:49 - TaskCreate: T130 - Transform Quizmaster info panel into cinematic "se
-- 2026-01-29 23:51 - TaskUpdate: T130 completed
+- [x] T132: Identify and fix all TypeScript errors in the Kuroryuu project, focusing on apps/desktop, apps/web, and other TypeScript apps. Fix errors one by one systematically.  [worklog: pending] (created: 2026-01-30 01:03) (completed: 2026-01-30 01:09) @agent
+- [x] T131: 1. Remove duplicate MODEL_SHORTHANDS from config.py 2. Import from apps.gateway.cli.model_shorthands 3. Implement interactive provider selection menu 4. Implement interactive model selection menu 5...  [worklog: pending] (created: 2026-01-30 00:04) (completed: 2026-01-30 00:06) @agent
+- [x] T130: Transform Quizmaster info panel into cinematic "secret weapon" hero section with: pulsing glow rings, floating particles, shimmer effects, animated gradient title, 3-stage flow diagram, prompt vari...  [worklog: pending] (created: 2026-01-29 23:49) (completed: 2026-01-29 23:51) @agent
+- [x] T129: 1. Fix provider descriptions (remove Max/Pro reference from cliproxyapi) 2. Add model shorthands (opus, sonnet, codex, etc.) 3. Update /model command to support all providers 4. Add /auth command f...  [worklog: pending] (created: 2026-01-29 23:25) (completed: 2026-01-29 23:28) @agent
+- [x] T128: Completely remove the 8-step Setup Wizard so the app always goes directly to the Welcome Screen. This involves modifying 7 files and deleting 14 files (the entire onboarding/ directory plus store a...  [worklog: pending] (created: 2026-01-29 20:52) (completed: 2026-01-29 21:00) @agent
+- [x] T127: Add platform detection to auto-disable Windows-only tools on Linux while keeping Windows behavior unchanged  [worklog: pending] (created: 2026-01-28 20:33) (completed: 2026-01-28 20:44) @agent
+- [x] T125: Update rag-interactive-gate.ps1, rag-interactive-toggle.ps1, and take_screenshot.ps1 to use portable path resolution.  [worklog: pending] (created: 2026-01-28 18:23) (completed: 2026-01-28 18:27) @agent
+- [x] T124: Create setup script that sets KURORYUU_PROJECT_ROOT env var, generates .mcp.json from template, and creates venv if missing.  [worklog: pending] (created: 2026-01-28 18:23) (completed: 2026-01-28 18:25) @agent
+- [x] T123: Create the MCP configuration template with {{KURORYUU_ROOT}} and {{KURORYUU_VENV}} placeholders. Remove SOTS_MCP_CORE section entirely.  [worklog: pending] (created: 2026-01-28 18:23) (completed: 2026-01-28 18:25) @agent
+- [x] T121: Add file size filtering to git:status handler in git-service.ts to prevent files over 99MB from appearing in the GitHub commit panel. This avoids accidental commits of large files that would be rej...  [worklog: pending] (created: 2026-01-28 11:56) (completed: 2026-01-28 11:57) @agent
+- [x] T120: Add 5 new feature cards and update 3 outdated descriptions in FeaturesSection.tsx  [worklog: pending] (created: 2026-01-28 11:52) (completed: 2026-01-28 11:54) @agent
+- [x] T119: Fix the filtering regression where chat shows "No response received." because stripInputEcho() is too aggressive. Replace with conservative version that has safety guards.  [worklog: pending] (created: 2026-01-28 11:50) (completed: 2026-01-28 11:50) @agent
+- [x] T118: Lines 58, 66: Remove references to "WinAppDriver running on port 4723" - now uses PowerShell directly.  [worklog: pending] (created: 2026-01-28 11:21) (completed: 2026-01-28 11:22) @agent
+- [x] T116: Update arch-data.json to add 3 missing components (CLIProxyAPI, Ralph, k_pccontrol), fix broken jumpRoute values, update component descriptions, and add new suggested paths.  [worklog: pending] (created: 2026-01-28 11:07) (completed: 2026-01-28 11:07) @agent
+- [x] T115: Add function to strip user input echo from PTY response beginning  [worklog: pending] (created: 2026-01-28 11:02) (completed: 2026-01-28 11:03) @agent
+- [x] T114: Add filterTerminalOutput call in lmstudio-chat-store.ts SSE delta handler  [worklog: pending] (created: 2026-01-28 11:02) (completed: 2026-01-28 11:06) @agent
+- [x] T113: Remove winappdriver bindings from preload/index.ts and main/index.ts, add simple pccontrol bindings  [worklog: pending] (created: 2026-01-28 10:52) (completed: 2026-01-28 10:57) @agent
+- [x] T112: Remove WinAppDriver client class and implement all actions via PowerShell/Win32 APIs: click (done), doubleclick, rightclick, type, keypress, launch_app, get_windows  [worklog: pending] (created: 2026-01-28 10:52) (completed: 2026-01-28 10:54) @agent
+- [x] T110: The Terminal tab should connect to existing PTY sessions, not auto-spawn new ones. The current implementation tries to spawn 'claude' directly which fails because it's not in PATH. Fix to only show...  [worklog: pending] (created: 2026-01-28 10:29) (completed: 2026-01-28 10:30) @agent
+- [x] T109: Update sections/index.ts to export CLIProxyAPISection, remove misleading You're All Set banner from LMStudioSection  [worklog: pending] (created: 2026-01-28 07:57) (completed: 2026-01-28 07:59) @agent
+- [x] T108: Add PTY session ID state, k_pty-based message sending, and output polling/streaming logic. Keep existing HTTP path as fallback for non-PTY models. Include localStorage persistence for session recov...  [worklog: pending] (created: 2026-01-28 07:43) (completed: 2026-01-28 07:45) @agent
+- [x] T107: Add 'terminal' to sidebarView state type and add Terminal tab button in sidebar toggle. Update the sidebar content section to conditionally render the InsightsTerminalPanel component.  [worklog: pending] (created: 2026-01-28 07:43) (completed: 2026-01-28 07:44) @agent
+- [x] T106: Create a slash command skill that maximizes parallelism in Claude's execution. Follow TDD: baseline test first, write skill, verify behavior change.  [worklog: pending] (created: 2026-01-28 07:17) (completed: 2026-01-28 07:20) @agent
+- [x] T105: Implement the debugging plan for Claude PTY backend: 1. Restart the Gateway completely to load new code 2. Test end-to-end with OPUS4.5-PTY model 3. Check Gateway logs for PTY session creation 4. A...  [worklog: pending] (created: 2026-01-27 23:31) (completed: 2026-01-28 00:11) @agent
+- [x] T104: The claude_cli_pty.py backend fails when conversation_id is None. The code `config.extra.get("conversation_id", default)` returns None when the key exists with None value (default only used when ke...  [worklog: pending] (created: 2026-01-27 22:47) (completed: 2026-01-27 22:47) @agent
+- [x] T103: Add missing switch cases for `claude-cli` and `claude-cli-pty` in model-registry.ts checkProviderHealth function, and update checkAllProvidersHealth to include new providers. This fixes the red err...  [worklog: pending] (created: 2026-01-27 22:43) (completed: 2026-01-27 22:43) @agent
+- [x] T102: The fileLogger.log('Terminal', 'Component mounted', ...) at line 59 of Terminal.tsx is in the component body, causing it to log on every render instead of just once on mount. Move it to a useEffect...  [worklog: pending] (created: 2026-01-27 21:47) (completed: 2026-01-27 21:47) @agent
+- [x] T101: Create apps/gateway/llm/backends/claude_cli_pty.py implementing LLMBackend interface: - stream_chat() routes to PTY manager - Extracts conversation_id from config metadata - Sends only latest user ...  [worklog: pending] (created: 2026-01-27 20:17) (completed: 2026-01-27 20:19) @agent
+- [x] T100: Update TerminalGrid.tsx to: 1. Update leader terminal init to UPDATE existing terminals (not just create if empty) 2. Force viewMode: 'terminal' to trigger auto-spawn on session restore 3. Remove r...  [worklog: pending] (created: 2026-01-27 18:36) (completed: 2026-01-27 18:37) @agent
+- [x] T099: Update MessageViewer.tsx: - Import inferSourceFromId from model-registry - Replace hardcoded 'Claude' with derived source name - Show model ID alongside source name  [worklog: pending] (created: 2026-01-27 18:12) (completed: 2026-01-27 18:18) @agent
+- [x] T098: Update KURORYUU_BOOTSTRAP.md, KURORYUU_LAWS.md, and KURORYUU_LAWS_INDEX.md with current stats (16 MCP tools, 118 actions), new tools (k_pccontrol, k_clawd), and version bump.  [worklog: pending] (created: 2026-01-27 12:45) (completed: 2026-01-27 12:46) @agent
+- [x] T097: Update product.md, tech.md, and structure.md to reflect current state: 16 MCP tools (118 actions), 235 React components, Gateway + MCP Core + Desktop + CLI architecture, Ralph leader orchestration,...  [worklog: pending] (created: 2026-01-27 12:39) (completed: 2026-01-27 12:42) @agent
+- [x] T096: Update Docs/DEVLOG.md stats sections and README.md with the real numbers discovered: - 431 total tasks - 16 MCP tools with 118 routed actions - 235 React components - 9,030 line CLI with 24 command...  [worklog: pending] (created: 2026-01-27 12:06) (completed: 2026-01-27 12:08) @agent
+- [x] T095: Update Ralph prompt files to be aware of k_pccontrol desktop automation capability: 1. ralph_prime.md - Add Step 3.5 capability check 2. ralph_loop.md - Add Desktop Automation section 3. ralph_inte...  [worklog: pending] (created: 2026-01-27 11:24) (completed: 2026-01-27 11:25) @agent
+- [x] T094: Modify files: - `apps/desktop/src/preload/index.ts`: Add python namespace with detectEnv, installAppium, verifyAppium, onPipOutput - Wire up IPC handlers in main process  [worklog: pending] (created: 2026-01-27 11:19) (completed: 2026-01-27 11:21) @agent
+- [x] T093: Create apps/desktop/src/main/integrations/winappdriver-service.ts with detect, download, start/stop, health check functions and IPC handlers  [worklog: pending] (created: 2026-01-27 11:00) (completed: 2026-01-27 11:03) @agent
+- [x] T092: Create Playwright E2E tests to verify the auto-updater UI flow: 1. Shows update available notification 2. Shows download progress 3. Shows update ready with restart button 4. Shows "up to date" mes...  [worklog: pending] (created: 2026-01-27 10:21) (completed: 2026-01-27 10:25) @agent
+- [x] T091: The loadSettings function is a stub that never loads. Implement it to fetch all app settings via IPC and update the Zustand store so toggles like "Launch on startup" persist across restarts.  [worklog: pending] (created: 2026-01-27 10:05) (completed: 2026-01-27 10:06) @agent
+- [x] T090: Find the old system prompt from git history (~1-2 weeks ago, before cliproxyapi support) and restore it as the LMStudio/Devstral-specific prompt. Add routing logic in _build_system_prompt() to use ...  [worklog: pending] (created: 2026-01-27 10:03) (completed: 2026-01-27 10:08) @agent
+- [x] T089: When assistant is open in another view (Code Editor vs Insights), add a button to force-steal the lock and bring the chat to the current view, instead of just showing "Please close it there first".  [worklog: pending] (created: 2026-01-27 09:57) (completed: 2026-01-27 09:57) @agent
+- [x] T088: Canvas 2D context can't parse CSS variables like `hsl(var(--card))`. Fix by using getComputedStyle() to resolve the variables before using them in canvas fillStyle/strokeStyle.  [worklog: pending] (created: 2026-01-27 09:50) (completed: 2026-01-27 09:50) @agent
+- [x] T087: Add CSS styles to copilot-theme.css for breadcrumb navigation, navigable folder indicators, and sidebar view toggle buttons.  [worklog: pending] (created: 2026-01-27 09:27) (completed: 2026-01-27 09:30) @agent
+- [x] T086: Add CSS theme bridges to copilot-theme.css so the Assistant Panel respects global theme settings. Kuroryuu theme should show pure black background with gold accents.  [worklog: pending] (created: 2026-01-27 08:49) (completed: 2026-01-27 08:51) @agent
+- [x] T085: Replace the entire getStaticCLIProxyModels() function in model-registry.ts with the exact 61 models from the gateway master list  [worklog: pending] (created: 2026-01-26 19:50) (completed: 2026-01-26 19:51) @agent
+- [x] T084: Update apps/desktop/src/renderer/types/domain-config.ts to add optional source?: string field to ModelInfo interface  [worklog: pending] (created: 2026-01-26 19:24) (completed: 2026-01-26 19:25) @agent
+- [x] T083: Messages are being cleared after each response instead of accumulating in chat history  [worklog: pending] (created: 2026-01-26 18:44) (completed: 2026-01-26 18:48) @agent
+- [x] T082: Add tool_calls field to LLMMessage, update tool_loop.py and lmstudio.py to propagate tool_calls for assistant messages  [worklog: pending] (created: 2026-01-26 18:36) (completed: 2026-01-26 18:37) @agent
+- [x] T081: Fix lmstudio.py stream_chat() to include tool_call_id in message conversion for proper tool loop continuation  [worklog: pending] (created: 2026-01-26 18:12) (completed: 2026-01-26 18:13) @agent
+- [x] T080: Update streaming parser to handle v2 events: text_delta, tool_start, tool_end, done  [worklog: pending] (created: 2026-01-26 13:36) (completed: 2026-01-26 13:40) @agent
+- [x] T079: Modify apps/gateway/llm/backends/lmstudio.py to capture and display HTTP error body from CLIProxyAPI responses. Currently shows generic "HTTP {code} from cliproxyapi" - should show actual error rea...  [worklog: pending] (created: 2026-01-26 12:18) (completed: 2026-01-26 12:18) @agent
+- [x] T078: Update server health cards to display server-specific metrics: - MCP Core: Tools (existing) - Gateway: Agents count from /v1/system/stats - PTY Daemon: Sessions count from pty:list - CLIProxyAPI: M...  [worklog: pending] (created: 2026-01-26 12:00) (completed: 2026-01-26 12:02) @agent
+- [x] T077: Full system migration from CLIProxyAPI to CLIProxyAPIPlus across Desktop, Tray Companion, Gateway, and CLI. Adds GitHub Copilot and Kiro/CodeWhisperer support.  [worklog: pending] (created: 2026-01-26 00:35) (completed: 2026-01-26 00:37) @agent
+- [x] T076: The plan implementation is complete. Need to verify: 1. Test CLIProxyAPI models endpoint returns claude-opus-4-5-20251101 2. Test direct API call with Opus model responds correctly 3. Review gatewa...  [worklog: pending] (created: 2026-01-26 00:30) (completed: 2026-01-26 00:42) @agent
+- [x] T075: Update docstring URL, add copilot/kiro model families in apps/gateway/llm/backends/cliproxyapi.py  [worklog: pending] (created: 2026-01-26 00:28) (completed: 2026-01-26 00:33) @agent
+- [x] T074: Add native binary mode as alternative to Docker for running CLIProxyAPI. This includes creating the native manager service, IPC handlers, wizard modifications, and settings persistence.  [worklog: pending] (created: 2026-01-26 00:06) (completed: 2026-01-26 00:14) @agent
+- [x] T073: Add 'Bearer kuroryuu-local-key' Authorization header to all direct CLIProxyAPI calls in lmstudio-integration.ts (chat completions, fallback, model fetching)  [worklog: pending] (created: 2026-01-25 23:52) (completed: 2026-01-25 23:53) @agent
+- [x] T072: The gateway chat_proxy.py only checks for 'cliproxyapi' backend but doesn't handle 'claude'. When domain config has provider 'claude', it falls through to lmstudio. Need to route both 'claude' and ...  [worklog: pending] (created: 2026-01-25 23:46) (completed: 2026-01-25 23:48) @agent
+- [x] T071: Convert static ConnectionIndicator to ProviderSelector dropdown. Shows current provider with health status, model, latency. Dropdown lists all providers with health indicators. On selection updates...  [worklog: pending] (created: 2026-01-25 23:28) (completed: 2026-01-25 23:28) @agent
+- [x] T070: Fix tray companion issues: speech event channel mismatch, provider health check, voice enabled race condition, and port configuration. Files: preload/index.ts, main/index.ts, lmstudio-integration.t...  [worklog: pending] (created: 2026-01-25 23:19) (completed: 2026-01-25 23:21) @agent
+- [x] T069: Convert the static "CLI PROXY" connection indicator into a dropdown that allows switching between providers (CLI Proxy, LM Studio, Gateway Auto, Claude API). Create ProviderSelector component simil...  [worklog: pending] (created: 2026-01-25 23:07) (completed: 2026-01-25 23:08) @agent
+- [x] T068: Bug: Model selector shows Haiku but LLM identifies as Sonnet. Root cause: ToolLoop hardcodes model="" in LLMConfig. Fix: Add model parameter to ToolLoop.run() and pass it to LLMConfig.  [worklog: pending] (created: 2026-01-25 22:43) (completed: 2026-01-25 22:45) @agent
+- [x] T067: Polish the Insights chat interface: 1. Make sidebar collapsible with smooth animation 2. Hide "Direct ON" button (keep code, just hide) 3. Enhanced connection indicator showing model, provider, lat...  [worklog: pending] (created: 2026-01-25 22:36) (completed: 2026-01-25 22:38) @agent
+- [x] T066: Restore the Roadmap feature deleted in commit f28e8ca by recovering 3 files from commit 248b890 and adding a Roadmap tab to Dojo.tsx. Files to restore: Roadmap.tsx, roadmap-store.ts, roadmap.ts typ...  [worklog: pending] (created: 2026-01-25 22:36) (completed: 2026-01-25 22:38) @agent
+- [x] T065: Redesign the Tray Companion UI to be provider-agnostic instead of LMStudio-focused. Rename all "devstral" references to "voice" and update UI labels while preserving the existing Kuroryuu shrine/dr...  [worklog: pending] (created: 2026-01-25 22:18) (completed: 2026-01-25 22:24) @agent
+- [x] T064: Fixed Command Center Servers tab health checks: - CLIProxyAPI: Changed from IPC Docker check to direct HTTP health check on port 8317 - Clawdbot: Changed from IPC status check to direct HTTP health...  [worklog: pending] (created: 2026-01-25 21:28) (completed: 2026-01-25 21:28) @agent
+- [x] T063: Update the Insights chat component to use dynamic models from domain config instead of hardcoded 7-model list. Changes: 1. Update types/insights.ts - change InsightsModel to string 2. Update Insigh...  [worklog: pending] (created: 2026-01-25 21:23) (completed: 2026-01-25 21:25) @agent
+- [x] T062: Add health checks for CLI Proxy (port 8317) and Gateway (port 8200) to the Tray Companion so provider dots accurately reflect their status.  [worklog: pending] (created: 2026-01-25 21:03) (completed: 2026-01-25 21:04) @agent
+- [x] T061: Expand width from 550px to 750px, create two-column grid layout with grouped sections: API Keys | Source Control, Local Services (CLI Proxy + Clawdbot), Optional (CLI Bootstrap + Graphiti)  [worklog: pending] (created: 2026-01-25 21:01) (completed: 2026-01-25 21:07) @agent
+- [x] T060: Flip the narrative: CLIProxyAPI is primary, LMStudio is optional. Replace warning banner with success banner, update fallback info to optional section.  [worklog: pending] (created: 2026-01-25 20:55) (completed: 2026-01-25 20:56) @agent
+- [x] T059: Systematically verify all 14 LLM generation domains in Kuroryuu Desktop are working correctly with their configured providers. Test PRD Generation, Changelog, Ideation, Roadmap, Spec Phase, Plannin...  [worklog: pending] (created: 2026-01-25 20:46) (completed: 2026-01-25 20:50) @agent
+- [x] T058: Expand getStaticCLIProxyModels() in model-registry.ts with full provider list including GPT-5, Gemini 3, Copilot, Kiro, etc. Also update ModelFamily types in domain-config.ts.  [worklog: pending] (created: 2026-01-25 20:44) (completed: 2026-01-25 20:46) @agent
+- [x] T057: Remove duplicate Anthropic/OpenAI API key inputs from ClawdbotProvidersConfig. Instead, check if keys are configured in main Integrations and reuse them.  Changes: 1. Add state to track main integr...  [worklog: pending] (created: 2026-01-25 20:32) (completed: 2026-01-25 20:36) @agent
+- [x] T056: Add two missing servers to the Command Center Server Health panel: 1. CLIProxyAPI (port 8317) - Docker-based, uses docker-compose 2. Clawdbot (port 18790) - Docker-based, opt-in service  Implementa...  [worklog: pending] (created: 2026-01-25 20:23) (completed: 2026-01-25 20:25) @agent
+- [x] T055: Add IPC handlers to clawdbot-service.ts for: getProviderConfig, setProviderConfig, testProvider. Also add auto-start logic for container on app launch if enabled.  [worklog: pending] (created: 2026-01-25 19:46) (completed: 2026-01-25 19:48) @agent
+- [x] T054: Expose window.__ZUSTAND_STORE__ and window.__MOCK_ELECTRON_API__ when E2E_TEST_MODE=true so Playwright tests can interact with app state  [worklog: pending] (created: 2026-01-25 18:31) (completed: 2026-01-25 18:51) @agent
+- [x] T053: Add microsoft/playwright-mcp server entry to .mcp.json for browser automation capabilities  [worklog: pending] (created: 2026-01-25 18:20) (completed: 2026-01-25 18:25) @agent
+- [x] T052: Fix three bugs: 1. CLIProxyAPIBackend._model → default_model attribute mismatch (lines 75, 82, 104) 2. CLIProxyWizard Dialog.Content missing z-50 (line 485) 3. Add debug logging to Insights.tsx for...  [worklog: pending] (created: 2026-01-25 18:14) (completed: 2026-01-25 18:15) @agent
+- [x] T051: Add a Clawdbot section to the IntegrationsDialog in Kuroryuu Desktop. Should include: enable toggle, container status indicator, start/stop buttons, and link to clawdbot configuration.  [worklog: pending] (created: 2026-01-25 18:11) (completed: 2026-01-25 18:16) @agent
+- [x] T050: Create the k_clawd MCP tool that allows Kuroryuu to communicate with the Clawdbot Docker container as an autonomous worker. Actions: help, status, start, stop, task, cancel, results, inbox, reply, ...  [worklog: pending] (created: 2026-01-25 18:04) (completed: 2026-01-25 18:09) @agent
+- [x] T049: Add debug logging to Insights.tsx to trace why requests go to LMStudio instead of CLI Proxy when CLI Proxy is selected in Domain Config. Check domainConfig.provider value being sent.  [worklog: pending] (created: 2026-01-25 17:17) (completed: 2026-01-25 17:27) @agent
+- [x] T048: Multi-step wizard: Docker check, Container setup, Gemini/Claude/OpenAI OAuth, Verification  [worklog: pending] (created: 2026-01-25 16:56) (completed: 2026-01-25 16:59) @agent
+- [x] T047: Fix model-registry.ts:217-223 to use /v1/models with Bearer auth instead of /health which returns 404  [worklog: pending] (created: 2026-01-25 16:56) (completed: 2026-01-25 16:56) @agent
+- [x] T046: Step 1: Update domain-config.ts to: 1. Add 'deepseek' to ModelFamily type 2. Add deepseek detection in getModelFamily() 3. Add DeepSeek label to MODEL_FAMILY_LABELS 4. Add FAMILY_SORT_ORDER constan...  [worklog: pending] (created: 2026-01-25 15:57) (completed: 2026-01-25 15:59) @agent
+- [x] T045: Add inline grouping functions and update model dropdown in DevstralControls.tsx to use optgroup for consistent family-based organization  [worklog: pending] (created: 2026-01-25 15:49) (completed: 2026-01-25 16:01) @agent
+- [x] T044: Replace flat select in ModelConfigDialog's PhaseModelCard with GroupedModelSelect component for consistent grouped display across all dialogs  [worklog: pending] (created: 2026-01-25 15:46) (completed: 2026-01-25 17:05) @agent
+- [x] T043: Update AVAILABLE_MODELS in types/settings.ts to include all providers: add Gemini (4 models) and Qwen (2 models) alongside existing Claude and OpenAI  [worklog: pending] (created: 2026-01-25 15:46) (completed: 2026-01-25 17:05) @agent
+- [x] T042: Add export for GroupedModelSelect in components/settings/index.ts  [worklog: pending] (created: 2026-01-25 15:42) (completed: 2026-01-25 17:05) @agent
+- [x] T041: Update apps/desktop/src/renderer/services/model-registry.ts to include ALL known models in fallback: Claude, GPT-4o, o1-preview, Gemini, Qwen.  [worklog: pending] (created: 2026-01-25 15:27) (completed: 2026-01-25 15:28) @agent
+- [x] T040: Update Tray Companion to dynamically fetch models from CLIProxyAPI (/v1/models) when that provider is selected. CLIProxyAPI supports many models including Claude, OpenAI (GPT-4o, o1), Gemini, etc. ...  [worklog: pending] (created: 2026-01-25 15:08) (completed: 2026-01-25 17:06) @agent
+- [x] T039: Create apps/tray_companion/src/main/domain-config-reader.ts with file reading, watching, and event emission for config changes.  [worklog: pending] (created: 2026-01-25 14:56) (completed: 2026-01-25 14:59) @agent
+- [x] T038: Update prd-store.ts, ideation-store.ts, changelog-store.ts, lmstudio-chat-store.ts, insights-store.ts, and settings-store.ts to read from domain-config-store  [worklog: pending] (created: 2026-01-25 14:14) (completed: 2026-01-25 14:23) @agent
+- [x] T037: Create stores/domain-config-store.ts as central Zustand store for all 14 domain configurations with persistence  [worklog: pending] (created: 2026-01-25 14:14) (completed: 2026-01-25 14:17) @agent
+- [x] T036: Delete duplicate retrospective sections: Days 13-14 Graphiti, Days 15-16 Code Editor, Day 15 Tray, Day 16 OAuth, Day 16 Modals, Days 17-18 Final Polish  [worklog: pending] (created: 2026-01-25 14:10) (completed: 2026-01-25 14:13) @agent
+- [x] T035: Update apps/gateway/changelog/router.py to use get_healthy_backend() from the registry for fallback support  [worklog: pending] (created: 2026-01-25 14:03) (completed: 2026-01-25 14:04) @agent
+- [x] T034: Update apps/desktop/src/renderer/stores/prd-store.ts to query the active backend and set author dynamically (Claude CLI vs LMStudio)  [worklog: pending] (created: 2026-01-25 14:03) (completed: 2026-01-25 14:04) @agent
+- [x] T033: Add comprehensive Day 20 entry with 9 major achievements: terminal fixes, task hooks, k_interact removal, k_capture rename, checkpoints panel, cross-reference rules, dialog system, welcome encyclop...  [worklog: pending] (created: 2026-01-25 14:00) (completed: 2026-01-25 14:03) @agent
+- [x] T032: Update LMStudioSection.tsx to: 1. Add Zap icon to imports 2. Add blue info banner about CLIProxyAPI fallback after the warning banner 3. Update skip option text to mention fallback  [worklog: pending] (created: 2026-01-25 13:51) (completed: 2026-01-25 13:52) @agent
+- [x] T031: Update desktop GUI components to reflect the new CLIProxyAPI fallback backend: 1. StatusBar - Show active backend with color coding (≡ƒƒó LMStudio, ≡ƒö╡ CLIProxyAPI, ≡ƒƒí Claude, ≡ƒö┤ Offline) 2. S...  [worklog: pending] (created: 2026-01-25 13:51) (completed: 2026-01-25 13:56) @agent
+- [x] T030: Update apps/kuroryuu_cli/config.py and providers/lmstudio_provider.py to add cliproxy_url and fallback chain  [worklog: pending] (created: 2026-01-25 13:43) (completed: 2026-01-25 13:46) @agent
+- [x] T029: Update apps/desktop/.../lmstudio-chat-store.ts and LMStudioPanel.tsx to support fallback  [worklog: pending] (created: 2026-01-25 13:43) (completed: 2026-01-25 17:06) @agent
+- [x] T028: Modify apps/gateway/llm/backends/registry.py to add circuit breaker pattern with get_healthy_backend() function. Add BackendState dataclass, FAILURE_THRESHOLD, COOLDOWN_SECONDS, health cache with TTL.  [worklog: pending] (created: 2026-01-25 13:33) (completed: 2026-01-25 13:36) @agent
+- [x] T027: Create tools/cliproxyapi/README.md and tools/cliproxyapi/config.yaml with setup instructions for CLIProxyAPI (Go binary from https://github.com/router-for-me/CLIProxyAPI). Port 8317 default.  [worklog: pending] (created: 2026-01-25 13:33) (completed: 2026-01-25 13:34) @agent
+- [x] T026: Phase 5 of PRD workflow implementation - set up Playwright E2E testing infrastructure.  Phases: - 5.1: Install dependencies ( playwright-core) - 5.2: Create playwright.config.ts - ...  [worklog: pending] (created: 2026-01-25 13:14) (completed: 2026-01-25 13:20) @playwright/test,
+- [x] T025: Major refactor of WorkerSetupWizard.tsx: - Remove tabs, replace with progressive disclosure flow - Provider selection ΓåÆ Role selection (Claude only) ΓåÆ Subtype selection ΓåÆ Config - Auto-popula...  [worklog: pending] (created: 2026-01-25 12:50) (completed: 2026-01-25 12:54) @agent
+- [x] T024: Implement the full PRD workflow button execution: 1. Add WORKFLOW_PROMPT_MAP with Quizmaster + Specialist paths 2. Update handleExecute() to spawn PTY correctly 3. Add executingWorkflows state to p...  [worklog: pending] (created: 2026-01-25 12:47) (completed: 2026-01-25 12:56) @agent
+- [x] T023: The PreCompact hook in .claude/settings.json has two bugs: 1. Timeout is 30 (milliseconds) - way too short, causing checkpoint saves to fail/timeout 2. Checkpoint data only saves {"trigger": "preco...  [worklog: pending] (created: 2026-01-25 11:40) (completed: 2026-01-25 11:40) @agent
+- [x] T022: Transform Sub-agent Export from basic templates to AI-powered prompt generation: 1. Gateway: New enhancement prompt with real tool docs in router.py 2. Desktop: LMStudio URL field, preview in Agent...  [worklog: pending] (created: 2026-01-25 11:37) (completed: 2026-01-25 11:42) @agent
+- [x] T021: Fix WebSocket connection showing "CONNECTED" when not actually connected: 1. Add connection verification with retry after onopen fires 2. Add periodic state sync to detect stale connections 3. Add ...  [worklog: pending] (created: 2026-01-25 11:14) (completed: 2026-01-25 11:16) @agent
+- [x] T020: Use numeric timestamp comparison instead of creating new Date objects per event. Location: traffic-store.ts:83-88  [worklog: pending] (created: 2026-01-25 10:56) (completed: 2026-01-25 10:57) @agent
+- [x] T019: Replace composite key with index that causes remounts with stable unique ID. Location: PTYTrafficPanel.tsx:142-144  [worklog: pending] (created: 2026-01-25 10:56) (completed: 2026-01-25 17:08) @agent
+- [x] T018: Perform meta-level analysis of the Recharts→ECharts migration implementation (T016). Analyze divergences between plan and execution, classify them, trace root causes, and generate improvement sugge...  [worklog: pending] (created: 2026-01-25 10:29) (completed: 2026-01-25 10:31) @agent
+- [x] T017: Add 9 missing features to FeaturesSection.tsx and update TraySection.tsx with accurate content. Before: 6 features, After: 15 features covering all sidebar capabilities.  [worklog: pending] (created: 2026-01-24 22:49) (completed: 2026-01-24 22:57) @agent
+- [x] T016: Replace Recharts with ECharts in EndpointDetailDrawer.tsx: 1. Install echarts + echarts-for-react 2. Migrate latency sparkline (AreaChart → ECharts line) 3. Migrate status donut (PieChart → ECharts...  [checkpoint: cp_20260124_220954_c4cc1a0a] [worklog: Docs/worklogs/KiroWorkLog_20260124_220700_RechartsToEChartsMigration.md] (created: 2026-01-24 22:05) (completed: 2026-01-24 22:07) @agent
+- [x] T015: Verify and complete Phase 2 content population for Home Screen Encyclopedia:  **Verification Checklist:** - [x] All 5 tour slides have complete content (hotspot-data.json) - [x] LMStudio wizard has...  [worklog: pending] (created: 2026-01-24 21:52) (completed: 2026-01-24 21:53) @agent
+- [x] T014: Implement the interactive framework for Home Screen Encyclopedia redesign: - Create component structure (WelcomeHub, WelcomeNav, GuidedTour, sections, hotspots, architecture, video) - Build hotspot...  [worklog: pending] (created: 2026-01-24 21:37) (completed: 2026-01-24 21:49) @agent
+- [x] T013: Modify KuroryuuDialog.tsx to respect the enableAnimations app setting. When disabled: no fog entrance, no pulse, no mist particles. Dialogs should appear/disappear instantly.  [worklog: pending] (created: 2026-01-24 20:26) (completed: 2026-01-24 20:26) @agent
+- [x] T012: Add max-height constraint and scrollable content area to InitializeProjectDialog.tsx to prevent the dialog from being cut off on smaller screens. Four CSS class additions following the established ...  [worklog: pending] (created: 2026-01-24 20:19) (completed: 2026-01-24 20:20) @agent
+- [x] T011: Implement a unified dialog system replacing all window.confirm() calls and Electron native dialogs with themed modals featuring fog entrance animations, golden dragon frames, and mystical particle ...  [worklog: pending] (created: 2026-01-24 20:11) (completed: 2026-01-24 20:20) @agent
+- [x] T010: Update 18 files to establish mandatory cross-referencing between checkpoints, plan files, and worklogs. Priority order: Core docs (3), Commands/Skills (6), Agent Commands (6), Prompt Templates (2).  [worklog: pending] (created: 2026-01-24 20:01) (completed: 2026-01-24 20:07) @agent
+- [x] T009: Implement the complete Checkpoints Panel feature including: 1. Fix preload IPC bindings for k_checkpoint 2. Create/update Zustand store 3. Create CheckpointCard, CheckpointDetailPanel, CheckpointsP...  [worklog: pending] (created: 2026-01-24 19:59) (completed: 2026-01-24 20:00) @agent
+- [x] T008: When Graphiti is disabled in Integrations, display a Checkpoints panel instead of "AI Memory Disabled" placeholder. Design aesthetic: Dark luxury meets terminal - a dragon's hoard of crystallized s...  [worklog: pending] (created: 2026-01-24 19:26) (completed: 2026-01-24 19:31) @agent
+- [x] T007: Create Pinokio-style 1-click installer for hackathon judges: 1. Create packaging/kuroryuu-install.ps1 - Main bootstrap installer script 2. Create packaging/Start-Kuroryuu.ps1 - Combined service + a...  [worklog: pending] (created: 2026-01-24 19:14) (completed: 2026-01-24 19:18) @agent
+- [x] T006: 1. Change publish provider to GitHub in package.json 2. Wire up the ui.checkUpdatesOnStartup setting in updater.ts  [worklog: pending] (created: 2026-01-24 18:43) (completed: 2026-01-24 18:44) @agent
+- [x] T005: Rename the sots_capture MCP tool to k_capture to follow the k_* naming convention, and move capture-related files from WORKING/ to ai/capture/. This involves: 1. Moving files from WORKING/ to ai/ca...  [worklog: pending] (created: 2026-01-24 18:20) (completed: 2026-01-24 18:30) @agent
+- [x] T004: Remove "Reset All Settings" and standalone "Reset Agents" from AppSettingsDialog, keep only "Full App Reset" button. Add "Reset Agents Only" quick action to FullResetDialog.  [worklog: pending] (created: 2026-01-24 17:58) (completed: 2026-01-24 18:00) @agent
+- [x] T003: Phase 7: Update k-mcptoolsearch.md, SKILL.md, orchestration-patterns.md, tool-patterns.md  [worklog: pending] (created: 2026-01-24 17:54) (completed: 2026-01-24 17:59) @agent
+- [x] T002: Externalize hardcoded credentials and settings from Gateway into proper configuration with environment variable support. Includes: config.py dataclass, .env.example, updating server.py, mcp clients...  [worklog: pending] (created: 2026-01-24 16:09) (completed: 2026-01-24 16:19) @agent
+- [x] T001: Fix reset terminal crash (error -1073741510) by adding restartCount to TerminalInstance and including it in Terminal key. Remove redundant Shield icon since Brain is the unified launcher.  [worklog: pending] (created: 2026-01-24 08:29) (completed: 2026-01-24 08:33) @agent

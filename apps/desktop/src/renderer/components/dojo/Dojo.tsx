@@ -113,12 +113,15 @@ function DomainStatus({ domainId }: DomainStatusProps) {
   }
 
   // Provider-specific disconnection messages
-  const disconnectMessage = {
+  const disconnectMessage: Record<string, string> = {
     'lmstudio': 'Start LMStudio server at localhost:1234',
     'cliproxyapi': 'CLI Proxy not responding at localhost:8317',
     'gateway-auto': 'Gateway not responding at localhost:8200',
     'claude': 'Claude API key not configured',
-  }[config.provider] || 'Provider not available';
+    'claude-cli': 'Claude CLI not available',
+    'claude-cli-pty': 'Claude CLI PTY not available',
+  };
+  const providerDisconnectMessage = disconnectMessage[config.provider] || 'Provider not available';
 
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mx-6 mt-4">
@@ -127,7 +130,7 @@ function DomainStatus({ domainId }: DomainStatusProps) {
         <div className="text-sm">
           <span className="text-yellow-500 font-medium">{providerName} Not Connected</span>
           <span className="text-muted-foreground ml-1">
-            {disconnectMessage}
+            {providerDisconnectMessage}
           </span>
         </div>
       </div>
