@@ -41,7 +41,7 @@ WRITE_ACTIONS: Dict[str, Set[str]] = {
     "k_checkpoint": {"save"},
     "k_inbox": {"send", "complete", "claim", "mark_read"},
     "k_memory": {"set_goal", "add_blocker", "clear_blockers", "set_steps", "reset"},
-    "k_interact": {"ask", "approve", "plan", "screenshot"},
+    "k_interact": {"ask", "approve", "plan"},
     "k_collective": {"record_success", "record_failure", "update_skill"},
 }
 

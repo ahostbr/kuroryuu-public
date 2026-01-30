@@ -172,7 +172,7 @@ Kuroryuu is a native desktop application that enables multiple AI agents (includ
 | `k_rag` | 6 | RAG search (keyword, semantic, hybrid) |
 | `k_repo_intel` | 8 | Repository intelligence and analysis |
 | `k_capture` | 7 | Screen capture and visual digest |
-| `k_interact` | 5 | Human-in-the-loop interactions |
+| `k_interact` | 4 | Human-in-the-loop interactions |
 | `k_inbox` | 6 | Agent messaging queue |
 | `k_memory` | 4 | Working memory management |
 | `k_pccontrol` | 3 | Windows desktop automation |

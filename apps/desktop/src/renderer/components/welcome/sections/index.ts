@@ -5,3 +5,4 @@ export { TraySection } from './TraySection';
 export { CLISection } from './CLISection';
 export { FeaturesSection } from './FeaturesSection';
 export { ArchitectureSection } from './ArchitectureSection';
+export { PluginSection } from './PluginSection';

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Volume2, VolumeX, Keyboard, Clipboard, Database, MessageSquare } from 'lucide-react';
+import { Settings, Volume2, VolumeX, Keyboard, Clipboard, MessageSquare } from 'lucide-react';
 import TtsControls from './components/TtsControls';
 import VoiceAssistantControls from './components/VoiceAssistantControls';
 import MCPControls from './components/MCPControls';

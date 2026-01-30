@@ -1,7 +1,9 @@
 import React from 'react';
 import { Command, Volume2, Mic, MessageSquare, Search, Keyboard, Clipboard } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import { VideoPlaceholder } from '../video';
+
+// Screenshot import
+import screenshotTray from '../../../../../../../assets/screens/tray_1.jpg';
 
 interface FeatureItem {
   icon: React.ElementType;
@@ -62,8 +64,14 @@ export function TraySection({ className }: TraySectionProps) {
         </div>
       </div>
 
-      {/* Video placeholder */}
-      <VideoPlaceholder message="Tray Companion Demo" videoId="tray-companion" />
+      {/* Screenshot */}
+      <div className="w-full rounded-xl overflow-hidden border border-border">
+        <img
+          src={screenshotTray}
+          alt="Tray Companion screenshot"
+          className="w-full h-auto"
+        />
+      </div>
 
       {/* Feature grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

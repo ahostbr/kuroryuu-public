@@ -10,8 +10,12 @@ import {
   Command,
   Activity,
   Layers,
+  Image,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
+
+// Screenshot import
+import screenshotCLI from '../../../../../../../assets/screens/kuroryuu-cli_1.jpg';
 
 interface CollapsibleSectionProps {
   title: string;
@@ -88,16 +92,36 @@ export function CLISection({ className }: CLISectionProps) {
         </div>
       </div>
 
+      {/* Preview Screenshot - Expandable */}
+      <CollapsibleSection title="Preview" icon={Image} defaultOpen={true}>
+        <div className="w-full rounded-lg overflow-hidden border border-border">
+          <img
+            src={screenshotCLI}
+            alt="Kuroryuu CLI screenshot"
+            className="w-full h-auto"
+          />
+        </div>
+      </CollapsibleSection>
+
       {/* Getting Started - Default Open */}
-      <CollapsibleSection title="Getting Started" icon={Terminal} defaultOpen={true}>
+      <CollapsibleSection title="Getting Started" icon={Terminal} defaultOpen={false}>
         <div className="space-y-3">
           <p className="text-muted-foreground">
-            The CLI is bundled with Kuroryuu. Run the setup script to add to PATH:
+            The CLI is bundled with Kuroryuu. You can run it directly or add to PATH:
           </p>
+
+          {/* Quick Start - Run Directly */}
+          <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+            <div className="text-xs font-medium text-foreground mb-2">Quick Start (Run Directly)</div>
+            <CodeBlock>kuroryuu-cli.bat</CodeBlock>
+            <p className="text-xs text-muted-foreground mt-2">
+              Run from project root. No installation needed.
+            </p>
+          </div>
 
           {/* Setup Script */}
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
-            <div className="text-xs font-medium text-foreground mb-2">One-Time Setup</div>
+            <div className="text-xs font-medium text-foreground mb-2">Global Install (One-Time Setup)</div>
             <CodeBlock>.\scripts\setup-cli.ps1</CodeBlock>
             <p className="text-xs text-muted-foreground mt-2">
               Adds <code className="bg-secondary px-1 rounded">kuroryuu-cli</code> to PATH and creates <code className="bg-secondary px-1 rounded">kuro</code> alias.
@@ -107,7 +131,7 @@ export function CLISection({ className }: CLISectionProps) {
 
           {/* Usage */}
           <div className="space-y-2">
-            <div className="text-xs font-medium text-muted-foreground mb-1">Usage</div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Usage (after global install)</div>
             <div className="flex justify-between items-center p-2 rounded bg-secondary/50">
               <code className="font-mono text-xs text-primary">kuroryuu-cli</code>
               <span className="text-xs text-muted-foreground">Start interactive REPL</span>

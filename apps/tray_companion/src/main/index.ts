@@ -66,6 +66,12 @@ function createSettingsWindow(): void {
     settingsWindow = null;
   });
 
+  // Minimize to tray instead of taskbar
+  (settingsWindow as any).on('minimize', () => {
+    settingsWindow?.hide();
+    console.log('[TrayCompanion] Window minimized to tray');
+  });
+
   settingsWindow.webContents.setWindowOpenHandler((details) => {
     require('electron').shell.openExternal(details.url);
     return { action: 'deny' };
@@ -153,9 +159,13 @@ app.whenReady().then(async () => {
     console.log('Skipping auto-startup of always-listen mode - must be toggled from UI');
   }
 
-  // Create tray
+  // Create tray with click handler that properly shows window
   createTray(() => {
     if (settingsWindow) {
+      if (settingsWindow.isMinimized()) {
+        settingsWindow.restore();
+      }
+      settingsWindow.show();
       settingsWindow.focus();
     } else {
       createSettingsWindow();

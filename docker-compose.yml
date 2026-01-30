@@ -4,6 +4,7 @@ services:
   mcp_core:
     build: ./apps/mcp_core
     container_name: kuroryuu-mcp-core
+    restart: unless-stopped
     ports:
       - "8100:8100"
     environment:
@@ -17,10 +18,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 1G
 
   gateway:
     build: ./apps/gateway
     container_name: kuroryuu-gateway
+    restart: unless-stopped
     ports:
       - "8200:8200"
     environment:
@@ -28,31 +34,63 @@ services:
       - KURORYUU_PROJECT_ROOT=/kuroryuu
       - KURORYUU_GATEWAY_HOST=0.0.0.0
       - KURORYUU_GATEWAY_PORT=8200
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     depends_on:
       mcp_core:
         condition: service_healthy
     volumes:
       - ./ai:/kuroryuu/ai
+      - ./Docs/worklogs:/kuroryuu/Docs/worklogs
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8200/v1/health"]
       interval: 10s
       timeout: 5s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
   pty_daemon:
     build: ./apps/pty_daemon
     container_name: kuroryuu-pty-daemon
+    restart: unless-stopped
     ports:
       - "7072:7072"
+      - "7073:7073"
     environment:
       - PTY_DAEMON_HOST=0.0.0.0
       - PTY_DAEMON_PORT=7072
+      - PTY_HEALTH_PORT=7073
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7073/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   web:
     build: ./apps/web
     container_name: kuroryuu-web
+    restart: unless-stopped
     ports:
       - "3000:3000"
     depends_on:
       gateway:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  default:
+    name: kuroryuu-network

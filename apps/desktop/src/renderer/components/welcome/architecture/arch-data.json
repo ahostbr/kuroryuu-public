@@ -47,7 +47,7 @@
       "w": 0.18,
       "h": 0.11,
       "title": "MCP_CORE (Tool Registry)",
-      "bodyMd": "**What you're seeing:** Model Context Protocol core.\n\n**Why it matters:** Central hub for all tool operations.\n\n• 50+ registered tools\n• Permission management\n• Tool routing and dispatch\n• Kuroryuu MCP server",
+      "bodyMd": "**What you're seeing:** MCP Core (port 8100).\n\n**Why it matters:** Central hub for 118 tool actions.\n\n• 16 routed tools: k_rag, k_pty, k_files, k_session...\n• Permission management per tool\n• Tool routing and dispatch\n• Connects to PTY Daemon, Gateway, Persistence",
       "jumpRoute": "traffic-flow",
       "color": "#8b5cf6",
       "icon": "box"
@@ -72,7 +72,7 @@
       "w": 0.16,
       "h": 0.11,
       "title": "Leader/Worker Orchestration",
-      "bodyMd": "**What you're seeing:** Multi-agent coordination system.\n\n**Why it matters:** Parallel execution with coordination.\n\n• Leader receives high-level tasks\n• Workers execute in parallel\n• Inbox message passing\n• Task delegation patterns",
+      "bodyMd": "**What you're seeing:** Multi-agent orchestration system.\n\n**Why it matters:** Parallel AI execution with real-time coordination.\n\n• Leader coordinates overall task execution and delegates\n• Workers execute specific subtasks in isolated PTYs\n• Inbox message passing (k_inbox) for task delegation\n• Workers report progress to leader, operate in parallel\n• Leader makes architectural decisions, workers execute",
       "jumpRoute": "terminals",
       "color": "#f59e0b",
       "icon": "users"
@@ -85,7 +85,7 @@
       "w": 0.16,
       "h": 0.11,
       "title": "Ralph (Autonomous Orchestrator)",
-      "bodyMd": "**What you're seeing:** Long-running task orchestration.\n\n**Why it matters:** 100+ hour autonomous sessions.\n\n• Leader orchestrates worker via k_pty\n• Promise-based signals: DONE, STUCK, PROGRESS\n• Intelligent intervention when worker stuck\n• Desktop silence detection with nudges",
+      "bodyMd": "**What you're seeing:** Ralph autonomous orchestrator.\n\n**Why it matters:** 100+ hour autonomous task execution.\n\n• 3-strike escalation system for handling failures\n• Automatic recovery from stuck states\n• Promise-based signals: DONE, STUCK, PROGRESS:%\n• Leader monitors worker via k_pty term_read\n• Desktop silence detection triggers nudges\n• Bootstrap files: @ralph_prime.md, @ralph_loop.md",
       "jumpRoute": "terminals",
       "color": "#f97316",
       "icon": "users"
@@ -98,7 +98,7 @@
       "w": 0.16,
       "h": 0.11,
       "title": "PTY Daemon (Terminals)",
-      "bodyMd": "**What you're seeing:** Pseudo-terminal management.\n\n**Why it matters:** Real shell access for agents.\n\n• One PTY per agent\n• Full shell capabilities\n• Real-time output streaming\n• Cross-platform support",
+      "bodyMd": "**What you're seeing:** PTY Daemon (port 7072, JSON-RPC).\n\n**Why it matters:** Real shell access for AI agents.\n\n• 100KB ring buffer per terminal (late-join support)\n• Sentinel-based execution for reliable command completion\n• 11 actions: create, send_line, read, talk, term_read, resolve\n• Agent mesh: read/write each other's terminals in real-time\n• Delta mode for incremental output streaming\n• Dangerous command blocking and secret redaction",
       "jumpRoute": "terminals",
       "color": "#ec4899",
       "icon": "terminal"
@@ -124,7 +124,7 @@
       "w": 0.18,
       "h": 0.11,
       "title": "Persistence Layer",
-      "bodyMd": "**What you're seeing:** Data storage and state management.\n\n**Why it matters:** Never lose your work.\n\n• Session snapshots\n• Checkpoint system\n• Worklog storage\n• Git-friendly format",
+      "bodyMd": "**What you're seeing:** Checkpoint and state persistence.\n\n**Why it matters:** Never lose your work.\n\n• Checkpoints save session state, terminal configs, agent bindings\n• PTY persistence with atomic writes (temp + rename)\n• 7-day TTL cleanup, session resurrection on restart\n• Cross-references: plan_file, worklog_files, task_ids\n• 100KB buffer persistence per terminal",
       "color": "#6366f1",
       "icon": "database"
     },
@@ -136,7 +136,7 @@
       "w": 0.18,
       "h": 0.11,
       "title": "Observability (Traffic/Capture)",
-      "bodyMd": "**What you're seeing:** Monitoring and capture systems.\n\n**Why it matters:** Full visibility into operations.\n\n• Traffic monitoring\n• Screen capture (SOTS)\n• Visual digest\n• Insights dashboard",
+      "bodyMd": "**What you're seeing:** Traffic monitoring and screen capture.\n\n**Why it matters:** Full visibility into AI operations.\n\n• HTTP Traffic: request/response logging, token counting, cost tracking\n• PTY Traffic: ReactFlow network graph visualization\n• Screen Capture (k_capture): start, stop, screenshot, digest\n• Visual Digest: periodic AI analysis of screen content\n• Claude Tasks Monitor: donut chart + Gantt timeline",
       "jumpRoute": "capture",
       "color": "#ef4444",
       "icon": "activity"

@@ -77,37 +77,88 @@ Access the application:
 - **Gateway API**: http://127.0.0.1:8200/docs
 - **MCP Core**: http://127.0.0.1:8100/mcp
 
-## Docker Installation (Cross-Platform)
+## Docker Installation (Backend Dev / CI)
 
-For Linux/Mac users or those who prefer containers:
+Docker support is for **backend developers** and **CI pipelines**. Kuroryuu is Windows-first; full functionality requires native Windows installation.
+
+### Quick Start
 
 ```bash
-# Clone and start
+# 1. Clone repository
 git clone https://github.com/ahostbr/kuroryuu-public
 cd kuroryuu-public
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env and set ANTHROPIC_API_KEY (required for chat)
+
+# 3. Start all services
 docker-compose up -d
 
-# Check status
+# 4. Verify health
 docker-compose ps
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
+curl http://localhost:8100/health   # MCP Core
+curl http://localhost:8200/v1/health # Gateway
+curl http://localhost:7073/health   # PTY Daemon
+curl http://localhost:3000/         # Web UI
 ```
 
-**Access points:**
-- **Web UI**: http://localhost:3000
-- **Gateway API**: http://localhost:8200/docs
-- **MCP Core**: http://localhost:8100/health
+### Services
 
-**Note:** Docker mode runs the backend services (Gateway, MCP Core, PTY Daemon, Web UI). Some Windows-only features are automatically disabled:
-- `k_capture` (requires Win32 display APIs)
-- `k_pccontrol` (requires PowerShell + Win32 APIs)
-- Desktop Electron app (use Web UI instead)
+| Service | Port | Health Endpoint | Purpose |
+|---------|------|-----------------|---------|
+| MCP Core | 8100 | `/health` | MCP tool server (15 tools, 107 actions) |
+| Gateway | 8200 | `/v1/health` | FastAPI + WebSocket, chat streaming |
+| PTY Daemon | 7072 (RPC), 7073 (health) | `/health` | Terminal emulation backend |
+| Web UI | 3000 | `/` | React SPA served via nginx |
 
-For full functionality including desktop automation, use the native Windows installation above.
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```env
+# Required for chat functionality
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+
+# Optional overrides
+KURORYUU_GATEWAY_PORT=8200
+KURORYUU_MCP_PORT=8100
+KURORYUU_AUTH_ENABLED=true
+KURORYUU_AUTH_PASSWORD_HASH=<sha256-hash>
+```
+
+### Docker Commands
+
+```bash
+# Start in background
+docker-compose up -d
+
+# View logs (follow mode)
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f gateway
+
+# Rebuild after code changes
+docker-compose build
+docker-compose up -d
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+```
+
+### Limitations in Docker Mode
+
+Windows-only features are automatically disabled:
+- `k_capture` - Requires Win32 display APIs
+- `k_pccontrol` - Requires PowerShell + Win32 APIs
+- Desktop Electron app - Use Web UI instead
+- Tray Companion - Windows SAPI required
+
+**For full functionality** including desktop automation, use native Windows installation.
 
 ## Architecture Overview
 

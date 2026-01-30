@@ -153,8 +153,6 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
   // Domain config state (sync with Desktop app)
   const [domainConfigSource, setDomainConfigSource] = useState<'local' | 'shared'>('local');
   const [currentProvider, setCurrentProvider] = useState<LLMProvider>('lmstudio');
-  const [temperature, setTemperature] = useState(0.7);
-  const [maxTokens, setMaxTokens] = useState(4096);
   const [providerHealth, setProviderHealth] = useState<Record<string, boolean>>({
     lmstudio: false,
     cliproxyapi: false,
@@ -182,8 +180,6 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
         setDomainConfigSource('shared');
         setCurrentProvider(config.provider);
         setSelectedModel(config.modelId);
-        setTemperature(config.temperature);
-        setMaxTokens(config.maxTokens);
       });
     }
 
@@ -378,8 +374,6 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
         if (result.config.modelId) {
           setSelectedModel(result.config.modelId);
         }
-        setTemperature(result.config.temperature ?? 0.7);
-        setMaxTokens(result.config.maxTokens ?? 4096);
         // Update provider health based on connection
         if (newProvider === 'lmstudio') {
           setProviderHealth(prev => ({ ...prev, lmstudio: true }));
@@ -404,16 +398,6 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
     setCurrentProvider(provider);
     // Reload models for the new provider
     loadModels(provider);
-  };
-
-  const handleTemperatureChange = (value: number) => {
-    if (domainConfigSource === 'shared') return;
-    setTemperature(value);
-  };
-
-  const handleMaxTokensChange = (value: number) => {
-    if (domainConfigSource === 'shared') return;
-    setMaxTokens(value);
   };
 
   const handleModelChange = async (model: string) => {

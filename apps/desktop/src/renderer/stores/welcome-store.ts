@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type WelcomeSection = 'overview' | 'cliproxyapi' | 'tray' | 'cli' | 'features' | 'architecture';
+export type WelcomeSection = 'overview' | 'cliproxyapi' | 'tray' | 'cli' | 'features' | 'architecture' | 'plugin';
 
 interface WelcomeState {
   // Navigation

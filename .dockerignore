@@ -1,0 +1,54 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation (except README)
+*.md
+!README.md
+
+# Dependencies (rebuilt in container)
+node_modules
+.pnpm-store
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv*
+*.egg-info
+
+# Environment files (contain secrets)
+.env
+.env.*
+!.env.example
+
+# Logs and temp files
+*.log
+*.tmp
+nul
+
+# IDE/Editor
+.vscode
+.idea
+*.swp
+*.swo
+
+# Native desktop apps (not containerized)
+apps/desktop
+apps/tray_companion
+
+# Runtime data (mounted as volumes, not baked into image)
+ai/checkpoints/*
+ai/traffic/*
+ai/logs/*
+ai/rag_index/*
+ai/repo_intel/*
+ai/chat_history/*
+Docs/worklogs/*
+
+# Test/build artifacts
+coverage
+dist
+out
+.next
