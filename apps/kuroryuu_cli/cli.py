@@ -279,6 +279,8 @@ def main() -> int:
         for line in str(e).split('\n'):
             print(f"  {line}")
         print()
+        # Pause so user can read the error before window closes
+        input("  Press Enter to exit...")
         return 1
 
 
