@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Kuroryuu Desktop Voice Input - Speech-to-Text
+Kuroryuu Voice Input - Continuous Speech-to-Text
 
-Listens and outputs:
+Listens continuously and outputs:
   LEVEL:<0-100>     - Audio level for visualization
   INTERIM:<text>    - Processing indicator
   TRANSCRIPT:<text> - Final transcript after pause
@@ -11,7 +11,7 @@ Listens and outputs:
 Requirements:
     pip install SpeechRecognition pyaudio
 
-Copied from tray_companion for Desktop app.
+Based on SOTS voice input but adapted for continuous always-listen mode.
 """
 
 import sys
@@ -27,7 +27,7 @@ level_lock = threading.Lock()
 def process_audio(recognizer, audio):
     """Callback for background listener - runs in separate thread"""
     global audio_level
-    
+
     # Calculate level from audio chunk
     try:
         raw = audio.get_raw_data()
@@ -38,9 +38,9 @@ def process_audio(recognizer, audio):
         print(f"LEVEL:{level}", flush=True)
     except:
         pass
-    
+
     print("INTERIM:Processing...", flush=True)
-    
+
     try:
         import speech_recognition as sr
         # Use Google Speech Recognition (free, no API key)
@@ -59,21 +59,21 @@ def process_audio(recognizer, audio):
 
 def main():
     global audio_level
-    
+
     try:
         import speech_recognition as sr
     except ImportError:
         print("STATUS:error_no_speech_recognition", flush=True)
         sys.exit(1)
-    
+
     try:
         import pyaudio
     except ImportError:
         print("STATUS:error_no_pyaudio", flush=True)
         sys.exit(1)
-    
+
     recognizer = sr.Recognizer()
-    
+
     # Tuned settings for responsive always-listen
     recognizer.energy_threshold = 300  # Lower = more sensitive
     recognizer.dynamic_energy_threshold = True
@@ -82,18 +82,18 @@ def main():
     recognizer.pause_threshold = 0.6  # 600ms pause = end of phrase
     recognizer.phrase_threshold = 0.2  # Min speech duration
     recognizer.non_speaking_duration = 0.4  # Silence padding
-    
+
     try:
         mic = sr.Microphone()
         with mic as source:
             print("STATUS:adjusting", flush=True)
             recognizer.adjust_for_ambient_noise(source, duration=0.5)
-        
+
         print("STATUS:started", flush=True)
-        
+
         # Start background listening
         stop_listening = recognizer.listen_in_background(mic, process_audio, phrase_time_limit=10)
-        
+
         # Main loop - decay audio level when not speaking
         while True:
             with level_lock:
@@ -103,7 +103,7 @@ def main():
                     audio_level = max(0, audio_level - 3)
             print(f"LEVEL:{lvl}", flush=True)
             time.sleep(0.05)  # 50ms = 20fps
-            
+
     except OSError as e:
         print(f"STATUS:error_microphone:{e}", flush=True)
         sys.exit(1)

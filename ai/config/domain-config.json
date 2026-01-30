@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lastUpdated": "2026-01-30T05:50:26.561Z",
+  "lastUpdated": "2026-01-30T13:46:04.531Z",
   "configs": {
     "prd": {
       "provider": "gateway-auto",
@@ -43,7 +43,7 @@
       "thinkingLevel": "none"
     },
     "voice": {
-      "provider": "gateway-auto",
+      "provider": "lmstudio",
       "modelId": "",
       "modelName": "Auto",
       "temperature": 0.7,

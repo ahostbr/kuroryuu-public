@@ -35,11 +35,16 @@ function getTrayCompanionLaunchTarget(): { type: 'dev' | 'packaged'; path: strin
 export async function launchTrayCompanion(options?: { debug?: boolean }): Promise<{ ok: boolean; error?: string; message?: string }> {
   const showTerminal = options?.debug ?? false;
 
+  console.log('[TrayCompanion] Launch requested, debug:', showTerminal);
+  console.log('[TrayCompanion] PROJECT_ROOT:', PROJECT_ROOT);
+
   try {
     const target = getTrayCompanionLaunchTarget();
+    console.log('[TrayCompanion] Target:', target);
 
     if (!target) {
       // No build found, but still try to give helpful feedback
+      console.error('[TrayCompanion] No build target found');
       return {
         ok: false,
         error: 'Tray Companion not found. Build it first:\n  cd apps/tray_companion\n  npm run dev (for dev build)\n  npm run build (for production build)'
@@ -47,6 +52,7 @@ export async function launchTrayCompanion(options?: { debug?: boolean }): Promis
     }
 
     const trayCompanionRoot = path.join(PROJECT_ROOT, 'apps', 'tray_companion');
+    console.log('[TrayCompanion] Root:', trayCompanionRoot);
 
     // Clone env but remove ELECTRON_RENDERER_URL to prevent tray companion
     // from trying to load the desktop app's vite dev server URL
@@ -57,63 +63,46 @@ export async function launchTrayCompanion(options?: { debug?: boolean }): Promis
 
     let child;
 
+    // Use npm start in tray_companion directory - this is the most reliable method
+    console.log('[TrayCompanion] Launching via npm start in:', trayCompanionRoot);
+
     if (process.platform === 'win32' && !showTerminal) {
-      // On Windows, use PowerShell with -WindowStyle Hidden to truly hide the terminal
-      const electronPaths = [
-        path.join(PROJECT_ROOT, 'apps', 'desktop', 'node_modules', '.bin', 'electron.cmd'),
-        path.join(PROJECT_ROOT, 'node_modules', '.bin', 'electron.cmd')
-      ];
-      const electronCmd = electronPaths.find(p => fs.existsSync(p)) || electronPaths[0];
-
-      if (target.type === 'dev') {
-        // Launch dev build via PowerShell hidden
-        const psCommand = `& '${electronCmd}' '${trayCompanionRoot}'`;
-        child = spawn('powershell.exe', [
-          '-NoProfile',
-          '-WindowStyle', 'Hidden',
-          '-Command', psCommand
-        ], {
-          cwd: trayCompanionRoot,
-          detached: true,
-          stdio: 'ignore',
-          env: childEnv
-        });
-      } else {
-        // Launch packaged exe directly (no shell needed)
-        child = spawn(target.path, [], {
-          cwd: trayCompanionRoot,
-          detached: true,
-          stdio: 'ignore',
-          windowsHide: true,
-          env: childEnv
-        });
-      }
+      // On Windows, use PowerShell Start-Process with -WindowStyle Hidden to hide terminal
+      child = spawn('powershell.exe', [
+        '-NoProfile',
+        '-Command',
+        `Start-Process -FilePath 'npm.cmd' -ArgumentList 'start' -WorkingDirectory '${trayCompanionRoot}' -WindowStyle Hidden`
+      ], {
+        cwd: trayCompanionRoot,
+        detached: true,
+        stdio: 'ignore',
+        windowsHide: true,
+        env: childEnv
+      });
     } else {
-      // Non-Windows or debug mode: use standard spawn
-      let execPath: string;
-      let args: string[];
-
-      if (target.type === 'dev') {
-        const electronPaths = [
-          path.join(PROJECT_ROOT, 'apps', 'desktop', 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron'),
-          path.join(PROJECT_ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'electron.cmd' : 'electron')
-        ];
-        execPath = electronPaths.find(p => fs.existsSync(p)) || electronPaths[0];
-        args = [trayCompanionRoot];
-      } else {
-        execPath = target.path;
-        args = [];
-      }
-
-      child = spawn(execPath, args, {
+      // Non-Windows or debug mode
+      const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+      child = spawn(npmCmd, ['start'], {
         cwd: trayCompanionRoot,
         detached: true,
         stdio: showTerminal ? 'inherit' : 'ignore',
         shell: process.platform === 'win32',
-        windowsHide: !showTerminal,
+        windowsHide: false,
         env: childEnv
       });
     }
+
+    // Add error listener to catch spawn failures (fires async after spawn returns)
+    child.on('error', (err) => {
+      console.error('[TrayCompanion] Spawn error:', err.message);
+    });
+
+    // Log if process exits immediately (indicates crash or single-instance rejection)
+    child.on('exit', (code, signal) => {
+      if (code !== 0 && code !== null) {
+        console.warn(`[TrayCompanion] Process exited with code ${code}, signal ${signal}`);
+      }
+    });
 
     // Unref so the parent doesn't wait for the child
     child.unref();
@@ -126,6 +115,7 @@ export async function launchTrayCompanion(options?: { debug?: boolean }): Promis
       message: `Tray Companion launched successfully${showTerminal ? ' (debug mode)' : ''} (or already running and focused)`
     };
   } catch (err: any) {
+    console.error('[TrayCompanion] Launch failed:', err);
     return {
       ok: false,
       error: `Failed to launch: ${err.message || String(err)}`

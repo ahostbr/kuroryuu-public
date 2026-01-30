@@ -2638,10 +2638,12 @@ app.whenReady().then(async () => {
   app.setAsDefaultProtocolClient('kuroryuu');
 
   // Register local-video:// protocol for serving local video files
-  // Format: local-video://C:/Users/path/to/video.mp4
+  // Format: local-video://localhost/<encoded-path>
   protocol.handle('local-video', (request) => {
-    // Extract file path from URL (remove protocol prefix)
-    const filePath = decodeURIComponent(request.url.replace('local-video://', ''));
+    // Extract file path from URL (remove protocol and localhost prefix, decode)
+    const url = new URL(request.url);
+    const filePath = decodeURIComponent(url.pathname.slice(1)); // Remove leading /
+    console.log('[local-video] Serving:', filePath);
     return net.fetch('file:///' + filePath);
   });
 

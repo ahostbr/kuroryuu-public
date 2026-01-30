@@ -540,23 +540,8 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Voice recording refs
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const streamRef = useRef<MediaStream | null>(null);
-
-  // Audio monitoring refs for silence detection
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const maxRecordingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [audioLevel, setAudioLevel] = useState(0);
-
-  // Silence detection constants
-  const SILENCE_THRESHOLD = 5;      // Audio level below this = silence
-  const SILENCE_TIMEOUT_MS = 400;   // 400ms of silence triggers stop
-  const MAX_RECORDING_MS = 8000;    // 8 second max recording
+  // Voice input state (using Python voice_input.py via IPC - same as tray_companion)
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   // Mode-specific settings
   const isFullscreen = mode === 'fullscreen';
@@ -1142,215 +1127,86 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
     }
   };
 
-  // Stop recording and process audio
-  const stopRecording = useCallback(async () => {
-    // Clean up audio monitoring
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-      silenceTimeoutRef.current = null;
-    }
-    if (maxRecordingTimeoutRef.current) {
-      clearTimeout(maxRecordingTimeoutRef.current);
-      maxRecordingTimeoutRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    analyserRef.current = null;
-    setAudioLevel(0);
+  // ============================================================================
+  // Voice Input - Uses Python voice_input.py via IPC (same system as tray_companion)
+  // This replaces the broken Web MediaRecorder + Whisper approach
+  // ============================================================================
 
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.addEventListener(
-        'stop',
-        async () => {
-          try {
-            setIsTranscribing(true);
-
-            // Create audio blob
-            const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-
-            // Skip if no audio data
-            if (audioBlob.size < 1000) {
-              audioChunksRef.current = [];
-              mediaRecorderRef.current = null;
-              setIsRecording(false);
-              setIsTranscribing(false);
-              return;
-            }
-
-            // Convert blob to ArrayBuffer for IPC transfer
-            const arrayBuffer = await audioBlob.arrayBuffer();
-
-            // Call Whisper transcription via IPC
-            const result = await (window as any).electronAPI?.audio?.transcribe(
-              Array.from(new Uint8Array(arrayBuffer)),
-              'audio/webm',
-              'whisper'
-            );
-
-            if (result?.success && result.transcription) {
-              const text = result.transcription.trim();
-              if (text) {
-                // Auto-send directly to AI instead of putting in input box
-                sendMessage(text);
-              }
-            }
-
-            // Reset recording state
-            audioChunksRef.current = [];
-            mediaRecorderRef.current = null;
-          } catch (error) {
-            console.error('[VoiceInput] Error processing audio:', error);
-          } finally {
-            setIsRecording(false);
-            setIsTranscribing(false);
-          }
-        },
-        { once: true }
-      );
-    } else {
-      setIsRecording(false);
-    }
-  }, [sendMessage]);
-
-  // Monitor audio levels for silence detection
-  const monitorAudioLevel = useCallback(() => {
-    if (!analyserRef.current) return;
-
-    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
-    analyserRef.current.getByteFrequencyData(dataArray);
-
-    // Calculate average level (0-100)
-    const avg = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-    const level = Math.min(100, (avg / 255) * 100);
-    setAudioLevel(level);
-
-    // Silence detection
-    if (level < SILENCE_THRESHOLD) {
-      // Start silence timeout if not already running
-      if (!silenceTimeoutRef.current) {
-        silenceTimeoutRef.current = setTimeout(() => {
-          stopRecording(); // Auto-stop when silence detected
-        }, SILENCE_TIMEOUT_MS);
-      }
-    } else {
-      // Voice detected - clear silence timeout
-      if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-        silenceTimeoutRef.current = null;
-      }
-    }
-
-    // Continue monitoring
-    animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
-  }, [stopRecording, SILENCE_THRESHOLD, SILENCE_TIMEOUT_MS]);
-
-  // Handle microphone button click
+  // Handle microphone button click - uses Python speech recognition
   const handleMicClick = useCallback(async () => {
     if (isRecording) {
-      // Stop recording
-      await stopRecording();
-    } else {
-      // Start recording
+      // Stop listening
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        });
-
-        streamRef.current = stream;
-        audioChunksRef.current = [];
-
-        // Set up audio analysis for silence detection
-        const audioContext = new AudioContext();
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 256;
-        source.connect(analyser);
-
-        audioContextRef.current = audioContext;
-        analyserRef.current = analyser;
-
-        const mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'audio/webm;codecs=opus',
-        });
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            audioChunksRef.current.push(e.data);
-          }
-        };
-
-        mediaRecorderRef.current = mediaRecorder;
-        mediaRecorder.start(100); // Collect data every 100ms
-        setIsRecording(true);
-
-        // Start monitoring audio levels for silence detection
-        monitorAudioLevel();
-
-        // Set max recording timeout (8 seconds)
-        maxRecordingTimeoutRef.current = setTimeout(() => {
-          stopRecording();
-        }, MAX_RECORDING_MS);
-      } catch (error) {
-        console.error('[VoiceInput] Error starting recording:', error);
-        // Handle permission denied or no mic available
-        if (error instanceof DOMException) {
-          if (error.name === 'NotAllowedError') {
-            alert('Microphone permission denied. Please allow microphone access.');
-          } else if (error.name === 'NotFoundError') {
-            alert('No microphone found. Please connect a microphone.');
-          }
+        await (window as any).electronAPI?.speech?.stop?.();
+        setIsRecording(false);
+      } catch (err) {
+        console.error('[VoiceInput] Error stopping:', err);
+        setIsRecording(false);
+      }
+    } else {
+      // Start listening
+      setVoiceError(null);
+      try {
+        const result = await (window as any).electronAPI?.speech?.start?.();
+        if (result?.success) {
+          setIsRecording(true);
+        } else {
+          setVoiceError(result?.error || 'Failed to start voice input');
         }
+      } catch (err) {
+        console.error('[VoiceInput] Error starting:', err);
+        setVoiceError(err instanceof Error ? err.message : 'Failed to start');
       }
     }
-  }, [isRecording, stopRecording, monitorAudioLevel, MAX_RECORDING_MS]);
+  }, [isRecording]);
 
-  // Cleanup on unmount
+  // Set up speech event listeners - put transcript in input field (don't auto-send)
   useEffect(() => {
+    const api = (window as any).electronAPI?.speech;
+    if (!api) return;
+
+    // Handle transcript - put in input field, user can review before sending
+    const unsubTranscript = api.onTranscript?.((text: string) => {
+      console.log('[VoiceInput] Received transcript:', text);
+      if (text && text.trim()) {
+        setInput(prev => prev ? `${prev} ${text.trim()}` : text.trim());
+      }
+      // Stop Python speech process after receiving transcript (single-phrase mode)
+      api.stop?.();
+      setIsRecording(false);
+      setIsTranscribing(false);
+    });
+
+    // Handle status changes
+    const unsubStatus = api.onStatus?.((status: string) => {
+      console.log('[VoiceInput] Status:', status);
+      if (status === 'started') {
+        setIsRecording(true);
+        setVoiceError(null);
+      } else if (status.startsWith('error')) {
+        setVoiceError(status);
+        setIsRecording(false);
+      }
+    });
+
+    // Handle errors
+    const unsubError = api.onError?.((err: string) => {
+      console.error('[VoiceInput] Error:', err);
+      setVoiceError(err);
+      setIsRecording(false);
+    });
+
     return () => {
-      // Clean up audio monitoring
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-      }
-      if (maxRecordingTimeoutRef.current) {
-        clearTimeout(maxRecordingTimeoutRef.current);
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
-      // Clean up media streams
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        try {
-          mediaRecorderRef.current.stop();
-        } catch {
-          // Ignore errors during cleanup
-        }
-      }
+      // Cleanup listeners
+      unsubTranscript?.();
+      unsubStatus?.();
+      unsubError?.();
+      // Stop speech if active
+      api.stop?.();
       // Stop TTS if playing
       stop();
     };
-  }, [stop]);
+  }, [stop]); // setInput is stable from useState
 
   // Panel mode: respect isPanelOpen state
   if (!isFullscreen && !isPanelOpen) return null;
@@ -1583,7 +1439,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
         {/* Input area - Copilot styled */}
         <div className="p-4" style={{ borderTop: '1px solid var(--cp-border-default)', backgroundColor: 'var(--cp-bg-secondary)' }}>
           <div className="cp-input-container">
-            {/* Recording Banner */}
+            {/* Recording Banner / Error Display */}
             <AnimatePresence>
               {isRecording && (
                 <motion.div
@@ -1598,6 +1454,16 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                     className="cp-recording-dot"
                   />
                   <span className="cp-recording-text">Listening... Speak now</span>
+                </motion.div>
+              )}
+              {voiceError && !isRecording && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="px-3 py-2 text-xs text-red-400 bg-red-500/10 border-b border-red-500/20"
+                >
+                  Voice error: {voiceError}
                 </motion.div>
               )}
             </AnimatePresence>
