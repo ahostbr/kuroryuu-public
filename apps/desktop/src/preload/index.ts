@@ -953,6 +953,9 @@ const api = {
     /** Copy a video file to assets/videos/ for git tracking */
     copyToAssets: (sourcePath: string, videoId: string): Promise<{ ok: boolean; relativePath?: string; error?: string }> =>
       ipcRenderer.invoke('video:copy-to-assets', sourcePath, videoId),
+    /** Load a video from assets/videos/ (for restart persistence) */
+    loadFromAssets: (videoId: string): Promise<{ ok: boolean; base64?: string; mimeType?: string; error?: string }> =>
+      ipcRenderer.invoke('video:load-from-assets', videoId),
   },
   /**
    * Thinker Wizard API
