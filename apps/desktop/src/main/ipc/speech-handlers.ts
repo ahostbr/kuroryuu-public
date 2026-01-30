@@ -6,33 +6,36 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import * as speechRecognition from '../features/speech-recognition';
 
-let mainWindow: BrowserWindow | null = null;
-
 /**
- * Safely send to window - checks if window exists and is not destroyed
+ * Broadcast to ALL windows - enables speech in CodeEditor and other windows
  */
 function safeSend(channel: string, ...args: unknown[]): void {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    try {
-      mainWindow.webContents.send(channel, ...args);
-    } catch (e) {
-      // Window may have been destroyed between check and send
-      console.log('[SpeechHandlers] Failed to send to window:', e);
+  const windows = BrowserWindow.getAllWindows();
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      try {
+        win.webContents.send(channel, ...args);
+      } catch (e) {
+        // Window may have been destroyed between check and send
+        console.log('[SpeechHandlers] Failed to send to window:', e);
+      }
     }
   }
 }
 
-export function registerSpeechHandlers(window: BrowserWindow): void {
-  mainWindow = window;
+export function registerSpeechHandlers(window?: BrowserWindow): void {
+  // Initialize speech recognition (window param kept for compatibility but not required)
   speechRecognition.initializeSpeechRecognition(window);
-  
+
   console.log('[SpeechHandlers] Registering speech IPC handlers');
-  
-  // Stop speech recognition when window closes
-  window.on('close', () => {
-    console.log('[SpeechHandlers] Window closing, stopping speech recognition');
-    speechRecognition.stopListening();
-  });
+
+  // Stop speech recognition when main window closes (if provided)
+  if (window) {
+    window.on('close', () => {
+      console.log('[SpeechHandlers] Window closing, stopping speech recognition');
+      speechRecognition.stopListening();
+    });
+  }
   
   // Start listening
   ipcMain.handle('speech:start', async () => {

@@ -1,7 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Video, Play, Upload, X, Loader2 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useWelcomeStore } from '../../../stores/welcome-store';
+import { fileLogger } from '../../../utils/file-logger';
 
 interface VideoPlaceholderProps {
   message?: string;
@@ -9,6 +10,7 @@ interface VideoPlaceholderProps {
   onPlayClick?: () => void;
   className?: string;
   videoId?: string; // Unique ID for storing video path
+  onVideoDrop?: (blobUrl: string) => void; // Callback when video is dropped
 }
 
 export function VideoPlaceholder({
@@ -17,20 +19,62 @@ export function VideoPlaceholder({
   onPlayClick,
   className,
   videoId = 'default',
+  onVideoDrop,
 }: VideoPlaceholderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
-  const [projectRoot, setProjectRoot] = useState('');
   const { videoPaths, setVideoPath, clearVideoPath } = useWelcomeStore();
-  const currentVideoPath = videoPaths[videoId];
+  const storedPath = videoPaths[videoId];
+  const didMountCleanup = useRef(false);
 
-  // Get project root on mount for resolving relative paths
+  const [sessionBlobUrl, setSessionBlobUrl] = useState<string | null>(null);
+
+  fileLogger.log('VideoPlaceholder', `Render: videoId=${videoId}, storedPath=${storedPath}, sessionBlobUrl=${sessionBlobUrl?.substring(0, 30)}`);
+
+  // On mount: if we have a saved path, try to load from file
   useEffect(() => {
-    window.electronAPI?.app?.getProjectRoot?.().then(setProjectRoot).catch(() => {});
-  }, []);
+    if (didMountCleanup.current) return;
+    didMountCleanup.current = true;
 
-  // Use video path directly (blob URLs work without resolution)
-  const resolvedVideoSrc = currentVideoPath || '';
+    const initVideo = async () => {
+      // If we have a saved relative path (not blob), try to load from file
+      if (storedPath && !storedPath.startsWith('blob:') && window.electronAPI?.video?.loadFromAssets) {
+        fileLogger.log('VideoPlaceholder', `Loading saved video from assets: ${storedPath}`);
+        try {
+          const result = await window.electronAPI.video.loadFromAssets(videoId);
+          if (result.ok && result.base64 && result.mimeType) {
+            fileLogger.log('VideoPlaceholder', `Loaded video (${result.base64.length} chars base64)`);
+            // Convert base64 to blob URL
+            const byteCharacters = atob(result.base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: result.mimeType });
+            const blobUrl = URL.createObjectURL(blob);
+            fileLogger.log('VideoPlaceholder', `Created blob URL: ${blobUrl}`);
+            setSessionBlobUrl(blobUrl);
+          } else {
+            fileLogger.log('VideoPlaceholder', `Video file not found, clearing stored path`);
+            clearVideoPath(videoId);
+          }
+        } catch (err) {
+          fileLogger.error('VideoPlaceholder', `Failed to load: ${err}`);
+          clearVideoPath(videoId);
+        }
+      } else if (storedPath?.startsWith('blob:')) {
+        // Stale blob URL from previous session - clear it
+        fileLogger.log('VideoPlaceholder', `Clearing stale blob URL`);
+        clearVideoPath(videoId);
+      }
+    };
+
+    initVideo();
+  }, [videoId, storedPath, clearVideoPath]);
+
+  // Use session blob URL for playback (either from drop or loaded from file)
+  const resolvedVideoSrc = sessionBlobUrl || '';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -55,49 +99,56 @@ export function VideoPlaceholder({
     setIsDragging(false);
 
     const files = e.dataTransfer.files;
-    console.log('[VideoPlaceholder] Drop event, files:', files.length);
+    fileLogger.log('VideoPlaceholder', `Drop event, files: ${files.length}`);
     if (files.length > 0) {
       const file = files[0];
       // Check if it's a video file
       if (file.type.startsWith('video/')) {
         // Use webUtils.getPathForFile via preload (Electron 29+ removed file.path)
         const rawPath = window.electronAPI?.video?.getFilePath?.(file);
-        console.log('[VideoPlaceholder] File type:', file.type);
-        console.log('[VideoPlaceholder] rawPath (via webUtils):', rawPath);
-        console.log('[VideoPlaceholder] electronAPI.video:', window.electronAPI?.video);
+        fileLogger.log('VideoPlaceholder', `File type: ${file.type}, rawPath: ${rawPath}`);
+
         // Create blob URL for playback (works without security issues)
         const blobUrl = URL.createObjectURL(file);
+        fileLogger.log('VideoPlaceholder', `Created blob URL: ${blobUrl}`);
 
         if (rawPath && window.electronAPI?.video?.copyToAssets) {
           // Also copy to assets/videos/ for git tracking
           setIsCopying(true);
-          console.log('[VideoPlaceholder] Calling IPC copyToAssets...');
+          fileLogger.log('VideoPlaceholder', 'Calling IPC copyToAssets...');
           try {
             const result = await window.electronAPI.video.copyToAssets(rawPath, videoId);
-            console.log('[VideoPlaceholder] IPC result:', result);
+            fileLogger.log('VideoPlaceholder', `IPC result: ${JSON.stringify(result)}`);
             if (!result.ok) {
-              console.error('[Video] Copy failed:', result.error);
+              fileLogger.error('VideoPlaceholder', `Copy failed: ${result.error}`);
             }
           } catch (err) {
-            console.error('[Video] Copy error:', err);
+            fileLogger.error('VideoPlaceholder', `Copy error: ${err}`);
           } finally {
             setIsCopying(false);
           }
         }
 
-        // Use blob URL for playback (file is also copied to assets/videos/ for git)
-        setVideoPath(videoId, blobUrl);
+        // Store relative path for persistence, use local state for blob URL
+        fileLogger.log('VideoPlaceholder', `Setting session blob URL and storing relative path`);
+        setSessionBlobUrl(blobUrl);
+        setVideoPath(videoId, `assets/videos/${videoId}.mp4`);
+        // Notify parent
+        onVideoDrop?.(blobUrl);
       }
     }
   }, [videoId, setVideoPath]);
 
   const handleClear = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    fileLogger.log('VideoPlaceholder', `Clearing video for ${videoId}`);
+    setSessionBlobUrl(null);
     clearVideoPath(videoId);
   }, [videoId, clearVideoPath]);
 
-  // If video is set, show video player
-  if (currentVideoPath && resolvedVideoSrc) {
+  // If video blob URL is set, show video player
+  if (resolvedVideoSrc) {
+    fileLogger.log('VideoPlaceholder', `Rendering video player with src: ${resolvedVideoSrc.substring(0, 50)}...`);
     return (
       <div className={cn('flex flex-col gap-2', className)}>
         <div className="relative w-full aspect-video rounded-xl overflow-hidden">
@@ -111,7 +162,7 @@ export function VideoPlaceholder({
           />
         </div>
         <div className="flex items-center justify-center gap-4">
-          <span className="text-xs text-muted-foreground">{currentVideoPath}</span>
+          <span className="text-xs text-muted-foreground">assets/videos/{videoId}.mp4</span>
           <button
             onClick={handleClear}
             className="px-3 py-1 rounded-lg bg-background/80 hover:bg-destructive/20 border border-border text-muted-foreground hover:text-destructive text-xs transition-colors flex items-center gap-1"

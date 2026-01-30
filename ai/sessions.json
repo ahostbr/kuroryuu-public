@@ -5719,6 +5719,84 @@
       "tool_calls": 0,
       "tool_successes": 0,
       "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_cb480eac",
+      "process_id": "tray-companion-1769783440811",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:30:40.819226+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_2144cff2",
+      "process_id": "tray-companion-1769783852739",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:37:32.754016+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_2fcff4cd",
+      "process_id": "tray-companion-1769784122457",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:42:02.472074+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_d84732dc",
+      "process_id": "tray-companion-1769784209256",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:43:29.271005+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_4d144316",
+      "process_id": "tray-companion-1769784485189",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:48:05.198813+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_1d99ce11",
+      "process_id": "tray-companion-1769784519042",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:48:39.056636+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
     }
   ]
 }

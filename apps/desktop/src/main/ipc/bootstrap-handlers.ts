@@ -5,7 +5,7 @@
 import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawn } from 'child_process';
+import { spawn, exec } from 'child_process';
 
 // From out/main -> go up to apps/desktop, then up to Kuroryuu root
 // out/main -> out -> desktop -> apps -> Kuroryuu (4 levels, not 5)
@@ -61,58 +61,70 @@ export async function launchTrayCompanion(options?: { debug?: boolean }): Promis
     childEnv.KURORYUU_ROOT = PROJECT_ROOT;
     childEnv.ELECTRON_IS_DEV = target.type === 'dev' ? '1' : '0';
 
-    let child;
-
-    // Use npm start in tray_companion directory - this is the most reliable method
-    console.log('[TrayCompanion] Launching via npm start in:', trayCompanionRoot);
-
+    // Windows hidden launch: Use exec() with Start-Process (proven pattern from service-manager.ts)
+    // NOTE: spawn() with detached:true + windowsHide:true is a known Node.js bug since 2018
     if (process.platform === 'win32' && !showTerminal) {
-      // On Windows, use PowerShell Start-Process with -WindowStyle Hidden to hide terminal
-      child = spawn('powershell.exe', [
-        '-NoProfile',
-        '-Command',
-        `Start-Process -FilePath 'npm.cmd' -ArgumentList 'start' -WorkingDirectory '${trayCompanionRoot}' -WindowStyle Hidden`
-      ], {
+      // Call electron.exe directly (tray_companion has its own electron)
+      const electronExe = path.join(trayCompanionRoot, 'node_modules', 'electron', 'dist', 'electron.exe');
+
+      if (!fs.existsSync(electronExe)) {
+        console.error('[TrayCompanion] electron.exe not found at:', electronExe);
+        return {
+          ok: false,
+          error: 'Tray Companion electron not found. Run: cd apps/tray_companion && npm install'
+        };
+      }
+
+      console.log('[TrayCompanion] Launching via exec + Start-Process');
+      console.log('[TrayCompanion] Electron exe:', electronExe);
+
+      // Use exec() with Start-Process (no detached:true needed - PowerShell handles detachment)
+      const psCommand = `Start-Process -FilePath '${electronExe}' -ArgumentList '${trayCompanionRoot}' -WindowStyle Hidden`;
+
+      exec(`powershell -NoProfile -Command "${psCommand}"`, {
         cwd: trayCompanionRoot,
-        detached: true,
-        stdio: 'ignore',
-        windowsHide: true,
         env: childEnv
+      }, (error, _stdout, stderr) => {
+        if (error) {
+          console.error('[TrayCompanion] exec error:', error.message);
+        }
+        if (stderr) {
+          console.warn('[TrayCompanion] stderr:', stderr);
+        }
       });
-    } else {
-      // Non-Windows or debug mode
-      const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-      child = spawn(npmCmd, ['start'], {
-        cwd: trayCompanionRoot,
-        detached: true,
-        stdio: showTerminal ? 'inherit' : 'ignore',
-        shell: process.platform === 'win32',
-        windowsHide: false,
-        env: childEnv
-      });
+
+      return {
+        ok: true,
+        message: 'Tray Companion launched (hidden)'
+      };
     }
 
-    // Add error listener to catch spawn failures (fires async after spawn returns)
+    // Non-Windows or debug mode: use spawn with visible terminal
+    console.log('[TrayCompanion] Launching via spawn (debug/non-Windows)');
+    const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+    const child = spawn(npmCmd, ['start'], {
+      cwd: trayCompanionRoot,
+      detached: true,
+      stdio: showTerminal ? 'inherit' : 'ignore',
+      shell: process.platform === 'win32',
+      env: childEnv
+    });
+
     child.on('error', (err) => {
       console.error('[TrayCompanion] Spawn error:', err.message);
     });
 
-    // Log if process exits immediately (indicates crash or single-instance rejection)
     child.on('exit', (code, signal) => {
       if (code !== 0 && code !== null) {
         console.warn(`[TrayCompanion] Process exited with code ${code}, signal ${signal}`);
       }
     });
 
-    // Unref so the parent doesn't wait for the child
     child.unref();
 
-    // Note: If tray companion is already running, the new instance will detect this
-    // via single-instance lock, focus the existing window, and quit immediately.
-    // From our perspective, the spawn succeeded either way.
     return {
       ok: true,
-      message: `Tray Companion launched successfully${showTerminal ? ' (debug mode)' : ''} (or already running and focused)`
+      message: `Tray Companion launched${showTerminal ? ' (debug mode)' : ''}`
     };
   } catch (err: any) {
     console.error('[TrayCompanion] Launch failed:', err);

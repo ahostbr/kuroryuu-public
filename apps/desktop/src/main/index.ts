@@ -2691,6 +2691,27 @@ app.whenReady().then(async () => {
     }
   });
 
+  // IPC handler for loading video from assets folder (for restart persistence)
+  ipcMain.handle('video:load-from-assets', async (_, videoId: string) => {
+    try {
+      const projectRoot = join(__dirname, '..', '..', '..', '..');
+      const videoPath = join(projectRoot, 'assets', 'videos', `${videoId}.mp4`);
+
+      // Check if file exists
+      await fs.promises.access(videoPath);
+
+      // Read file as buffer and convert to base64
+      const buffer = await fs.promises.readFile(videoPath);
+      const base64 = buffer.toString('base64');
+
+      console.log(`[Video] Loaded ${videoPath} (${buffer.length} bytes)`);
+      return { ok: true, base64, mimeType: 'video/mp4' };
+    } catch (error) {
+      // File doesn't exist or can't be read - this is normal on first run
+      return { ok: false, error: String(error) };
+    }
+  });
+
   // IPC handlers for leader registration with MCP Core
   ipcMain.handle('register-leader-mcp', async (_, agentId: string) => {
     await registerLeaderWithMcpCore(agentId);
