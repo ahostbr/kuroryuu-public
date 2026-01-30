@@ -29,13 +29,13 @@
 | **Desktop Modals** | 13 | Dialogs and wizards |
 | **Desktop Integrations** | 10 | OAuth, Linear, Graphiti, WinAppDriver... |
 | **Gateway Routers** | 21 | REST API endpoints |
-| **Kuroryuu CLI** | 9,030 LOC | 21 Python modules |
+| **Kuroryuu CLI** | 6,137 LOC | 21 Python modules |
 | **CLI Commands** | 24 | Full REPL with slash commands |
 | **CLI Providers** | 3 | LMStudio, Claude API, CLIProxyAPI |
 | **LLM Models** | 61+ | Via CLIProxyAPI multi-provider |
 | **Plugin Commands** | 20 | Kuro plugin slash commands |
-| **Worklogs** | 198 | Comprehensive documentation |
-| **Checkpoints** | 120+ | Session state persistence |
+| **Worklogs** | 602 | Comprehensive documentation |
+| **Checkpoints** | 706 | Session state persistence |
 | **Code Quality** | High | TypeScript, error handling, docs |
 | **Parallelism** | PROVEN | Multi-agent orchestration working |
 
@@ -4193,8 +4193,8 @@ elif event.type == "text_delta":
 | **MCP Tools** | 15 | Clawdbot removed for public release |
 | **MCP Actions** | 107 | Across all tools |
 | **React Components** | 235 | Desktop + Web UI |
-| **Worklogs** | 198 | Comprehensive documentation |
-| **Checkpoints** | 120+ | Session state persistence |
+| **Worklogs** | 602 | Comprehensive documentation |
+| **Checkpoints** | 706 | Session state persistence |
 | **Desktop Screens** | 16 | Main navigation views |
 | **Desktop Modals** | 13 | Dialogs and wizards |
 | **CLI Commands** | 24 | Full REPL |

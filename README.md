@@ -1,7 +1,7 @@
 # Kuroryuu - Multi-Agent AI Orchestration Platform
 
 
-> **Dynamous x Kiro Hackathon Entry** | January 5-27, 2026 | 23 Days of Development
+> **Dynamous x Kiro Hackathon Entry** | January 5-30, 2026 | 26 Days of Development
 
 Kuroryuu (黒き幻影の霧の龍 - "Black Dragon of Illusionary Fog") is a production-ready multi-agent AI orchestration platform that enables autonomous AI agents to collaborate on complex software development tasks. Features Ralph leader orchestration, desktop automation via PowerShell/Win32 APIs, and 61+ LLM models across 6 providers.
 
@@ -180,7 +180,7 @@ Windows-only features are automatically disabled:
                          │
               ┌──────────▼──────────┐
               │   MCP Core (8100)    │
-              │  16 Tools→118 Actions│
+              │  15 Tools→107 Actions│
               └─────────────────────┘
 ```
 
@@ -189,7 +189,7 @@ Windows-only features are automatically disabled:
 - **Gateway**: FastAPI server with 21 routers, agent registry, WebSocket events, streaming chat
 - **MCP Core**: 15 MCP tools with 107 routed actions (RAG, Inbox, Checkpoints, PTY, PCControl...)
 - **Desktop**: Electron + React + TypeScript with 235 components, 16 screens, 13 modals
-- **Kuroryuu CLI**: 9,030 LOC Python REPL with 24 slash commands, 61+ models via 3 providers
+- **Kuroryuu CLI**: 6,137 LOC Python REPL with 24 slash commands, 61+ models via 3 providers
 - **Leader/Worker Pattern**: Ralph orchestration with Desktop monitoring and nudging
 
 ## Kiro CLI Integration
@@ -200,19 +200,23 @@ This project was built using [Kiro CLI](https://kiro.dev) for AI-powered develop
 
 | Metric | Value |
 |--------|-------|
-| Development Days | 23 |
-| Total Sessions | 437 |
-| Tasks Completed | 431 |
-| MCP Tools | 16 (118 actions) |
+| Development Days | 26 |
+| Total Sessions | 460+ |
+| Tasks Completed | 445 |
+| MCP Tools | 15 (107 actions) |
 | React Components | 235 |
 | Desktop Screens | 16 + 13 modals |
 | Gateway Routers | 21 |
-| Kuroryuu CLI | 9,030 LOC |
+| **Total Source LOC** | **235,626** |
+| Desktop (TypeScript) | 95,426 |
+| Gateway (Python) | 23,097 |
+| MCP Core (Python) | 10,292 |
+| Kuroryuu CLI (Python) | 6,137 |
 | CLI Commands | 24 |
 | LLM Models Supported | 61+ |
 | Plugin Commands | 20 |
-| Worklogs | 175+ |
-| Checkpoints | 100+ |
+| Worklogs | 602 |
+| Checkpoints | 706 |
 
 ### Custom Prompts (`ai\prompts\workflows\`)
 
@@ -244,7 +248,7 @@ This project was built using [Kiro CLI](https://kiro.dev) for AI-powered develop
 4. `@code-review` - Ensure quality before commit
 5. Update steering docs - Maintain knowledge base
 
-### MCP Tools (16 Tools → 118 Routed Actions)
+### MCP Tools (15 Tools → 107 Routed Actions)
 
 Kiro CLI connects directly to Kuroryuu's MCP server, providing access to:
 
@@ -293,14 +297,14 @@ Kiro CLI connects directly to Kuroryuu's MCP server, providing access to:
 - Changelog generator from completed tasks
 - 437 searchable conversation transcripts
 
-### MCP Tool Suite (15 Tools → 107 Actions)
+### MCP Tool Suite (15 Tools, 107 Actions)
 - Routed tool architecture to prevent tool bloat
 - k_pccontrol for full Windows desktop automation
 - RAG search with 12 strategies (keyword, semantic, hybrid, agentic...)
 - Maildir-based inbox for multi-agent messaging
 - Graphiti knowledge graph integration
 
-### Kuroryuu CLI (9,030 LOC)
+### Kuroryuu CLI (6,137 LOC)
 
 A full-featured Python REPL for AI-powered development:
 
@@ -352,7 +356,7 @@ kuroryuu/
 │   └── specs/            # Feature specifications
 ├── Docs/
 │   ├── DEVLOG.md         # Development timeline
-│   ├── worklogs/         # 140+ session logs
+│   ├── worklogs/         # 602 session logs
 │   └── Plans/            # Implementation plans
 ├── KURORYUU_BOOTSTRAP.md # Agent bootstrap guide
 ├── KURORYUU_LEADER.md    # Leader agent instructions
@@ -411,13 +415,15 @@ curl -X POST http://127.0.0.1:8100/mcp -d '{"jsonrpc":"2.0","method":"tools/list
 
 ## Hackathon Submission
 
-- **Duration**: 23 days of development (437 sessions)
-- **Tasks Completed**: 431 total
-- **MCP Tools**: 16 tools with 118 routed actions
-- **Desktop Components**: 235 React components
-- **Kuroryuu CLI**: 9,030 lines of Python
+- **Duration**: 26 days of development (460+ sessions)
+- **Tasks Completed**: 445 total
+- **Total Source Code**: 235,626 LOC (TypeScript + Python)
+- **MCP Tools**: 15 tools with 107 routed actions
+- **Desktop App**: 95,426 LOC TypeScript (235 React components)
+- **Gateway**: 23,097 LOC Python (21 routers)
+- **Kuroryuu CLI**: 6,137 LOC Python (24 commands)
 - **LLM Models**: 61+ via 6 providers
-- **Documentation**: 175+ worklogs, 100+ checkpoints
+- **Documentation**: 602 worklogs, 706 checkpoints
 
 ## License
 
