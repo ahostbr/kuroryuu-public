@@ -5680,6 +5680,45 @@
       "tool_calls": 0,
       "tool_successes": 0,
       "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_577e40ad",
+      "process_id": "tray-companion-1769780352973",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T13:39:12.981384+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_5a05af0c",
+      "process_id": "tray-companion-1769782406577",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:13:26.584782+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
+    },
+    {
+      "session_id": "tray-companion_kuroryuu-tts-companion_d0225828",
+      "process_id": "tray-companion-1769782521221",
+      "cli_type": "tray-companion",
+      "agent_id": "kuroryuu-tts-companion",
+      "feature_id": null,
+      "status": "active",
+      "start_time": "2026-01-30T14:15:21.235353+00:00",
+      "end_time": null,
+      "tool_calls": 0,
+      "tool_successes": 0,
+      "tool_failures": 0
     }
   ]
 }

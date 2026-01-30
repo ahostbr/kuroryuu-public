@@ -395,20 +395,12 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
   const [draggingWindowId, setDraggingWindowId] = useState<string | null>(null);
   const windowContainerRef = useRef<HTMLDivElement>(null);
 
-  // Audio recording state
+  // Audio recording state (using Python speech API)
   const [recordingTerminalId, setRecordingTerminalId] = useState<string | null>(null);
-  const [audioLevel, setAudioLevel] = useState<number>(0); // 0-1 normalized audio level
+  const [audioLevel, setAudioLevel] = useState<number>(0); // 0-100 from Python speech level
   const [showMicSettings, setShowMicSettings] = useState<{ x: number; y: number } | null>(null);
   // Leader monitor modal state
   const [showLeaderMonitor, setShowLeaderMonitor] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const silenceStartRef = useRef<number | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const isRecordingRef = useRef<boolean>(false); // Stable ref for monitorLevel closure
 
   // Terminal refs for copy/paste operations and buffer reading
   const termRefs = useRef<Map<string, TerminalRef>>(new Map());
@@ -1736,7 +1728,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
     );
   }, []);
 
-  // Insert transcript into terminal input (T074) - must be before stopRecording
+  // Insert transcript into terminal input (T074)
   const insertTranscriptIntoTerminal = useCallback((terminalId: string, transcript: string) => {
     const term = terminals.find(t => t.id === terminalId);
     if (!term) {
@@ -1757,225 +1749,77 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
     }
   }, [terminals]);
 
-  // Stop audio monitoring and cleanup resources
-  const stopAudioMonitoring = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    analyserRef.current = null;
-    silenceStartRef.current = null;
-    setAudioLevel(0);
-  }, []);
-
-  // Stop recording and process audio
-  const stopRecording = useCallback(async (terminalId: string) => {
-    // Mark recording as stopped (for monitorLevel closure)
-    isRecordingRef.current = false;
-
-    // Stop audio monitoring first
-    stopAudioMonitoring();
-
-    // Stop media stream tracks
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
-    }
-
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.addEventListener('stop', async () => {
-        try {
-          // Create audio blob (webm format from MediaRecorder)
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-
-          // Skip if no audio data
-          if (audioBlob.size < 1000) {
-            audioChunksRef.current = [];
-            mediaRecorderRef.current = null;
-            setRecordingTerminalId(null);
-            return;
-          }
-
-          // Convert blob to ArrayBuffer for IPC transfer
-          const arrayBuffer = await audioBlob.arrayBuffer();
-
-          // Direct dictation: Whisper -> terminal (no LMStudio)
-          const result = await window.electronAPI?.audio?.transcribe(
-            Array.from(new Uint8Array(arrayBuffer)),
-            'audio/webm',
-            'whisper'       // Use local Whisper (offline)
-          );
-
-          if (result?.success && result.transcription) {
-            // Insert transcription directly into terminal
-            insertTranscriptIntoTerminal(terminalId, result.transcription);
-          }
-
-          // Reset recording state
-          audioChunksRef.current = [];
-          mediaRecorderRef.current = null;
-          setRecordingTerminalId(null);
-        } catch (error) {
-          console.error('[VoiceInput] Error stopping recording:', error);
-          setRecordingTerminalId(null);
-        }
-      }, { once: true });
-    } else {
-      setRecordingTerminalId(null);
-    }
-  }, [stopAudioMonitoring, insertTranscriptIntoTerminal]);
-
-  // Cleanup audio recording resources on unmount
-  useEffect(() => {
-    return () => {
-      // Stop animation frame
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-      }
-      // Close audio context
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
-        audioContextRef.current = null;
-      }
-      // Stop media stream tracks
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-        streamRef.current = null;
-      }
-      // Stop media recorder
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        try {
-          mediaRecorderRef.current.stop();
-        } catch {
-          // Ignore errors during cleanup
-        }
-        mediaRecorderRef.current = null;
-      }
-      // Clear refs
-      analyserRef.current = null;
-      audioChunksRef.current = [];
-    };
-  }, []);
-
-  // Handle microphone button click for audio recording (Whisper dictation with auto-stop)
+  // Handle microphone button click using Python speech API (same as tray_companion)
   const handleMicClick = useCallback(async (terminalId: string) => {
+    const api = (window as any).electronAPI?.speech;
+    if (!api) {
+      console.error('[VoiceInput] Speech API not available');
+      return;
+    }
+
     if (recordingTerminalId === terminalId) {
-      // Manual stop
-      await stopRecording(terminalId);
+      // Stop recording
+      await api.stop?.();
+      setRecordingTerminalId(null);
+      setAudioLevel(0);
     } else {
-      // Start recording
-      try {
-        // Request microphone access
-        const stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true
-          }
-        });
-
-        streamRef.current = stream;
-
-        // Set up Web Audio API for level monitoring
-        const audioContext = new AudioContext();
-        const analyser = audioContext.createAnalyser();
-        const source = audioContext.createMediaStreamSource(stream);
-
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.3;
-        source.connect(analyser);
-
-        audioContextRef.current = audioContext;
-        analyserRef.current = analyser;
-
-        // Create media recorder
-        const recorder = new MediaRecorder(stream, {
-          mimeType: 'audio/webm'
-        });
-
-        // Collect audio chunks
-        audioChunksRef.current = [];
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunksRef.current.push(event.data);
-          }
-        };
-
-        // Start recording with timeslice for continuous data
-        recorder.start(100); // Get data every 100ms
-        mediaRecorderRef.current = recorder;
-        setRecordingTerminalId(terminalId);
-        silenceStartRef.current = null;
-        isRecordingRef.current = true; // Mark recording as active
-
-        // Audio level monitoring loop
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        let hasSpokenOnce = false; // Track if user has spoken
-
-        const monitorLevel = () => {
-          // Use ref instead of state for stable closure
-          if (!analyserRef.current || !isRecordingRef.current) {
-            return;
-          }
-
-          analyserRef.current.getByteFrequencyData(dataArray);
-
-          // Calculate RMS level
-          let sum = 0;
-          for (let i = 0; i < dataArray.length; i++) {
-            const value = dataArray[i] / 255;
-            sum += value * value;
-          }
-          const rms = Math.sqrt(sum / dataArray.length);
-          setAudioLevel(rms);
-
-          // Check for silence (only after user has spoken at least once)
-          if (rms < silenceThreshold) {
-            if (hasSpokenOnce) {
-              if (!silenceStartRef.current) {
-                silenceStartRef.current = Date.now();
-              } else {
-                const elapsed = Date.now() - silenceStartRef.current;
-                if (elapsed > silenceTimeoutMs) {
-                  stopRecording(terminalId);
-                  return;
-                }
-              }
-            }
-          } else {
-            // Voice detected - reset silence timer
-            silenceStartRef.current = null;
-
-            // Mark as spoken if level is high enough
-            if (rms > voiceThreshold) {
-              hasSpokenOnce = true;
-            }
-          }
-
-          animationFrameRef.current = requestAnimationFrame(monitorLevel);
-        };
-
-        // Start monitoring after a brief delay to let audio context initialize
-        setTimeout(() => {
-          animationFrameRef.current = requestAnimationFrame(monitorLevel);
-        }, 100);
-
-      } catch (error) {
-        console.error('[VoiceInput] Microphone access error:', error);
-        if (error instanceof DOMException && error.name === 'NotAllowedError') {
-          console.error('[VoiceInput] Microphone permission denied by user');
-        } else if (error instanceof DOMException && error.name === 'NotFoundError') {
-          console.error('[VoiceInput] No microphone device found');
-        }
+      // Start recording with Python speech recognition
+      setRecordingTerminalId(terminalId);
+      const result = await api.start?.();
+      if (!result?.success) {
+        console.error('[VoiceInput] Failed to start:', result?.error);
+        setRecordingTerminalId(null);
       }
     }
-  }, [recordingTerminalId, stopRecording, silenceThreshold, voiceThreshold, silenceTimeoutMs]);
+  }, [recordingTerminalId]);
+
+  // Python speech API event listeners
+  useEffect(() => {
+    const api = (window as any).electronAPI?.speech;
+    if (!api) return;
+
+    // Transcript received - insert into terminal and stop listening
+    const unsubTranscript = api.onTranscript?.((text: string) => {
+      if (text && text.trim() && recordingTerminalId) {
+        insertTranscriptIntoTerminal(recordingTerminalId, text.trim());
+      }
+      // Stop Python speech process after receiving transcript (single-phrase mode)
+      api.stop?.();
+      setRecordingTerminalId(null);
+      setAudioLevel(0);
+    });
+
+    // Audio level for visualization (0-100 from Python, normalize to 0-1)
+    const unsubLevel = api.onLevel?.((level: number) => {
+      setAudioLevel(level / 100);
+    });
+
+    // Status changes
+    const unsubStatus = api.onStatus?.((status: string) => {
+      if (status === 'stopped' || status.startsWith('error')) {
+        setRecordingTerminalId(null);
+        setAudioLevel(0);
+      }
+    });
+
+    // Errors
+    const unsubError = api.onError?.((error: string) => {
+      console.error('[VoiceInput] Speech error:', error);
+      setRecordingTerminalId(null);
+      setAudioLevel(0);
+    });
+
+    return () => {
+      unsubTranscript?.();
+      unsubLevel?.();
+      unsubStatus?.();
+      unsubError?.();
+      // Stop speech if component unmounts while recording
+      if (recordingTerminalId) {
+        api.stop?.();
+      }
+    };
+  }, [recordingTerminalId, insertTranscriptIntoTerminal]);
 
   // Cycle status line display mode (full -> compact -> minimal -> full)
   const cycleStatusLineMode = useCallback(async () => {

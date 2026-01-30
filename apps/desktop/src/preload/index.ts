@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { contextBridge, ipcRenderer, IpcRendererEvent, webUtils } from 'electron';
 
 export interface PtyProcess {
   id: string;
@@ -948,6 +948,8 @@ const api = {
    * For copying video files to assets folder for git commit
    */
   video: {
+    /** Get the file system path for a dropped File (Electron 29+ requires this) */
+    getFilePath: (file: File): string => webUtils.getPathForFile(file),
     /** Copy a video file to assets/videos/ for git tracking */
     copyToAssets: (sourcePath: string, videoId: string): Promise<{ ok: boolean; relativePath?: string; error?: string }> =>
       ipcRenderer.invoke('video:copy-to-assets', sourcePath, videoId),

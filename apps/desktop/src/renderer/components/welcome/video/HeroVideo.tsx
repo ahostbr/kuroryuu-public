@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
-import { Volume2, VolumeX, Pause, Play, AlertCircle } from 'lucide-react';
+import { Volume2, VolumeX, Pause, Play, AlertCircle, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { VideoPlaceholder } from './VideoPlaceholder';
 import { useWelcomeStore } from '../../../stores/welcome-store';
@@ -27,9 +27,18 @@ export function HeroVideo({
 }: HeroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { videoMuted, videoPaused, toggleMute, togglePause, videoPaths } = useWelcomeStore();
+  const [projectRoot, setProjectRoot] = useState('');
+
+  // Get project root on mount for resolving relative paths
+  useEffect(() => {
+    window.electronAPI?.app?.getProjectRoot?.().then(setProjectRoot).catch(() => {});
+  }, []);
 
   // Use stored path or prop src
-  const effectiveSrc = videoPaths[videoId] || src;
+  const storedPath = videoPaths[videoId] || src;
+
+  // Use video path directly (blob URLs work without resolution)
+  const effectiveSrc = storedPath || '';
 
   const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error' | 'placeholder'>(
     effectiveSrc ? 'loading' : 'placeholder'
@@ -196,6 +205,19 @@ export function HeroVideo({
             ) : (
               <Volume2 className="w-5 h-5" />
             )}
+          </button>
+
+          {/* Remove video button */}
+          <button
+            onClick={() => useWelcomeStore.getState().clearVideoPath(videoId)}
+            className={cn(
+              'p-2 rounded-lg transition-colors',
+              'bg-background/80 hover:bg-destructive/20 border border-border',
+              'text-foreground hover:text-destructive'
+            )}
+            aria-label="Remove video"
+          >
+            <X className="w-5 h-5" />
           </button>
         </div>
       </div>

@@ -29,12 +29,8 @@ export function VideoPlaceholder({
     window.electronAPI?.app?.getProjectRoot?.().then(setProjectRoot).catch(() => {});
   }, []);
 
-  // Resolve relative path to absolute file:// URL
-  const resolvedVideoSrc = currentVideoPath
-    ? currentVideoPath.startsWith('file:/') || currentVideoPath.startsWith('blob:') || currentVideoPath.startsWith('local-video:')
-      ? currentVideoPath
-      : `file:///${projectRoot.replace(/\\/g, '/')}/${currentVideoPath}`
-    : '';
+  // Use video path directly (blob URLs work without resolution)
+  const resolvedVideoSrc = currentVideoPath || '';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -62,24 +58,24 @@ export function VideoPlaceholder({
     console.log('[VideoPlaceholder] Drop event, files:', files.length);
     if (files.length > 0) {
       const file = files[0];
-      console.log('[VideoPlaceholder] File type:', file.type, 'path:', (file as any).path);
       // Check if it's a video file
       if (file.type.startsWith('video/')) {
-        const rawPath = (file as any).path;
-        console.log('[VideoPlaceholder] rawPath:', rawPath);
+        // Use webUtils.getPathForFile via preload (Electron 29+ removed file.path)
+        const rawPath = window.electronAPI?.video?.getFilePath?.(file);
+        console.log('[VideoPlaceholder] File type:', file.type);
+        console.log('[VideoPlaceholder] rawPath (via webUtils):', rawPath);
         console.log('[VideoPlaceholder] electronAPI.video:', window.electronAPI?.video);
-        console.log('[VideoPlaceholder] copyToAssets fn:', window.electronAPI?.video?.copyToAssets);
+        // Create blob URL for playback (works without security issues)
+        const blobUrl = URL.createObjectURL(file);
+
         if (rawPath && window.electronAPI?.video?.copyToAssets) {
-          // Copy to assets/videos/ for git tracking
+          // Also copy to assets/videos/ for git tracking
           setIsCopying(true);
           console.log('[VideoPlaceholder] Calling IPC copyToAssets...');
           try {
             const result = await window.electronAPI.video.copyToAssets(rawPath, videoId);
             console.log('[VideoPlaceholder] IPC result:', result);
-            if (result.ok && result.relativePath) {
-              // Store relative path (e.g., "assets/videos/hero.mp4")
-              setVideoPath(videoId, result.relativePath);
-            } else {
+            if (!result.ok) {
               console.error('[Video] Copy failed:', result.error);
             }
           } catch (err) {
@@ -87,11 +83,10 @@ export function VideoPlaceholder({
           } finally {
             setIsCopying(false);
           }
-        } else {
-          // Fallback to blob URL for non-Electron (won't persist)
-          console.log('[VideoPlaceholder] FALLBACK to blob URL (no IPC available)');
-          setVideoPath(videoId, URL.createObjectURL(file));
         }
+
+        // Use blob URL for playback (file is also copied to assets/videos/ for git)
+        setVideoPath(videoId, blobUrl);
       }
     }
   }, [videoId, setVideoPath]);

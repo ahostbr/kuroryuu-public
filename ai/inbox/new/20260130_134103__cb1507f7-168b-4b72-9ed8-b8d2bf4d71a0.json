@@ -1,0 +1,15 @@
+{
+  "schema": "kuroryuu_inbox_v1",
+  "id": "cb1507f7-168b-4b72-9ed8-b8d2bf4d71a0",
+  "created_at": "2026-01-30T13:41:03+00:00",
+  "updated_at": "2026-01-30T13:41:03+00:00",
+  "status": "new",
+  "thread_id": "",
+  "title": "",
+  "payload": {
+    "recipient": "lmstudio-log",
+    "message": "User: I don't know bud you tell me\nLMStudio: Patience, young one. Like fog clinging to stone, knowledge reveals itself only when sought with a quiet focus. The codebase holds echoes of intentions – potential pathways, perhaps a forgotten task. Let us begin by seeking the threads of what troubles you. What keyword might guide our investigation?",
+    "priority": "low",
+    "sender": "tts-companion"
+  }
+}

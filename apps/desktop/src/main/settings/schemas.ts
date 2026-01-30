@@ -94,6 +94,7 @@ export interface ProjectSettings {
   audio: AudioSettings;
   agents: AgentSettings;
   graphiti: GraphitiSettings;
+  integrations?: IntegrationSettings;  // Optional for backwards compatibility
   _version: number;
   _migratedAt?: number;
 }
@@ -153,6 +154,11 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
     enabled: false,
     serverUrl: 'http://localhost:8000',
     autoSync: false,
+  },
+  integrations: {
+    trayCompanion: {
+      launchOnStartup: false,
+    },
   },
   _version: 1,
 };

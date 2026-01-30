@@ -153,10 +153,10 @@ if ($SkipPython) {
         }
     }
 
-    # Install desktop app Python dependencies (voice input, audio transcription)
+    # Install desktop app Python dependencies (voice input, audio transcription, TTS)
     Write-Host "  Installing desktop speech/audio dependencies..." -ForegroundColor White
     $ErrorActionPreference = "Continue"
-    & $pip install SpeechRecognition pyaudio -q 2>&1 | Out-Null
+    & $pip install SpeechRecognition pyaudio edge-tts -q 2>&1 | Out-Null
     $ErrorActionPreference = "Stop"
 
     Write-Host "  Python dependencies installed" -ForegroundColor Green

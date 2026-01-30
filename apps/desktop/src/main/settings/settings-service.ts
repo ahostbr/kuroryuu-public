@@ -318,19 +318,19 @@ export class SettingsService {
 
   /**
    * Resolve scope based on namespace
-   * User-scoped: ui.*, terminal.*, integrations.*
-   * Project-scoped: audio.*, agents.*, graphiti.*
+   * User-scoped: ui.*, terminal.*
+   * Project-scoped: audio.*, agents.*, graphiti.*, integrations.*
    */
   private resolveScope(namespace: string): SettingsScope {
     const topLevel = namespace.split('.')[0];
     switch (topLevel) {
       case 'ui':
       case 'terminal':
-      case 'integrations':
         return 'user';
       case 'audio':
       case 'agents':
       case 'graphiti':
+      case 'integrations':
         return 'project';
       default:
         // Default to project for unknown namespaces
