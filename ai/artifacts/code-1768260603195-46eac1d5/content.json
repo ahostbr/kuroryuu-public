@@ -1,4 +1,0 @@
-{
-  "language": "python",
-  "code": "# Create a canvas artifact\nresult = k_canvas(\n    action=\"create\",\n    canvas_type=\"document\",\n    title=\"My Document\",\n    content={\"markdown\": \"# Hello\"}\n)\nprint(result)"
-}

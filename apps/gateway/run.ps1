@@ -27,7 +27,18 @@ $env:KURORYUU_GATEWAY_PORT = $Port
 $env:KURORYUU_MCP_URL = "http://127.0.0.1:8100"
 $env:KURORYUU_PROJECT_ROOT = $RepoRoot
 $env:PYTHONPATH = $RepoRoot
-$env:KURORYUU_INTERNAL_SECRET = "216316ac3a491e1a019bd0671f3877ebe98c8dc16dccdf801d47a5d4ce706dfc"
+# Internal secret - shared between gateway and mcp_core (auto-generated, persisted)
+$secretFile = Join-Path $RepoRoot "ai\.internal_secret"
+if (Test-Path $secretFile) {
+    $env:KURORYUU_INTERNAL_SECRET = (Get-Content $secretFile -Raw).Trim()
+} else {
+    # Generate once, save for both services
+    $env:KURORYUU_INTERNAL_SECRET = [System.Guid]::NewGuid().ToString("N") + [System.Guid]::NewGuid().ToString("N")
+    # Ensure ai directory exists
+    $aiDir = Join-Path $RepoRoot "ai"
+    if (-not (Test-Path $aiDir)) { New-Item -ItemType Directory -Path $aiDir -Force | Out-Null }
+    $env:KURORYUU_INTERNAL_SECRET | Out-File -FilePath $secretFile -Encoding utf8NoBOM -NoNewline
+}
 
 Write-Host "=== Kuroryuu Gateway ===" -ForegroundColor Cyan
 Write-Host "  Backend: $Backend"
