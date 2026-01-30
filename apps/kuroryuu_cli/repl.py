@@ -356,9 +356,9 @@ class KuroryuuREPL:
 
             try:
                 session_info = await self.session_manager.start()
-            except ConnectionError as e:
-                ui.print_error(str(e))
-                return 1
+            except ConnectionError:
+                # Re-raise for cli.py to handle with auto-start logic
+                raise
 
             # Initialize agent with interrupt handler for HITL and tool approval
             self.agent_core = AgentCore(
@@ -411,6 +411,10 @@ class KuroryuuREPL:
             ui.print_text("\n")
             ui.print_info("Interrupted")
             return 0
+
+        except ConnectionError:
+            # Re-raise for cli.py to handle with auto-start logic
+            raise
 
         except Exception as e:
             ui.print_error(f"Unexpected error: {e}")
