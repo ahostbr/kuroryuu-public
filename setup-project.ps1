@@ -177,7 +177,8 @@ if ($SkipNode) {
     $npmApps = @(
         "apps\desktop",
         "apps\pty_daemon",
-        "apps\web"
+        "apps\web",
+        "apps\tray_companion"
     )
 
     $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
