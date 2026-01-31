@@ -24,6 +24,32 @@ let mainWindow: BrowserWindow | null = null;
 const FLAG_FILE = path.join(getProjectRoot(), 'ai', 'config', 'pccontrol-armed.flag');
 
 /**
+ * Initialize state on startup - CRITICAL for security!
+ * If flag file exists from a previous session but we're starting fresh,
+ * delete it to prevent stale armed state.
+ *
+ * This fixes the state desync bug where:
+ * - Desktop crashes without cleanup
+ * - Flag file persists
+ * - MCP thinks it's armed but Desktop UI shows disabled
+ */
+export function initializeState(): void {
+  try {
+    if (fs.existsSync(FLAG_FILE)) {
+      console.log('[PCControl] SECURITY: Found stale armed flag from previous session');
+      console.log('[PCControl] Deleting stale flag to ensure disarmed state');
+      fs.unlinkSync(FLAG_FILE);
+      console.log('[PCControl] Stale flag deleted - starting in DISARMED state');
+    }
+    armed = false; // Always start disarmed
+  } catch (err) {
+    console.error('[PCControl] Error during state initialization:', err);
+    // On error, still ensure we're disarmed
+    armed = false;
+  }
+}
+
+/**
  * Write the armed flag file so MCP Core knows we're armed.
  */
 function writeArmedFlag(): void {
