@@ -305,6 +305,7 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 | `k_help` | - | Help system |
 
 **OPT-IN:** `k_pccontrol` (PowerShell desktop automation) requires explicit enable via Desktop Settings.
+**DPI NOTE:** For accurate click coordinates, use 100% display scaling (Windows Settings → Display).
 
 ---
 

@@ -15,6 +15,11 @@ SECURITY: Actions are gated by an "armed" flag file that Desktop writes when use
 enables Full Desktop Access. Without this file, all actions except help/status are blocked.
 
 No external dependencies required - uses pure PowerShell with Win32 APIs.
+
+IMPORTANT: For accurate click coordinates, set Windows display scaling to 100%.
+If your display scaling is set to 125%, 150%, or higher, the coordinates will be
+offset and clicks will miss their targets. Go to Windows Settings -> Display ->
+Scale and layout -> Set to 100%.
 """
 
 from __future__ import annotations
@@ -174,6 +179,7 @@ def _action_help(**kwargs) -> Dict[str, Any]:
         },
         "warning": "DANGER: This tool has FULL control of your PC when enabled!",
         "note": "No WinAppDriver required - uses pure PowerShell with Win32 APIs",
+        "dpi_warning": "IMPORTANT: For accurate click coordinates, set Windows display scaling to 100%. If your display is set to 125%, 150%, or higher, coordinates will be offset. Go to Windows Settings -> Display -> Scale and layout -> Set to 100%.",
     })
 
 

@@ -57,7 +57,7 @@
 ### §7 MCP TOOLS REFERENCE
 - **16 tools with 118 total actions**
 - All tools use routed pattern: `tool(action="...", ...)`
-- OPT-IN tools: k_pccontrol (PowerShell Win32 APIs), k_clawd (Clawdbot)
+- OPT-IN tools: k_pccontrol (PowerShell Win32 APIs, use 100% DPI), k_clawd (Clawdbot)
 
 ### §8 RAG & REPO INTEL
 - **§8.0 Search Priority Order:** k_rag → k_repo_intel → git → fallback (HARD RULE)
