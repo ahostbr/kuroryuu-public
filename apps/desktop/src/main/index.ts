@@ -40,7 +40,7 @@ import { registerTTSHandlers } from './ipc/tts-handlers';
 import { registerSpeechHandlers } from './ipc/speech-handlers';
 import { registerCLIProxyHandlers } from './ipc/cliproxy-handlers';
 import { getCLIProxyNativeManager } from './services/cliproxy-native';
-import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow } from './integrations/pccontrol-service';
+import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow, initializeState as initPCControlState } from './integrations/pccontrol-service';
 import { registerPythonHandlers, setMainWindow as setPythonMainWindow } from './integrations/python-service';
 import { transcribeAudio, voiceChat, type STTEngine } from './audio-service';
 import { TTSModule } from './features/tts/module';
@@ -3121,6 +3121,9 @@ app.whenReady().then(async () => {
   }
 
   // Register PCControl handlers (Full Desktop Access - opt-in, pure PowerShell)
+  // SECURITY: Initialize state first to clear any stale armed flags from crashed sessions
+  console.log('[Main] Initializing PCControl state (clearing stale flags)...');
+  initPCControlState();
   console.log('[Main] About to register PCControl handlers...');
   registerPCControlHandlers();
   console.log('[Main] PCControl handlers registered.');

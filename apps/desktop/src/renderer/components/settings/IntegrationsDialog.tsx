@@ -422,9 +422,10 @@ function GraphitiSection() {
 }
 
 export function IntegrationsDialog() {
-  const { activeDialog, closeDialog } = useSettingsStore();
+  const { activeDialog, closeDialog, projectSettings } = useSettingsStore();
   const isOpen = activeDialog === 'integrations';
   const { isKuroryuu, isGrunge } = useIsThemedStyle();
+  const projectPath = projectSettings?.projectPath;
 
   const [statuses, setStatuses] = useState<Record<string, ProviderStatus>>({});
   const [githubUser, setGithubUser] = useState<{ name: string; avatar: string } | null>(null);
@@ -615,7 +616,11 @@ export function IntegrationsDialog() {
                   Not required if using CLI Proxy API.
                 </p>
                 <button
-                  onClick={() => window.electronAPI?.shell?.openPath?.('Docs/Guides/Advanced/CLI-Credentials-Reference.md')}
+                  onClick={() => {
+                    if (projectPath) {
+                      window.electronAPI?.shell?.openPath?.(`${projectPath}\\Docs\\Guides\\Advanced\\CLI-Credentials-Reference.md`);
+                    }
+                  }}
                   className="text-[10px] text-primary hover:underline mt-1 px-1 flex items-center gap-1"
                 >
                   <ExternalLink className="w-2.5 h-2.5" />
