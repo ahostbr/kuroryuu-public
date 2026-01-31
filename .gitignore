@@ -116,3 +116,5 @@ ai/.internal_secret
 /apps/kuroryuu_cli_v2
 Docs/CaseStudies/OLLM_CLI_CaseStudy.md
 /assets/videos/frames
+assets/videos/Timeline 1.mp4
+ai/hooks/task_id_map.json
