@@ -118,12 +118,17 @@ export function FullDesktopSection() {
       </div>
 
       {/* How it works - brief */}
-      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-        <Zap className="w-3 h-3 text-primary" />
-        <span>Uses PowerShell - no external software required</span>
-        <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[9px] font-medium">
-          Windows only
-        </span>
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+          <Zap className="w-3 h-3 text-primary" />
+          <span>Uses PowerShell - no external software required</span>
+          <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 rounded text-[9px] font-medium">
+            Windows only
+          </span>
+        </div>
+        <ul className="text-[10px] text-muted-foreground space-y-1 list-disc list-inside ml-1">
+          <li>For accurate clicks, use 100% DPI scaling (Settings → Display)</li>
+        </ul>
       </div>
 
       {/* Playwright comparison */}

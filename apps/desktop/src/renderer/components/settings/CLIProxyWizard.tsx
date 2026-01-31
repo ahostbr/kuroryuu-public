@@ -547,7 +547,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
         return (
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Choose how to run CLIProxyAPI. Native mode is simpler but Docker mode offers better isolation.
+              Choose how to run CLIProxyAPI. Native mode is the recommended method. Docker mode is available but less tested.
             </p>
 
             <div className="space-y-3">
@@ -564,7 +564,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
                   <div>
                     <div className="font-medium">Native Mode</div>
                     <div className="text-sm text-muted-foreground">
-                      No Docker required. Downloads and runs CLIProxyAPI directly.
+                      Recommended. No Docker required. Downloads and runs CLIProxyAPI directly.
                     </div>
                   </div>
                   {mode === 'native' && <Check className="w-5 h-5 text-primary ml-auto" />}
@@ -584,7 +584,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
                   <div>
                     <div className="font-medium">Docker Mode</div>
                     <div className="text-sm text-muted-foreground">
-                      Requires Docker Desktop. Better isolation and easier updates.
+                      Requires Docker Desktop. Less tested - use if you prefer containerization.
                     </div>
                   </div>
                   {mode === 'docker' && <Check className="w-5 h-5 text-primary ml-auto" />}
@@ -618,7 +618,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
                 <li>Each provider (Claude, Gemini, OpenAI) requires separate OAuth login</li>
                 <li>Free tier Claude routes Opus requests → Sonnet (API limitation)</li>
                 <li>Gemini/OpenAI provide their free-tier models</li>
-                <li>Tokens stored locally in <code className="bg-black/30 px-1 rounded">.cliproxyapi/auth/</code> (project directory)</li>
+                <li>Tokens stored locally in <code className="bg-black/30 px-1 rounded">.cliproxyapi/auth/</code> (project dir) or <code className="bg-black/30 px-1 rounded">%APPDATA%\Kuroryuu\cliproxyapi\</code> (fallback)</li>
               </ul>
               <a
                 href="https://github.com/router-for-me/CLIProxyAPIPlus"

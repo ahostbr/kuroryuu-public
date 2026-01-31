@@ -210,6 +210,7 @@ All tools use routed pattern: `tool(action="...", ...)` to prevent tool bloat.
 
 **OPT-IN Tools:**
 - `k_pccontrol` — Enable Full Desktop Access in Desktop Settings (flag file: `ai/config/pccontrol-armed.flag`)
+  - **DPI NOTE:** For accurate click coordinates, use 100% display scaling
 
 ---
 

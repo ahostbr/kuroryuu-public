@@ -367,6 +367,7 @@ const features: Feature[] = [
       'Launch apps, get window list',
       'Pure PowerShell - no external deps',
       'Opt-in via Settings → Integrations',
+      'Best results at 100% display scaling',
     ],
     // No route - enabled in Settings
   },

@@ -161,6 +161,7 @@ export function FullDesktopWizard({ open, onOpenChange, onComplete }: FullDeskto
                 <li>No external software required</li>
                 <li>Session-only - resets when app restarts</li>
                 <li>All actions are logged for auditing</li>
+                <li>For precise click coordinates, use 100% display scaling</li>
               </ul>
             </div>
 
