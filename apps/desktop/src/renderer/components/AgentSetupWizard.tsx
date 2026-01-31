@@ -236,6 +236,11 @@ export function AgentSetupWizard({ onComplete, projectRoot = '', onCreateLeaderT
 
     setLeaderAgent(leaderConfig);
     completeSetup();
+    // Use direct terminal creation for CLI modes (same pattern as Ralph)
+    // This bypasses the useEffect race condition that causes first-time selection to fail
+    if (isCliMode && onCreateLeaderTerminal) {
+      onCreateLeaderTerminal(leaderConfig);
+    }
     onComplete();
   };
 
