@@ -510,6 +510,38 @@ kiro_callback_port: 54547
   }
 
   /**
+   * Force kill ALL CLIProxyAPIPlus processes by name.
+   * This is more reliable than SIGTERM/SIGKILL on Windows for hung processes.
+   */
+  async forceKillAll(): Promise<void> {
+    const platform = process.platform;
+    try {
+      if (platform === 'win32') {
+        // Use PowerShell Stop-Process which handles hung processes better
+        await execAsync('powershell.exe -Command "Stop-Process -Name CLIProxyAPIPlus -Force -ErrorAction SilentlyContinue"');
+        console.log('[CLIProxyNative] Force killed all CLIProxyAPIPlus processes');
+      } else {
+        // Unix: pkill
+        await execAsync('pkill -9 -f CLIProxyAPIPlus || true');
+        console.log('[CLIProxyNative] Force killed all CLIProxyAPIPlus processes');
+      }
+    } catch {
+      // Process might not exist, that's fine
+    }
+
+    // Clear our internal state
+    this.process = null;
+    this.pid = null;
+
+    // Clean up PID file
+    try {
+      await fs.unlink(path.join(this.config.dataDir, 'cliproxy.pid'));
+    } catch {
+      // File might not exist
+    }
+  }
+
+  /**
    * Stop the CLIProxyAPI process gracefully
    */
   async stop(): Promise<{ success: boolean; error?: string }> {
@@ -549,11 +581,32 @@ kiro_callback_port: 54547
         // PID file doesn't exist or process already dead
       }
 
+      // Final fallback: force kill by name (handles hung processes)
+      await this.forceKillAll();
+
       return { success: true };
     } catch (e) {
       const error = e instanceof Error ? e.message : String(e);
       return { success: false, error };
     }
+  }
+
+  /**
+   * Restart the CLIProxyAPI process.
+   * Force kills first (handles hung processes), then starts fresh.
+   */
+  async restart(): Promise<{ success: boolean; pid?: number; error?: string }> {
+    console.log('[CLIProxyNative] Restart requested - force killing first...');
+
+    // Force kill any existing processes first (handles hung state)
+    await this.forceKillAll();
+
+    // Wait for OS to clean up sockets/handles
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Start fresh
+    console.log('[CLIProxyNative] Starting fresh instance...');
+    return await this.start();
   }
 
   /**

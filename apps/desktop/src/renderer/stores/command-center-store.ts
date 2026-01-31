@@ -495,11 +495,9 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
         } else if (serverId === 'pty-daemon') {
           result = await window.electronAPI.services.restartPtyDaemon();
         } else if (serverId === 'cliproxy') {
-          // CLIProxyAPI: Use native mode (not Docker)
-          await window.electronAPI.cliproxy.native.stop();
-          await new Promise((r) => setTimeout(r, 1000));
-          const startResult = await window.electronAPI.cliproxy.native.start();
-          result = { ok: startResult.success, error: startResult.error };
+          // CLIProxyAPI: Use dedicated restart (force kill + start) to handle hung processes
+          const restartResult = await window.electronAPI.cliproxy.native.restart();
+          result = { ok: restartResult.success, error: restartResult.error };
         } else if (serverId === 'clawdbot') {
           // Clawdbot: Stop then start container
           await window.electronAPI.clawdbot.stop();

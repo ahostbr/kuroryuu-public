@@ -1595,6 +1595,9 @@ const api = {
       /** Stop the native CLIProxyAPI process */
       stop: (): Promise<{ success: boolean; error?: string }> =>
         ipcRenderer.invoke('cliproxy:native:stop'),
+      /** Restart the native CLIProxyAPI process (force kill + start) */
+      restart: (): Promise<{ success: boolean; pid?: number; error?: string }> =>
+        ipcRenderer.invoke('cliproxy:native:restart'),
       /** Get status of native CLIProxyAPI */
       status: (): Promise<{
         running: boolean;

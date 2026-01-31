@@ -243,6 +243,15 @@ export function registerCLIProxyHandlers(): void {
     }
   });
 
+  ipcMain.handle('cliproxy:native:restart', async () => {
+    try {
+      const manager = getCLIProxyNativeManager();
+      return await manager.restart();
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  });
+
   ipcMain.handle('cliproxy:native:status', async () => {
     try {
       const manager = getCLIProxyNativeManager();
