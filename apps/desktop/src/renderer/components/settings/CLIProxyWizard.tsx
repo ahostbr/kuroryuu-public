@@ -620,6 +620,15 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
                 <li>Gemini/OpenAI provide their free-tier models</li>
                 <li>Tokens stored locally in <code className="bg-black/30 px-1 rounded">.cliproxyapi/auth/</code> (project directory)</li>
               </ul>
+              <a
+                href="https://github.com/router-for-me/CLIProxyAPIPlus"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 mt-2 text-primary hover:underline"
+              >
+                <ExternalLink className="w-3 h-3" />
+                CLIProxyAPIPlus on GitHub
+              </a>
             </div>
           </div>
         );

@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import {
   ChevronDown,
   Cpu,
+  ExternalLink,
   Server,
   Zap,
 } from 'lucide-react';
@@ -77,6 +78,15 @@ export function CLIProxyAPISection({ className }: CLIProxyAPISectionProps) {
                   <span>One-time OAuth login per provider → tokens stored locally</span>
                 </li>
               </ul>
+              <a
+                href="https://github.com/router-for-me/CLIProxyAPIPlus"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-3 text-sm text-primary hover:underline"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                CLIProxyAPIPlus on GitHub
+              </a>
             </div>
 
             {/* Status & Setup */}

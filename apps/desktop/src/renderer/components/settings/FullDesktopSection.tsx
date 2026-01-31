@@ -126,6 +126,11 @@ export function FullDesktopSection() {
         </span>
       </div>
 
+      {/* Playwright comparison */}
+      <p className="text-[10px] text-muted-foreground/70 italic">
+        Think of it as Playwright for your entire desktop - browser automation, but for any Windows application.
+      </p>
+
       {/* Status & Controls */}
       {checking ? (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">

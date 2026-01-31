@@ -126,6 +126,27 @@ k_collective(action="update_skill", agent_id="worker_X", skill_type="...", delta
 → Worker continues with fresh context after leader reassigns task
 → See KURORYUU_LEADER.md §13 for full intervention sequence
 
+### "I want to self-compact (no leader)" (Worker, on-demand)
+⚠️ **OPTIONAL** - Only when user explicitly requests self-compacting
+
+**Flow:**
+1. `k_capture(action="screenshot")` → identify your terminal coordinates
+2. Note your terminal's X,Y pixel position from screenshot
+3. Run script (then **STOP IMMEDIATELY** - 10s countdown):
+```powershell
+ai/scripts/self_compact.ps1 -X <x> -Y <y> -Message "Task T###: <context>" -Verbose
+```
+4. Script clicks terminal, types `/compact <message>`, presses Enter
+5. After ASCII art appears → `/loadnow` to restore checkpoint
+
+**Coordinate identification:**
+```python
+k_capture(action="list_monitors")  # Get monitor layout with coordinates
+k_capture(action="screenshot")      # Capture desktop, read to find terminal position
+```
+→ See `ai/scripts/self_compact.ps1` for full parameters
+→ Prefer leader-managed flow (KURORYUU_LEADER.md §13) when leader available
+
 ### "I want buffer-first monitoring" (Leader, opt-in)
 ```bash
 export KURORYUU_TERM_BUFFER_ACCESS=leader_only  # or "all"

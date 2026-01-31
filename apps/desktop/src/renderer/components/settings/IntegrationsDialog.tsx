@@ -612,8 +612,15 @@ export function IntegrationsDialog() {
                 />
                 <p className="text-[10px] text-muted-foreground mt-2 px-1">
                   Used by the Gateway's direct Claude backend for API calls.
-                  Not required if using CLI Proxy API (which uses your Claude subscription instead).
+                  Not required if using CLI Proxy API.
                 </p>
+                <button
+                  onClick={() => window.electronAPI?.shell?.openPath?.('Docs/Guides/Advanced/CLI-Credentials-Reference.md')}
+                  className="text-[10px] text-primary hover:underline mt-1 px-1 flex items-center gap-1"
+                >
+                  <ExternalLink className="w-2.5 h-2.5" />
+                  CLI Credentials Reference (advanced)
+                </button>
               </div>
 
               {/* Source Control Column */}

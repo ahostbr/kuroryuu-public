@@ -347,6 +347,10 @@ class CommandHandler:
         """Compact conversation history to save context.
 
         Summarizes the conversation and replaces history with a condensed version.
+
+        Usage:
+            /compact                     - Compact with default summary
+            /compact <context message>   - Compact with context hint to preserve
         """
         messages = self.repl.agent_core.messages
 
@@ -356,12 +360,23 @@ class CommandHandler:
 
         ui.print_info("Compacting conversation history...")
 
+        # Show context hint if provided
+        if args.strip():
+            ui.print_info(f"Context to preserve: {args.strip()}")
+
         # Count before
         msg_count = len(messages) - 1  # Exclude system prompt
 
-        # Create summary prompt
-        summary_request = """Summarize the conversation so far in 2-3 sentences,
+        # Create summary prompt - include user context if provided
+        base_summary = """Summarize the conversation so far in 2-3 sentences,
 capturing the main topics discussed and any important decisions or findings."""
+
+        if args.strip():
+            summary_request = f"""IMPORTANT CONTEXT TO PRESERVE: {args.strip()}
+
+{base_summary}"""
+        else:
+            summary_request = base_summary
 
         # For now, just trim old messages keeping recent context
         # A full implementation would use the LLM to summarize
