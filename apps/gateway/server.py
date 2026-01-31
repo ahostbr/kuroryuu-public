@@ -127,6 +127,7 @@ from .websocket import router as websocket_router, broadcast_leader_message
 from .traffic.middleware import TrafficMonitoringMiddleware
 from .traffic.router import router as traffic_router
 from .traffic.websocket import websocket_traffic_flow
+from .traffic.storage import cleanup_task as traffic_cleanup_task
 
 # PTY Traffic Monitoring
 from .traffic.pty_router import router as pty_traffic_router
@@ -371,6 +372,32 @@ app.include_router(security_router)
 # System: Include unified stats and health router
 app.include_router(system_router)
 app.include_router(system_redirect_router)  # Deprecated stats redirects
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Startup Event - Background Tasks
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import asyncio
+
+_startup_logger = get_logger(__name__)
+
+@app.on_event("startup")
+async def startup_background_tasks():
+    """Start background cleanup tasks for traffic monitoring."""
+    from .traffic.storage import traffic_storage
+
+    # Run immediate cleanup on startup (in case DB is bloated)
+    try:
+        traffic_storage.cleanup_old_events()
+        _startup_logger.info("[Startup] Traffic DB cleanup completed")
+    except Exception as e:
+        _startup_logger.warning(f"[Startup] Traffic cleanup failed: {e}")
+
+    # Start traffic event cleanup (runs hourly, enforces 10K event limit)
+    asyncio.create_task(traffic_cleanup_task())
+    _startup_logger.info("[Startup] Traffic cleanup background task started")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Simple Auth Protection

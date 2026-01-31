@@ -9,6 +9,7 @@ from starlette.responses import StreamingResponse
 import time
 import uuid
 import asyncio
+import re
 from datetime import datetime
 from typing import Callable, Dict, Any
 from io import BytesIO
@@ -49,6 +50,60 @@ CAPTURABLE_CONTENT_TYPES = {
 }
 
 
+def normalize_endpoint(path: str) -> str:
+    """
+    Normalize endpoint path by replacing dynamic segments with :id placeholders.
+
+    This prevents endpoint explosion from unique agent IDs, session IDs, etc.
+
+    Examples:
+        /v1/agents/cli-00baet6n/heartbeat -> /v1/agents/:id/heartbeat
+        /v1/sessions/550e8400-e29b-41d4-a716-446655440000 -> /v1/sessions/:id
+        /v1/agents/kuroryuu_cli_20260130_231349_a35fa3ca/heartbeat -> /v1/agents/:id/heartbeat
+        /v1/leader/messages/worker_custom_1767991969081 -> /v1/leader/messages/:id
+    """
+    # UUID pattern (8-4-4-4-12 hex)
+    path = re.sub(
+        r'/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?=/|$)',
+        '/:id',
+        path,
+        flags=re.IGNORECASE
+    )
+    # Kuroryuu-style agent IDs: kuroryuu_cli_YYYYMMDD_HHMMSS_xxxxxxxx
+    path = re.sub(
+        r'/kuroryuu_[a-z]+_\d{8}_\d{6}_[a-z0-9]+(?=/|$)',
+        '/:id',
+        path,
+        flags=re.IGNORECASE
+    )
+    # CLI-style short IDs: cli-XXXXXXXX (8+ alphanumeric)
+    path = re.sub(
+        r'/cli-[a-z0-9]{6,}(?=/|$)',
+        '/:id',
+        path,
+        flags=re.IGNORECASE
+    )
+    # Worker/agent IDs with underscores and numbers: worker_custom_1767991969081
+    path = re.sub(
+        r'/worker_[a-z]+_\d{10,}(?=/|$)',
+        '/:id',
+        path,
+        flags=re.IGNORECASE
+    )
+    # Generic alphanumeric IDs (8+ chars that look like IDs, not common words)
+    # Only match if it contains both letters and numbers (to avoid matching words like "heartbeat")
+    path = re.sub(
+        r'/(?=[a-z0-9]*[0-9])(?=[a-z0-9]*[a-z])[a-z0-9_-]{8,}(?=/|$)',
+        '/:id',
+        path,
+        flags=re.IGNORECASE
+    )
+    # Numeric IDs (pure numbers, 3+ digits)
+    path = re.sub(r'/\d{3,}(?=/|$)', '/:id', path)
+
+    return path
+
+
 class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
     """
     Middleware to capture and monitor all HTTP traffic through the gateway.
@@ -69,6 +124,10 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
 
         # Determine endpoint category
         category = self._categorize_endpoint(path)
+
+        # Normalize endpoint for storage (replace dynamic IDs with :id)
+        # This prevents endpoint explosion from unique agent/session IDs
+        normalized_path = normalize_endpoint(path)
 
         # Extract client info
         client_ip = self._get_client_ip(request)
@@ -168,11 +227,11 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
             except Exception:
                 request_body = "[ERROR READING BODY]"
 
-        # Broadcast request event (fire and forget)
+        # Broadcast request event (fire and forget, using normalized endpoint)
         asyncio.create_task(traffic_ws_manager.broadcast_traffic_event({
             "id": event_id,
             "type": "http_request",
-            "endpoint": path,
+            "endpoint": normalized_path,
             "method": request.method,
             "source": "client",
             "destination": "gateway",
@@ -240,10 +299,10 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
                 except:
                     pass
 
-        # Create detailed event for storage
+        # Create detailed event for storage (using normalized endpoint)
         detailed_event = TrafficEventDetail(
             id=event_id,
-            endpoint=path,
+            endpoint=normalized_path,
             method=request.method,
             status=response.status_code,
             duration=duration,
@@ -268,11 +327,11 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
         # Store event (fire and forget)
         asyncio.create_task(asyncio.to_thread(traffic_storage.store_event, detailed_event))
 
-        # Broadcast response event with body preview
+        # Broadcast response event with body preview (using normalized endpoint)
         asyncio.create_task(traffic_ws_manager.broadcast_traffic_event({
             "id": event_id,
             "type": "http_response",
-            "endpoint": path,
+            "endpoint": normalized_path,
             "method": request.method,
             "status": response.status_code,
             "duration": duration,
@@ -290,9 +349,9 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
             }
         }))
 
-        # Update statistics tracker
+        # Update statistics tracker (using normalized endpoint)
         traffic_tracker.add_event({
-            "endpoint": path,
+            "endpoint": normalized_path,
             "method": request.method,
             "status": response.status_code,
             "duration": duration,

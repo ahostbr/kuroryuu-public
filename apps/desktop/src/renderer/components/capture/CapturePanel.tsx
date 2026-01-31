@@ -257,11 +257,10 @@ export const CapturePanel: React.FC = () => {
   const handleScreenshot = useCallback(async () => {
     setLoading(true);
     try {
-      // Use k_capture for screenshots
+      // Use k_capture for screenshots (uses default path: ai/capture/output/screenshots/)
       const result = await callMcpTool('k_capture', {
         action: 'screenshot',
         monitor_index: 0,
-        out: `ai/captures/screenshot_${Date.now()}.png`,
       });
 
       // Gateway returns result as string - parse it
@@ -269,7 +268,7 @@ export const CapturePanel: React.FC = () => {
       console.log('[CapturePanel] screenshot result:', data);
 
       if (data?.ok !== false) {
-        toast.success(`Screenshot saved: ${data?.path || 'apps/mcp_core/ai/captures/'}`);
+        toast.success(`Screenshot saved: ${data?.path || 'ai/capture/output/screenshots/'}`);
 
         // Auto-load the screenshot for preview
         if (data?.base64) {
