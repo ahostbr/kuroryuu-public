@@ -671,7 +671,11 @@ function setupPtyIpcHandlersDaemon(): void {
 
         // Mark leader/worker session with owner_role (BEFORE we check if it's leader)
         // This allows MCP Core to identify and protect leader sessions
-        if (isFirstTerminal) {
+        // Use the role passed from renderer via environment, fall back to isFirstTerminal logic
+        const passedRole = options.env?.KURORYUU_AGENT_ROLE;
+        if (passedRole === 'leader' || passedRole === 'worker') {
+          registrationPayload.owner_role = passedRole;
+        } else if (isFirstTerminal) {
           registrationPayload.owner_role = 'leader';
         } else {
           registrationPayload.owner_role = 'worker';
@@ -861,7 +865,11 @@ function setupPtyIpcHandlersEmbedded(): void {
     }
 
     // Set ownerRole for leader/worker terminal (embedded mode registers via 'create' event)
-    if (isFirstTerminal) {
+    // Use the role passed from renderer via environment, fall back to isFirstTerminal logic
+    const passedRoleEmbedded = options.env?.KURORYUU_AGENT_ROLE;
+    if (passedRoleEmbedded === 'leader' || passedRoleEmbedded === 'worker') {
+      (options as any).ownerRole = passedRoleEmbedded;
+    } else if (isFirstTerminal) {
       (options as any).ownerRole = 'leader';
     } else {
       (options as any).ownerRole = 'worker';
