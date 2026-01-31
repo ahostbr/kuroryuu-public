@@ -114,3 +114,5 @@ ai/config/*.flag
 ai/capture/output/
 ai/.internal_secret
 /apps/kuroryuu_cli_v2
+Docs/CaseStudies/OLLM_CLI_CaseStudy.md
+/assets/videos/frames
