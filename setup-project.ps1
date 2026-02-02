@@ -41,7 +41,7 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
 Write-Host ""
 
 $stepNum = 1
-$totalSteps = 8
+$totalSteps = 9
 
 # ============================================================================
 # Step 1: Set persistent environment variable
@@ -59,7 +59,74 @@ $env:KURORYUU_PROJECT_ROOT = $ProjectRoot
 Write-Host "  Set to: $ProjectRoot" -ForegroundColor Green
 
 # ============================================================================
-# Step 2: Generate .mcp.json from template
+# Step 2: Create runtime directories (excluded from git)
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Creating runtime directories..." -ForegroundColor Yellow
+$stepNum++
+
+# Core runtime directories (these are in .gitignore)
+$runtimeDirs = @(
+    "ai\artifacts",
+    "ai\chat_history",
+    "ai\checkpoints",
+    "ai\cli_sessions",
+    "ai\collective",
+    "ai\config",
+    "ai\exports",
+    "ai\logs",
+    "ai\rag_index",
+    "ai\repo_intel",
+    "ai\reports",
+    "ai\traffic",
+    "ai\inbox\.index",
+    "ai\inbox\cur",
+    "ai\inbox\dead",
+    "ai\inbox\done",
+    "ai\inbox\new",
+    "ai\inbox\tmp"
+)
+
+$createdCount = 0
+foreach ($dir in $runtimeDirs) {
+    $fullPath = Join-Path $ProjectRoot $dir
+    if (-not (Test-Path $fullPath)) {
+        New-Item -ItemType Directory -Path $fullPath -Force | Out-Null
+        $createdCount++
+    }
+}
+if ($createdCount -gt 0) {
+    Write-Host "  Created $createdCount runtime directories" -ForegroundColor Green
+} else {
+    Write-Host "  All runtime directories exist" -ForegroundColor Green
+}
+
+# Create default JSON/state files if missing
+$defaultFiles = @{
+    "ai\sessions.json" = "{}"
+    "ai\agents_registry.json" = "{}"
+    "ai\working_memory.json" = "{}"
+    "ai\current_run.json" = "{}"
+    "ai\inbox_messages.json" = "[]"
+    "ai\agent_context.md" = ""
+}
+
+$createdFiles = 0
+foreach ($file in $defaultFiles.Keys) {
+    $filePath = Join-Path $ProjectRoot $file
+    if (-not (Test-Path $filePath)) {
+        $defaultFiles[$file] | Set-Content -Path $filePath -NoNewline
+        $createdFiles++
+    }
+}
+if ($createdFiles -gt 0) {
+    Write-Host "  Created $createdFiles default state files" -ForegroundColor Green
+} else {
+    Write-Host "  All state files exist" -ForegroundColor Green
+}
+
+# ============================================================================
+# Step 3: Generate .mcp.json from template
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Generating .mcp.json from template..." -ForegroundColor Yellow
@@ -87,7 +154,7 @@ if (-not (Test-Path $templatePath)) {
 }
 
 # ============================================================================
-# Step 3: Create Python virtual environment
+# Step 4: Create Python virtual environment
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Setting up Python 3.12 virtual environment..." -ForegroundColor Yellow
@@ -128,7 +195,7 @@ if ($SkipPython) {
 }
 
 # ============================================================================
-# Step 4: Install Python dependencies
+# Step 5: Install Python dependencies
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Installing Python dependencies..." -ForegroundColor Yellow
@@ -167,7 +234,7 @@ if ($SkipPython) {
 }
 
 # ============================================================================
-# Step 5: Install Node.js dependencies
+# Step 6: Install Node.js dependencies
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Installing Node.js dependencies..." -ForegroundColor Yellow
@@ -213,7 +280,7 @@ if ($SkipNode) {
 }
 
 # ============================================================================
-# Step 6: Check/copy build assets
+# Step 7: Check/copy build assets
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Checking build assets..." -ForegroundColor Yellow
@@ -254,7 +321,7 @@ if (-not (Test-Path $iconIco) -and -not (Test-Path $iconPng)) {
 }
 
 # ============================================================================
-# Step 7: Build Electron apps (desktop and tray companion)
+# Step 8: Build Electron apps (desktop and tray companion)
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Building Electron apps..." -ForegroundColor Yellow
@@ -293,7 +360,7 @@ if ($SkipNode) {
 }
 
 # ============================================================================
-# Step 8: Download FFmpeg (for screen capture feature)
+# Step 9: Download FFmpeg (for screen capture feature)
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Setting up FFmpeg for screen capture..." -ForegroundColor Yellow

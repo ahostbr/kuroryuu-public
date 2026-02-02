@@ -21,7 +21,9 @@ ai/.claude_mode/
 ai/exports/
 ai/logs/
 ai/rag_index/
-ai/repo_intel/
+ai/repo_intel/_cache/
+ai/repo_intel/_logs/
+ai/repo_intel/__pycache__/
 ai/reports/
 Docs/worklogs/
 Docs/Plans/
