@@ -132,7 +132,7 @@ k_collective(action="update_skill", agent_id="worker_X", skill_type="...", delta
 **Flow:**
 1. `k_capture(action="screenshot")` → identify your terminal coordinates
 2. Note your terminal's X,Y pixel position from screenshot
-3. Run script (then **STOP IMMEDIATELY** - 10s countdown):
+3. Run script (then **STOP IMMEDIATELY**) :
 ```powershell
 ai/scripts/self_compact.ps1 -X <x> -Y <y> -Message "Task T###: <context>" -Verbose
 ```
