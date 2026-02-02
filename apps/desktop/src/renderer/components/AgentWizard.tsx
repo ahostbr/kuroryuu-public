@@ -52,7 +52,7 @@ export function AgentWizard({
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm">
-      <div className="bg-card border border-border rounded-xl w-[800px] max-h-[85vh] overflow-hidden shadow-2xl">
+      <div className="bg-card border border-border rounded-xl w-[800px] max-h-[85vh] overflow-hidden shadow-2xl flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -161,7 +161,7 @@ export function AgentWizard({
         </div>
 
         {/* Tab Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(85vh-140px)]">
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           {activeTab === 'thinkers' && (
             <ThinkerWizard
               isOpen={true}
