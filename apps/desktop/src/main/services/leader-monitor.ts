@@ -218,7 +218,8 @@ export class LeaderMonitor extends EventEmitter {
     this.lastNudgeMs = Date.now();
 
     const idleSec = Math.round(idleDurationMs / 1000);
-    const nudgeMessage = `\n\nNUDGE: Leader inactive for ${idleSec}s - continue monitoring worker\n`;
+    // NOTE: \r at end is required to press Enter and submit the message to Claude
+    const nudgeMessage = `NUDGE: Leader inactive for ${idleSec}s - continue monitoring worker\r`;
 
     const success = this.writeToLeader(nudgeMessage);
 

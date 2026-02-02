@@ -71,7 +71,7 @@ WORKER ──[k_inbox send]──────► LEADER inbox (ALWAYS)
    → Find unowned PTY matching worker's cli_type
    k_pty(action="adopt", session_id=X, owner_agent_id="worker_abc")
 
-2. k_pty(action="read", session_id=X)
+2. k_pty(action="read", session_id=X, mode="viewport")
    → Observe current terminal state
 
 3. k_capture(action="screenshot")
@@ -136,7 +136,7 @@ WORKER ──[k_inbox send]──────► LEADER inbox (ALWAYS)
 
 **Protocol:**
 ```
-1. k_pty(action="read", session_id=X)
+1. k_pty(action="read", session_id=X, mode="viewport")
    → Identify the prompt
 
 2. k_pty(action="send_line", session_id=X, data="Y")  # or appropriate response
@@ -290,6 +290,7 @@ Avoid sending `\r\n` embedded in the same `data` string for terminal nudges.
 k_pty(
     action="read",
     session_id="pty_abc123",
+    mode="viewport",
     max_bytes=4096,
     timeout_ms=5000
 )

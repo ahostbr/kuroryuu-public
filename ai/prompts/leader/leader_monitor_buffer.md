@@ -105,7 +105,7 @@ When worker at ≤20% context:
 │     │  b. WAIT 2s, then buffer check:                          │  │
 │     │     result = k_pty(action="term_read",                   │  │
 │     │                    session_id=...,                       │  │
-│     │                    mode="tail", max_lines=5)             │  │
+│     │                    mode="viewport", max_lines=5)         │  │
 │     │                                                          │  │
 │     │  c. Check for idle prompt in result["text"]:             │  │
 │     │     - "❯ " or "$ " or "> " at end                        │  │
@@ -120,7 +120,7 @@ When worker at ≤20% context:
 │                                                                   │
 │  4. BUFFER POLL for save completion (faster than vision):         │
 │     while True:                                                   │
-│         result = k_pty(action="term_read", mode="tail",          │
+│         result = k_pty(action="term_read", mode="viewport",      │
 │                       session_id=..., max_lines=10)              │
 │         if "Checkpoint saved" in result["text"]:                 │
 │             break                                                 │

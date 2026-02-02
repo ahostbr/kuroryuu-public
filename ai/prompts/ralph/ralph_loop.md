@@ -24,7 +24,7 @@ FOR each incomplete task in todo.md:
 
   3. MONITOR OUTPUT
      LOOP:
-       output = k_pty(action="read", session_id=worker)
+       output = k_pty(action="read", session_id=worker, mode="viewport")
 
        IF "<promise>DONE</promise>" in output:
          → Task complete, break
@@ -148,7 +148,7 @@ def monitor_worker(worker_pty: str, task_id: str) -> str:
 
     while True:
         # Read worker output
-        result = k_pty(action="read", session_id=worker_pty, timeout_ms=5000)
+        result = k_pty(action="read", session_id=worker_pty, mode="viewport", timeout_ms=5000)
         output = result.get("output", "")
 
         # Check for promise signals
