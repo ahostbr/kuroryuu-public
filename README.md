@@ -427,7 +427,9 @@ curl -X POST http://127.0.0.1:8100/mcp -d '{"jsonrpc":"2.0","method":"tools/list
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+**AGPL-3.0** - See [LICENSE](LICENSE) for details.
+
+You can use, modify, and distribute Kuroryuu freely. If you modify and deploy it (including as a network service), you must open source your changes under AGPL-3.0.
 
 ---
 
