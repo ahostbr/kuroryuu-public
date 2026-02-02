@@ -395,7 +395,7 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
       if (event.shiftKey && event.key === 'Tab') {
         event.preventDefault();
         event.stopPropagation();
-        toast.info('Shift+Tab WiP - use PM button. Maybe try having your Claude fix this LOL... I tried 10+ hours on this bug SMH', 1000);
+        toast.info('Shift+Tab WiP - use PM button. Maybe try having your Claude fix this LOL... I tried 10+ hours on this bug SMH', 1500);
         return false;
       }
 
@@ -444,7 +444,7 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        toast.info('Shift+Tab WiP - use PM button. Maybe try having your Claude fix this LOL... I tried 10+ hours on this bug SMH', 1000);
+        toast.info('Shift+Tab WiP - use PM button. Maybe try having your Claude fix this LOL... I tried 10+ hours on this bug SMH', 1500);
       }
     };
 
