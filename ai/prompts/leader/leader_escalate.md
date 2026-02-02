@@ -47,7 +47,7 @@ The escalation ladder defines **when** and **how** a leader should intervene whe
 
 **How**:
 ```bash
-k_pty(action="read", session_id="{worker_session_id}", max_bytes=4096)
+k_pty(action="read", session_id="{worker_session_id}", mode="viewport", max_bytes=4096)
 ```
 
 **What you're looking for**:

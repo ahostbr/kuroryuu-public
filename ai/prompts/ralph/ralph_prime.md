@@ -80,7 +80,7 @@ Parse format: `- [ ] T###: description @agent [worklog: pending] (created: times
 k_pty(action="send_line", session_id=worker_pty, data="echo RALPH_READY_CHECK")
 
 # Read response (with timeout)
-result = k_pty(action="read", session_id=worker_pty, timeout_ms=5000)
+result = k_pty(action="read", session_id=worker_pty, mode="viewport", timeout_ms=5000)
 
 # Verify worker is responsive
 ```

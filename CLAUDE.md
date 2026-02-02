@@ -43,6 +43,14 @@ Check freshness first: `k_rag(action="status")`, `k_repo_intel(action="status")`
 
 ---
 
+## PTY Reading (HARD RULE)
+
+**Use `max_lines=5-10` for `k_pty term_read`.** Start small, work up only if needed.
+
+Large line reads bloat context and cause unnecessary compaction.
+
+---
+
 ## RAG Interactive Mode (Human-in-the-Loop)
 
 Let user select which RAG results to keep before using them.
