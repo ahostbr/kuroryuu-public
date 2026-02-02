@@ -64,16 +64,19 @@ export const useAgentStore = create<AgentState>((set, get) => ({
         fetch(`${GATEWAY_URL}/v1/agents/list?include_dead=true`),
         fetch(`${GATEWAY_URL}/v1/agents/stats`),
       ]);
-      
+
       if (!agentsRes.ok || !statsRes.ok) {
         throw new Error('Failed to fetch agents');
       }
-      
+
       const agentsData = await agentsRes.json();
       const statsData = await statsRes.json();
-      
-      set({ 
-        agents: agentsData.agents || [], 
+
+      // DEBUG: Log fetched agents
+      console.log(`[AgentStore] Fetched ${agentsData.agents?.length || 0} agents:`, agentsData.agents?.map((a: { agent_id: string }) => a.agent_id));
+
+      set({
+        agents: agentsData.agents || [],
         agentStats: statsData,
       });
     } catch (err) {

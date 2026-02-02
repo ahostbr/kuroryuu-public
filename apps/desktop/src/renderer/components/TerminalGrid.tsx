@@ -516,7 +516,9 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
   // Start polling when component mounts (only if setup complete AND persistence loaded)
   // Wait for persistence to ensure orphaned workers are removed before heartbeats start
   useEffect(() => {
+    console.log(`[TerminalGrid] Polling check: isSetupComplete=${isSetupComplete}, persistenceLoaded=${persistenceLoaded}`);
     if (isSetupComplete && persistenceLoaded) {
+      console.log(`[TerminalGrid] Starting polling and heartbeats`);
       startPolling();
       // Start heartbeats only after terminal restoration is complete
       startAllHeartbeats();
@@ -914,9 +916,16 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
 
   // Get agent linked to a terminal (by matching config ID, role, or index)
   const getLinkedAgent = useCallback((term: TerminalInstance, index: number): Agent | undefined => {
+    // DEBUG: Log lookup attempt
+    console.log(`[getLinkedAgent] index=${index}, term.linkedAgentId=${term.linkedAgentId}, agents.length=${agents.length}`);
+    if (agents.length > 0) {
+      console.log(`[getLinkedAgent] Available agent IDs:`, agents.map(a => a.agent_id));
+    }
+
     if (term.linkedAgentId) {
       // First try direct agent_id match (runtime agents)
       const directMatch = agents.find(a => a.agent_id === term.linkedAgentId);
+      console.log(`[getLinkedAgent] directMatch=${directMatch?.agent_id || 'undefined'}`);
       if (directMatch) return directMatch;
 
       // Check if linkedAgentId is a config ID (like "leader_claude-cli_...")
