@@ -56,11 +56,19 @@ For each file, analyze for:
 - Edge case handling
 
 **2. Security Issues**
-- SQL injection vulnerabilities
-- XSS vulnerabilities
-- Insecure data handling
-- Exposed secrets or API keys
-- Authentication/authorization gaps
+
+> **CONTEXT:** Kuroryuu is localhost-only. The user already has full system access
+> via Claude CLI. Do NOT flag "vulnerabilities" requiring an external attacker:
+> - ❌ Missing auth between local services
+> - ❌ Rate limiting, CORS, IP spoofing protection
+> - ❌ Path traversal (agent can access any file via bash)
+>
+> **DO flag:** SQL injection (data integrity), secrets in logs/commits, actual bugs.
+
+- SQL injection (data integrity, not network security)
+- Exposed secrets in logs or version control
+- Insecure external API calls (if reaching internet)
+- Logic errors that corrupt data
 
 **3. Performance Problems**
 - N+1 queries

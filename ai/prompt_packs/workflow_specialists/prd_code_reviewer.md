@@ -71,11 +71,21 @@ For each changed/new file, analyze:
 - Edge case handling
 
 **2. Security Issues**
-- SQL injection vulnerabilities
-- XSS vulnerabilities
-- Insecure data handling
-- Exposed secrets or API keys
-- Authentication/authorization gaps
+
+> **CONTEXT:** Kuroryuu is localhost-only. The user running the app already has full
+> system access via Claude CLI (can run any bash command, read any file). Do NOT flag
+> "vulnerabilities" that require an external attacker:
+> - ❌ Missing auth between local services (Gateway ↔ MCP Core)
+> - ❌ Rate limiting on localhost endpoints
+> - ❌ Path traversal (agent can already access any path via bash)
+> - ❌ CORS restrictions, IP spoofing protection
+>
+> **DO flag:** SQL injection (data integrity), exposed secrets in logs/repos, actual bugs.
+
+- SQL injection (data integrity risk, not just security)
+- Exposed secrets in logs or committed to repo
+- Insecure external API calls (if reaching internet)
+- Logic errors that could corrupt data
 
 **3. Performance Problems**
 - N+1 queries
