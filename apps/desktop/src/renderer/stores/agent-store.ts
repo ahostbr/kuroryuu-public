@@ -18,7 +18,7 @@ import type {
 } from '../types/agents';
 
 const GATEWAY_URL = 'http://127.0.0.1:8200';
-const POLL_INTERVAL = 2000; // 2 seconds
+const POLL_INTERVAL = 5000; // 5 seconds
 
 interface AgentState {
   // Agent Registry

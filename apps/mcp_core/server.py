@@ -17,6 +17,8 @@ Tools exposed (routed pattern with action parameter):
 - k_thinker_channel: send_line, read (NOT leader-only, for thinker debates)
 - k_capture: start, stop, screenshot, poll
 - k_pccontrol: help, status, screenshot, click, type, find_element, launch_app, get_windows (OPT-IN, requires WinAppDriver)
+- k_bash: Simple shell execution with PTY and background support (for coding agents)
+- k_process: Monitor and control background bash sessions (list, poll, log, write, submit, kill)
 """
 
 from __future__ import annotations
@@ -47,6 +49,8 @@ from tools_collective import register_collective_tools, _load_patterns, _load_sk
 from tools_graphiti_migrate import register_graphiti_migrate_tools  # Graphiti migration
 from tools_mcp_search import register_mcp_search_tools  # Tool discovery for external LLMs
 from tools_pccontrol import register_pccontrol_tools  # Full Desktop Access (opt-in, requires WinAppDriver)
+from tools_bash import register_bash_tools  # Simple shell execution with PTY
+from tools_process import register_process_tools  # Monitor background bash sessions
 from pty_registry import get_pty_registry
 from pty_persistence import get_pty_persistence
 from pty_manager import get_pty_manager
@@ -92,6 +96,8 @@ register_collective_tools(registry)  # Phase 4: Collective intelligence
 register_graphiti_migrate_tools(registry)  # Graphiti migration
 register_mcp_search_tools(registry)  # Tool discovery for external LLMs (k_MCPTOOLSEARCH, k_help)
 register_pccontrol_tools(registry)  # Full Desktop Access (opt-in, requires WinAppDriver)
+register_bash_tools(registry)  # Simple shell execution with PTY (k_bash)
+register_process_tools(registry)  # Monitor background bash sessions (k_process)
 
 protocol = MCPProtocol(registry)
 

@@ -56,6 +56,7 @@ interface SettingsState {
   setTrayCompanionLaunchOnStartup: (enabled: boolean) => void;
   setGraphitiEnabled: (enabled: boolean) => void;
   setGraphitiRetention: (retention: GraphitiRetentionPeriod) => void;
+  setEnableRichToolVisualizations: (enabled: boolean) => void;
 
   // Project Settings
   projectSettings: ProjectSettings;
@@ -97,6 +98,7 @@ const defaultAppSettings: AppSettings = {
   enableAnimations: true,
   matrixRainOpacity: 40,
   kuroryuuDecorativeFrames: false, // Opt-in decorative dragon frames
+  enableRichToolVisualizations: false, // Opt-in rich tool visualizations
   integrations: {
     trayCompanion: {
       launchOnStartup: false,
@@ -269,6 +271,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     }));
     window.electronAPI?.settings?.set?.('graphiti.retention', retention).catch(console.error);
   },
+  setEnableRichToolVisualizations: (enabled) => {
+    set((s) => ({ appSettings: { ...s.appSettings, enableRichToolVisualizations: enabled } }));
+    window.electronAPI?.settings?.set?.('ui.enableRichToolVisualizations', enabled).catch(console.error);
+  },
 
   // Project Settings
   projectSettings: defaultProjectSettings,
@@ -436,6 +442,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         enableAnimations,
         matrixRainOpacity,
         kuroryuuDecorativeFrames,
+        enableRichToolVisualizations,
         trayCompanionLaunchOnStartup,
         graphitiEnabled,
         graphitiRetention,
@@ -450,6 +457,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         window.electronAPI?.settings?.get?.('ui.enableAnimations'),
         window.electronAPI?.settings?.get?.('ui.matrixRainOpacity'),
         window.electronAPI?.settings?.get?.('ui.kuroryuuDecorativeFrames'),
+        window.electronAPI?.settings?.get?.('ui.enableRichToolVisualizations'),
         window.electronAPI?.settings?.get?.('integrations.trayCompanion.launchOnStartup'),
         window.electronAPI?.settings?.get?.('graphiti.enabled'),
         window.electronAPI?.settings?.get?.('graphiti.retention'),
@@ -468,6 +476,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         if (isBoolean(enableAnimations)) newSettings.enableAnimations = enableAnimations;
         if (isNumber(matrixRainOpacity)) newSettings.matrixRainOpacity = matrixRainOpacity;
         if (isBoolean(kuroryuuDecorativeFrames)) newSettings.kuroryuuDecorativeFrames = kuroryuuDecorativeFrames;
+        if (isBoolean(enableRichToolVisualizations)) newSettings.enableRichToolVisualizations = enableRichToolVisualizations;
         if (isBoolean(trayCompanionLaunchOnStartup)) {
           newSettings.integrations = {
             ...newSettings.integrations,

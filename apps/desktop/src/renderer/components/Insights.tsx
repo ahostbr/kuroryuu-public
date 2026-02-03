@@ -55,9 +55,11 @@ import remarkGfm from 'remark-gfm';
 import { useInsightsStore } from '../stores/insights-store';
 import { useDomainConfigStore } from '../stores/domain-config-store';
 import { getModelDisplayName, groupModelsByFamily, MODEL_FAMILY_LABELS, PROVIDERS, type ModelInfo, type LLMProvider } from '../types/domain-config';
-import type { InsightsMessage, InsightsModel, ToolCall, InsightsSession } from '../types/insights';
+import type { InsightsMessage, InsightsModel, ToolCall, InsightsSession, RichCard } from '../types/insights';
 import { getInsightsModelName } from '../types/insights';
 import { getModelFamily } from '../services/model-registry';
+import { useSettingsStore } from '../stores/settings-store';
+import { RichCardRenderer } from './insights/RichCardRenderer';
 
 // ============================================================================
 // TTS Hook - Uses Desktop main process TTS
@@ -913,9 +915,10 @@ interface MessageBubbleProps {
   isSpeaking?: boolean;
   canRetry?: boolean;
   showMetadata?: boolean;
+  showRichCards?: boolean;
 }
 
-function MessageBubble({ message, onSpeak, onStopSpeaking, onRetry, isSpeaking, canRetry, showMetadata }: MessageBubbleProps) {
+function MessageBubble({ message, onSpeak, onStopSpeaking, onRetry, isSpeaking, canRetry, showMetadata, showRichCards }: MessageBubbleProps) {
   const isUser = message.role === 'user';
   const isStreaming = message.status === 'streaming';
   const isPending = message.status === 'pending';
@@ -1041,6 +1044,15 @@ function MessageBubble({ message, onSpeak, onStopSpeaking, onRetry, isSpeaking, 
             <div className="flex flex-wrap gap-1 mb-2">
               {message.toolCalls.map(tc => (
                 <ToolCallBadge key={tc.id} toolCall={tc} />
+              ))}
+            </div>
+          )}
+
+          {/* Rich visualization cards (when enabled) */}
+          {showRichCards && !isUser && message.richCards && message.richCards.length > 0 && (
+            <div className="space-y-2 mb-2">
+              {message.richCards.map(card => (
+                <RichCardRenderer key={card.id} card={card} />
               ))}
             </div>
           )}
@@ -1314,6 +1326,11 @@ export function Insights() {
   
   // TTS hook
   const { speak, stop: stopSpeaking, isSpeaking } = useTTS();
+
+  // Rich tool visualizations setting
+  const enableRichToolVisualizations = useSettingsStore(
+    state => state.appSettings.enableRichToolVisualizations
+  );
   
   // Gateway health with latency
   const { isOnline, latency, checkHealth } = useGatewayHealth();
@@ -1658,6 +1675,7 @@ export function Insights() {
                     onRetry={isLastAssistant && canRetryLast ? handleRetry : undefined}
                     canRetry={isLastAssistant && canRetryLast}
                     showMetadata={showMetadata}
+                    showRichCards={enableRichToolVisualizations}
                   />
                 );
               })}

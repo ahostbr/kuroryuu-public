@@ -57,7 +57,8 @@ export type View =
   | 'dojo'
   | 'transcripts'
   | 'capture'
-  | 'claude-tasks';
+  | 'claude-tasks'
+  | 'coding-agents';
 
 interface SidebarProps {
   activeView: View;
@@ -106,7 +107,8 @@ const navGroups: NavGroup[] = [
     label: 'Monitor',
     icon: Eye,
     items: [
-      { id: 'claude-tasks', label: 'Claude Tasks', icon: Sparkles, shortcut: 'C' },
+      { id: 'claude-tasks', label: 'Claude Plugin', icon: Sparkles, shortcut: 'C' },
+      { id: 'coding-agents', label: 'Coding Agents', icon: Bot, shortcut: 'A' },
       { id: 'traffic-flow', label: 'HTTP Traffic', icon: Activity, shortcut: 'F' },
       { id: 'pty-traffic', label: 'PTY Traffic', icon: Radio, shortcut: 'Y' },
       { id: 'command-center', label: 'Command Center', icon: Terminal, shortcut: 'M' },

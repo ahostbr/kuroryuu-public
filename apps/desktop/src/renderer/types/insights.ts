@@ -15,8 +15,10 @@ export interface InsightsMessage {
   timestamp: number;
   model?: InsightsModel;
   toolCalls?: ToolCall[];
+  richCards?: RichCard[];  // Rich visualization cards for tool outputs
   status?: 'pending' | 'streaming' | 'complete' | 'error';
   error?: string;
+  isStreaming?: boolean;  // True while message is being progressively built
   // Response metadata
   metadata?: {
     actualModel?: string;      // Model ID from response
@@ -37,6 +39,50 @@ export interface ToolCall {
   status: 'running' | 'success' | 'error';
   duration?: number;
   result?: string;
+}
+
+// Rich visualization card types
+export type RichCardType = 'rag-results' | 'file-tree' | 'session-state' | 'tool-output';
+
+export interface RichCard {
+  id: string;
+  type: RichCardType;
+  toolCallId: string;  // Links to parent ToolCall
+  data: RAGResultsData | FileTreeData | ToolOutputData;
+}
+
+export interface RAGResultsData {
+  query: string;
+  strategy?: string;
+  matches: RAGMatch[];
+  totalMatches: number;
+  scanTimeMs?: number;
+  filesScanned?: number;
+}
+
+export interface RAGMatch {
+  path: string;
+  line?: number;
+  score: number;
+  snippet?: string;
+}
+
+export interface FileTreeData {
+  rootPath: string;
+  files: FileTreeEntry[];
+}
+
+export interface FileTreeEntry {
+  path: string;
+  type: 'file' | 'directory';
+  size?: number;
+  children?: FileTreeEntry[];
+}
+
+export interface ToolOutputData {
+  toolName: string;
+  output: string;
+  isJson?: boolean;
 }
 
 export interface InsightsSession {

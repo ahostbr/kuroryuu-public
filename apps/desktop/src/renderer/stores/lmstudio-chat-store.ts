@@ -11,9 +11,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { useDomainConfigStore } from './domain-config-store';
+import { useSettingsStore } from './settings-store';
 import type { LLMProvider } from '../types/domain-config';
 import { inferSourceFromId } from '../services/model-registry';
 import { filterTerminalOutput, hasTerminalArtifacts, stripInputEcho } from '../utils/filter-terminal-output';
+import type { RichCard, RAGResultsData, RAGMatch } from '../types/insights';
 
 // Gateway endpoints
 const GATEWAY_URL = 'http://127.0.0.1:8200';
@@ -64,11 +66,15 @@ export interface ChatMessage {
   // Tool call support
   toolCalls?: ToolCallData[];
   toolCallId?: string; // For tool result messages
+  // Rich visualization cards for tool outputs
+  richCards?: RichCard[];
   // Model/provider metadata (from Gateway response)
   model?: string;       // e.g., "grok-code-fast-1" (from Gateway)
   provider?: string;    // e.g., "cliproxyapi" (Gateway backend name)
   modelName?: string;   // e.g., "Grok Code Fast 1" (display name from registry)
   source?: string;      // e.g., "github-copilot" (actual model source)
+  // Streaming state
+  isStreaming?: boolean; // True while message is being progressively built
 }
 
 // Conversation (chat session) type
@@ -104,6 +110,42 @@ export interface ContextInfo {
  * This type is kept for backwards compatibility.
  */
 export type AssistantViewType = 'insights' | 'code-editor' | null;
+
+/**
+ * Parse k_rag tool result into RichCard format
+ */
+function parseRAGResultToRichCard(toolCallId: string, result: unknown): RichCard | null {
+  if (!result || typeof result !== 'object') return null;
+
+  const data = result as Record<string, unknown>;
+
+  // Check if this looks like a RAG result
+  if (!data.matches || !Array.isArray(data.matches)) return null;
+
+  // Parse matches into RAGMatch format
+  const matches: RAGMatch[] = data.matches.slice(0, 10).map((m: Record<string, unknown>) => ({
+    path: String(m.path || ''),
+    line: typeof m.start_line === 'number' ? m.start_line : undefined,
+    score: typeof m.score === 'number' ? m.score : 0,
+    snippet: typeof m.snippet === 'string' ? m.snippet.slice(0, 500) : undefined,
+  }));
+
+  const ragData: RAGResultsData = {
+    query: typeof data.query === 'string' ? data.query : '',
+    strategy: typeof data.rag_mode === 'string' ? data.rag_mode : undefined,
+    matches,
+    totalMatches: matches.length,
+    scanTimeMs: (data.stats as Record<string, unknown>)?.elapsed_ms as number | undefined,
+    filesScanned: (data.stats as Record<string, unknown>)?.files_scanned as number | undefined,
+  };
+
+  return {
+    id: `rich-${toolCallId}`,
+    type: 'rag-results',
+    toolCallId,
+    data: ragData,
+  };
+}
 
 interface LMStudioChatState {
   // Panel state
@@ -538,6 +580,9 @@ ${content}`;
             let toolCalls: ToolCallData[] = [];
             const toolCallsInProgress: Map<string, ToolCallData> = new Map();
 
+            // Track the assistant message ID for progressive updates
+            let streamingAssistantMessageId: string | null = null;
+
             // Stream metadata from Gateway (real backend/model info)
             let streamMetadata: { backend?: string; model?: string } = {};
 
@@ -584,6 +629,18 @@ ${content}`;
                       }
                       fullContent += cleanText;
                       set({ streamingContent: fullContent });
+
+                      // Also update progressive message if it exists (tool calls already shown)
+                      if (streamingAssistantMessageId) {
+                        const currentMessages = get().messages;
+                        set({
+                          messages: currentMessages.map(msg =>
+                            msg.id === streamingAssistantMessageId
+                              ? { ...msg, content: fullContent }
+                              : msg
+                          ),
+                        });
+                      }
                       continue;
                     }
 
@@ -597,8 +654,37 @@ ${content}`;
                         startTime: Date.now(),
                       };
                       toolCallsInProgress.set(newToolCall.id, newToolCall);
-                      // Update streaming content to show tool is running
-                      set({ streamingContent: fullContent });
+
+                      // Progressive display: Create or update assistant message with tool call
+                      const currentMessages = get().messages;
+
+                      if (!streamingAssistantMessageId) {
+                        // First tool call - create the assistant message
+                        streamingAssistantMessageId = generateId();
+                        const partialMessage: ChatMessage = {
+                          id: streamingAssistantMessageId,
+                          role: 'assistant',
+                          content: fullContent,
+                          timestamp: Date.now(),
+                          toolCalls: [newToolCall],
+                          isStreaming: true,
+                        };
+                        set({ messages: [...currentMessages, partialMessage], streamingContent: fullContent });
+                      } else {
+                        // Subsequent tool calls - update existing message
+                        set({
+                          messages: currentMessages.map(msg =>
+                            msg.id === streamingAssistantMessageId
+                              ? {
+                                  ...msg,
+                                  content: fullContent,
+                                  toolCalls: [...(msg.toolCalls || []), newToolCall],
+                                }
+                              : msg
+                          ),
+                          streamingContent: fullContent,
+                        });
+                      }
                       continue;
                     }
 
@@ -610,6 +696,37 @@ ${content}`;
                         existing.result = parsed.result;
                         existing.error = parsed.is_error ? parsed.error : undefined;
                         existing.endTime = Date.now();
+
+                        // Update the message with new tool status
+                        if (streamingAssistantMessageId) {
+                          const currentMessages = get().messages;
+
+                          // Check if rich visualizations are enabled and parse tool result
+                          const settingsState = useSettingsStore.getState();
+                          const enableRichViz = settingsState.appSettings?.enableRichToolVisualizations ?? false;
+                          let newRichCard: RichCard | null = null;
+
+                          if (enableRichViz && !parsed.is_error && existing.name === 'k_rag') {
+                            newRichCard = parseRAGResultToRichCard(parsed.id, parsed.result);
+                          }
+
+                          set({
+                            messages: currentMessages.map(msg =>
+                              msg.id === streamingAssistantMessageId
+                                ? {
+                                    ...msg,
+                                    toolCalls: msg.toolCalls?.map(tc =>
+                                      tc.id === parsed.id ? { ...existing } : tc
+                                    ),
+                                    // Add rich card if parsed successfully
+                                    richCards: newRichCard
+                                      ? [...(msg.richCards || []), newRichCard]
+                                      : msg.richCards,
+                                  }
+                                : msg
+                            ),
+                          });
+                        }
                       }
                       continue;
                     }
@@ -745,40 +862,81 @@ ${content}`;
               }
             }
 
-            const assistantMessage: ChatMessage = {
-              id: generateId(),
-              role: 'assistant',
-              content: finalContent || (toolCalls.length > 0 ? '' : 'No response received.'),
-              timestamp: Date.now(),
-              toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
-              // Real model/provider from Gateway response
-              model: streamMetadata.model,
-              provider: streamMetadata.backend,
-              modelName: modelInfo?.name || streamMetadata.model,
-              source: modelInfo?.source || (streamMetadata.model ? inferSourceFromId(streamMetadata.model) : undefined),
-            };
-
             // Auto-clear at 80% (but only if we have valid usage data)
             const currentInfo = get().contextInfo;
             const hasValidUsage = currentInfo.usedTokens > 0 && currentInfo.maxTokens > 0;
-            if (hasValidUsage && currentInfo.percentage >= 0.8) {
-              console.log('[LMStudioChat] Context at 80%, clearing history');
-              set({
-                messages: [userMessage, assistantMessage], // Keep the conversation pair
-                contextInfo: DEFAULT_CONTEXT_INFO,
-                isSending: false,
+
+            if (streamingAssistantMessageId) {
+              // Progressive message exists - finalize it with metadata
+              const finalMessageFields = {
+                content: finalContent || (toolCalls.length > 0 ? '' : 'No response received.'),
+                toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+                model: streamMetadata.model,
+                provider: streamMetadata.backend,
+                modelName: modelInfo?.name || streamMetadata.model,
+                source: modelInfo?.source || (streamMetadata.model ? inferSourceFromId(streamMetadata.model) : undefined),
                 isStreaming: false,
-                streamingContent: '',
-                abortController: null,
-              });
+              };
+
+              if (hasValidUsage && currentInfo.percentage >= 0.8) {
+                console.log('[LMStudioChat] Context at 80%, clearing history');
+                const currentMessages = get().messages;
+                const existingMsg = currentMessages.find(m => m.id === streamingAssistantMessageId);
+                if (existingMsg) {
+                  set({
+                    messages: [userMessage, { ...existingMsg, ...finalMessageFields }],
+                    contextInfo: DEFAULT_CONTEXT_INFO,
+                    isSending: false,
+                    isStreaming: false,
+                    streamingContent: '',
+                    abortController: null,
+                  });
+                }
+              } else {
+                set((s) => ({
+                  messages: s.messages.map(msg =>
+                    msg.id === streamingAssistantMessageId
+                      ? { ...msg, ...finalMessageFields }
+                      : msg
+                  ),
+                  isSending: false,
+                  isStreaming: false,
+                  streamingContent: '',
+                  abortController: null,
+                }));
+              }
             } else {
-              set((s) => ({
-                messages: [...s.messages, assistantMessage],
-                isSending: false,
-                isStreaming: false,
-                streamingContent: '',
-                abortController: null,
-              }));
+              // No progressive message - create new assistant message (no tools were called)
+              const assistantMessage: ChatMessage = {
+                id: generateId(),
+                role: 'assistant',
+                content: finalContent || 'No response received.',
+                timestamp: Date.now(),
+                model: streamMetadata.model,
+                provider: streamMetadata.backend,
+                modelName: modelInfo?.name || streamMetadata.model,
+                source: modelInfo?.source || (streamMetadata.model ? inferSourceFromId(streamMetadata.model) : undefined),
+              };
+
+              if (hasValidUsage && currentInfo.percentage >= 0.8) {
+                console.log('[LMStudioChat] Context at 80%, clearing history');
+                set({
+                  messages: [userMessage, assistantMessage],
+                  contextInfo: DEFAULT_CONTEXT_INFO,
+                  isSending: false,
+                  isStreaming: false,
+                  streamingContent: '',
+                  abortController: null,
+                });
+              } else {
+                set((s) => ({
+                  messages: [...s.messages, assistantMessage],
+                  isSending: false,
+                  isStreaming: false,
+                  streamingContent: '',
+                  abortController: null,
+                }));
+              }
             }
           } else {
             // Non-streaming JSON response (fallback)

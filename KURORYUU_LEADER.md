@@ -1165,6 +1165,68 @@ k_collective(action="record_success", task_type="thinker_debate",
 
 ---
 
+## 15. SPAWNING EXTERNAL CODING AGENTS
+
+Use `k_bash` with `pty:true` and `background:true` to spawn external coding CLIs (codex, claude, pi, etc.).
+
+### 15.1 Background Agent (Headless)
+
+```python
+# Spawn coding agent in background
+result = k_bash(
+    command='codex exec --full-auto "Build a REST API for todos"',
+    workdir="/tmp/api-project",
+    pty=True,
+    background=True
+)
+session_id = result["sessionId"]
+
+# Monitor progress
+k_process(action="poll", sessionId=session_id)
+k_process(action="log", sessionId=session_id)
+
+# Send input if agent prompts
+k_process(action="submit", sessionId=session_id, data="yes")
+
+# Kill if stuck
+k_process(action="kill", sessionId=session_id)
+```
+
+### 15.2 Worker Terminal (Desktop Visible)
+
+Desktop terminals are created MANUALLY by the user as blank PowerShell windows.
+Leader can start any CLI that's already in PATH.
+
+```python
+# Find idle worker (user-created blank PowerShell)
+workers = k_pty(action="list")  # Filter by owner_role="worker"
+
+# Send command to spawn CLI in that terminal
+k_pty(action="send_line", session_id="worker_abc", data='claude "Build auth module"')
+
+# Read output
+k_pty(action="term_read", session_id="worker_abc", mode="tail", max_lines=50)
+```
+
+### 15.3 CLI Reference
+
+| CLI | Command | Notes |
+|-----|---------|-------|
+| Codex | `codex exec --full-auto "prompt"` | Requires git repo! |
+| Claude | `claude "prompt"` | |
+| Pi | `pi "prompt"` | |
+| OpenCode | `opencode run "prompt"` | |
+
+### 15.4 Rules
+
+1. **Always use `pty:true`** for coding CLIs (they're interactive)
+2. **Use `background:true`** for long tasks
+3. **Monitor with `k_process(action="log")`** periodically
+4. **Codex requires git** - use `mktemp -d && git init` for scratch work
+5. **Don't abandon agents** - check on them, kill if stuck
+
+---
+
 ## REMEMBER
 
 > **You are the conductor, not the orchestrator.**

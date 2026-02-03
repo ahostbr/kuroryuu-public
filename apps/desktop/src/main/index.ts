@@ -1443,6 +1443,462 @@ function setupFsIpc(): void {
   });
 }
 
+/**
+ * Setup IPC handlers for Kuro Plugin Configuration
+ * Reads/writes .claude/settings.json for TTS, validators, hooks config
+ */
+function setupKuroConfigIpc(): void {
+  const { resolve, isAbsolute } = require('path');
+  const PROJECT_ROOT = process.env.KURORYUU_PROJECT_ROOT ||
+                       process.env.KURORYUU_ROOT ||
+                       resolve(__dirname, '../../../..');
+  const SETTINGS_PATH = join(PROJECT_ROOT, '.claude', 'settings.json');
+
+  // Load kuro config from settings.json
+  ipcMain.handle('kuro-config:load', async () => {
+    try {
+      const content = await readFile(SETTINGS_PATH, 'utf-8');
+      const settings = JSON.parse(content);
+
+      // Extract kuro-relevant config from hooks and kuroPlugin settings
+      const hooks = settings.hooks || {};
+      const kuroPlugin = settings.kuroPlugin || {};
+      const config = {
+        tts: {
+          provider: 'edge_tts',
+          voice: kuroPlugin.voice || 'en-GB-SoniaNeural',
+          smartSummaries: kuroPlugin.smartSummaries || false,
+          summaryProvider: kuroPlugin.summaryProvider || 'gateway-auto',
+          summaryModel: kuroPlugin.summaryModel || '',
+          userName: kuroPlugin.userName || 'Ryan',
+          messages: {
+            stop: 'Work complete',
+            subagentStop: 'Task finished',
+            notification: 'Your attention is needed',
+          },
+        },
+        validators: {
+          ruff: false,
+          ty: false,
+          timeout: 30000,
+        },
+        hooks: {
+          ttsOnStop: false,
+          ttsOnSubagentStop: false,
+          ttsOnNotification: false,
+          taskSync: false,
+          transcriptExport: false,
+        },
+        features: {
+          ragInteractive: false,
+          questionMode: false,
+        },
+      };
+
+      // Helper to parse TTS command: extracts message and voice
+      const parseTTSCommand = (command: string) => {
+        // Format: uv run edge_tts.py "message" --voice "voice_name"
+        const voiceMatch = command.match(/--voice\s+"([^"]+)"/);
+        const voice = voiceMatch ? voiceMatch[1] : null;
+        // Message is the first quoted string after edge_tts.py
+        const msgMatch = command.match(/edge_tts\.py\s+"([^"]+)"/);
+        const message = msgMatch ? msgMatch[1] : null;
+        return { message, voice };
+      };
+
+      // Parse TTS settings from Stop hook
+      const stopHooks = hooks.Stop?.[0]?.hooks || [];
+      for (const hook of stopHooks) {
+        if (hook.command?.includes('edge_tts.py')) {
+          config.tts.provider = 'edge_tts';
+          config.hooks.ttsOnStop = true;
+          const { message, voice } = parseTTSCommand(hook.command);
+          if (message) config.tts.messages.stop = message;
+          if (voice) config.tts.voice = voice;
+        }
+      }
+
+      // Parse SubagentStop hooks
+      const subagentHooks = hooks.SubagentStop?.[0]?.hooks || [];
+      for (const hook of subagentHooks) {
+        if (hook.command?.includes('edge_tts.py')) {
+          config.hooks.ttsOnSubagentStop = true;
+          const { message } = parseTTSCommand(hook.command);
+          if (message) config.tts.messages.subagentStop = message;
+        }
+      }
+
+      // Parse Notification hooks
+      const notifHooks = hooks.Notification?.[0]?.hooks || [];
+      for (const hook of notifHooks) {
+        if (hook.command?.includes('edge_tts.py')) {
+          config.hooks.ttsOnNotification = true;
+          const { message } = parseTTSCommand(hook.command);
+          if (message) config.tts.messages.notification = message;
+        }
+      }
+
+      // Parse PostToolUse hooks for validators and task sync
+      const postHooks = hooks.PostToolUse || [];
+      for (const hookGroup of postHooks) {
+        const matcher = hookGroup.matcher || '';
+        const groupHooks = hookGroup.hooks || [];
+
+        if (matcher === 'TaskCreate' || matcher === 'TaskUpdate') {
+          config.hooks.taskSync = true;
+        }
+
+        for (const hook of groupHooks) {
+          if (hook.command?.includes('ruff_validator.py')) {
+            config.validators.ruff = true;
+            if (hook.timeout) config.validators.timeout = hook.timeout;
+          }
+          if (hook.command?.includes('ty_validator.py')) {
+            config.validators.ty = true;
+          }
+        }
+      }
+
+      // Parse UserPromptSubmit for transcript export
+      const promptHooks = hooks.UserPromptSubmit?.[0]?.hooks || [];
+      for (const hook of promptHooks) {
+        if (hook.command?.includes('export-transcript.ps1')) {
+          config.hooks.transcriptExport = true;
+        }
+      }
+
+      // Parse PreToolUse for RAG interactive
+      const preHooks = hooks.PreToolUse || [];
+      for (const hookGroup of preHooks) {
+        if (hookGroup.matcher === 'mcp__kuroryuu__k_rag') {
+          config.features.ragInteractive = true;
+        }
+      }
+
+      return { ok: true, config };
+    } catch (error) {
+      console.error('[KuroConfig] Failed to load:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Save kuro config to settings.json
+  ipcMain.handle('kuro-config:save', async (_, config: {
+    tts: {
+      provider: string;
+      voice: string;
+      smartSummaries: boolean;
+      userName: string;
+      messages: { stop: string; subagentStop: string; notification: string };
+    };
+    validators: { ruff: boolean; ty: boolean; timeout: number };
+    hooks: {
+      ttsOnStop: boolean;
+      ttsOnSubagentStop: boolean;
+      ttsOnNotification: boolean;
+      taskSync: boolean;
+      transcriptExport: boolean;
+    };
+    features: { ragInteractive: boolean; questionMode: boolean };
+  }) => {
+    try {
+      // Read existing settings
+      let settings: Record<string, unknown> = {};
+      try {
+        const content = await readFile(SETTINGS_PATH, 'utf-8');
+        settings = JSON.parse(content);
+      } catch {
+        // File doesn't exist, start fresh
+      }
+
+      if (!settings.hooks) settings.hooks = {};
+      const hooks = settings.hooks as Record<string, unknown[]>;
+
+      // Save kuroPlugin settings (voice, smartSummaries, summaryProvider, summaryModel, userName)
+      settings.kuroPlugin = {
+        voice: config.tts.voice,
+        smartSummaries: config.tts.smartSummaries,
+        summaryProvider: config.tts.summaryProvider,
+        summaryModel: config.tts.summaryModel,
+        userName: config.tts.userName,
+      };
+
+      const uvPath = 'C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe';
+      const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
+      const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
+      const voice = config.tts.voice || 'en-GB-SoniaNeural';
+      const useSmartTts = config.tts.smartSummaries;
+
+      // Update Stop hooks
+      if (config.hooks.ttsOnStop) {
+        const ttsCommand = useSmartTts
+          ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
+          : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
+        hooks.Stop = [{
+          hooks: [
+            { type: 'command', command: `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`, timeout: 10 },
+            { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
+            { type: 'command', command: ttsCommand, timeout: 30000 },
+          ],
+        }];
+      } else {
+        delete hooks.Stop;
+      }
+
+      // Update SubagentStop hooks
+      if (config.hooks.ttsOnSubagentStop) {
+        // Smart TTS uses --task to pass task description for AI summary
+        const ttsCommand = useSmartTts
+          ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
+          : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
+        hooks.SubagentStop = [{
+          hooks: [
+            { type: 'command', command: ttsCommand, timeout: 30000 },
+          ],
+        }];
+      } else {
+        delete hooks.SubagentStop;
+      }
+
+      // Update Notification hooks
+      if (config.hooks.ttsOnNotification) {
+        const ttsCommand = useSmartTts
+          ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
+          : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
+        hooks.Notification = [{
+          hooks: [
+            { type: 'command', command: ttsCommand, timeout: 30000 },
+          ],
+        }];
+      } else {
+        delete hooks.Notification;
+      }
+
+      // Update PostToolUse hooks (validators and task sync)
+      const postHooks: Array<{ matcher: string; hooks: Array<{ type: string; command: string; timeout: number }> }> = [];
+
+      // Write/Edit hooks for logging
+      postHooks.push({ matcher: 'Write', hooks: [{ type: 'command', command: 'cmd /c echo WRITE >> ai/hooks/hook_fired.txt', timeout: 5 }] });
+      postHooks.push({ matcher: 'Edit', hooks: [{ type: 'command', command: 'cmd /c echo EDIT >> ai/hooks/hook_fired.txt', timeout: 5 }] });
+
+      // Task sync hooks
+      if (config.hooks.taskSync) {
+        const syncCmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/sync-claude-task.ps1"';
+        postHooks.push({ matcher: 'TaskCreate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
+        postHooks.push({ matcher: 'TaskUpdate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
+      }
+
+      // Validator hooks
+      if (config.validators.ruff || config.validators.ty) {
+        const validatorHooks: Array<{ type: string; command: string; timeout: number }> = [];
+        if (config.validators.ruff) {
+          validatorHooks.push({
+            type: 'command',
+            command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}"`,
+            timeout: config.validators.timeout,
+          });
+        }
+        if (config.validators.ty) {
+          validatorHooks.push({
+            type: 'command',
+            command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ty_validator.py $f}"`,
+            timeout: config.validators.timeout,
+          });
+        }
+        postHooks.push({ matcher: 'Write|Edit', hooks: validatorHooks });
+      }
+
+      hooks.PostToolUse = postHooks;
+
+      // Update UserPromptSubmit hooks
+      if (config.hooks.transcriptExport) {
+        hooks.UserPromptSubmit = [{
+          hooks: [
+            { type: 'command', command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"', timeout: 5 },
+          ],
+        }];
+      } else {
+        delete hooks.UserPromptSubmit;
+      }
+
+      // Update PreToolUse hooks (RAG interactive)
+      if (config.features.ragInteractive) {
+        hooks.PreToolUse = [{
+          matcher: 'mcp__kuroryuu__k_rag',
+          hooks: [
+            { type: 'command', command: 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/rag-interactive-gate.ps1"', timeout: 5000 },
+          ],
+        }];
+      } else {
+        delete hooks.PreToolUse;
+      }
+
+      // Write back
+      const jsonContent = JSON.stringify(settings, null, 2);
+      await writeFile(SETTINGS_PATH, jsonContent, 'utf-8');
+
+      return { ok: true };
+    } catch (error) {
+      console.error('[KuroConfig] Failed to save:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Test TTS with current settings
+  ipcMain.handle('kuro-config:test-tts', async (_, ttsConfig: {
+    provider: string;
+    voice: string;
+    messages: { stop: string };
+  }) => {
+    try {
+      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
+      const voice = ttsConfig.voice || 'en-GB-SoniaNeural';
+      const testMessage = 'Hello, this is a test.';
+
+      console.log(`[KuroConfig] Testing TTS with voice: ${voice}`);
+
+      const { execSync } = require('child_process');
+      execSync(
+        `"${uvPath}" run "${ttsScript}" "${testMessage}" --voice "${voice}"`,
+        { encoding: 'utf-8', timeout: 30000, cwd: PROJECT_ROOT }
+      );
+
+      return { ok: true };
+    } catch (error) {
+      console.error('[KuroConfig] TTS test failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Legacy handler for compatibility (unused)
+  ipcMain.handle('kuro-config:test-tts-legacy', async (_, ttsConfig: {
+    provider: string;
+    voice: string;
+    messages: { stop: string };
+  }) => {
+    try {
+      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
+      const testMessage = ttsConfig.messages.stop || 'Test complete';
+
+      const { spawn: nodeSpawn } = require('child_process');
+      return new Promise((resolve) => {
+        const proc = nodeSpawn(uvPath, ['run', ttsScript, testMessage], {
+          cwd: PROJECT_ROOT,
+          stdio: 'pipe',
+        });
+
+        let stderr = '';
+        proc.stderr?.on('data', (data: Buffer) => {
+          stderr += data.toString();
+        });
+
+        proc.on('close', (code: number) => {
+          if (code === 0) {
+            resolve({ ok: true });
+          } else {
+            resolve({ ok: false, error: stderr || `Exit code: ${code}` });
+          }
+        });
+
+        proc.on('error', (err: Error) => {
+          resolve({ ok: false, error: err.message });
+        });
+
+        // Timeout after 30 seconds
+        setTimeout(() => {
+          proc.kill();
+          resolve({ ok: false, error: 'TTS test timed out' });
+        }, 30000);
+      });
+    } catch (error) {
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Get available Edge TTS voices (English only)
+  ipcMain.handle('kuro-config:get-voices', async () => {
+    try {
+      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const { execSync } = require('child_process');
+
+      // Run edge-tts --list-voices and parse output
+      const output = execSync(
+        `${uvPath} run --with edge-tts edge-tts --list-voices`,
+        { encoding: 'utf-8', timeout: 30000 }
+      );
+
+      // Parse table format: "en-US-AriaNeural                   Female    General..."
+      const voices: Array<{ value: string; label: string; gender: string; locale: string }> = [];
+      const lines = output.split('\n');
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        // Skip header and separator lines
+        if (!trimmed || trimmed.startsWith('Name') || trimmed.startsWith('-')) continue;
+
+        // Parse table row - columns are separated by multiple spaces
+        const parts = trimmed.split(/\s{2,}/);
+        if (parts.length >= 2) {
+          const voiceName = parts[0].trim();
+          const gender = parts[1]?.trim() || 'Unknown';
+
+          // Filter for English voices only (en-*)
+          if (voiceName.startsWith('en-')) {
+            const locale = voiceName.split('-').slice(0, 2).join('-');
+            const namePart = voiceName.replace(/Neural$/, '').split('-').pop() || '';
+            voices.push({
+              value: voiceName,
+              label: `${namePart} (${locale}, ${gender})`,
+              gender,
+              locale,
+            });
+          }
+        }
+      }
+
+      console.log(`[KuroConfig] Found ${voices.length} English voices`);
+      return { ok: true, voices };
+    } catch (error) {
+      console.error('[KuroConfig] Failed to get voices:', error);
+      // Return fallback voices on error
+      return {
+        ok: true,
+        voices: [
+          { value: 'en-GB-SoniaNeural', label: 'Sonia (en-GB, Female)', gender: 'Female', locale: 'en-GB' },
+          { value: 'en-US-JennyNeural', label: 'Jenny (en-US, Female)', gender: 'Female', locale: 'en-US' },
+          { value: 'en-US-GuyNeural', label: 'Guy (en-US, Male)', gender: 'Male', locale: 'en-US' },
+          { value: 'en-AU-NatashaNeural', label: 'Natasha (en-AU, Female)', gender: 'Female', locale: 'en-AU' },
+        ],
+      };
+    }
+  });
+
+  // Preview a voice with sample text
+  ipcMain.handle('kuro-config:preview-voice', async (_event, voiceName: string) => {
+    try {
+      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
+
+      console.log(`[KuroConfig] Previewing voice: ${voiceName}`);
+
+      const { execSync } = require('child_process');
+      execSync(
+        `"${uvPath}" run "${ttsScript}" "Hello, this is a voice preview." --voice "${voiceName}"`,
+        { encoding: 'utf-8', timeout: 30000, cwd: PROJECT_ROOT }
+      );
+
+      return { ok: true };
+    } catch (error) {
+      console.error('[KuroConfig] Voice preview failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  console.log('[KuroConfig] IPC handlers registered');
+}
+
 // MCP_CORE Configuration (port 8100)
 const MCP_CORE_URL = 'http://127.0.0.1:8100';
 
@@ -2779,6 +3235,7 @@ app.whenReady().then(async () => {
   }
 
   setupFsIpc();
+  setupKuroConfigIpc();
   setupMcpIpc();
   setupGatewayIpc();
   setupCliIpc();
@@ -2851,6 +3308,45 @@ app.whenReady().then(async () => {
   } else {
     console.log('[Main] Tray companion auto-launch SKIPPED (setting is off)');
   }
+
+  // Auto-start CLIProxyAPI if user has enabled it via Integrations wizard
+  // This ensures CLIProxyAPI is ready BEFORE renderer loads, so Insights works immediately
+  // Also auto-start if binary is provisioned (backwards compat for users who set up before settings flag existed)
+  const cliproxyEnabled = settingsService.get('integrations.cliproxyapi.enabled') as boolean;
+  const cliproxyAutoStart = settingsService.get('integrations.cliproxyapi.launchOnStartup') as boolean;
+
+  try {
+    const cliproxyManager = getCLIProxyNativeManager();
+
+    // Clean up any stale CLIProxyAPI processes from previous sessions first
+    await cliproxyManager.forceKillAll();
+    console.log('[Main] Cleaned up stale CLIProxyAPI processes');
+    const cliproxyStatus = await cliproxyManager.status();
+
+    // Auto-start if: (1) enabled in settings, OR (2) binary is provisioned (backwards compat)
+    const shouldAutoStart = (cliproxyEnabled && cliproxyAutoStart !== false) || cliproxyStatus.provisioned;
+
+    if (shouldAutoStart && cliproxyStatus.provisioned && !cliproxyStatus.healthy) {
+      console.log('[Main] Auto-starting CLIProxyAPI (provisioned:', cliproxyStatus.provisioned, ', enabled:', cliproxyEnabled, ')...');
+      const result = await cliproxyManager.start();
+      if (result.success) {
+        console.log('[Main] CLIProxyAPI auto-started, PID:', result.pid);
+      } else {
+        console.log('[Main] CLIProxyAPI auto-start failed:', result.error);
+      }
+    } else if (cliproxyStatus.healthy) {
+      console.log('[Main] CLIProxyAPI already running');
+    } else if (!cliproxyStatus.provisioned) {
+      console.log('[Main] CLIProxyAPI not provisioned - skipping auto-start');
+    }
+  } catch (err) {
+    console.log('[Main] CLIProxyAPI auto-start error:', err);
+  }
+
+  // Signal that CLIProxy auto-start is done - renderer can now safely check status
+  // This MUST be set BEFORE createWindow() so renderer knows CLIProxy is ready
+  (global as Record<string, unknown>).cliproxyStartupComplete = true;
+  console.log('[Main] CLIProxy startup complete, signaling ready');
 
   // Setup TTS
   const eventBus = new FeatureEventBus();
@@ -3116,6 +3612,13 @@ app.whenReady().then(async () => {
   console.log('[Main] About to register CLI Proxy handlers...');
   registerCLIProxyHandlers();
   console.log('[Main] CLI Proxy handlers registered.');
+
+  // NOTE: forceKillAll() was moved to BEFORE auto-start (earlier in this file)
+  // The cliproxyStartupComplete flag is now set before createWindow() too
+  // Keep IPC handler for renderer to check if CLIProxy startup is done
+  ipcMain.handle('cliproxy:startup-ready', () => {
+    return (global as Record<string, unknown>).cliproxyStartupComplete === true;
+  });
 
   // Set main window for services BEFORE registering handlers that need it
   console.log('[Main] Setting main window for services...');
