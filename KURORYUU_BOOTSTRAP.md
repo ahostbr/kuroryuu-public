@@ -35,26 +35,29 @@ Check freshness first: `k_rag(action="status")`, `k_repo_intel(action="status")`
 
 ## Task Tracking (HARD RULE)
 
-**Use `TaskCreate` for ALL work in Kuroryuu.**
+**ALWAYS use `TaskCreate` tool - NEVER manually write tasks to todo.md!**
 
-When starting any task, create a Claude Code task:
 ```
-TaskCreate: "Implement feature X" or "Fix bug Y" or "Refactor Z"
+TaskCreate: subject="Implement feature X" description="Details here"
 ```
 
-This syncs to `ai/todo.md` `## Claude Tasks` section via PostToolUse hook.
+The PostToolUse hook auto-syncs with proper timestamps:
+```markdown
+- [ ] T001: description @agent [worklog: pending] (created: 2026-02-02 12:00)
+```
 
-**Why:**
-- Tasks persist across sessions (project-global, not session-scoped)
-- Desktop monitor shows real-time progress (MONITOR → Claude Tasks)
-- Evidence chains link tasks to worklogs
-- Git-tracked history
+**Why timestamps matter:**
+- Desktop Gantt timeline calculates elapsed time from `(created: ...)`
+- Manual edits skip the hook → no timestamps → broken timeline
+- Tasks without `(created: ...)` show "✓" instead of duration
 
 **When complete:**
 ```
-TaskUpdate: status=completed
+TaskUpdate: taskId="1" status="completed"
 ```
-→ Task marked `[x]` with timestamp in todo.md
+→ Hook adds `(completed: timestamp)` and marks `[x]`
+
+**Monitor:** MONITOR → Claude Tasks (donut chart + Gantt timeline)
 
 ---
 

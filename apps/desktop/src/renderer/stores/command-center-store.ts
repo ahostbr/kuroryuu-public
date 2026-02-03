@@ -95,11 +95,32 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
       set({ error: null });
 
       try {
+        // Wait for main process CLIProxy startup cleanup to complete
+        // This prevents race condition where renderer checks status before cleanup finishes
+        let startupAttempts = 0;
+        const maxStartupAttempts = 20; // 10 second max wait (500ms * 20)
+        while (startupAttempts < maxStartupAttempts) {
+          try {
+            const ready = await window.electronAPI.cliproxy.native.startupReady();
+            if (ready) {
+              console.log('[CommandCenter] CLIProxy startup ready, proceeding with initialization');
+              break;
+            }
+          } catch {
+            // IPC not ready yet, keep waiting
+          }
+          await new Promise(r => setTimeout(r, 500));
+          startupAttempts++;
+        }
+
         // Auto-start CLIProxyAPI if not already running
         try {
           const status = await window.electronAPI.cliproxy.native.status();
           if (!status.healthy) {
             await window.electronAPI.cliproxy.native.start();
+            // Grace period for API to warm up after start
+            await new Promise(r => setTimeout(r, 2000));
+            console.log('[CommandCenter] CLIProxy started, waited for warmup');
           }
         } catch {
           // CLIProxyAPI start failed - will show as disconnected

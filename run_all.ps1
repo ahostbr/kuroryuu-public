@@ -183,9 +183,24 @@ Write-Host ""
 # Write-Host "  Public URL: https://chat.shadows-and-shurikens.com"
 # Write-Host ""
 
-# Start Desktop App
-Write-Status "Starting Desktop App..."
+# Build and Start Desktop App
+Write-Status "Building Desktop App..."
 $DesktopDir = Join-Path $RepoRoot "apps\desktop"
+
+# Run full build first (inline so output is visible)
+Push-Location $DesktopDir
+try {
+    npm run build
+    if ($LASTEXITCODE -eq 0) {
+        Write-Success "  Desktop build complete!"
+    } else {
+        Write-Warn "  Desktop build had issues (exit code: $LASTEXITCODE)"
+    }
+} finally {
+    Pop-Location
+}
+
+Write-Status "Starting Desktop App in dev mode..."
 $DesktopProcess = Start-Process -FilePath "powershell" -ArgumentList @(
     "-NoProfile",
     "-ExecutionPolicy", "Bypass",

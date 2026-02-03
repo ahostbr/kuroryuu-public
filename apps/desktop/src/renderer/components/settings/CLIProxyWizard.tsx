@@ -131,6 +131,20 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
   // Verification
   const [totalModels, setTotalModels] = useState(0);
 
+  // Save settings and close wizard when user clicks Done
+  const handleComplete = async () => {
+    // Save CLIProxyAPI enabled status to settings
+    try {
+      await window.electronAPI.settings.set('integrations.cliproxyapi.enabled', true, 'user');
+      await window.electronAPI.settings.set('integrations.cliproxyapi.launchOnStartup', true, 'user');
+      await window.electronAPI.settings.set('integrations.cliproxyapi.mode', mode || 'native', 'user');
+      console.log('[CLIProxyWizard] Saved CLIProxyAPI enabled settings');
+    } catch (err) {
+      console.error('[CLIProxyWizard] Failed to save settings:', err);
+    }
+    onClose();
+  };
+
   // Get current steps based on mode
   const STEPS = mode === 'native' ? NATIVE_STEPS : DOCKER_STEPS;
 
@@ -1022,7 +1036,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
 
                 {currentStep === 'verify' ? (
                   <button
-                    onClick={onClose}
+                    onClick={handleComplete}
                     className="flex items-center gap-2 px-4 py-2 bg-primary text-black rounded-lg hover:bg-primary/80 text-sm font-medium"
                   >
                     <Check className="w-4 h-4" />

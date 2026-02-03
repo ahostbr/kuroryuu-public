@@ -53,6 +53,8 @@ import { SlashCommandMenu, SLASH_COMMANDS, type SlashCommand } from './SlashComm
 import { AtMentionPicker, type MentionItem, type MentionCategoryDef } from './AtMentionPicker';
 import { FileExplorerPanel } from '../FileExplorerPanel';
 import { InsightsTerminalPanel } from './InsightsTerminalPanel';
+import { RichCardRenderer } from '../insights/RichCardRenderer';
+import { useSettingsStore } from '../../stores/settings-store';
 import { toast } from '../ui/toaster';
 import { filterTerminalOutput, hasTerminalArtifacts } from '../../utils/filter-terminal-output';
 
@@ -128,17 +130,20 @@ function MessageBubble({
   onSpeak,
   onStopSpeaking,
   isSpeaking,
+  showRichCards,
 }: {
   message: ChatMessage;
   onApplyCode?: (code: string, language: string) => void;
   onSpeak?: (text: string, messageId: string) => void;
   onStopSpeaking?: () => void;
   isSpeaking?: boolean;
+  showRichCards?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
   const isError = message.role === 'assistant' && message.content.startsWith('Error:');
   const hasToolCalls = message.toolCalls && message.toolCalls.length > 0;
+  const hasRichCards = showRichCards && message.richCards && message.richCards.length > 0;
 
   // Derive display name and source label from message metadata
   const { displayName, sourceLabel, sourceColor } = useMemo(() => {
@@ -252,6 +257,15 @@ function MessageBubble({
               <div className="space-y-2 mt-3">
                 {message.toolCalls!.map((tc) => (
                   <ToolCallCard key={tc.id} toolCall={tc} compact={true} />
+                ))}
+              </div>
+            )}
+
+            {/* Rich visualization cards (when enabled) */}
+            {hasRichCards && !isUser && (
+              <div className="space-y-2 mt-3">
+                {message.richCards!.map(card => (
+                  <RichCardRenderer key={card.id} card={card} />
                 ))}
               </div>
             )}
@@ -515,6 +529,11 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
 
   // TTS hook
   const { speak, stop, isSpeaking, speakingMessageId } = useTTS();
+
+  // Rich tool visualizations setting
+  const enableRichToolVisualizations = useSettingsStore(
+    state => state.appSettings?.enableRichToolVisualizations ?? false
+  );
 
   // Domain config for provider/model selection
   const {
@@ -1422,6 +1441,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                   onSpeak={speak}
                   onStopSpeaking={stop}
                   isSpeaking={speakingMessageId === msg.id}
+                  showRichCards={enableRichToolVisualizations}
                 />
               ))}
 

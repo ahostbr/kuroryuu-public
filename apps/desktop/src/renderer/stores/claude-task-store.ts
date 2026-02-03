@@ -27,6 +27,7 @@ interface ClaudeTaskStore {
   isLoading: boolean;
   error: string | null;
   displayLimit: number; // 0 = all
+  lastContentHash: string; // Track content to skip redundant updates
 
   // Computed
   stats: ClaudeTaskStats;
@@ -36,6 +37,17 @@ interface ClaudeTaskStore {
   setTodoPath: (path: string) => void;
   setDisplayLimit: (limit: number) => void;
   refresh: () => Promise<void>;
+}
+
+// Simple hash function for content comparison (avoids re-parsing unchanged files)
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(16);
 }
 
 /**
@@ -124,6 +136,7 @@ export const useClaudeTaskStore = create<ClaudeTaskStore>((set, get) => ({
   isLoading: false,
   error: null,
   displayLimit: 0, // 0 = all
+  lastContentHash: '',
   stats: { total: 0, pending: 0, inProgress: 0, completed: 0, completionRate: 0 },
 
   setTodoPath: (path) => set({ todoPath: path }),
@@ -131,16 +144,24 @@ export const useClaudeTaskStore = create<ClaudeTaskStore>((set, get) => ({
   setDisplayLimit: (limit) => set({ displayLimit: limit }),
 
   loadTasks: async () => {
-    const { todoPath } = get();
-    if (!todoPath) return;
+    const { todoPath, lastContentHash, isLoading } = get();
+    if (!todoPath || isLoading) return; // Skip if already loading
 
     set({ isLoading: true, error: null });
 
     try {
       const content = await window.electronAPI.fs.readFile(todoPath);
+      const contentHash = simpleHash(content);
+
+      // Skip parsing if content unchanged (major perf win for polling)
+      if (contentHash === lastContentHash) {
+        set({ isLoading: false });
+        return;
+      }
+
       const tasks = parseClaudeTasks(content);
       const stats = calculateStats(tasks);
-      set({ tasks, stats, isLoading: false });
+      set({ tasks, stats, lastContentHash: contentHash, isLoading: false });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       set({ error: errorMsg, isLoading: false });

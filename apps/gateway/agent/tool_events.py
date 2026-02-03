@@ -67,23 +67,25 @@ def emit_tool_start(tool_call: ToolCall) -> UIEvent:
 
 def emit_tool_end(tool_result: ToolResult) -> UIEvent:
     """Emit tool execution finished.
-    
+
     UI should update tool indicator to success/failure.
+    Includes full result for rich visualization cards.
     """
     data: Dict[str, Any] = {
         "name": tool_result.name,
         "id": tool_result.id,
         "ok": tool_result.ok,
+        "result": tool_result.content,  # Include result for rich viz cards
     }
-    
-    # Include summary in verbose mode
+
+    # Include summary in verbose mode (truncated preview)
     if TOOL_EVENT_VERBOSE:
         if tool_result.ok:
             preview = _truncate_content(tool_result.content, TOOL_RESULT_PREVIEW_CHARS)
             data["summary"] = preview
         else:
             data["error"] = tool_result.error or {"message": "Unknown error"}
-    
+
     return UIEvent(type="tool_end", data=data)
 
 

@@ -26,6 +26,8 @@ import { EditDocModal } from './components/editdoc';  // Global markdown editor 
 import { Dojo } from './components/dojo';  // Feature planning workspace
 import { Transcripts } from './components/transcripts';  // Archived conversations
 import { ClaudeTaskMonitor } from './components/monitor';  // Claude Code task monitoring
+import { CodingAgents } from './components/coding-agents';  // Background coding agent sessions
+import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
   AppSettingsDialog,
   ProjectSettingsDialog,
@@ -345,6 +347,9 @@ export function App() {
               {/* Claude Task Monitor - Real-time Claude Code task tracking */}
               {activeView === 'claude-tasks' && <ClaudeTaskMonitor />}
 
+              {/* Coding Agents - Background coding agent sessions (k_bash + k_process) */}
+              {activeView === 'coding-agents' && <CodingAgents />}
+
             </ErrorBoundary>
           </main>
         </div>
@@ -390,6 +395,9 @@ export function App() {
 
         {/* Global Recording Indicator - visible on all pages except terminals (has header indicator) */}
         <GlobalRecordingIndicator onNavigateToCapture={handleNavigateToCapture} activeView={activeView} />
+
+        {/* Rich tool visualization popups (terminal tool outputs when enabled) */}
+        <RichVizPopupLayer />
 
         {/* Toast notifications */}
         <ToastContainer />

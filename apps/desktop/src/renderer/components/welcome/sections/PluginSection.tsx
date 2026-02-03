@@ -9,6 +9,8 @@ import {
   Wrench,
   Network,
   Bot,
+  Sparkles,
+  Volume2,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
@@ -101,8 +103,61 @@ export function PluginSection({ className }: PluginSectionProps) {
         </div>
       </CollapsibleSection>
 
+      {/* Features */}
+      <CollapsibleSection title="Features" icon={Sparkles}>
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2">Voice & TTS</div>
+            <div className="grid gap-2">
+              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/30">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="w-3 h-3 text-purple-500" />
+                  <span className="font-medium text-foreground text-xs">Voice Library</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  47 English Edge TTS voices with preview and selection
+                </p>
+              </div>
+              <div className="p-2 rounded bg-secondary/50">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">TTS Configuration</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Provider selection, custom messages, voice testing
+                </p>
+              </div>
+              <div className="p-2 rounded bg-secondary/50">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">Dynamic Voice Loading</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Fetches voices directly from edge-tts for always up-to-date options
+                </p>
+              </div>
+              <div className="p-2 rounded bg-secondary/50">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">Voice Preview</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Test any voice before selecting with instant audio playback
+                </p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2">Configuration</div>
+            <div className="p-2 rounded bg-primary/10 border border-primary/30">
+              <span className="font-medium text-foreground text-xs">Plugin Config Tab</span>
+              <p className="text-xs text-muted-foreground mt-1">
+                Dedicated configuration UI in Claude Plugin page for TTS settings, voice selection, and provider management
+              </p>
+            </div>
+          </div>
+        </div>
+      </CollapsibleSection>
+
       {/* Slash Commands */}
-      <CollapsibleSection title="Slash Commands (12)" icon={Terminal}>
+      <CollapsibleSection title="Slash Commands (13)" icon={Terminal}>
         <div className="space-y-3">
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-1">Session Management</div>
@@ -149,13 +204,19 @@ export function PluginSection({ className }: PluginSectionProps) {
       </CollapsibleSection>
 
       {/* Hooks */}
-      <CollapsibleSection title="Hooks (5 Events)" icon={Zap}>
+      <CollapsibleSection title="Hooks (9 Events)" icon={Zap}>
         <div className="space-y-3">
           <div className="grid gap-2">
             <div className="p-2 rounded bg-secondary/50">
               <div className="flex justify-between items-center">
                 <code className="font-mono text-xs text-primary">SessionStart</code>
                 <span className="text-xs text-muted-foreground">Bootstrap session</span>
+              </div>
+            </div>
+            <div className="p-2 rounded bg-secondary/50">
+              <div className="flex justify-between items-center">
+                <code className="font-mono text-xs text-primary">SessionEnd</code>
+                <span className="text-xs text-muted-foreground">Cleanup, final checkpoint</span>
               </div>
             </div>
             <div className="p-2 rounded bg-secondary/50">
@@ -180,6 +241,24 @@ export function PluginSection({ className }: PluginSectionProps) {
               <div className="flex justify-between items-center">
                 <code className="font-mono text-xs text-primary">Stop</code>
                 <span className="text-xs text-muted-foreground">Checkpoint before exit</span>
+              </div>
+            </div>
+            <div className="p-2 rounded bg-secondary/50">
+              <div className="flex justify-between items-center">
+                <code className="font-mono text-xs text-primary">SubagentStop</code>
+                <span className="text-xs text-muted-foreground">Handle subagent completion</span>
+              </div>
+            </div>
+            <div className="p-2 rounded bg-secondary/50">
+              <div className="flex justify-between items-center">
+                <code className="font-mono text-xs text-primary">Notification</code>
+                <span className="text-xs text-muted-foreground">Process system notifications</span>
+              </div>
+            </div>
+            <div className="p-2 rounded bg-secondary/50">
+              <div className="flex justify-between items-center">
+                <code className="font-mono text-xs text-primary">PreCompact</code>
+                <span className="text-xs text-muted-foreground">Pre-compaction processing</span>
               </div>
             </div>
           </div>

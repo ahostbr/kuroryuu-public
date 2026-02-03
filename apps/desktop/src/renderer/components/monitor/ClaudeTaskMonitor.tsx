@@ -9,8 +9,10 @@
  * - Gantt timeline (elapsed time per task)
  * - Task list with status badges and worklog links
  * - File watcher for real-time updates (2s polling fallback)
+ * - Plugin configuration tab for TTS, validators, hooks
  */
 import { useEffect, useState, useMemo, useCallback } from 'react';
+import * as Tabs from '@radix-ui/react-tabs';
 import {
   Activity,
   CheckCircle2,
@@ -19,11 +21,13 @@ import {
   Loader2,
   RefreshCw,
   Settings,
+  Sliders,
   Sparkles,
 } from 'lucide-react';
 import { useClaudeTaskStore, getDisplayTasks, type ClaudeTask } from '../../stores/claude-task-store';
 import { useSettingsStore } from '../../stores/settings-store';
 import { useFileWatch } from '../../hooks/use-file-watch';
+import { KuroPluginConfig } from './KuroPluginConfig';
 
 // ============================================================================
 // Progress Donut Chart - SVG-based with 3 segments
@@ -110,15 +114,32 @@ interface GanttBarProps {
 
 function GanttBar({ task, maxElapsed }: GanttBarProps) {
   const now = new Date();
-  const startTime = task.createdAt || now;
-  const endTime = task.completedAt || now;
-  const elapsed = endTime.getTime() - startTime.getTime();
+
+  // Calculate elapsed time properly:
+  // - If createdAt exists: measure from creation to completion (or now)
+  // - If only completedAt exists: no duration data, show as completed
+  // - If neither exists: show 0
+  let elapsed = 0;
+  if (task.createdAt) {
+    const startTime = task.createdAt;
+    const endTime = task.completedAt || now;
+    elapsed = Math.max(0, endTime.getTime() - startTime.getTime());
+  }
+
   const elapsedMinutes = Math.floor(elapsed / 60000);
   const widthPct = maxElapsed > 0 ? Math.min((elapsed / maxElapsed) * 100, 100) : 0;
 
   const isCompleted = task.status === 'completed';
   const isInProgress = task.status === 'in_progress';
   const barColor = isCompleted ? 'bg-emerald-500' : isInProgress ? 'bg-amber-500' : 'bg-zinc-500';
+
+  // Format elapsed time display
+  const formatElapsed = () => {
+    if (!task.createdAt && isCompleted) return '✓'; // Completed but no timing data
+    if (elapsedMinutes === 0) return '0m';
+    if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
+    return `${Math.floor(elapsedMinutes / 60)}h ${elapsedMinutes % 60}m`;
+  };
 
   return (
     <div className="group flex items-center gap-3 py-2 hover:bg-secondary/30 rounded-lg px-2 transition-colors">
@@ -129,16 +150,14 @@ function GanttBar({ task, maxElapsed }: GanttBarProps) {
 
       {/* Bar container */}
       <div className="flex-1 h-6 bg-secondary/50 rounded overflow-hidden relative">
-        {/* Elapsed bar */}
+        {/* Elapsed bar - full width for completed tasks without timing data */}
         <div
           className={`h-full ${barColor} transition-all duration-300 ease-out`}
-          style={{ width: `${widthPct}%` }}
+          style={{ width: isCompleted && !task.createdAt ? '100%' : `${widthPct}%` }}
         />
         {/* Elapsed time label */}
         <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-foreground/80">
-          {elapsedMinutes < 60
-            ? `${elapsedMinutes}m`
-            : `${Math.floor(elapsedMinutes / 60)}h ${elapsedMinutes % 60}m`}
+          {formatElapsed()}
         </span>
       </div>
 
@@ -277,6 +296,7 @@ export function ClaudeTaskMonitor() {
   const { tasks, stats, isLoading, error, displayLimit, loadTasks, setTodoPath, setDisplayLimit } = useClaudeTaskStore();
   const { projectSettings } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'config'>('tasks');
 
   // Compute todo path
   const todoPath = useMemo(() => {
@@ -302,25 +322,26 @@ export function ClaudeTaskMonitor() {
   // Watch todo.md for changes - auto-refresh when file is modified
   useFileWatch(todoPath, handleFileChange);
 
-  // Polling fallback - refresh every 2 seconds (file watcher may not work on all systems)
+  // Polling fallback - refresh every 5 seconds (file watcher is primary, this is backup)
   useEffect(() => {
     const interval = setInterval(() => {
       loadTasks();
-    }, 2000);
+    }, 5000);
     return () => clearInterval(interval);
   }, [loadTasks]);
 
   // Calculate max elapsed time for Gantt scaling
+  // Only count tasks that have createdAt timestamp for proper scaling
   const maxElapsed = useMemo(() => {
     const now = new Date();
-    return Math.max(
-      ...tasks.map(t => {
-        const start = t.createdAt || now;
+    const elapsedTimes = tasks
+      .filter(t => t.createdAt) // Only tasks with start time
+      .map(t => {
+        const start = t.createdAt!;
         const end = t.completedAt || now;
-        return end.getTime() - start.getTime();
-      }),
-      60000 // Minimum 1 minute scale
-    );
+        return Math.max(0, end.getTime() - start.getTime());
+      });
+    return Math.max(...elapsedTimes, 60000); // Minimum 1 minute scale
   }, [tasks]);
 
   // Get filtered tasks for display
@@ -335,33 +356,37 @@ export function ClaudeTaskMonitor() {
             <Sparkles className="w-5 h-5 text-violet-400" />
           </div>
           <div>
-            <h1 className="text-lg font-semibold text-foreground">Claude Task Monitor</h1>
+            <h1 className="text-lg font-semibold text-foreground">Claude Plugin</h1>
             <p className="text-xs text-muted-foreground">
-              Via Kuroryuu plugin hooks for Claude Code CLI 2.1.19+ Tasks
+              Kuroryuu hooks for Claude Code CLI
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => loadTasks()}
-            disabled={isLoading}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
-            title="Refresh"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
-            title="Settings"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
+          {activeTab === 'tasks' && (
+            <>
+              <button
+                onClick={() => loadTasks()}
+                disabled={isLoading}
+                className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
+                title="Refresh"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              </button>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
+                title="Display Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Settings dropdown */}
-        {showSettings && (
+        {showSettings && activeTab === 'tasks' && (
           <SettingsPanel
             displayLimit={displayLimit}
             onLimitChange={setDisplayLimit}
@@ -369,6 +394,41 @@ export function ClaudeTaskMonitor() {
           />
         )}
       </div>
+
+      {/* Tabs */}
+      <Tabs.Root
+        value={activeTab}
+        onValueChange={(value) => setActiveTab(value as typeof activeTab)}
+        className="flex-1 flex flex-col overflow-hidden"
+      >
+        <Tabs.List className="flex gap-1 px-6 pt-4 border-b border-border">
+          <Tabs.Trigger
+            value="tasks"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium transition-colors ${
+              activeTab === 'tasks'
+                ? 'bg-secondary text-foreground border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Claude Tasks
+          </Tabs.Trigger>
+
+          <Tabs.Trigger
+            value="config"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium transition-colors ${
+              activeTab === 'config'
+                ? 'bg-secondary text-foreground border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            }`}
+          >
+            <Sliders className="w-4 h-4" />
+            Plugin Config
+          </Tabs.Trigger>
+        </Tabs.List>
+
+        {/* Tasks Tab Content */}
+        <Tabs.Content value="tasks" className="flex-1 flex flex-col overflow-hidden">
 
       {/* Error state */}
       {error && (
@@ -489,6 +549,13 @@ export function ClaudeTaskMonitor() {
           </div>
         </div>
       )}
+        </Tabs.Content>
+
+        {/* Config Tab Content */}
+        <Tabs.Content value="config" className="flex-1 overflow-hidden">
+          <KuroPluginConfig />
+        </Tabs.Content>
+      </Tabs.Root>
     </div>
   );
 }

@@ -876,6 +876,76 @@ const api = {
       ipcRenderer.invoke('tts:setVoice', voiceId),
   },
   /**
+   * Kuro Plugin Configuration API
+   * Manages TTS, validators, hooks settings in .claude/settings.json
+   */
+  kuroConfig: {
+    /** Load config from .claude/settings.json */
+    load: (): Promise<{
+      ok: boolean;
+      config?: {
+        tts: {
+          provider: string;
+          voice: string;
+          smartSummaries: boolean;
+          summaryProvider: string;
+          userName: string;
+          messages: { stop: string; subagentStop: string; notification: string };
+        };
+        validators: { ruff: boolean; ty: boolean; timeout: number };
+        hooks: {
+          ttsOnStop: boolean;
+          ttsOnSubagentStop: boolean;
+          ttsOnNotification: boolean;
+          taskSync: boolean;
+          transcriptExport: boolean;
+        };
+        features: { ragInteractive: boolean; questionMode: boolean };
+      };
+      error?: string;
+    }> => ipcRenderer.invoke('kuro-config:load'),
+
+    /** Save config to .claude/settings.json */
+    save: (config: {
+      tts: {
+        provider: string;
+        voice: string;
+        smartSummaries: boolean;
+        summaryProvider: string;
+        userName: string;
+        messages: { stop: string; subagentStop: string; notification: string };
+      };
+      validators: { ruff: boolean; ty: boolean; timeout: number };
+      hooks: {
+        ttsOnStop: boolean;
+        ttsOnSubagentStop: boolean;
+        ttsOnNotification: boolean;
+        taskSync: boolean;
+        transcriptExport: boolean;
+      };
+      features: { ragInteractive: boolean; questionMode: boolean };
+    }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('kuro-config:save', config),
+
+    /** Test TTS with current settings */
+    testTTS: (ttsConfig: {
+      provider: string;
+      voice: string;
+      messages: { stop: string };
+    }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('kuro-config:test-tts', ttsConfig),
+
+    /** Get available Edge TTS voices (English only) */
+    getVoices: (): Promise<{
+      ok: boolean;
+      voices: Array<{ value: string; label: string; gender: string; locale: string }>;
+    }> => ipcRenderer.invoke('kuro-config:get-voices'),
+
+    /** Preview a voice with sample text */
+    previewVoice: (voiceName: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('kuro-config:preview-voice', voiceName),
+  },
+  /**
    * Event listeners for OAuth callbacks and other events
    */
   on: {
@@ -1586,6 +1656,9 @@ const api = {
     },
     // Native mode APIs (no Docker required)
     native: {
+      /** Check if main process CLIProxy startup cleanup is complete */
+      startupReady: (): Promise<boolean> =>
+        ipcRenderer.invoke('cliproxy:startup-ready'),
       /** Download and provision the CLIProxyAPI binary */
       provision: (): Promise<{ success: boolean; version?: string; error?: string }> =>
         ipcRenderer.invoke('cliproxy:native:provision'),

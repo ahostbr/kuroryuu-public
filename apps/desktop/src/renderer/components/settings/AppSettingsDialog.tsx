@@ -189,6 +189,7 @@ export function AppSettingsDialog() {
     setMatrixRainOpacity,
     setKuroryuuDecorativeFrames,
     setTrayCompanionLaunchOnStartup,
+    setEnableRichToolVisualizations,
     saveSettings,
   } = useSettingsStore();
 
@@ -355,6 +356,11 @@ export function AppSettingsDialog() {
                   enabled={appSettings.checkUpdatesOnStartup}
                   onChange={setCheckUpdates}
                   label="Check for updates on startup"
+                />
+                <Toggle
+                  enabled={appSettings.enableRichToolVisualizations}
+                  onChange={setEnableRichToolVisualizations}
+                  label="Enable rich tool visualizations"
                 />
 {/* Show welcome & Enable animations - always on, hidden from settings */}
               </div>

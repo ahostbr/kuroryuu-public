@@ -13,19 +13,7 @@
   },
   "plansDirectory": "Docs/Plans",
   "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "mcp__kuroryuu__k_rag",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/rag-interactive-gate.ps1\"",
-            "timeout": 5000
-          }
-        ]
-      }
-    ],
-        "PostToolUse": [
+    "PostToolUse": [
       {
         "matcher": "Write",
         "hooks": [
@@ -65,20 +53,14 @@
             "timeout": 5000
           }
         ]
-      }
-    ],
-    "Stop": [
+      },
       {
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "powershell -NoProfile -Command \"Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\\"\"",
-            "timeout": 10
-          },
-          {
-            "type": "command",
-            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/export-transcript.ps1\"",
-            "timeout": 10
+            "command": "powershell.exe -NoProfile -Command \"$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}\"",
+            "timeout": 30000
           }
         ]
       }
@@ -93,6 +75,49 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\\"\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/export-transcript.ps1\"",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe run .claude/plugins/kuro/hooks/smart_tts.py \"Work complete\" --type stop --voice \"en-GB-SoniaNeural\"",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe run .claude/plugins/kuro/hooks/smart_tts.py \"Task finished\" --type subagent --task \"$CLAUDE_TASK_DESCRIPTION\" --voice \"en-GB-SoniaNeural\"",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe run .claude/plugins/kuro/hooks/smart_tts.py \"Your attention is needed\" --type notification --voice \"en-GB-SoniaNeural\"",
+            "timeout": 30000
+          }
+        ]
+      }
     ]
   },
   "sandbox": {
@@ -102,5 +127,12 @@
   "statusLine": {
     "type": "command",
     "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude\\statusline.ps1\""
+  },
+  "kuroPlugin": {
+    "voice": "en-GB-SoniaNeural",
+    "smartSummaries": true,
+    "summaryProvider": "lmstudio",
+    "summaryModel": "mistralai/devstral-small-2-2512",
+    "userName": "Ryan"
   }
 }

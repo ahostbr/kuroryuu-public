@@ -180,7 +180,8 @@ kuro/
 │   ├── k-inbox.md
 │   ├── k-rag.md
 │   ├── k-memory.md
-│   └── k-status.md
+│   ├── k-status.md
+│   └── k-parallel-plan.md
 ├── skills/
 │   └── kuroryuu-patterns/
 │       ├── SKILL.md
@@ -188,9 +189,85 @@ kuro/
 │           ├── tool-patterns.md
 │           └── orchestration-patterns.md
 ├── hooks/
-│   └── hooks.json
+│   ├── hooks.json
+│   ├── utils/
+│   │   ├── llm/
+│   │   │   ├── ollama.py
+│   │   │   ├── oai.py
+│   │   │   └── anth.py
+│   │   ├── tts/
+│   │   │   ├── queue.py
+│   │   │   ├── pyttsx3_engine.py
+│   │   │   ├── elevenlabs_engine.py
+│   │   │   └── openai_tts_engine.py
+│   │   └── README.md
+│   └── validators/
+│       ├── validate_new_file.py
+│       ├── validate_file_contains.py
+│       ├── ruff.py
+│       └── ty.py
+├── status_lines/
+│   ├── status_line_v3.py
+│   ├── status_line_v5.py
+│   └── status_line_v6.py
+├── output_styles/
+│   ├── genui.md
+│   ├── ultra-concise.md
+│   └── table-based.md
+├── agents/
+│   ├── mp-builder.md
+│   ├── mp-validator.md
+│   └── meta-agent.md
 └── README.md
 ```
+
+### Hooks and Utilities
+
+The plugin includes a comprehensive set of hooks and utilities for enhanced functionality:
+
+#### LLM Utilities
+Located in `hooks/utils/llm/` - see [hooks/utils/README.md](hooks/utils/README.md)
+- **ollama.py** - Ollama local LLM integration
+- **oai.py** - OpenAI API integration
+- **anth.py** - Anthropic Claude API integration
+
+#### TTS System
+Located in `hooks/utils/tts/` - see [hooks/utils/README.md](hooks/utils/README.md)
+- **queue.py** - TTS queue management
+- **pyttsx3_engine.py** - Local pyttsx3 TTS
+- **elevenlabs_engine.py** - ElevenLabs TTS
+- **openai_tts_engine.py** - OpenAI TTS
+
+#### Validators
+Located in `hooks/validators/` - see [hooks/utils/README.md](hooks/utils/README.md)
+- **validate_new_file.py** - Ensure new files are created
+- **validate_file_contains.py** - Check file contents
+- **ruff.py** - Python code linting
+- **ty.py** - TypeScript type checking
+
+### Status Lines
+
+Real-time status indicators for Claude Code sessions:
+
+- **status_line_v3.py** - Agent sessions display with PTY tracking
+- **status_line_v5.py** - Cost tracking (tokens, API calls)
+- **status_line_v6.py** - Context window usage monitoring
+
+### Output Styles
+
+Customizable output formatting for different use cases:
+
+- **genui.md** - Generative UI with rich interactive components
+- **ultra-concise.md** - Minimal output for focused work
+- **table-based.md** - Table formatting for structured data
+
+### Agents
+
+Pre-built agent configurations for common workflows:
+
+- **mp-builder.md** - Builder agent with PostToolUse validation
+- **mp-validator.md** - Read-only validator agent
+- **meta-agent.md** - Agent generator for creating custom agents
 
 ### Related Documentation
 

@@ -1115,7 +1115,12 @@ async def chat_stream(req: ChatRequest):
                 
                 elif event.type == "tool_end":
                     tr = event.data
-                    yield f"data: {json.dumps({'type': 'tool_end', 'id': tr.tool_call_id, 'is_error': tr.is_error})}\n\n"
+                    # Try to parse result as JSON for rich visualization
+                    try:
+                        result_data = json.loads(tr.content) if isinstance(tr.content, str) else tr.content
+                    except (json.JSONDecodeError, TypeError):
+                        result_data = tr.content
+                    yield f"data: {json.dumps({'type': 'tool_end', 'id': tr.tool_call_id, 'is_error': tr.is_error, 'result': result_data})}\n\n"
                 
                 elif event.type == "done":
                     yield f"data: {json.dumps({'type': 'done', **event.data})}\n\n"
