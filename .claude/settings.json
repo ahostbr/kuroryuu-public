@@ -102,7 +102,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe run .claude/plugins/kuro/hooks/smart_tts.py \"Task finished\" --type subagent --task \"$CLAUDE_TASK_DESCRIPTION\" --voice \"en-GB-SoniaNeural\"",
+            "command": "C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe run .claude/plugins/kuro/hooks/smart_tts.py \"Task finished\" --type subagent --voice \"en-GB-SoniaNeural\"",
             "timeout": 30000
           }
         ]
@@ -129,10 +129,35 @@
     "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude\\statusline.ps1\""
   },
   "kuroPlugin": {
-    "voice": "en-GB-SoniaNeural",
-    "smartSummaries": true,
-    "summaryProvider": "lmstudio",
-    "summaryModel": "mistralai/devstral-small-2-2512",
-    "userName": "Ryan"
+    "version": 1,
+    "tts": {
+      "provider": "edge_tts",
+      "voice": "en-GB-SoniaNeural",
+      "smartSummaries": true,
+      "summaryProvider": "lmstudio",
+      "summaryModel": "mistralai/devstral-small-2-2512",
+      "userName": "Kuroryuu Says",
+      "messages": {
+        "stop": "Work complete",
+        "subagentStop": "Task finished",
+        "notification": "Your attention is needed"
+      }
+    },
+    "validators": {
+      "ruff": true,
+      "ty": false,
+      "timeout": 30000
+    },
+    "hooks": {
+      "ttsOnStop": true,
+      "ttsOnSubagentStop": true,
+      "ttsOnNotification": true,
+      "taskSync": true,
+      "transcriptExport": true
+    },
+    "features": {
+      "ragInteractive": false,
+      "questionMode": false
+    }
   }
 }
