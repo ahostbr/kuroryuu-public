@@ -60,6 +60,7 @@ import { getInsightsModelName } from '../types/insights';
 import { getModelFamily } from '../services/model-registry';
 import { useSettingsStore } from '../stores/settings-store';
 import { RichCardRenderer } from './insights/RichCardRenderer';
+import { parseToolResultToRichCard } from '../utils/rich-card-parsers';
 
 // ============================================================================
 // TTS Hook - Uses Desktop main process TTS
@@ -1295,6 +1296,8 @@ export function Insights() {
     getActiveSession,
     addMessage,
     updateMessage,
+    addToolCall,
+    updateToolCall,
     setStreaming,
   } = useInsightsStore();
 
@@ -1525,6 +1528,10 @@ export function Insights() {
         actualModel: selectedModel, // Start with requested model, update if response includes it
       };
 
+      // Track tool calls and rich cards during streaming
+      const toolCallsInProgress = new Map<string, ToolCall>();
+      const richCardsCollected: RichCard[] = [];
+
       for (const chunkStr of result.chunks || []) {
         try {
           const chunk = JSON.parse(chunkStr);
@@ -1538,6 +1545,34 @@ export function Insights() {
             // Legacy format: type=content, content=text
             fullContent += chunk.content;
             updateMessage(sessionId, assistantMsgId, { content: fullContent, status: 'streaming' });
+          } else if (chunk.type === 'tool_start') {
+            // Tool call started
+            const toolCall: ToolCall = {
+              id: chunk.id || `tool-${Date.now()}`,
+              name: chunk.name || 'unknown',
+              status: 'running',
+            };
+            toolCallsInProgress.set(toolCall.id, toolCall);
+            addToolCall(sessionId, assistantMsgId, toolCall);
+          } else if (chunk.type === 'tool_end') {
+            // Tool call completed
+            const existing = toolCallsInProgress.get(chunk.id);
+            if (existing) {
+              const duration = chunk.duration_ms || (existing.duration ? existing.duration : undefined);
+              updateToolCall(sessionId, assistantMsgId, chunk.id, {
+                status: chunk.is_error ? 'error' : 'success',
+                result: typeof chunk.result === 'string' ? chunk.result : JSON.stringify(chunk.result),
+                duration,
+              });
+
+              // Parse rich card if visualizations enabled
+              if (enableRichToolVisualizations && !chunk.is_error) {
+                const richCard = parseToolResultToRichCard(existing.name, chunk.id, chunk.result);
+                if (richCard) {
+                  richCardsCollected.push(richCard);
+                }
+              }
+            }
           } else if (chunk.type === 'error') {
             updateMessage(sessionId, assistantMsgId, {
               content: chunk.error || chunk.message || 'Unknown error',
@@ -1571,11 +1606,12 @@ export function Insights() {
         fullContent = result.response;
       }
 
-      // Mark complete with metadata
+      // Mark complete with metadata and rich cards
       updateMessage(sessionId, assistantMsgId, {
         content: fullContent || 'No response received. Check gateway logs.',
         status: fullContent ? 'complete' : 'error',
         metadata: responseMetadata,
+        richCards: richCardsCollected.length > 0 ? richCardsCollected : undefined,
       });
     } catch (error) {
       if (abortControllerRef.current?.signal.aborted) {
@@ -1593,7 +1629,7 @@ export function Insights() {
       setStreaming(false);
       abortControllerRef.current = null;
     }
-  }, [activeSessionId, selectedModel, directMode, isOnline, checkHealth, createSession, addMessage, updateMessage, setStreaming, getActiveSession]);
+  }, [activeSessionId, selectedModel, directMode, isOnline, checkHealth, createSession, addMessage, updateMessage, addToolCall, updateToolCall, setStreaming, getActiveSession, enableRichToolVisualizations]);
 
   // Find last assistant message for retry
   const lastAssistantMsg = activeSession?.messages

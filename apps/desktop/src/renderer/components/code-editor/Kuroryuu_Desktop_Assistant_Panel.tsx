@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLMStudioChatStore, type ChatMessage, type ToolCallData } from '../../stores/lmstudio-chat-store';
+import type { RichCard } from '../../types/insights';
 import { chatLock, type AssistantViewType } from '../../utils/cross-window-lock';
 import { useCodeEditorStore } from '../../stores/code-editor-store';
 import { useDomainConfigStore } from '../../stores/domain-config-store';
@@ -188,7 +189,7 @@ function MessageBubble({
     }
   };
 
-  // Tool message - special styling
+  // Tool message - special styling (tool calls without response text yet)
   if (hasToolCalls && !message.content) {
     return (
       <motion.div
@@ -199,6 +200,10 @@ function MessageBubble({
         <div className="space-y-2">
           {message.toolCalls!.map((tc) => (
             <ToolCallCard key={tc.id} toolCall={tc} compact={true} />
+          ))}
+          {/* Rich cards when tools complete but no text yet */}
+          {hasRichCards && message.richCards!.map(card => (
+            <RichCardRenderer key={card.id} card={card} />
           ))}
         </div>
       </motion.div>
@@ -242,7 +247,25 @@ function MessageBubble({
               )}
             </div>
 
-            {/* Message Body */}
+            {/* Tool calls FIRST - chronological order (tools called before response) */}
+            {hasToolCalls && (
+              <div className="space-y-2 mb-3">
+                {message.toolCalls!.map((tc) => (
+                  <ToolCallCard key={tc.id} toolCall={tc} compact={true} />
+                ))}
+              </div>
+            )}
+
+            {/* Rich visualization cards SECOND - appear when tools complete */}
+            {hasRichCards && !isUser && (
+              <div className="space-y-2 mb-3">
+                {message.richCards!.map(card => (
+                  <RichCardRenderer key={card.id} card={card} />
+                ))}
+              </div>
+            )}
+
+            {/* Message Body LAST - the actual response text */}
             <div className={`cp-prose ${isError ? 'text-red-400' : ''}`}>
               {filteredContent && (
                 <MarkdownRenderer
@@ -251,24 +274,6 @@ function MessageBubble({
                 />
               )}
             </div>
-
-            {/* Tool calls if present with content */}
-            {hasToolCalls && filteredContent && (
-              <div className="space-y-2 mt-3">
-                {message.toolCalls!.map((tc) => (
-                  <ToolCallCard key={tc.id} toolCall={tc} compact={true} />
-                ))}
-              </div>
-            )}
-
-            {/* Rich visualization cards (when enabled) */}
-            {hasRichCards && !isUser && (
-              <div className="space-y-2 mt-3">
-                {message.richCards!.map(card => (
-                  <RichCardRenderer key={card.id} card={card} />
-                ))}
-              </div>
-            )}
 
             {/* Action buttons (hover reveal) */}
             {!isUser && filteredContent && (
@@ -349,9 +354,19 @@ function TokenUsageBar() {
 }
 
 // ============================================================================
-// Streaming message bubble - Copilot style with purple dots
+// Streaming message bubble - Copilot style with purple dots + progressive tool calls
 // ============================================================================
-function StreamingMessageBubble({ content }: { content: string }) {
+function StreamingMessageBubble({
+  content,
+  toolCalls,
+  richCards,
+  showRichCards,
+}: {
+  content: string;
+  toolCalls?: ToolCallData[];
+  richCards?: RichCard[];
+  showRichCards?: boolean;
+}) {
   // Get current model info from domain config for streaming display
   const domainConfig = useDomainConfigStore((state) => state.getConfigForDomain('code-editor'));
   const modelId = domainConfig.modelId || '';
@@ -369,6 +384,9 @@ function StreamingMessageBubble({ content }: { content: string }) {
     }
     return content;
   }, [content]);
+
+  const hasToolCalls = toolCalls && toolCalls.length > 0;
+  const hasRichCards = showRichCards && richCards && richCards.length > 0;
 
   return (
     <motion.div
@@ -394,6 +412,24 @@ function StreamingMessageBubble({ content }: { content: string }) {
                 </span>
               )}
             </div>
+
+            {/* Progressive Tool Calls - Show immediately as they stream in */}
+            {hasToolCalls && (
+              <div className="space-y-2 mb-3">
+                {toolCalls!.map((tc) => (
+                  <ToolCallCard key={tc.id} toolCall={tc} compact={true} />
+                ))}
+              </div>
+            )}
+
+            {/* Progressive Rich Cards - Show as soon as tool completes */}
+            {hasRichCards && (
+              <div className="space-y-2 mb-3">
+                {richCards!.map(card => (
+                  <RichCardRenderer key={card.id} card={card} />
+                ))}
+              </div>
+            )}
 
             {/* Message Body */}
             <div className="cp-prose">
@@ -1433,7 +1469,9 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
             />
           ) : (
             <div className="divide-y" style={{ borderColor: 'var(--cp-border-default)' }}>
-              {messages.map((msg) => (
+              {messages
+                .filter(msg => !msg.isStreaming) // Skip streaming message - handled below
+                .map((msg) => (
                 <MessageBubble
                   key={msg.id}
                   message={msg}
@@ -1445,8 +1483,18 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                 />
               ))}
 
-              {/* Show streaming message while receiving */}
-              {isStreaming && <StreamingMessageBubble content={streamingContent} />}
+              {/* Show streaming message with progressive tool calls & rich cards */}
+              {isStreaming && (() => {
+                const streamingMsg = messages.find(m => m.isStreaming);
+                return (
+                  <StreamingMessageBubble
+                    content={streamingContent}
+                    toolCalls={streamingMsg?.toolCalls}
+                    richCards={streamingMsg?.richCards}
+                    showRichCards={enableRichToolVisualizations}
+                  />
+                );
+              })()}
             </div>
           )}
 

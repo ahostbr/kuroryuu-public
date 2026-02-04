@@ -291,7 +291,7 @@ app.add_middleware(
     allow_origins=config.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*", "Authorization", "Content-Type", "X-Requested-With"],
 )
 
 # Traffic monitoring middleware (for network visualization)
@@ -1111,15 +1111,41 @@ async def chat_stream(req: ChatRequest):
                 
                 elif event.type == "tool_start":
                     tc = event.data
-                    yield f"data: {json.dumps({'type': 'tool_start', 'name': tc.name, 'id': tc.id})}\n\n"
-                
+                    # Include arguments so frontend can display them
+                    yield f"data: {json.dumps({'type': 'tool_start', 'name': tc.name, 'id': tc.id, 'arguments': tc.arguments})}\n\n"
+
                 elif event.type == "tool_end":
                     tr = event.data
                     # Try to parse result as JSON for rich visualization
-                    try:
-                        result_data = json.loads(tr.content) if isinstance(tr.content, str) else tr.content
-                    except (json.JSONDecodeError, TypeError):
-                        result_data = tr.content
+                    result_data = tr.content
+                    if isinstance(tr.content, str):
+                        content = tr.content
+                        # Method 1: Direct parse (works for clean JSON)
+                        try:
+                            result_data = json.loads(content)
+                        except (json.JSONDecodeError, TypeError):
+                            # Method 2: Find complete JSON object in content
+                            # Handles notification prefix or multi-line content
+                            start_idx = content.find('{')
+                            if start_idx >= 0:
+                                # Find matching closing brace using depth counting
+                                depth = 0
+                                end_idx = -1
+                                for i, c in enumerate(content[start_idx:], start_idx):
+                                    if c == '{':
+                                        depth += 1
+                                    elif c == '}':
+                                        depth -= 1
+                                        if depth == 0:
+                                            end_idx = i
+                                            break
+                                if end_idx > start_idx:
+                                    json_str = content[start_idx:end_idx+1]
+                                    try:
+                                        result_data = json.loads(json_str)
+                                    except (json.JSONDecodeError, TypeError):
+                                        # Still failed - keep as string
+                                        pass
                     yield f"data: {json.dumps({'type': 'tool_end', 'id': tr.tool_call_id, 'is_error': tr.is_error, 'result': result_data})}\n\n"
                 
                 elif event.type == "done":
