@@ -122,7 +122,7 @@ function DomainCard({ domainId, availableModels, providerHealthy }: DomainCardPr
           </div>
         </div>
 
-        {/* Model Selection - Grouped by Family */}
+        {/* Model Selection - Grouped by Family (flat for LMStudio) */}
         <div>
           <label className="text-xs text-muted-foreground mb-1.5 block">Model</label>
           <GroupedModelSelect
@@ -134,6 +134,7 @@ function DomainCard({ domainId, availableModels, providerHealthy }: DomainCardPr
             showAutoOption={config.provider === 'gateway-auto'}
             autoOptionLabel="Auto (Smart Selection)"
             showCounts={true}
+            flat={config.provider === 'lmstudio'}
           />
         </div>
 

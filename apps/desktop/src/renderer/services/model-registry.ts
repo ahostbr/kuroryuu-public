@@ -263,7 +263,13 @@ export async function checkProviderHealth(provider: LLMProvider): Promise<Provid
           signal: AbortSignal.timeout(3000),
         });
         result.healthy = response.ok;
-        _lmStudioCache = { models: [], timestamp: Date.now(), available: response.ok };
+        // Only update availability flag, preserve existing models to avoid race condition
+        if (_lmStudioCache) {
+          _lmStudioCache.available = response.ok;
+          _lmStudioCache.timestamp = Date.now();
+        } else {
+          _lmStudioCache = { models: [], timestamp: Date.now(), available: response.ok };
+        }
         break;
       }
 

@@ -10,6 +10,7 @@
 k_session(action="start", process_id=<PID>, cli_type="claude", agent_id="<id>")
 k_rag(action="status")        # Check index
 k_repo_intel(action="status") # Check reports
+view_file ai/skills/quizmaster/SKILL.md # Load Quizmaster "Secret Weapon"
 ```
 → `KURORYUU-aware. Session: {id}. Ready.`
 
