@@ -335,7 +335,7 @@ def main():
     settings = get_settings()
     tts_config = settings.get("tts", {})  # TTS settings are nested under "tts" key
     smart_summaries = tts_config.get("smartSummaries", False)
-    user_name = tts_config.get("userName", "Ryan")
+    user_name = tts_config.get("userName", "Your Name")
     voice = args.voice or tts_config.get("voice", "en-GB-SoniaNeural")
     provider = args.provider or tts_config.get("summaryProvider", "gateway-auto")
     model = args.model or tts_config.get("summaryModel", "")
