@@ -5,8 +5,8 @@
  */
 import React, { useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Terminal, Server, Play, CheckCircle, XCircle, Clock, FileText, Square, Eye } from 'lucide-react';
-import { useAgentFlowStore, THEME_COLORS, type AgentFlowTheme, type SessionManagerNodeData, type AgentSessionNodeData } from '../../stores/agent-flow-store';
+import { Terminal, Server, Play, CheckCircle, XCircle, Clock, FileText, Square, Eye, Layers } from 'lucide-react';
+import { useAgentFlowStore, THEME_COLORS, type AgentFlowTheme, type SessionManagerNodeData, type AgentSessionNodeData, type WaveGroupNodeData } from '../../stores/agent-flow-store';
 import { useCodingAgentsStore } from '../../stores/coding-agents-store';
 
 // Helper to get current theme colors
@@ -283,8 +283,123 @@ export const AgentSessionNode = React.memo(function AgentSessionNode({
   );
 });
 
+/**
+ * Wave Group Node - represents a wave of parallel tasks from /max-parallel
+ */
+export const WaveGroupNode = React.memo(function WaveGroupNode({
+  data,
+}: {
+  data: { data: WaveGroupNodeData };
+}) {
+  const { label, waveId, sessionCount, activeCount, completedCount, failedCount } = data.data;
+  const colors = useThemeColors();
+  const theme = useAgentFlowStore((s) => s.theme);
+
+  // Determine border color based on overall wave status
+  let borderColor = colors.success;
+  if (activeCount > 0) {
+    borderColor = colors.running;
+  } else if (failedCount > 0) {
+    borderColor = colors.error;
+  }
+
+  return (
+    <div
+      className="relative px-5 py-4 rounded-lg backdrop-blur-sm min-w-[140px]"
+      style={{
+        backgroundColor: colors.nodeBg,
+        border: `2px ${getBorderStyle(theme)} ${borderColor}`,
+        boxShadow: `0 0 25px ${borderColor}50, inset 0 0 15px ${borderColor}15`,
+        fontFamily: getFontFamily(theme),
+      }}
+    >
+      {/* Input handle (from session manager or previous wave) */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-3 !h-3 !border-2"
+        style={{ backgroundColor: borderColor, borderColor: colors.nodeBg }}
+      />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-3 !h-3 !border-2"
+        style={{ backgroundColor: borderColor, borderColor: colors.nodeBg }}
+      />
+
+      {/* Output handle (to sessions or next wave) */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!w-3 !h-3 !border-2"
+        style={{ backgroundColor: borderColor, borderColor: colors.nodeBg }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-3 !h-3 !border-2"
+        style={{ backgroundColor: borderColor, borderColor: colors.nodeBg }}
+      />
+
+      {/* Header */}
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <Layers className="w-5 h-5" style={{ color: borderColor }} />
+        <span className="text-sm font-bold tracking-wider" style={{ color: borderColor }}>
+          {label}
+        </span>
+      </div>
+
+      {/* Session count */}
+      <div className="text-center mb-2">
+        <span className="text-xl font-bold" style={{ color: colors.nodeText }}>
+          {sessionCount}
+        </span>
+        <span className="text-[10px] ml-1" style={{ color: `${colors.nodeText}80` }}>
+          agents
+        </span>
+      </div>
+
+      {/* Status breakdown */}
+      <div className="flex justify-center gap-3 text-[10px]">
+        {activeCount > 0 && (
+          <div className="flex items-center gap-1">
+            <Play className="w-3 h-3" style={{ color: colors.running }} />
+            <span style={{ color: colors.running }}>{activeCount}</span>
+          </div>
+        )}
+        {completedCount > 0 && (
+          <div className="flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" style={{ color: colors.success }} />
+            <span style={{ color: colors.success }}>{completedCount}</span>
+          </div>
+        )}
+        {failedCount > 0 && (
+          <div className="flex items-center gap-1">
+            <XCircle className="w-3 h-3" style={{ color: colors.error }} />
+            <span style={{ color: colors.error }}>{failedCount}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Progress bar */}
+      {sessionCount > 0 && (
+        <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ backgroundColor: `${colors.nodeText}20` }}>
+          <div
+            className="h-full transition-all duration-300"
+            style={{
+              width: `${((completedCount + failedCount) / sessionCount) * 100}%`,
+              backgroundColor: failedCount > 0 ? colors.error : colors.success,
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+});
+
 // Export node types for ReactFlow
 export const agentNodeTypes = {
   'session-manager': SessionManagerNode,
   'agent-session': AgentSessionNode,
+  'wave-group': WaveGroupNode,
 };

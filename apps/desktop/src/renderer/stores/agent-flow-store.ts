@@ -10,9 +10,9 @@ export type AgentFlowTheme = 'cyberpunk' | 'kuroryuu' | 'retro' | 'default';
 
 export interface AgentFlowNode {
   id: string;
-  type: 'session-manager' | 'agent-session';
+  type: 'session-manager' | 'agent-session' | 'wave-group';
   position: { x: number; y: number };
-  data: SessionManagerNodeData | AgentSessionNodeData;
+  data: SessionManagerNodeData | AgentSessionNodeData | WaveGroupNodeData;
 }
 
 export interface SessionManagerNodeData {
@@ -33,6 +33,16 @@ export interface AgentSessionNodeData {
   duration: string;
   exitCode: number | null;
   pty: boolean;
+  waveId?: string;
+}
+
+export interface WaveGroupNodeData {
+  label: string;
+  waveId: string;
+  sessionCount: number;
+  activeCount: number;
+  completedCount: number;
+  failedCount: number;
 }
 
 export interface AgentFlowEdge {
@@ -125,6 +135,7 @@ function calculateDuration(startedAt: string): string {
 /**
  * Build network graph from coding agent sessions
  * Creates a hub-and-spoke layout with Session Manager at center
+ * When sessions have wave_id, groups them by wave with flow visualization
  */
 function buildGraph(
   sessions: CodingAgentSession[],
@@ -143,7 +154,7 @@ function buildGraph(
   nodes.push({
     id: 'session-manager',
     type: 'session-manager',
-    position: { x: 400, y: 300 },
+    position: { x: 400, y: 50 },
     data: {
       label: 'SESSION MANAGER',
       totalSessions: sessions.length,
@@ -157,14 +168,24 @@ function buildGraph(
     return { nodes, edges };
   }
 
-  // Calculate radial positions for session nodes
+  // Check if any sessions have wave_id for wave grouping
+  const sessionsWithWaves = sessions.filter(s => s.wave_id);
+  const sessionsWithoutWaves = sessions.filter(s => !s.wave_id);
+
+  if (sessionsWithWaves.length > 0) {
+    // Wave-based layout: group sessions by wave_id
+    return buildWaveGraph(sessions, sessionsWithWaves, sessionsWithoutWaves, colors, nodes, edges);
+  }
+
+  // Default: radial hub-and-spoke layout
   const radius = 280;
   const angleStep = (2 * Math.PI) / sessions.length;
+  const centerY = 300;
 
   sessions.forEach((session, index) => {
     const angle = index * angleStep - Math.PI / 2; // Start from top
     const x = 400 + radius * Math.cos(angle);
-    const y = 300 + radius * Math.sin(angle);
+    const y = centerY + radius * Math.sin(angle);
 
     // Determine session status
     let status: 'running' | 'completed' | 'failed' = 'completed';
@@ -219,6 +240,214 @@ function buildGraph(
       },
     });
   });
+
+  return { nodes, edges };
+}
+
+/**
+ * Build wave-based graph layout for /max-parallel sessions
+ * Waves flow left-to-right: wave1 -> wave2 -> wave3
+ */
+function buildWaveGraph(
+  allSessions: CodingAgentSession[],
+  sessionsWithWaves: CodingAgentSession[],
+  sessionsWithoutWaves: CodingAgentSession[],
+  colors: typeof THEME_COLORS['default'],
+  nodes: AgentFlowNode[],
+  edges: AgentFlowEdge[]
+): { nodes: AgentFlowNode[]; edges: AgentFlowEdge[] } {
+  // Group sessions by wave_id
+  const waveGroups = new Map<string, CodingAgentSession[]>();
+  sessionsWithWaves.forEach(session => {
+    const waveId = session.wave_id!;
+    if (!waveGroups.has(waveId)) {
+      waveGroups.set(waveId, []);
+    }
+    waveGroups.get(waveId)!.push(session);
+  });
+
+  // Sort waves by name (wave1, wave2, etc.)
+  const sortedWaveIds = Array.from(waveGroups.keys()).sort();
+
+  // Layout constants
+  const waveSpacingX = 300;
+  const sessionSpacingY = 120;
+  const startX = 150;
+  const startY = 180;
+
+  // Create wave group nodes and their sessions
+  sortedWaveIds.forEach((waveId, waveIndex) => {
+    const waveSessions = waveGroups.get(waveId)!;
+    const waveX = startX + waveIndex * waveSpacingX;
+    const waveY = startY;
+
+    // Count states for this wave
+    const waveActive = waveSessions.filter(s => s.running).length;
+    const waveCompleted = waveSessions.filter(s => !s.running && s.exit_code === 0).length;
+    const waveFailed = waveSessions.filter(s => !s.running && s.exit_code !== 0 && s.exit_code !== null).length;
+
+    // Create wave group node
+    nodes.push({
+      id: `wave-${waveId}`,
+      type: 'wave-group',
+      position: { x: waveX, y: waveY },
+      data: {
+        label: waveId.toUpperCase(),
+        waveId,
+        sessionCount: waveSessions.length,
+        activeCount: waveActive,
+        completedCount: waveCompleted,
+        failedCount: waveFailed,
+      },
+    });
+
+    // Edge from session manager to wave group
+    const waveHasActive = waveActive > 0;
+    const waveHasFailed = waveFailed > 0;
+    edges.push({
+      id: `edge-manager-${waveId}`,
+      source: 'session-manager',
+      target: `wave-${waveId}`,
+      animated: waveHasActive,
+      data: {
+        status: waveHasActive ? 'active' : waveHasFailed ? 'error' : 'idle',
+        color: waveHasActive ? colors.running : waveHasFailed ? colors.error : colors.success,
+      },
+    });
+
+    // Create session nodes under this wave
+    waveSessions.forEach((session, sessionIndex) => {
+      const sessionX = waveX;
+      const sessionY = waveY + 100 + sessionIndex * sessionSpacingY;
+
+      let status: 'running' | 'completed' | 'failed' = 'completed';
+      if (session.running) {
+        status = 'running';
+      } else if (session.exit_code !== 0 && session.exit_code !== null) {
+        status = 'failed';
+      }
+
+      const cmdParts = session.command.split(' ');
+      const shortCmd = cmdParts[0].split('/').pop() || cmdParts[0];
+      const label = shortCmd.length > 12 ? shortCmd.substring(0, 12) + '...' : shortCmd;
+
+      nodes.push({
+        id: `session-${session.id}`,
+        type: 'agent-session',
+        position: { x: sessionX, y: sessionY },
+        data: {
+          label,
+          sessionId: session.id,
+          command: session.command,
+          workdir: session.workdir,
+          status,
+          outputLines: session.output_lines,
+          duration: calculateDuration(session.started_at),
+          exitCode: session.exit_code,
+          pty: session.pty,
+          waveId: session.wave_id,
+        },
+      });
+
+      // Edge from wave group to session
+      let edgeColor = colors.success;
+      let edgeStatus: 'active' | 'idle' | 'error' = 'idle';
+      if (status === 'running') {
+        edgeColor = colors.running;
+        edgeStatus = 'active';
+      } else if (status === 'failed') {
+        edgeColor = colors.error;
+        edgeStatus = 'error';
+      }
+
+      edges.push({
+        id: `edge-wave-${session.id}`,
+        source: `wave-${waveId}`,
+        target: `session-${session.id}`,
+        animated: status === 'running',
+        data: {
+          status: edgeStatus,
+          color: edgeColor,
+        },
+      });
+    });
+
+    // Create wave-to-wave edges (wave1 -> wave2, etc.)
+    if (waveIndex > 0) {
+      const prevWaveId = sortedWaveIds[waveIndex - 1];
+      const prevWaveSessions = waveGroups.get(prevWaveId)!;
+      const prevWaveCompleted = prevWaveSessions.every(s => !s.running);
+
+      edges.push({
+        id: `edge-wave-${prevWaveId}-${waveId}`,
+        source: `wave-${prevWaveId}`,
+        target: `wave-${waveId}`,
+        animated: prevWaveCompleted && waveActive > 0,
+        data: {
+          status: prevWaveCompleted ? 'idle' : 'active',
+          color: colors.hub,
+        },
+      });
+    }
+  });
+
+  // Handle sessions without waves (legacy radial layout offset to the right)
+  if (sessionsWithoutWaves.length > 0) {
+    const offsetX = startX + sortedWaveIds.length * waveSpacingX + 150;
+    sessionsWithoutWaves.forEach((session, index) => {
+      const x = offsetX;
+      const y = startY + index * sessionSpacingY;
+
+      let status: 'running' | 'completed' | 'failed' = 'completed';
+      if (session.running) {
+        status = 'running';
+      } else if (session.exit_code !== 0 && session.exit_code !== null) {
+        status = 'failed';
+      }
+
+      const cmdParts = session.command.split(' ');
+      const shortCmd = cmdParts[0].split('/').pop() || cmdParts[0];
+      const label = shortCmd.length > 12 ? shortCmd.substring(0, 12) + '...' : shortCmd;
+
+      nodes.push({
+        id: `session-${session.id}`,
+        type: 'agent-session',
+        position: { x, y },
+        data: {
+          label,
+          sessionId: session.id,
+          command: session.command,
+          workdir: session.workdir,
+          status,
+          outputLines: session.output_lines,
+          duration: calculateDuration(session.started_at),
+          exitCode: session.exit_code,
+          pty: session.pty,
+        },
+      });
+
+      let edgeColor = colors.success;
+      let edgeStatus: 'active' | 'idle' | 'error' = 'idle';
+      if (status === 'running') {
+        edgeColor = colors.running;
+        edgeStatus = 'active';
+      } else if (status === 'failed') {
+        edgeColor = colors.error;
+        edgeStatus = 'error';
+      }
+
+      edges.push({
+        id: `edge-${session.id}`,
+        source: 'session-manager',
+        target: `session-${session.id}`,
+        animated: status === 'running',
+        data: {
+          status: edgeStatus,
+          color: edgeColor,
+        },
+      });
+    });
+  }
 
   return { nodes, edges };
 }
