@@ -24,6 +24,7 @@ import { agentNodeTypes } from './AgentNodes';
 import { AgentFlowControls } from './AgentFlowControls';
 import { SpawnAgentDialog } from './SpawnAgentDialog';
 import { SessionLogViewer } from './SessionLogViewer';
+import { SessionManagerModal } from './SessionManagerModal';
 import type { ThemeId } from '../../types/settings';
 import '../../styles/agent-flow.css';
 
@@ -98,6 +99,9 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
   // Spawn dialog state
   const [showSpawnDialog, setShowSpawnDialog] = useState(false);
 
+  // Session Manager modal state
+  const [showSessionManager, setShowSessionManager] = useState(false);
+
   // ReactFlow state
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -156,6 +160,9 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
     if (node.type === 'agent-session') {
       const sessionId = node.id.replace('session-', '');
       setSelectedSessionId(sessionId);
+    } else if (node.type === 'session-manager') {
+      // Click on Session Manager node opens the control modal
+      setShowSessionManager(true);
     }
   }, []);
 
@@ -166,6 +173,14 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
       setSelectedSessionId(null);
     }
   }, [killSession, selectedSessionId]);
+
+  // Kill ALL running sessions
+  const handleKillAll = useCallback(async () => {
+    const runningSessions = sessions.filter((s) => s.running);
+    await Promise.all(runningSessions.map((s) => killSession(s.id)));
+    setSelectedSessionId(null);
+    setShowSessionManager(false);
+  }, [sessions, killSession]);
 
   // Reconnect handler
   const handleReconnect = useCallback(() => {
@@ -263,6 +278,8 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               onSpawnAgent={() => setShowSpawnDialog(true)}
+              onKillAll={handleKillAll}
+              runningCount={statsDisplay.running}
             />
           </div>
 
@@ -332,6 +349,23 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
         isOpen={showSpawnDialog}
         onClose={() => setShowSpawnDialog(false)}
         onSpawn={handleSpawn}
+      />
+
+      {/* Session Manager Modal */}
+      <SessionManagerModal
+        isOpen={showSessionManager}
+        onClose={() => setShowSessionManager(false)}
+        sessions={sessions}
+        onKillSession={handleKill}
+        onKillAll={handleKillAll}
+        onSpawnAgent={() => {
+          setShowSessionManager(false);
+          setShowSpawnDialog(true);
+        }}
+        onSelectSession={(id) => {
+          setShowSessionManager(false);
+          setSelectedSessionId(id);
+        }}
       />
     </div>
   );

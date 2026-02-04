@@ -66,19 +66,24 @@ def _emit_bash_output(
     is_final: bool = False,
     exit_code: Optional[int] = None,
     command: Optional[str] = None,
+    is_heartbeat: bool = False,
 ) -> None:
     """Emit bash output chunk to Gateway for real-time streaming.
 
     Fire-and-forget POST to /v1/pty-traffic/emit endpoint.
     Failures are silently ignored to not block the background process.
+
+    Args:
+        is_heartbeat: If True, this is a keep-alive signal (no output data).
     """
     event = {
-        "action": "bash_output",
+        "action": "bash_heartbeat" if is_heartbeat else "bash_output",
         "session_id": session_id,
         "response": output_chunk,
         "response_size": len(output_chunk),
         "success": True,
         "is_final": is_final,
+        "is_heartbeat": is_heartbeat,
         "exit_code": exit_code,
         "command_preview": command[:80] if command else None,
         "cli_type": "k_bash",
@@ -91,6 +96,21 @@ def _emit_bash_output(
         )
     except Exception:
         pass  # Don't block background process on emit failure
+
+
+def _heartbeat_thread(session_id: str, interval: int = 5) -> None:
+    """Emit heartbeats while session is running.
+
+    This provides feedback to the UI that the agent is still alive,
+    even when PTY output is buffered (common on Windows with Node.js CLIs).
+    """
+    import time
+    while True:
+        time.sleep(interval)
+        session = BASH_SESSIONS.get(session_id)
+        if not session or not session.get("running", False):
+            break
+        _emit_bash_output(session_id, "", is_heartbeat=True)
 
 
 # ============================================================================
@@ -198,6 +218,14 @@ def _run_background(
         daemon=True,
     )
     thread.start()
+
+    # Start heartbeat thread for UI feedback during PTY buffering
+    heartbeat = threading.Thread(
+        target=_heartbeat_thread,
+        args=(session_id, 5),  # Emit heartbeat every 5 seconds
+        daemon=True,
+    )
+    heartbeat.start()
 
     return {"ok": True, "sessionId": session_id}
 

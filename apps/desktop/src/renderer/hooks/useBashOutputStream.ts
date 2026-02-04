@@ -14,6 +14,7 @@ interface BashOutputEvent {
   response: string;
   response_size: number;
   is_final?: boolean;
+  is_heartbeat?: boolean;
   exit_code?: number;
   command_preview?: string;
   cli_type?: string;
@@ -29,6 +30,7 @@ export function useBashOutputStream(sessionId: string | null) {
   const [output, setOutput] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [lastHeartbeat, setLastHeartbeat] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -45,12 +47,12 @@ export function useBashOutputStream(sessionId: string | null) {
 
     ws.onopen = () => {
       setIsConnected(true);
-      // Subscribe to bash_output events for this session only
+      // Subscribe to bash_output and bash_heartbeat events for this session
       ws.send(JSON.stringify({
         type: 'subscribe',
         filters: {
           session_ids: [sessionId],
-          actions: ['bash_output'],
+          actions: ['bash_output', 'bash_heartbeat'],
         },
       }));
     };
@@ -70,15 +72,24 @@ export function useBashOutputStream(sessionId: string | null) {
           const evt = message.event;
 
           // Only process events for our session
-          if (evt.session_id === sessionId && evt.action === 'bash_output') {
-            // Append output chunk
-            if (evt.response) {
-              setOutput((prev) => prev + evt.response);
+          if (evt.session_id === sessionId) {
+            // Handle heartbeat - just update timestamp to show agent is alive
+            if (evt.action === 'bash_heartbeat' || evt.is_heartbeat) {
+              setLastHeartbeat(Date.now());
+              return;
             }
 
-            // Check if this is the final event
-            if (evt.is_final) {
-              setIsComplete(true);
+            // Handle output
+            if (evt.action === 'bash_output') {
+              // Append output chunk
+              if (evt.response) {
+                setOutput((prev) => prev + evt.response);
+              }
+
+              // Check if this is the final event
+              if (evt.is_final) {
+                setIsComplete(true);
+              }
             }
           }
         }
@@ -125,6 +136,7 @@ export function useBashOutputStream(sessionId: string | null) {
     if (sessionId) {
       setOutput('');
       setIsComplete(false);
+      setLastHeartbeat(null);
       connect();
     }
 
@@ -133,10 +145,15 @@ export function useBashOutputStream(sessionId: string | null) {
     };
   }, [sessionId, connect, disconnect]);
 
+  // Compute if agent is alive (received heartbeat in last 10 seconds)
+  const isAlive = lastHeartbeat !== null && (Date.now() - lastHeartbeat) < 10000;
+
   return {
     output,
     isConnected,
     isComplete,
+    isAlive,
+    lastHeartbeat,
     clearOutput,
   };
 }

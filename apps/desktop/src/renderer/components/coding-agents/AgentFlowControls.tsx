@@ -14,6 +14,7 @@ import {
   Layers,
   LayoutGrid,
   Plus,
+  Skull,
 } from 'lucide-react';
 import { useAgentFlowStore, type AgentFlowTheme } from '../../stores/agent-flow-store';
 
@@ -23,6 +24,8 @@ interface AgentFlowControlsProps {
   viewMode: 'graph' | 'list';
   onViewModeChange: (mode: 'graph' | 'list') => void;
   onSpawnAgent: () => void;
+  onKillAll: () => void;
+  runningCount: number;
 }
 
 export function AgentFlowControls({
@@ -31,6 +34,8 @@ export function AgentFlowControls({
   viewMode,
   onViewModeChange,
   onSpawnAgent,
+  onKillAll,
+  runningCount,
 }: AgentFlowControlsProps) {
   const isPaused = useAgentFlowStore((s) => s.isPaused);
   const togglePause = useAgentFlowStore((s) => s.togglePause);
@@ -90,10 +95,21 @@ export function AgentFlowControls({
         </button>
 
         {/* New Agent Button */}
-        <button onClick={onSpawnAgent} className="agent-flow-button w-full mb-4 !bg-primary/20 !border-primary hover:!bg-primary/30">
+        <button onClick={onSpawnAgent} className="agent-flow-button w-full mb-2 !bg-primary/20 !border-primary hover:!bg-primary/30">
           <Plus className="w-4 h-4" />
           <span>NEW AGENT</span>
         </button>
+
+        {/* Kill All Button - only show when agents are running */}
+        {runningCount > 0 && (
+          <button
+            onClick={onKillAll}
+            className="agent-flow-button w-full mb-4 !bg-red-500/20 !border-red-500 hover:!bg-red-500/40 !text-red-400"
+          >
+            <Skull className="w-4 h-4" />
+            <span>KILL ALL ({runningCount})</span>
+          </button>
+        )}
 
         {/* View Mode Section */}
         <div className="border-t border-gray-700 pt-4 mt-2">

@@ -27,12 +27,14 @@ export function SessionLogViewer({ session, onKill, onClose }: SessionLogViewerP
   const {
     output: streamOutput,
     isConnected: streamConnected,
+    isAlive: agentAlive,
   } = useBashOutputStream(session.running ? session.id : null);
 
   // Combine polled log with streaming output
-  const displayLog = session.running && streamOutput
-    ? streamOutput  // When streaming, prefer stream output (more real-time)
-    : log;          // When not running, use polled log
+  // Use streaming if available, fall back to polled log if stream is empty
+  const displayLog = session.running
+    ? (streamOutput || log)  // Prefer stream, fall back to polled log if stream empty
+    : log;                   // When not running, use polled log
 
   // Fetch log
   const fetchLog = useCallback(async () => {
@@ -205,7 +207,18 @@ export function SessionLogViewer({ session, onKill, onClose }: SessionLogViewerP
         className="flex-1 overflow-auto p-4 font-mono text-xs text-foreground/90 bg-background/50 whitespace-pre-wrap"
       >
         {displayLog || (
-          <span className="text-muted-foreground italic">No output yet...</span>
+          <span className="text-muted-foreground italic">
+            {session.running ? (
+              <span className="flex items-center gap-2">
+                <span className={`${agentAlive ? 'text-green-400' : ''} animate-pulse`}>●</span>
+                {agentAlive
+                  ? 'Agent working... (receiving heartbeat, output buffered)'
+                  : 'Waiting for output... (PTY may be buffered)'}
+              </span>
+            ) : (
+              'No output'
+            )}
+          </span>
         )}
       </pre>
 

@@ -1,24 +1,11 @@
 import { create } from 'zustand';
 import type { Task, TaskStatus } from '../types/task';
-import { parseTodoMd, serializeTodoMd } from '../lib/parse-todo';
 import { toast } from '../components/ui/toast';
 
 interface TaskLock {
   taskId: string;
   agentId: string;
   lockedAt: number;
-}
-
-// Skip file watcher reload after our own writes
-let skipNextReload = false;
-let skipReloadTimeout: NodeJS.Timeout | null = null;
-
-export function shouldSkipReload(): boolean {
-  if (skipNextReload) {
-    skipNextReload = false;
-    return true;
-  }
-  return false;
 }
 
 interface TaskStore {
@@ -57,12 +44,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   loadTasks: async () => {
     const { todoPath } = get();
     if (!todoPath) return;
-    
+
     set({ isLoading: true, error: null });
-    
+
     try {
-      const content = await window.electronAPI.fs.readFile(todoPath);
-      const tasks = parseTodoMd(content);
+      const tasks = await window.electronAPI.tasks.list();
       set({ tasks, isLoading: false });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -72,19 +58,13 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   createTask: async (task) => {
-    const { tasks, todoPath } = get();
-    const updated = [...tasks, task];
-    set({ tasks: updated });
+    const { tasks } = get();
+    set({ tasks: [...tasks, task] }); // Optimistic update
 
     try {
-      // Skip file watcher reload after our own write
-      skipNextReload = true;
-      if (skipReloadTimeout) clearTimeout(skipReloadTimeout);
-      skipReloadTimeout = setTimeout(() => { skipNextReload = false; }, 1000);
-
-      const content = serializeTodoMd(updated);
-      await window.electronAPI.fs.writeFile(todoPath, content);
-      toast.success(`Created task ${task.id}`);
+      const result = await window.electronAPI.tasks.create(task);
+      if (!result.success) throw new Error(result.error);
+      toast.success(`Created task ${result.data?.id || task.id}`);
     } catch (err) {
       set({ tasks }); // Revert
       const errorMsg = err instanceof Error ? err.message : String(err);
@@ -93,12 +73,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   updateTask: async (taskId, updates) => {
-    const { tasks, todoPath, isLocked } = get();
-
-    if (!todoPath) {
-      toast.error('Cannot save: todo path not set');
-      return;
-    }
+    const { tasks, isLocked } = get();
 
     if (isLocked(taskId)) {
       toast.warning(`Task ${taskId} is locked by another agent`);
@@ -114,15 +89,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     const updated = tasks.map(t =>
       t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
     );
-    set({ tasks: updated });
+    set({ tasks: updated }); // Optimistic update
 
     try {
-      skipNextReload = true;
-      if (skipReloadTimeout) clearTimeout(skipReloadTimeout);
-      skipReloadTimeout = setTimeout(() => { skipNextReload = false; }, 1000);
-
-      const content = serializeTodoMd(updated);
-      await window.electronAPI.fs.writeFile(todoPath, content);
+      const result = await window.electronAPI.tasks.update(taskId, updates);
+      if (!result.success) throw new Error(result.error);
       toast.success(`Task ${taskId} updated`);
     } catch (err) {
       set({ tasks }); // Revert
@@ -132,12 +103,7 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   deleteTask: async (taskId) => {
-    const { tasks, todoPath, isLocked } = get();
-
-    if (!todoPath) {
-      toast.error('Cannot delete: todo path not set');
-      return;
-    }
+    const { tasks, isLocked } = get();
 
     if (isLocked(taskId)) {
       toast.warning(`Task ${taskId} is locked by another agent`);
@@ -151,15 +117,11 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     }
 
     const updated = tasks.filter(t => t.id !== taskId);
-    set({ tasks: updated });
+    set({ tasks: updated }); // Optimistic update
 
     try {
-      skipNextReload = true;
-      if (skipReloadTimeout) clearTimeout(skipReloadTimeout);
-      skipReloadTimeout = setTimeout(() => { skipNextReload = false; }, 1000);
-
-      const content = serializeTodoMd(updated);
-      await window.electronAPI.fs.writeFile(todoPath, content);
+      const result = await window.electronAPI.tasks.delete(taskId);
+      if (!result.success) throw new Error(result.error);
       toast.success(`Task ${taskId} deleted`);
     } catch (err) {
       set({ tasks }); // Revert
@@ -169,18 +131,8 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   updateTaskStatus: async (taskId, status) => {
-    const { tasks, todoPath, isLocked } = get();
+    const { tasks, isLocked } = get();
 
-    console.log('[TaskStore] updateTaskStatus called:', { taskId, status, todoPath });
-
-    // Check if todoPath is set
-    if (!todoPath) {
-      toast.error('Cannot save: todo path not set');
-      console.error('[TaskStore] todoPath is empty!');
-      return;
-    }
-
-    // Check lock
     if (isLocked(taskId)) {
       toast.warning(`Task ${taskId} is locked by another agent`);
       return;
@@ -189,41 +141,32 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     const updated = tasks.map(t =>
       t.id === taskId ? { ...t, status } : t
     );
-    set({ tasks: updated });
+    set({ tasks: updated }); // Optimistic update
 
-    // Persist to disk - skip file watcher reload after our own write
     try {
-      skipNextReload = true;
-      if (skipReloadTimeout) clearTimeout(skipReloadTimeout);
-      skipReloadTimeout = setTimeout(() => { skipNextReload = false; }, 1000);
-
-      const content = serializeTodoMd(updated);
-      console.log('[TaskStore] Writing to:', todoPath);
-      console.log('[TaskStore] Content preview:', content.substring(0, 200));
-      await window.electronAPI.fs.writeFile(todoPath, content);
+      const result = await window.electronAPI.tasks.setStatus(taskId, status);
+      if (!result.success) throw new Error(result.error);
       toast.success(`Task ${taskId} moved to ${status}`);
     } catch (err) {
-      // Revert on error
-      set({ tasks });
+      set({ tasks }); // Revert
       const errorMsg = err instanceof Error ? err.message : String(err);
-      console.error('[TaskStore] Write failed:', errorMsg);
       toast.error(`Failed to update task: ${errorMsg}`);
     }
   },
   
   assignTask: async (taskId, assignee) => {
-    const { tasks, todoPath } = get();
+    const { tasks } = get();
     const updated = tasks.map(t =>
       t.id === taskId ? { ...t, assignee } : t
     );
-    set({ tasks: updated });
+    set({ tasks: updated }); // Optimistic update
 
     try {
-      const content = serializeTodoMd(updated);
-      await window.electronAPI.fs.writeFile(todoPath, content);
+      const result = await window.electronAPI.tasks.assign(taskId, assignee);
+      if (!result.success) throw new Error(result.error);
+      toast.success(`Task ${taskId} assigned`);
     } catch (err) {
-      // Revert on error
-      set({ tasks });
+      set({ tasks }); // Revert
       const errorMsg = err instanceof Error ? err.message : String(err);
       toast.error(`Failed to assign task: ${errorMsg}`);
     }
@@ -264,3 +207,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     return locks.find(l => l.taskId === taskId)?.agentId;
   }
 }));
+
+// Subscribe to task changes from main process
+if (typeof window !== 'undefined' && window.electronAPI?.tasks?.watch) {
+  window.electronAPI.tasks.watch((tasks) => {
+    useTaskStore.setState({ tasks });
+  });
+}

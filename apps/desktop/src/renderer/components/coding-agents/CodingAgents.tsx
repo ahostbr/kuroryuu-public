@@ -5,11 +5,12 @@
  * Features two views: Sessions (list) and Agent Flow (graph)
  */
 import { useEffect, useState } from 'react';
-import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X } from 'lucide-react';
+import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList } from 'lucide-react';
 import { useCodingAgentsStore } from '../../stores/coding-agents-store';
 import { SessionCard } from './SessionCard';
 import { SessionLogViewer } from './SessionLogViewer';
 import { AgentFlowPanel } from './AgentFlowPanel';
+import { FindingsToTasksModal } from './FindingsToTasksModal';
 
 type ViewTab = 'sessions' | 'flow';
 
@@ -30,6 +31,9 @@ export function CodingAgents() {
 
   // Tab state
   const [activeTab, setActiveTab] = useState<ViewTab>('sessions');
+
+  // Findings modal state
+  const [findingsModalOpen, setFindingsModalOpen] = useState(false);
 
   // Start polling on mount, stop on unmount
   useEffect(() => {
@@ -249,6 +253,14 @@ export function CodingAgents() {
                   </div>
                   <div className="flex items-center gap-2">
                     <button
+                      onClick={() => setFindingsModalOpen(true)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-primary/20 border border-primary/50 text-primary rounded hover:bg-primary/40 transition-colors"
+                      title="Convert findings to tasks"
+                    >
+                      <ClipboardList className="w-3.5 h-3.5" />
+                      Tasks
+                    </button>
+                    <button
                       onClick={() => deleteArchived(selectedArchived.id)}
                       className="p-1.5 rounded hover:bg-red-500/20 transition-colors text-red-400"
                       title="Delete archived session"
@@ -285,6 +297,16 @@ export function CodingAgents() {
         <div className="flex-1 overflow-hidden">
           <AgentFlowPanel />
         </div>
+      )}
+
+      {/* Findings to Tasks Modal */}
+      {selectedArchived && (
+        <FindingsToTasksModal
+          isOpen={findingsModalOpen}
+          onClose={() => setFindingsModalOpen(false)}
+          sessionId={selectedArchived.id}
+          logs={selectedArchived.logs || ''}
+        />
       )}
     </div>
   );

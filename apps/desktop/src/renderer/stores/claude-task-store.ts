@@ -9,6 +9,7 @@ export interface ClaudeTask {
   description: string;  // Task description
   status: 'pending' | 'in_progress' | 'completed';
   worklog?: string;     // Path to worklog if linked
+  checkpoint?: string;  // Checkpoint reference if linked
   createdAt?: Date;     // Parsed from (created: timestamp)
   completedAt?: Date;   // Parsed from (completed: timestamp)
 }
@@ -27,7 +28,6 @@ interface ClaudeTaskStore {
   isLoading: boolean;
   error: string | null;
   displayLimit: number; // 0 = all
-  lastContentHash: string; // Track content to skip redundant updates
 
   // Computed
   stats: ClaudeTaskStats;
@@ -37,84 +37,6 @@ interface ClaudeTaskStore {
   setTodoPath: (path: string) => void;
   setDisplayLimit: (limit: number) => void;
   refresh: () => Promise<void>;
-}
-
-// Simple hash function for content comparison (avoids re-parsing unchanged files)
-function simpleHash(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return hash.toString(16);
-}
-
-/**
- * Parse all T### tasks from todo.md content
- * Searches all sections (Backlog, Active, Done, etc.) for task lines
- */
-function parseClaudeTasks(content: string): ClaudeTask[] {
-  const tasks: ClaudeTask[] = [];
-
-  // Normalize line endings (Windows CRLF -> LF)
-  const normalizedContent = content.replace(/\r\n/g, '\n');
-
-  // Match task lines anywhere in the file:
-  // - [ ] T###: description @agent [worklog: ...] (created: ...) (completed: ...)
-  // - [x] T###: ...
-  // - [~] T###: ... (in progress)
-  const taskPattern = /^- \[([ x~])\] (T\d{3,}):\s*(.+)$/gm;
-  let match;
-
-  while ((match = taskPattern.exec(normalizedContent)) !== null) {
-    const checkbox = match[1];
-    const isCompleted = checkbox === 'x';
-    const isInProgress = checkbox === '~';
-    const id = match[2];
-    const rest = match[3];
-
-    // Parse description (everything before @agent or [worklog: or (created:)
-    let description = rest;
-    const atAgentIdx = rest.indexOf('@agent');
-    if (atAgentIdx > 0) {
-      description = rest.substring(0, atAgentIdx).trim();
-    }
-
-    // Parse worklog
-    let worklog: string | undefined;
-    const worklogMatch = rest.match(/\[worklog:\s*([^\]]+)\]/);
-    if (worklogMatch && worklogMatch[1] !== 'pending') {
-      worklog = worklogMatch[1].trim();
-    }
-
-    // Parse created timestamp
-    let createdAt: Date | undefined;
-    const createdMatch = rest.match(/\(created:\s*([^)]+)\)/);
-    if (createdMatch) {
-      createdAt = new Date(createdMatch[1].trim());
-      if (isNaN(createdAt.getTime())) createdAt = undefined;
-    }
-
-    // Parse completed timestamp
-    let completedAt: Date | undefined;
-    const completedMatch = rest.match(/\(completed:\s*([^)]+)\)/);
-    if (completedMatch) {
-      completedAt = new Date(completedMatch[1].trim());
-      if (isNaN(completedAt.getTime())) completedAt = undefined;
-    }
-
-    tasks.push({
-      id,
-      description,
-      status: isCompleted ? 'completed' : isInProgress ? 'in_progress' : 'pending',
-      worklog,
-      createdAt,
-      completedAt,
-    });
-  }
-
-  return tasks;
 }
 
 /**
@@ -136,7 +58,6 @@ export const useClaudeTaskStore = create<ClaudeTaskStore>((set, get) => ({
   isLoading: false,
   error: null,
   displayLimit: 0, // 0 = all
-  lastContentHash: '',
   stats: { total: 0, pending: 0, inProgress: 0, completed: 0, completionRate: 0 },
 
   setTodoPath: (path) => set({ todoPath: path }),
@@ -144,24 +65,16 @@ export const useClaudeTaskStore = create<ClaudeTaskStore>((set, get) => ({
   setDisplayLimit: (limit) => set({ displayLimit: limit }),
 
   loadTasks: async () => {
-    const { todoPath, lastContentHash, isLoading } = get();
-    if (!todoPath || isLoading) return; // Skip if already loading
+    const { todoPath, isLoading } = get();
+    if (!todoPath || isLoading) return;
 
     set({ isLoading: true, error: null });
 
     try {
-      const content = await window.electronAPI.fs.readFile(todoPath);
-      const contentHash = simpleHash(content);
-
-      // Skip parsing if content unchanged (major perf win for polling)
-      if (contentHash === lastContentHash) {
-        set({ isLoading: false });
-        return;
-      }
-
-      const tasks = parseClaudeTasks(content);
+      // Use centralized API - parsing and hashing happens in main process
+      const tasks = await window.electronAPI.tasks.claudeList();
       const stats = calculateStats(tasks);
-      set({ tasks, stats, lastContentHash: contentHash, isLoading: false });
+      set({ tasks, stats, isLoading: false });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       set({ error: errorMsg, isLoading: false });

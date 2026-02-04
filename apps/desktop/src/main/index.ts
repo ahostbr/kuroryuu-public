@@ -41,6 +41,8 @@ import { registerTTSHandlers } from './ipc/tts-handlers';
 import { registerSpeechHandlers } from './ipc/speech-handlers';
 import { registerCLIProxyHandlers } from './ipc/cliproxy-handlers';
 import { getCLIProxyNativeManager } from './services/cliproxy-native';
+import { registerTaskHandlers } from './ipc/task-handlers';
+import { getTaskService } from './services/task-service';
 import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow, initializeState as initPCControlState } from './integrations/pccontrol-service';
 import { registerPythonHandlers, setMainWindow as setPythonMainWindow } from './integrations/python-service';
 import { transcribeAudio, voiceChat, type STTEngine } from './audio-service';
@@ -3605,6 +3607,15 @@ app.whenReady().then(async () => {
     console.error('[Main] TTS module init failed:', err);
   });
   registerTTSHandlers({ ttsModule });
+
+  // Register task handlers
+  registerTaskHandlers();
+
+  // Initialize task service with project root
+  const taskServiceProjectRoot = process.env.KURORYUU_ROOT || join(__dirname, '../../../..');
+  const taskService = getTaskService();
+  taskService.initialize(taskServiceProjectRoot);
+  console.log('[Main] Task service initialized with project root:', taskServiceProjectRoot);
 
   createWindow();
 
