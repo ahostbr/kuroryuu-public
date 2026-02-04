@@ -20,6 +20,7 @@ class PTYAction(str, Enum):
     RESIZE = "resize"
     RESOLVE = "resolve"
     LIST = "list"
+    BASH_OUTPUT = "bash_output"  # Real-time k_bash background session output
 
 
 class PTYEventBase(BaseModel):

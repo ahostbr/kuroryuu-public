@@ -434,7 +434,40 @@ export function KuroPluginConfig() {
     try {
       const result = await window.electronAPI.kuroConfig.restoreBackup(backupId);
       if (result.ok && result.config) {
-        setConfig(result.config);
+        // Merge with defaults to ensure all required fields exist
+        const restored = result.config as Partial<KuroConfig>;
+        const restoredConfig: KuroConfig = {
+          tts: {
+            provider: (restored.tts?.provider as KuroConfig['tts']['provider']) || DEFAULT_CONFIG.tts.provider,
+            voice: restored.tts?.voice || DEFAULT_CONFIG.tts.voice,
+            smartSummaries: restored.tts?.smartSummaries ?? DEFAULT_CONFIG.tts.smartSummaries,
+            summaryProvider: (restored.tts?.summaryProvider as KuroConfig['tts']['summaryProvider']) || DEFAULT_CONFIG.tts.summaryProvider,
+            summaryModel: restored.tts?.summaryModel || DEFAULT_CONFIG.tts.summaryModel,
+            userName: restored.tts?.userName || DEFAULT_CONFIG.tts.userName,
+            messages: {
+              stop: restored.tts?.messages?.stop || DEFAULT_CONFIG.tts.messages.stop,
+              subagentStop: restored.tts?.messages?.subagentStop || DEFAULT_CONFIG.tts.messages.subagentStop,
+              notification: restored.tts?.messages?.notification || DEFAULT_CONFIG.tts.messages.notification,
+            },
+          },
+          validators: {
+            ruff: restored.validators?.ruff ?? DEFAULT_CONFIG.validators.ruff,
+            ty: restored.validators?.ty ?? DEFAULT_CONFIG.validators.ty,
+            timeout: restored.validators?.timeout ?? DEFAULT_CONFIG.validators.timeout,
+          },
+          hooks: {
+            ttsOnStop: restored.hooks?.ttsOnStop ?? DEFAULT_CONFIG.hooks.ttsOnStop,
+            ttsOnSubagentStop: restored.hooks?.ttsOnSubagentStop ?? DEFAULT_CONFIG.hooks.ttsOnSubagentStop,
+            ttsOnNotification: restored.hooks?.ttsOnNotification ?? DEFAULT_CONFIG.hooks.ttsOnNotification,
+            taskSync: restored.hooks?.taskSync ?? DEFAULT_CONFIG.hooks.taskSync,
+            transcriptExport: restored.hooks?.transcriptExport ?? DEFAULT_CONFIG.hooks.transcriptExport,
+          },
+          features: {
+            ragInteractive: restored.features?.ragInteractive ?? DEFAULT_CONFIG.features.ragInteractive,
+            questionMode: restored.features?.questionMode ?? DEFAULT_CONFIG.features.questionMode,
+          },
+        };
+        setConfig(restoredConfig);
         setHasChanges(false);
         await loadBackups();
       } else {

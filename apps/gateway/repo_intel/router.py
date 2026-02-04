@@ -485,20 +485,24 @@ def build_ideas_prompt(request: IdeaRequest, context: Dict[str, Any]) -> str:
     if context.get("dependencies"):
         prompt_parts.append(f"\nDependencies: {context['dependencies'].get('npm_count', 0)} NPM, {context['dependencies'].get('python_count', 0)} Python")
     
-    # Add request context
+    # Add request context with explicit constraints
     prompt_parts.append("\n=== IDEA REQUIREMENTS ===")
-    prompt_parts.append(f"Categories to focus on: {', '.join(request.categories)}")
+    prompt_parts.append(f"ONLY generate ideas in these categories: {', '.join(request.categories)}")
+    prompt_parts.append("Do NOT generate ideas outside these categories.")
     if request.focus_apps:
         prompt_parts.append(f"Focus on apps: {', '.join(request.focus_apps)}")
-    
+
+    # Build category constraint for output schema
+    category_options = " | ".join(f"'{c}'" for c in request.categories)
+
     prompt_parts.extend([
         "",
-        f"Generate {request.max_ideas} improvement ideas across the requested categories.",
+        f"Generate exactly {request.max_ideas} ideas. Each idea MUST be in one of: {', '.join(request.categories)}.",
         "",
         "Output as a JSON array with objects containing:",
         "- title: Concise idea name",
         "- description: What to improve and how",
-        "- category: 'improvement' | 'vulnerability' | 'performance' | 'documentation' | 'testing'",
+        f"- category: {category_options}",
         "- impact: 'high' | 'medium' | 'low'",
         "- effort: 'low' | 'medium' | 'high'",
         "- rationale: Why this would help",
@@ -646,6 +650,12 @@ async def generate_ideas(request: IdeaRequest) -> IdeaResponse:
 
     # Build prompt
     prompt = build_ideas_prompt(request, context)
+
+    # Log the config being used in the prompt
+    print(f"[ideas] Config in prompt: categories={request.categories}, max_ideas={request.max_ideas}")
+    print(f"[ideas] Prompt IDEA REQUIREMENTS section:")
+    print(f"  - ONLY generate ideas in these categories: {', '.join(request.categories)}")
+    print(f"  - Generate exactly {request.max_ideas} ideas")
 
     # Call LLM
     try:
