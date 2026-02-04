@@ -1461,11 +1461,6 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--cp-bg-primary)' }}>
-          {/* Pending user questions - polls Gateway for k_askuserquestion questions */}
-          <div className="px-4 pt-2">
-            <PendingQuestionsPoller />
-          </div>
-
           {messages.length === 0 ? (
             <EmptyState
               onSuggestionClick={(suggestion) => {
@@ -1503,6 +1498,11 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
               })()}
             </div>
           )}
+
+          {/* Pending user questions - polls Gateway for k_askuserquestion questions */}
+          <div className="px-4 pb-2">
+            <PendingQuestionsPoller />
+          </div>
 
           <div ref={messagesEndRef} className="h-4" />
         </div>
