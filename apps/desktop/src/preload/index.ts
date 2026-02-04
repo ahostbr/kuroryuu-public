@@ -1886,6 +1886,124 @@ const api = {
     ipcRenderer.on('leader-monitor:alert', handler);
     return () => ipcRenderer.removeListener('leader-monitor:alert', handler);
   },
+
+  // Backup API - Restic backup management
+  backup: {
+    // Configuration
+    getConfig: (): Promise<{
+      ok: boolean;
+      data?: {
+        schema_version: string;
+        repository: { path: string; type: string; initialized: boolean };
+        backup: { source_path: string; exclusions: string[] };
+        retention: { keep_last: number; keep_daily: number; keep_weekly: number; keep_monthly: number };
+        schedule: { enabled: boolean; interval_hours: number; last_run?: string };
+      };
+      paths?: { settingsDir: string; binDir: string; defaultRepoPath: string };
+      error?: string;
+    }> => ipcRenderer.invoke('backup:get-config'),
+    saveConfig: (config: unknown): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('backup:save-config', config),
+    createDefaultConfig: (sourcePath: string): Promise<{ ok: boolean; data?: unknown; error?: string }> =>
+      ipcRenderer.invoke('backup:create-default-config', sourcePath),
+
+    // Status
+    getStatus: (): Promise<{
+      ok: boolean;
+      data?: {
+        is_configured: boolean;
+        repository_exists: boolean;
+        repository_accessible: boolean;
+        restic_installed: boolean;
+        restic_version: string | null;
+        config_path: string;
+        binary_path: string;
+        snapshot_count: number;
+        last_backup_time: string | null;
+      };
+      error?: string;
+    }> => ipcRenderer.invoke('backup:get-status'),
+    ensureRestic: (): Promise<{
+      ok: boolean;
+      data?: { installed: boolean; path: string | null; version: string | null; downloaded: boolean };
+      error?: string;
+    }> => ipcRenderer.invoke('backup:ensure-restic'),
+
+    // Repository
+    initRepo: (password: string): Promise<{ ok: boolean; message: string; error?: string }> =>
+      ipcRenderer.invoke('backup:init-repo', password),
+    verifyPassword: (password: string): Promise<{ ok: boolean; data?: { valid: boolean }; error?: string }> =>
+      ipcRenderer.invoke('backup:verify-password', password),
+
+    // Backup operations
+    create: (params: { message?: string; tags?: string[] }): Promise<{
+      ok: boolean;
+      session_id: string;
+      snapshot_id?: string;
+      error?: string;
+    }> => ipcRenderer.invoke('backup:create', params),
+    list: (limit?: number): Promise<{
+      ok: boolean;
+      snapshots: Array<{
+        id: string;
+        short_id: string;
+        parent: string | null;
+        time: string;
+        time_ago: string;
+        hostname: string;
+        username: string;
+        tags: string[];
+        paths: string[];
+        message: string;
+        stats: {
+          files_new: number;
+          files_changed: number;
+          files_unmodified: number;
+          data_added: number;
+          total_files_processed: number;
+          total_bytes_processed: number;
+        };
+        formatted: {
+          time_ago: string;
+          data_added: string;
+          total_size: string;
+          files_summary: string;
+        };
+      }>;
+      total_count: number;
+    }> => ipcRenderer.invoke('backup:list', limit),
+    diff: (params: { snapshotId: string; compareTo?: string }): Promise<{
+      ok: boolean;
+      data?: {
+        snapshot_id: string;
+        compare_to: string;
+        added: Array<{ path: string; status: string }>;
+        removed: Array<{ path: string; status: string }>;
+        modified: Array<{ path: string; status: string }>;
+      };
+      error?: string;
+    }> => ipcRenderer.invoke('backup:diff', params),
+    restore: (params: { snapshotId: string; targetPath: string; includePaths?: string[] }): Promise<{
+      ok: boolean;
+      restored_files: number;
+      target_path: string;
+      error?: string;
+    }> => ipcRenderer.invoke('backup:restore', params),
+
+    // Maintenance
+    forget: (params: { snapshotId: string; prune?: boolean }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('backup:forget', params),
+    prune: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('backup:prune'),
+    check: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('backup:check'),
+
+    // Dialogs
+    selectSourceDir: (): Promise<{ ok: boolean; canceled?: boolean; data?: { path: string } }> =>
+      ipcRenderer.invoke('backup:select-source-dir'),
+    selectRestoreTarget: (): Promise<{ ok: boolean; canceled?: boolean; data?: { path: string } }> =>
+      ipcRenderer.invoke('backup:select-restore-target'),
+  },
 };
 
 export type ElectronAPI = typeof api;

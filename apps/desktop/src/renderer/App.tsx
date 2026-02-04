@@ -28,6 +28,7 @@ import { Dojo } from './components/dojo';  // Feature planning workspace
 import { Transcripts } from './components/transcripts';  // Archived conversations
 import { ClaudeTaskMonitor } from './components/monitor';  // Claude Code task monitoring
 import { CodingAgents } from './components/coding-agents';  // Background coding agent sessions
+import { BackupManagerPage } from './components/backup';  // Restic backup management
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
   AppSettingsDialog,
@@ -350,6 +351,9 @@ export function App() {
 
               {/* Coding Agents - Background coding agent sessions (k_bash + k_process) */}
               {activeView === 'coding-agents' && <CodingAgents />}
+
+              {/* Backups - Restic backup management */}
+              {activeView === 'backups' && <BackupManagerPage />}
 
             </ErrorBoundary>
           </main>

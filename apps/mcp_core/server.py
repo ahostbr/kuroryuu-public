@@ -19,6 +19,7 @@ Tools exposed (routed pattern with action parameter):
 - k_pccontrol: help, status, screenshot, click, type, find_element, launch_app, get_windows (OPT-IN, requires WinAppDriver)
 - k_bash: Simple shell execution with PTY and background support (for coding agents)
 - k_process: Monitor and control background bash sessions (list, poll, log, write, submit, kill)
+- k_backup: Restic backup management (help, status, init, backup, list, restore, diff, check, forget, prune, config)
 """
 
 from __future__ import annotations
@@ -52,6 +53,7 @@ from tools_pccontrol import register_pccontrol_tools  # Full Desktop Access (opt
 from tools_bash import register_bash_tools  # Simple shell execution with PTY
 from tools_process import register_process_tools  # Monitor background bash sessions
 from tools_askuserquestion import register_askuserquestion_tools  # Interactive user input
+from tools_backup import register_backup_tools  # Restic backup management
 from pty_registry import get_pty_registry
 from pty_persistence import get_pty_persistence
 from pty_manager import get_pty_manager
@@ -100,6 +102,7 @@ register_pccontrol_tools(registry)  # Full Desktop Access (opt-in, requires WinA
 register_bash_tools(registry)  # Simple shell execution with PTY (k_bash)
 register_process_tools(registry)  # Monitor background bash sessions (k_process)
 register_askuserquestion_tools(registry)  # Interactive user input (k_askuserquestion)
+register_backup_tools(registry)  # Restic backup management (k_backup)
 
 protocol = MCPProtocol(registry)
 
