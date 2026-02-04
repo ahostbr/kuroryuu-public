@@ -36,7 +36,6 @@ def _err(error_code: str, message: str, data: Any = None) -> Dict[str, Any]:
 
 def k_askuserquestion(
     questions: Optional[List[Dict[str, Any]]] = None,
-    timeout_seconds: int = 300,
     action: str = "ask",
     **kwargs: Any,
 ) -> Dict[str, Any]:
@@ -44,6 +43,7 @@ def k_askuserquestion(
     Ask the user 1-4 questions and wait for their responses.
 
     Mirrors Claude Code CLI's AskUserQuestion tool exactly.
+    Waits indefinitely until user responds.
 
     Args:
         action: "help" or "ask" (default: "ask")
@@ -59,7 +59,6 @@ def k_askuserquestion(
                     ]
                 }
             ]
-        timeout_seconds: Max wait time (default 5 min, max 10 min)
 
     Returns:
         {
@@ -86,7 +85,6 @@ def k_askuserquestion(
             },
             "parameters": {
                 "questions": "List of 1-4 question objects",
-                "timeout_seconds": "Max wait time (default 300, max 600)",
             },
             "question_format": {
                 "question": "Full question text (required)",
@@ -110,7 +108,7 @@ def k_askuserquestion(
             },
             "notes": [
                 "User can always select 'Other' to type a custom answer",
-                "Tool blocks until user responds or timeout",
+                "Tool blocks until user responds (no timeout)",
                 "Requires Kuroryuu Desktop for the UI",
             ],
         })
@@ -158,9 +156,6 @@ def k_askuserquestion(
             if "label" not in opt or not opt["label"]:
                 return _err("INVALID_PARAMS", f"Question {i}, Option {j}: 'label' is required")
 
-    # Validate timeout
-    timeout_seconds = min(max(timeout_seconds, 10), 600)  # 10s - 10min
-
     try:
         # 1. Create question session in Gateway
         response = httpx.post(
@@ -180,11 +175,11 @@ def k_askuserquestion(
         if not question_id:
             return _err("GATEWAY_ERROR", "No question_id returned")
 
-        # 2. Poll until all questions answered or timeout
+        # 2. Poll indefinitely until answered
         start = time.time()
         poll_count = 0
 
-        while time.time() - start < timeout_seconds:
+        while True:
             time.sleep(0.5)  # Poll every 500ms
             poll_count += 1
 
@@ -213,13 +208,6 @@ def k_askuserquestion(
 
             except httpx.RequestError:
                 continue  # Retry on connection errors
-
-        # 3. Timeout
-        return _err(
-            "TIMEOUT",
-            f"User did not respond within {timeout_seconds}s",
-            {"question_id": question_id, "elapsed_seconds": timeout_seconds},
-        )
 
     except httpx.RequestError as e:
         return _err("CONNECTION_ERROR", f"Failed to connect to Gateway: {e}")
@@ -290,13 +278,6 @@ def register_askuserquestion_tools(registry: "ToolRegistry") -> None:
                         },
                         "required": ["question", "header", "options"],
                     },
-                },
-                "timeout_seconds": {
-                    "type": "integer",
-                    "description": "Max wait time in seconds (default 300, max 600)",
-                    "default": 300,
-                    "minimum": 10,
-                    "maximum": 600,
                 },
             },
             "required": [],  # action defaults to "ask", questions required for ask

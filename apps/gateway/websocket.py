@@ -19,6 +19,52 @@ logger = get_logger(__name__)
 router = APIRouter(tags=["websocket"])
 
 
+# =============================================================================
+# WEBSOCKET ORIGIN VALIDATION (Security Hardening)
+# =============================================================================
+
+# Allowed WebSocket origins - localhost variants + Electron
+ALLOWED_WS_ORIGINS = [
+    "http://127.0.0.1:8200",
+    "http://localhost:8200",
+    "http://127.0.0.1:5173",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "null",  # Electron renderer (file:// origin becomes "null")
+    "file://",  # Electron alternative representation
+    None,  # Allow missing origin (server-to-server, CLI tools)
+]
+
+
+async def validate_websocket_origin(websocket: WebSocket) -> bool:
+    """Validate WebSocket connection origin.
+
+    SECURITY: Rejects WebSocket connections from unauthorized origins.
+    This prevents malicious websites from opening WebSocket connections
+    to your local Kuroryuu instance.
+
+    Returns True if origin is allowed, False otherwise.
+    """
+    origin = websocket.headers.get("origin")
+
+    # Allow if origin is in explicit allowlist
+    if origin in ALLOWED_WS_ORIGINS:
+        return True
+
+    # Allow if origin is missing (server-to-server, CLI tools)
+    if origin is None:
+        return True
+
+    # Allow any localhost origin (handles various port numbers)
+    if origin and ("localhost" in origin or "127.0.0.1" in origin):
+        return True
+
+    # Reject unknown origins
+    logger.warning(f"[WS SECURITY] Rejected connection from origin: {origin}")
+    return False
+
+
 class ConnectionManager:
     """Manages WebSocket connections and broadcasts."""
     
@@ -74,7 +120,7 @@ manager = ConnectionManager()
 @router.websocket("/ws/agents")
 async def websocket_agents(websocket: WebSocket):
     """WebSocket endpoint for real-time agent status updates.
-    
+
     Clients receive:
     - agent_registered: New agent registered
     - agent_heartbeat: Agent heartbeat received
@@ -82,6 +128,11 @@ async def websocket_agents(websocket: WebSocket):
     - agent_deregistered: Agent deregistered
     - stats_update: Agent statistics update
     """
+    # SECURITY: Validate origin before accepting connection
+    if not await validate_websocket_origin(websocket):
+        await websocket.close(code=4003, reason="Forbidden: Invalid origin")
+        return
+
     await manager.connect(websocket)
     
     try:

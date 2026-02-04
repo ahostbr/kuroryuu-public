@@ -41,12 +41,16 @@ export function PendingQuestionsPoller() {
       }
       const data = await response.json();
       if (data.ok && Array.isArray(data.pending)) {
+        // Debug: log when questions change
+        if (data.pending.length > 0) {
+          console.log('[PendingQuestions] Found pending:', data.pending.length, data.pending.map((q: PendingQuestion) => q.question_id));
+        }
         setPendingQuestions(data.pending);
         setError(null);
       }
       setLastPollTime(new Date());
     } catch (err) {
-      // Silent fail - Gateway might not be running
+      console.warn('[PendingQuestions] Poll error:', err);
       setError(err instanceof Error ? err.message : 'Failed to poll');
     }
   }, []);
@@ -69,6 +73,9 @@ export function PendingQuestionsPoller() {
     setPendingQuestions(prev => prev.filter(q => q.question_id !== questionId));
   }, []);
 
+  // Debug: log render
+  console.log('[PendingQuestions] Render, count:', pendingQuestions.length);
+
   // Don't render anything if no pending questions
   if (pendingQuestions.length === 0) {
     return null;
@@ -78,8 +85,8 @@ export function PendingQuestionsPoller() {
     <div className="space-y-2">
       {/* Header */}
       <div className="flex items-center gap-2 px-1">
-        <HelpCircle className="w-4 h-4 text-purple-400" />
-        <span className="text-xs font-medium text-purple-400">
+        <HelpCircle className="w-4 h-4 text-muted-foreground" />
+        <span className="text-xs font-medium text-muted-foreground">
           Pending User Input ({pendingQuestions.length})
         </span>
         <span className="flex-1" />

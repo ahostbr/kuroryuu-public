@@ -28,6 +28,112 @@ from ..security.defense import is_lockdown_mode, broadcast_ip_blocked
 
 logger = get_logger(__name__)
 
+
+# =============================================================================
+# ORIGIN VALIDATION MIDDLEWARE (Security Hardening - Phase 4)
+# =============================================================================
+
+class OriginValidationMiddleware(BaseHTTPMiddleware):
+    """Validates Origin header for state-changing requests (POST/PUT/DELETE).
+
+    SECURITY: Prevents CSRF attacks by rejecting requests from foreign origins.
+
+    Allows:
+    - All GET/HEAD/OPTIONS requests (read-only, safe methods)
+    - Requests with valid X-Kuroryuu-Desktop-Secret header
+    - Localhost-to-localhost requests (server-to-server, CLI tools)
+    - Browser requests with localhost Origin header
+    - Requests with "null" Origin (Electron renderer)
+
+    Rejects:
+    - POST/PUT/DELETE from foreign origins (e.g., evil.com)
+    """
+
+    # Paths that should bypass origin validation (webhooks, callbacks, etc.)
+    BYPASS_PATHS = {
+        "/v1/health",
+        "/login",
+        "/logout",
+    }
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Allow safe methods (GET, HEAD, OPTIONS)
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return await call_next(request)
+
+        # Allow bypass paths
+        path = request.url.path
+        if path in self.BYPASS_PATHS:
+            return await call_next(request)
+
+        # Allow if request has valid Desktop secret
+        desktop_secret = request.headers.get("x-kuroryuu-desktop-secret")
+        if desktop_secret:
+            # Desktop secret validation is handled by the endpoint itself
+            # If header is present, it's likely a legitimate Desktop request
+            return await call_next(request)
+
+        # Get client IP
+        client_ip = request.client.host if request.client else None
+
+        # Allow localhost-to-localhost (server-to-server, CLI tools)
+        if client_ip in ("127.0.0.1", "::1", "localhost"):
+            return await call_next(request)
+
+        # Check Origin header for browser requests
+        origin = request.headers.get("origin")
+
+        if origin:
+            # Allow localhost origins
+            if "localhost" in origin or "127.0.0.1" in origin:
+                return await call_next(request)
+
+            # Allow "null" origin (Electron renderer, file:// protocol)
+            if origin == "null":
+                return await call_next(request)
+
+            # Reject foreign origins
+            logger.warning(
+                f"[SECURITY] Blocked request from foreign origin: {origin} "
+                f"to {request.method} {path}"
+            )
+            return Response(
+                content='{"error": "Forbidden", "detail": "Invalid origin"}',
+                status_code=403,
+                media_type="application/json",
+            )
+
+        # No Origin header - check Referer as fallback
+        referer = request.headers.get("referer")
+        if referer:
+            if "localhost" in referer or "127.0.0.1" in referer:
+                return await call_next(request)
+
+            logger.warning(
+                f"[SECURITY] Blocked request with foreign referer: {referer} "
+                f"to {request.method} {path}"
+            )
+            return Response(
+                content='{"error": "Forbidden", "detail": "Invalid referer"}',
+                status_code=403,
+                media_type="application/json",
+            )
+
+        # No Origin or Referer - likely a direct API call (curl, CLI, etc.)
+        # Allow if from localhost IP (already checked above), otherwise block
+        if client_ip and not client_ip.startswith("127.") and client_ip not in ("::1", "localhost"):
+            logger.warning(
+                f"[SECURITY] Blocked external API call without origin: {client_ip} "
+                f"to {request.method} {path}"
+            )
+            return Response(
+                content='{"error": "Forbidden", "detail": "External access requires valid origin"}',
+                status_code=403,
+                media_type="application/json",
+            )
+
+        return await call_next(request)
+
 # Endpoints to exclude from traffic monitoring (high frequency / internal)
 EXCLUDED_PATHS = {
     "/health",
@@ -148,62 +254,49 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
             )
 
         # Check for external connections
+        # SECURITY: External connections are ALWAYS blocked.
+        # Use Cloudflare Tunnel or Tailscale for secure remote access.
         if self._is_external_connection(client_ip):
             logger.warning(f"[SECURITY] EXTERNAL CONNECTION DETECTED: {client_ip}")
 
-            # In lockdown mode, block all external connections regardless of config
-            if is_lockdown_mode():
-                logger.warning(f"[SECURITY] Lockdown mode - rejecting {client_ip}")
-                return Response(
-                    content='{"error": "Service Unavailable", "detail": "Server is in lockdown mode"}',
-                    status_code=503,
-                    media_type="application/json",
-                )
+            # Create threat info with request details
+            threat_info = ThreatInfo(
+                ip=client_ip,
+                first_seen=timestamp,
+                last_seen=timestamp,
+                user_agent=user_agent,
+                endpoint=path,
+                method=request.method,
+                headers=filter_headers(dict(request.headers)),
+            )
 
-            # Check if external connections are allowed via config
-            if config.allow_external:
-                # External allowed: Log for monitoring but don't block
-                logger.info(f"[SECURITY] External connection allowed (config): {client_ip} -> {path}")
-                # Continue processing the request normally
-            else:
-                # External NOT allowed: Auto-block and reject
-                # Create threat info with request details
-                threat_info = ThreatInfo(
-                    ip=client_ip,
-                    first_seen=timestamp,
-                    last_seen=timestamp,
-                    user_agent=user_agent,
-                    endpoint=path,
-                    method=request.method,
-                    headers=filter_headers(dict(request.headers)),
-                )
+            # Auto-block the IP
+            blocklist.block(client_ip, threat_info)
 
-                # Auto-block the IP
-                blocklist.block(client_ip, threat_info)
+            # Emit security alert via WebSocket
+            asyncio.create_task(self._emit_security_alert(
+                client_ip=client_ip,
+                user_agent=user_agent,
+                endpoint=path,
+                method=request.method,
+                headers=dict(request.headers),
+                timestamp=timestamp,
+                event_id=event_id,
+            ))
 
-                # Emit security alert via WebSocket
-                asyncio.create_task(self._emit_security_alert(
-                    client_ip=client_ip,
-                    user_agent=user_agent,
-                    endpoint=path,
-                    method=request.method,
-                    headers=dict(request.headers),
-                    timestamp=timestamp,
-                    event_id=event_id,
-                ))
+            # Gather intel in background (don't block request)
+            asyncio.create_task(self._gather_and_broadcast_intel(client_ip))
 
-                # Gather intel in background (don't block request)
-                asyncio.create_task(self._gather_and_broadcast_intel(client_ip))
+            # Broadcast IP blocked event
+            asyncio.create_task(broadcast_ip_blocked(client_ip, auto=True))
 
-                # Broadcast IP blocked event
-                asyncio.create_task(broadcast_ip_blocked(client_ip, auto=True))
-
-                # Return 403 to external connection
-                return Response(
-                    content='{"error": "Forbidden", "detail": "External connections not allowed"}',
-                    status_code=403,
-                    media_type="application/json",
-                )
+            # Return 403 to external connection
+            # NOTE: For remote access, use Cloudflare Tunnel or Tailscale
+            return Response(
+                content='{"error": "Forbidden", "detail": "External connections not allowed. Use Cloudflare Tunnel or Tailscale for remote access."}',
+                status_code=403,
+                media_type="application/json",
+            )
 
         # Capture request headers (filtered)
         request_headers = filter_headers(dict(request.headers))
@@ -388,17 +481,18 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
             return "other"
 
     def _get_client_ip(self, request: Request) -> str:
-        """Extract client IP from request, handling proxies"""
-        # Check for forwarded headers
-        forwarded_for = request.headers.get("x-forwarded-for")
-        if forwarded_for:
-            return forwarded_for.split(",")[0].strip()
+        """Extract client IP from request.
 
-        real_ip = request.headers.get("x-real-ip")
-        if real_ip:
-            return real_ip
+        SECURITY: Only use validated request.client.host.
+        Do NOT read X-Forwarded-For/X-Real-IP directly here.
 
-        # Fall back to direct connection
+        If running behind a trusted proxy, configure KURORYUU_TRUSTED_PROXIES
+        and ProxyHeadersMiddleware will handle header validation and set
+        request.client.host correctly.
+
+        Reading these headers directly allows attackers to spoof their IP
+        by simply adding X-Forwarded-For: 127.0.0.1 to bypass localhost checks.
+        """
         if request.client:
             return request.client.host
         return "unknown"
