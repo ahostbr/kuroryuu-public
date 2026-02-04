@@ -171,11 +171,11 @@ def speak(text: str, voice: str = "en-GB-SoniaNeural"):
 
     agent_id = f"smart_tts_{os.getpid()}"
 
-    # Acquire TTS lock to prevent overlapping audio (short timeout - play anyway if fails)
+    # Acquire TTS lock to prevent overlapping audio
     if use_queue:
-        if not tts_queue.acquire_tts_lock(agent_id, timeout=5):
-            print(f"[SmartTTS] Queue busy - playing anyway", file=sys.stderr)
-            use_queue = False  # Don't try to release a lock we don't have
+        if not tts_queue.acquire_tts_lock(agent_id, timeout=25):
+            print(f"[SmartTTS] Queue busy after 25s - skipping TTS", file=sys.stderr)
+            return False  # Skip entirely - don't play over existing audio
 
     try:
         return _speak_internal(text, voice)
@@ -333,11 +333,12 @@ def main():
 
     # Load settings
     settings = get_settings()
-    smart_summaries = settings.get("smartSummaries", False)
-    user_name = settings.get("userName", "Ryan")
-    voice = args.voice or settings.get("voice", "en-GB-SoniaNeural")
-    provider = args.provider or settings.get("summaryProvider", "gateway-auto")
-    model = args.model or settings.get("summaryModel", "")
+    tts_config = settings.get("tts", {})  # TTS settings are nested under "tts" key
+    smart_summaries = tts_config.get("smartSummaries", False)
+    user_name = tts_config.get("userName", "Ryan")
+    voice = args.voice or tts_config.get("voice", "en-GB-SoniaNeural")
+    provider = args.provider or tts_config.get("summaryProvider", "gateway-auto")
+    model = args.model or tts_config.get("summaryModel", "")
 
     message = None
 
