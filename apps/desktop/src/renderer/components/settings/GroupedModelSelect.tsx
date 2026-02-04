@@ -22,6 +22,7 @@ interface GroupedModelSelectProps {
   showCounts?: boolean;
   className?: string;
   disabled?: boolean;
+  flat?: boolean; // Display as flat list without family grouping
 }
 
 export function GroupedModelSelect({
@@ -33,6 +34,7 @@ export function GroupedModelSelect({
   showCounts = true,
   className = '',
   disabled = false,
+  flat = false,
 }: GroupedModelSelectProps) {
   // Dedupe models by ID to prevent duplicate key warnings
   const uniqueModels = useMemo(() => {
@@ -72,22 +74,32 @@ export function GroupedModelSelect({
     >
       {showAutoOption && <option value="auto">{autoOptionLabel}</option>}
 
-      {families.map(family => {
-        const familyModels = groupedModels.get(family) || [];
-        const label = getFamilyGroupLabel(family, familyModels.length, showCounts);
+      {flat ? (
+        // Flat list - no grouping
+        uniqueModels.map(model => (
+          <option key={model.id} value={model.id}>
+            {model.name}
+          </option>
+        ))
+      ) : (
+        // Grouped by family
+        families.map(family => {
+          const familyModels = groupedModels.get(family) || [];
+          const label = getFamilyGroupLabel(family, familyModels.length, showCounts);
 
-        return (
-          <optgroup key={family} label={label}>
-            {familyModels.map(model => (
-              <option key={model.id} value={model.id}>
-                {model.name}
-              </option>
-            ))}
-          </optgroup>
-        );
-      })}
+          return (
+            <optgroup key={family} label={label}>
+              {familyModels.map(model => (
+                <option key={model.id} value={model.id}>
+                  {model.name}
+                </option>
+              ))}
+            </optgroup>
+          );
+        })
+      )}
 
-      {families.length === 0 && !showAutoOption && (
+      {((flat && uniqueModels.length === 0) || (!flat && families.length === 0)) && !showAutoOption && (
         <option value="" disabled>No models available</option>
       )}
     </select>

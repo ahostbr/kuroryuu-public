@@ -951,6 +951,59 @@ const api = {
     /** Preview a voice with sample text */
     previewVoice: (voiceName: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('kuro-config:preview-voice', voiceName),
+
+    /** List all available config backups */
+    listBackups: (): Promise<{
+      ok: boolean;
+      backups?: Array<{
+        id: string;
+        timestamp: string;
+        name?: string;
+        size: number;
+      }>;
+      error?: string;
+    }> => ipcRenderer.invoke('kuro-config:list-backups'),
+
+    /** Create a new config backup */
+    createBackup: (name?: string): Promise<{
+      ok: boolean;
+      backup?: {
+        id: string;
+        timestamp: string;
+        name?: string;
+        size: number;
+      };
+      error?: string;
+    }> => ipcRenderer.invoke('kuro-config:create-backup', name),
+
+    /** Restore a config from backup */
+    restoreBackup: (backupId: string): Promise<{
+      ok: boolean;
+      config?: {
+        tts: {
+          provider: string;
+          voice: string;
+          smartSummaries: boolean;
+          summaryProvider: string;
+          userName: string;
+          messages: { stop: string; subagentStop: string; notification: string };
+        };
+        validators: { ruff: boolean; ty: boolean; timeout: number };
+        hooks: {
+          ttsOnStop: boolean;
+          ttsOnSubagentStop: boolean;
+          ttsOnNotification: boolean;
+          taskSync: boolean;
+          transcriptExport: boolean;
+        };
+        features: { ragInteractive: boolean; questionMode: boolean };
+      };
+      error?: string;
+    }> => ipcRenderer.invoke('kuro-config:restore-backup', backupId),
+
+    /** Delete a config backup */
+    deleteBackup: (backupId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('kuro-config:delete-backup', backupId),
   },
   /**
    * Event listeners for OAuth callbacks and other events

@@ -1991,6 +1991,158 @@ function setupKuroConfigIpc(): void {
     }
   });
 
+  // List available config backups
+  ipcMain.handle('kuro-config:list-backups', async () => {
+    try {
+      const backupsDir = join(join(PROJECT_ROOT, '.claude'), 'kuro_configs');
+
+      // Create backup directory if it doesn't exist
+      if (!fs.existsSync(backupsDir)) {
+        return { ok: true, backups: [] };
+      }
+
+      const files = await readdir(backupsDir);
+      const backups: Array<{ id: string; timestamp: string; name?: string; size: number; config?: any }> = [];
+
+      for (const file of files) {
+        if (file.startsWith('backup_') && file.endsWith('.json')) {
+          try {
+            const filepath = join(backupsDir, file);
+            const stat = fs.statSync(filepath);
+            const content = await readFile(filepath, 'utf-8');
+            const data = JSON.parse(content);
+            backups.push({
+              id: file,
+              timestamp: data.timestamp || file,
+              name: data.name,
+              size: stat.size,
+              config: data.config, // Include full config for preview
+            });
+          } catch (e) {
+            console.warn(`[KuroConfig] Failed to read backup ${file}:`, e);
+          }
+        }
+      }
+
+      // Sort by timestamp descending (newest first)
+      backups.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return { ok: true, backups };
+    } catch (error) {
+      console.error('[KuroConfig] List backups failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Create a new config backup
+  ipcMain.handle('kuro-config:create-backup', async (_event, name?: string) => {
+    try {
+      const backupsDir = join(join(PROJECT_ROOT, '.claude'), 'kuro_configs');
+
+      // Ensure backup directory exists
+      if (!fs.existsSync(backupsDir)) {
+        fs.mkdirSync(backupsDir, { recursive: true });
+      }
+
+      // Read current config
+      let config = {};
+      try {
+        const content = await readFile(SETTINGS_PATH, 'utf-8');
+        const settings = JSON.parse(content);
+        config = settings.kuroPlugin || {};
+      } catch {
+        // Start with empty config if file doesn't exist
+      }
+
+      // Generate timestamped filename
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '').slice(0, -5); // Format: 20260204_120000
+      const filename = `backup_${timestamp}.json`;
+      const filepath = join(backupsDir, filename);
+
+      // Create backup file
+      const backup = {
+        timestamp: now.toISOString(),
+        name: name || undefined,
+        config,
+      };
+      await writeFile(filepath, JSON.stringify(backup, null, 2), 'utf-8');
+
+      return {
+        ok: true,
+        backup: {
+          id: filename,
+          timestamp: backup.timestamp,
+          name: backup.name,
+          size: JSON.stringify(backup).length,
+        },
+      };
+    } catch (error) {
+      console.error('[KuroConfig] Create backup failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Restore a config backup
+  ipcMain.handle('kuro-config:restore-backup', async (_event, backupId: string) => {
+    try {
+      const backupsDir = join(join(PROJECT_ROOT, '.claude'), 'kuro_configs');
+      const filepath = join(backupsDir, backupId);
+
+      // Security: prevent path traversal
+      if (!filepath.startsWith(backupsDir) || !filepath.includes('backup_')) {
+        return { ok: false, error: 'Invalid backup ID' };
+      }
+
+      // Read backup file
+      const content = await readFile(filepath, 'utf-8');
+      const backup = JSON.parse(content);
+      const restoredConfig = backup.config;
+
+      // Read current settings
+      let settings: Record<string, unknown> = {};
+      try {
+        const settingsContent = await readFile(SETTINGS_PATH, 'utf-8');
+        settings = JSON.parse(settingsContent);
+      } catch {
+        // Start fresh if file doesn't exist
+      }
+
+      // Update kuroPlugin section
+      settings.kuroPlugin = restoredConfig;
+
+      // Write back to settings.json
+      await writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), 'utf-8');
+
+      return { ok: true, config: restoredConfig };
+    } catch (error) {
+      console.error('[KuroConfig] Restore backup failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Delete a config backup
+  ipcMain.handle('kuro-config:delete-backup', async (_event, backupId: string) => {
+    try {
+      const backupsDir = join(join(PROJECT_ROOT, '.claude'), 'kuro_configs');
+      const filepath = join(backupsDir, backupId);
+
+      // Security: prevent path traversal
+      if (!filepath.startsWith(backupsDir) || !filepath.includes('backup_')) {
+        return { ok: false, error: 'Invalid backup ID' };
+      }
+
+      // Delete backup file
+      if (fs.existsSync(filepath)) {
+        fs.unlinkSync(filepath);
+      }
+
+      return { ok: true };
+    } catch (error) {
+      console.error('[KuroConfig] Delete backup failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
   console.log('[KuroConfig] IPC handlers registered');
 }
 

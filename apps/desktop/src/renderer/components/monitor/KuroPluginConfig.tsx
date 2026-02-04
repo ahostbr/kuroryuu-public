@@ -19,6 +19,14 @@ import {
   Search,
   Check,
   ChevronDown,
+  DatabaseBackup,
+  Plus,
+  Trash2,
+  RotateCw,
+  ChevronRight,
+  Mic,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -238,11 +246,17 @@ export function KuroPluginConfig() {
   const [lmstudioModels, setLmstudioModels] = useState<LMStudioModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [lmstudioStatus, setLmstudioStatus] = useState<'unknown' | 'online' | 'offline'>('unknown');
+  const [backups, setBackups] = useState<Array<{ id: string; timestamp: string; name?: string; size: number; config?: any }>>([]);
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false);
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [backupName, setBackupName] = useState('');
+  const [expandedBackup, setExpandedBackup] = useState<string | null>(null);
 
-  // Load config and voices on mount
+  // Load config, voices, and backups on mount
   useEffect(() => {
     loadConfig();
     loadEdgeVoices();
+    loadBackups();
   }, []);
 
   // Load LMStudio models when provider is lmstudio
@@ -383,6 +397,64 @@ export function KuroPluginConfig() {
       console.error('Failed to test TTS:', err);
     } finally {
       setIsTesting(false);
+    }
+  };
+
+  const loadBackups = async () => {
+    setIsLoadingBackups(true);
+    try {
+      const result = await window.electronAPI.kuroConfig.listBackups();
+      if (result.ok && result.backups) {
+        setBackups(result.backups);
+      }
+    } catch (err) {
+      console.error('Failed to load backups:', err);
+    } finally {
+      setIsLoadingBackups(false);
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    try {
+      const name = backupName.trim() || undefined;
+      const result = await window.electronAPI.kuroConfig.createBackup(name);
+      if (result.ok) {
+        setBackupName('');
+        setShowBackupDialog(false);
+        await loadBackups();
+      } else {
+        console.error('Failed to create backup:', result.error);
+      }
+    } catch (err) {
+      console.error('Failed to create backup:', err);
+    }
+  };
+
+  const handleRestoreBackup = async (backupId: string) => {
+    try {
+      const result = await window.electronAPI.kuroConfig.restoreBackup(backupId);
+      if (result.ok && result.config) {
+        setConfig(result.config);
+        setHasChanges(false);
+        await loadBackups();
+      } else {
+        console.error('Failed to restore backup:', result.error);
+      }
+    } catch (err) {
+      console.error('Failed to restore backup:', err);
+    }
+  };
+
+  const handleDeleteBackup = async (backupId: string) => {
+    try {
+      const result = await window.electronAPI.kuroConfig.deleteBackup(backupId);
+      if (result.ok) {
+        await loadBackups();
+      } else {
+        console.error('Failed to delete backup:', result.error);
+      }
+    } catch (err) {
+      console.error('Failed to delete backup:', err);
     }
   };
 
@@ -682,6 +754,265 @@ export function KuroPluginConfig() {
               onChange={(checked) => updateConfig('features', { questionMode: checked })}
             />
           </FieldRow>
+        </CollapsibleSection>
+
+        {/* Config Backups */}
+        <CollapsibleSection title="Config Backups" icon={DatabaseBackup} defaultOpen={false}>
+          <div className="space-y-4">
+            {/* Create Backup Button */}
+            <button
+              onClick={() => setShowBackupDialog(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create Backup
+            </button>
+
+            {/* Backup List */}
+            {isLoadingBackups ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading backups...
+              </div>
+            ) : backups.length === 0 ? (
+              <div className="text-muted-foreground text-sm py-4">
+                No backups found. Create your first backup to save your current config.
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {backups.map(backup => {
+                  const isExpanded = expandedBackup === backup.id;
+                  const config = backup.config;
+
+                  return (
+                    <div key={backup.id} className="bg-secondary/50 rounded-lg border border-border/50 overflow-hidden transition-all">
+                      {/* Header */}
+                      <div className="flex items-center justify-between p-3">
+                        <button
+                          onClick={() => setExpandedBackup(isExpanded ? null : backup.id)}
+                          className="flex items-center gap-2 min-w-0 flex-1 text-left group"
+                        >
+                          <ChevronRight
+                            className={cn(
+                              "w-4 h-4 text-muted-foreground transition-transform flex-shrink-0",
+                              isExpanded && "rotate-90"
+                            )}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate group-hover:text-primary transition-colors">
+                              {backup.name || 'Unnamed Backup'}
+                            </div>
+                            <div className="text-xs text-muted-foreground font-mono">
+                              {new Date(backup.timestamp).toLocaleString()}
+                            </div>
+                          </div>
+                        </button>
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => handleRestoreBackup(backup.id)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary/10 hover:bg-primary/20 text-primary rounded transition-colors"
+                            title="Restore this backup"
+                          >
+                            <RotateCw className="w-3.5 h-3.5" />
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBackup(backup.id)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-destructive/10 hover:bg-destructive/20 text-destructive rounded transition-colors"
+                            title="Delete this backup"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Expanded Preview */}
+                      {isExpanded && config && (
+                        <div className="border-t border-border/50 bg-background/50 p-4 space-y-3">
+                          {/* TTS Settings */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <Mic className="w-3.5 h-3.5" />
+                              TTS Configuration
+                            </div>
+                            <div className="pl-5 space-y-1 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Provider:</span>
+                                <span className="font-mono text-primary">{config.tts?.provider || 'N/A'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Voice:</span>
+                                <span className="font-mono text-xs">{config.tts?.voice || 'N/A'}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Smart Summaries:</span>
+                                {config.tts?.smartSummaries ? (
+                                  <span className="flex items-center gap-1 text-green-500">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Enabled
+                                  </span>
+                                ) : (
+                                  <span className="flex items-center gap-1 text-muted-foreground">
+                                    <XCircle className="w-3.5 h-3.5" />
+                                    Disabled
+                                  </span>
+                                )}
+                              </div>
+                              {config.tts?.smartSummaries && (
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">Summary Provider:</span>
+                                    <span className="font-mono text-xs">{config.tts?.summaryProvider || 'N/A'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground">Model:</span>
+                                    <span className="font-mono text-xs">{config.tts?.summaryModel || 'N/A'}</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Validators */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <Shield className="w-3.5 h-3.5" />
+                              Validators
+                            </div>
+                            <div className="pl-5 flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1.5">
+                                {config.validators?.ruff ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="font-mono text-xs">ruff</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.validators?.ty ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="font-mono text-xs">ty</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Hooks */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <Webhook className="w-3.5 h-3.5" />
+                              Hooks
+                            </div>
+                            <div className="pl-5 space-y-1 text-sm">
+                              <div className="flex items-center gap-1.5">
+                                {config.hooks?.ttsOnStop ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">TTS on Stop</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.hooks?.ttsOnSubagentStop ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">TTS on Subagent Stop</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.hooks?.ttsOnNotification ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">TTS on Notification</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.hooks?.taskSync ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Task Sync</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.hooks?.transcriptExport ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Transcript Export</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Features */}
+                          <div className="space-y-1.5">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              <Sparkles className="w-3.5 h-3.5" />
+                              Features
+                            </div>
+                            <div className="pl-5 space-y-1 text-sm">
+                              <div className="flex items-center gap-1.5">
+                                {config.features?.ragInteractive ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">RAG Interactive Mode</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.features?.questionMode ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Question Mode</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Create Backup Dialog */}
+          {showBackupDialog && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowBackupDialog(false)}>
+              <div className="bg-background p-6 rounded-lg max-w-md w-full mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-semibold mb-4">Create Config Backup</h3>
+                <input
+                  type="text"
+                  value={backupName}
+                  onChange={e => setBackupName(e.target.value)}
+                  placeholder="Optional backup name (e.g., 'Before TTS changes')"
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => { setShowBackupDialog(false); setBackupName(''); }}
+                    className="px-4 py-2 bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleCreateBackup}
+                    className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg transition-colors"
+                  >
+                    Create Backup
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </CollapsibleSection>
 
         {/* Voice Library */}
