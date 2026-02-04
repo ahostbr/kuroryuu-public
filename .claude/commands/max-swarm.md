@@ -5,7 +5,21 @@ allowed-tools: mcp__kuroryuu__k_bash, Read, Glob, Grep, Task
 
 # /max-swarm - Parallel Coding Agent Swarm
 
-Spawn multiple coding agents in parallel to work on a task. Like `/max-parallel` but specifically for autonomous coding agents via `k_bash`.
+Spawn multiple coding agents in parallel to work on a task. Specifically for autonomous coding agents via `k_bash`.
+
+## Flags
+
+Parse the user's input for flags:
+
+| Flag | Effect |
+|------|--------|
+| `--unattended` | Add `--dangerously-skip-permissions` for full autonomy (no permission prompts) |
+| `--read-only` | Restrict agents to read-only tools (exploration mode) |
+
+**Examples:**
+- `/max-swarm "document codebase"` → Default mode with `--allowedTools`
+- `/max-swarm --unattended "refactor auth"` → Full autonomous mode
+- `/max-swarm --read-only "explore the codebase"` → Safe exploration only
 
 ## When Invoked
 
@@ -34,19 +48,32 @@ For each subtask, spawn a Claude agent using `k_bash` with these settings:
 - `background: true` (required - runs in background)
 - `pty: true` (required - interactive CLIs need PTY)
 - `workdir`: Project root directory
+- `wave_id`: Optional wave identifier for Desktop grouping (e.g., "swarm1")
 
-**Command template:**
+**Command templates by mode:**
+
+**Default mode (restricted tools):**
 ```
 claude -p "{subtask_prompt}" --allowedTools "Read,Glob,Grep,Write,Edit"
+```
+
+**--unattended mode (full autonomy):**
+```
+claude -p "{subtask_prompt}" --dangerously-skip-permissions --allowedTools "Read,Glob,Grep,Write,Edit,Bash"
+```
+
+**--read-only mode (exploration only):**
+```
+claude -p "{subtask_prompt}" --allowedTools "Read,Glob,Grep"
 ```
 
 **CRITICAL: Spawn ALL agents in a SINGLE message with parallel tool calls!**
 
 ```
 // DO THIS - all in one message:
-k_bash(command="claude -p 'Task 1' ...", background=true, pty=true)
-k_bash(command="claude -p 'Task 2' ...", background=true, pty=true)
-k_bash(command="claude -p 'Task 3' ...", background=true, pty=true)
+k_bash(command="claude -p 'Task 1' --allowedTools '...'", background=true, pty=true, wave_id="swarm1")
+k_bash(command="claude -p 'Task 2' --allowedTools '...'", background=true, pty=true, wave_id="swarm1")
+k_bash(command="claude -p 'Task 3' --allowedTools '...'", background=true, pty=true, wave_id="swarm1")
 
 // NOT THIS - sequential:
 k_bash(...)  // wait
@@ -107,3 +134,17 @@ Spawning swarm of 4 Claude agents:
 
 Monitor progress: Desktop → Coding Agents → Agent Flow
 ```
+
+## Permission Flag Reference
+
+| Scenario | Use `--dangerously-skip-permissions` | Use `--allowedTools` |
+|----------|--------------------------------------|---------------------|
+| Read-only exploration | No | `"Read,Glob,Grep"` |
+| Safe coding tasks | No | `"Read,Glob,Grep,Write,Edit"` |
+| Unattended automation | **Yes** (via --unattended flag) | Combine both |
+| User-supervised | No | Yes |
+
+**Key insight:**
+- `--allowedTools` restricts WHICH tools are available (restrictive)
+- `--dangerously-skip-permissions` skips permission PROMPTS (permissive)
+- For full autonomy, combine both flags
