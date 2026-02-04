@@ -71,9 +71,9 @@ export function HelpCard({ data, collapsed: initialCollapsed = false }: HelpCard
             {data.tool}
           </span>
         )}
-        {toolCount > 0 && (
+        {(data.toolsCount || toolCount > 0) && (
           <span className="text-xs text-muted-foreground">
-            ({toolCount} tools)
+            ({data.toolsCount || toolCount} tools)
           </span>
         )}
         <span className="flex-1" />
@@ -89,6 +89,20 @@ export function HelpCard({ data, collapsed: initialCollapsed = false }: HelpCard
       {/* Body */}
       {!isCollapsed && (
         <div className="p-3 space-y-3">
+          {/* Usage hint */}
+          {data.usage && (
+            <div className="text-xs text-muted-foreground bg-teal-500/5 rounded px-2 py-1 border border-teal-500/20">
+              💡 {data.usage}
+            </div>
+          )}
+
+          {/* Tip */}
+          {data.tip && (
+            <div className="text-xs text-muted-foreground bg-blue-500/5 rounded px-2 py-1 border border-blue-500/20">
+              🔍 {data.tip}
+            </div>
+          )}
+
           {/* Tool description */}
           {data.description && (
             <div className="bg-background/50 rounded-lg p-3 border border-border/30">
@@ -97,6 +111,20 @@ export function HelpCard({ data, collapsed: initialCollapsed = false }: HelpCard
                 <span className="uppercase">Description</span>
               </div>
               <div className="text-sm text-foreground">{data.description}</div>
+            </div>
+          )}
+
+          {/* Keywords */}
+          {data.keywords && data.keywords.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {data.keywords.map((kw, idx) => (
+                <span
+                  key={idx}
+                  className="px-1.5 py-0.5 rounded bg-secondary text-muted-foreground text-[10px]"
+                >
+                  {kw}
+                </span>
+              ))}
             </div>
           )}
 

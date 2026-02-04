@@ -51,6 +51,7 @@ from tools_mcp_search import register_mcp_search_tools  # Tool discovery for ext
 from tools_pccontrol import register_pccontrol_tools  # Full Desktop Access (opt-in, requires WinAppDriver)
 from tools_bash import register_bash_tools  # Simple shell execution with PTY
 from tools_process import register_process_tools  # Monitor background bash sessions
+from tools_askuserquestion import register_askuserquestion_tools  # Interactive user input
 from pty_registry import get_pty_registry
 from pty_persistence import get_pty_persistence
 from pty_manager import get_pty_manager
@@ -98,6 +99,7 @@ register_mcp_search_tools(registry)  # Tool discovery for external LLMs (k_MCPTO
 register_pccontrol_tools(registry)  # Full Desktop Access (opt-in, requires WinAppDriver)
 register_bash_tools(registry)  # Simple shell execution with PTY (k_bash)
 register_process_tools(registry)  # Monitor background bash sessions (k_process)
+register_askuserquestion_tools(registry)  # Interactive user input (k_askuserquestion)
 
 protocol = MCPProtocol(registry)
 

@@ -1129,10 +1129,14 @@ def build_ffmpeg_cmd(
 
         # Build filter_complex
         # Apply main scaling (vf_main) BEFORE split so all outputs match the same geometry.
+        # IMPORTANT: libx264 requires even dimensions for YUV420. Multi-monitor setups can have
+        # odd virtual desktop sizes (e.g., 3840x1083). We use scale with ceil to ensure even dims.
+        even_scale = "scale=ceil(iw/2)*2:ceil(ih/2)*2"
+
         if vf_main:
-            base = f"[0:v]{vf_main}[v0];"
+            base = f"[0:v]{vf_main},{even_scale}[v0];"
         else:
-            base = "[0:v]null[v0];"
+            base = f"[0:v]{even_scale}[v0];"
 
         # Split into: mp4 + frames + latest
         # Apply digest fps on the image branches to reduce output.
@@ -1174,9 +1178,13 @@ def build_ffmpeg_cmd(
         ]
 
     else:
-        # Original single-output behavior (unchanged)
+        # Original single-output behavior
+        # IMPORTANT: libx264 requires even dimensions for YUV420. Use scale to ensure even dims.
+        even_scale = "scale=ceil(iw/2)*2:ceil(ih/2)*2"
         if vf_main:
-            cmd += ["-vf", vf_main]
+            cmd += ["-vf", f"{vf_main},{even_scale}"]
+        else:
+            cmd += ["-vf", even_scale]
 
         cmd += [
             "-c:v",

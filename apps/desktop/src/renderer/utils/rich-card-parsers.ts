@@ -635,6 +635,8 @@ export function parseCaptureToRichCard(toolCallId: string, result: unknown): Ric
     dimensions,
     monitors: monitors.length > 0 ? monitors : undefined,
     status: typeof data.status === 'string' ? data.status : undefined,
+    base64: typeof data.base64 === 'string' ? data.base64 : undefined,
+    mimeType: typeof data.mime_type === 'string' ? data.mime_type : (typeof data.mimeType === 'string' ? data.mimeType : undefined),
   };
 
   return {

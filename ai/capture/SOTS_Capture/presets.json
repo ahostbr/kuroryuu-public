@@ -1,0 +1,116 @@
+{
+  "schema_version": 2,
+  "saved_utc": "2026-02-04T13:33:48Z",
+  "profiles": [
+    {
+      "key": "p1",
+      "name": "OPTIMAL_BALANCED_444",
+      "desc": "1fps full virtual; smaller files but still crisp (yuv444p, crf=30, preset=slow, tune=stillimage). VisualDigest ON.",
+      "overrides": {
+        "mode": "virtual",
+        "fps": 1.0,
+        "pix_fmt": "yuv444p",
+        "crf": 30,
+        "x264_preset": "slow",
+        "scale_preset": "none",
+        "scale_w": 0,
+        "scale_h": 0,
+        "digest_enabled": true,
+        "digest_fps": 0.1
+      },
+      "ffmpeg_extra": [
+        "-tune",
+        "stillimage"
+      ]
+    },
+    {
+      "key": "p2",
+      "name": "CRISP_MAX_444",
+      "desc": "1fps full virtual; max clarity (yuv444p, crf=28, preset=veryfast).",
+      "overrides": {
+        "mode": "virtual",
+        "fps": 1.0,
+        "pix_fmt": "yuv444p",
+        "crf": 28,
+        "x264_preset": "veryfast",
+        "scale_preset": "none",
+        "scale_w": 0,
+        "scale_h": 0
+      },
+      "ffmpeg_extra": []
+    },
+    {
+      "key": "p3",
+      "name": "BALANCED_420",
+      "desc": "1fps full virtual; smaller files + broad compatibility (yuv420p, crf=30, preset=slow, tune=stillimage).",
+      "overrides": {
+        "mode": "virtual",
+        "fps": 1.0,
+        "pix_fmt": "yuv420p",
+        "crf": 30,
+        "x264_preset": "slow",
+        "scale_preset": "none",
+        "scale_w": 0,
+        "scale_h": 0
+      },
+      "ffmpeg_extra": [
+        "-tune",
+        "stillimage"
+      ]
+    },
+    {
+      "key": "p4",
+      "name": "TINY_1080P",
+      "desc": "1fps full virtual; smallest files (1080p downscale, yuv420p, crf=32).",
+      "overrides": {
+        "mode": "virtual",
+        "fps": 1.0,
+        "pix_fmt": "yuv420p",
+        "crf": 32,
+        "x264_preset": "veryfast",
+        "scale_preset": "1080p",
+        "scale_w": 0,
+        "scale_h": 0
+      },
+      "ffmpeg_extra": []
+    },
+    {
+      "key": "p5",
+      "name": "UE_WINDOW_444",
+      "desc": "1fps window capture \"Unreal Editor\" (yuv444p, crf=30, preset=slow, tune=stillimage). VisualDigest ON.",
+      "overrides": {
+        "mode": "window",
+        "fps": 1.0,
+        "window_title": "Unreal Editor",
+        "pix_fmt": "yuv444p",
+        "crf": 30,
+        "x264_preset": "slow",
+        "scale_preset": "none",
+        "scale_w": 0,
+        "scale_h": 0,
+        "digest_enabled": true,
+        "digest_fps": 0.1
+      },
+      "ffmpeg_extra": [
+        "-tune",
+        "stillimage"
+      ]
+    },
+    {
+      "key": "p6",
+      "name": "PRIMARY_ONLY",
+      "desc": "1fps primary desktop only (no scaling).",
+      "overrides": {
+        "mode": "desktop",
+        "fps": 1.0,
+        "pix_fmt": "yuv420p",
+        "crf": 30,
+        "x264_preset": "veryfast",
+        "scale_preset": "none",
+        "scale_w": 0,
+        "scale_h": 0
+      },
+      "ffmpeg_extra": []
+    }
+  ]
+}

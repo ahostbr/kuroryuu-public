@@ -1336,6 +1336,48 @@ function setupFsIpc(): void {
     }
   });
 
+  // Read image file as base64 (for CaptureCard inline display)
+  ipcMain.handle('fs:readImageAsBase64', async (_, path: string) => {
+    // Build list of paths to try (handles relative paths from MCP server)
+    const pathsToTry: string[] = [];
+    const filename = path.includes('/') || path.includes('\\') ? undefined : path;
+
+    // 1. Try as-is (may be absolute)
+    pathsToTry.push(resolvePath(path));
+
+    // 2. If relative filename, try common MCP/capture locations
+    if (filename) {
+      pathsToTry.push(join(PROJECT_ROOT, 'apps', 'mcp_core', filename));
+      pathsToTry.push(join(PROJECT_ROOT, 'ai', 'capture', 'output', 'screenshots', filename));
+    }
+
+    for (const fullPath of pathsToTry) {
+      try {
+        const buffer = await fs.promises.readFile(fullPath);
+        const base64 = buffer.toString('base64');
+        // Determine mime type from extension
+        const ext = fullPath.toLowerCase().split('.').pop() || 'png';
+        const mimeTypes: Record<string, string> = {
+          'png': 'image/png',
+          'jpg': 'image/jpeg',
+          'jpeg': 'image/jpeg',
+          'gif': 'image/gif',
+          'webp': 'image/webp',
+          'bmp': 'image/bmp',
+        };
+        const mimeType = mimeTypes[ext] || 'image/png';
+        console.log(`[FS-IPC] readImageAsBase64: ${path} -> ${fullPath} (${buffer.length} bytes)`);
+        return { ok: true, base64, mimeType };
+      } catch {
+        // Try next path
+        continue;
+      }
+    }
+
+    console.error(`[FS-IPC] readImageAsBase64: file not found in any location: ${path}`);
+    return { ok: false, error: `File not found: ${path} (tried ${pathsToTry.length} locations)` };
+  });
+
   // Recursive directory tree for file explorer
   ipcMain.handle('fs:readTree', async (_, rootPath: string, maxDepth = 3) => {
     const IGNORED = new Set([

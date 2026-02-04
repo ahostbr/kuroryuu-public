@@ -52,6 +52,9 @@ import type {
   HelpData,
   HelpToolEntry,
   GraphitiData,
+  AskUserQuestionData,
+  AskUserQuestionItem,
+  AskUserQuestionOption,
 } from '../types/insights';
 
 // Gateway endpoints
@@ -231,11 +234,39 @@ function parseFileTreeToRichCard(toolCallId: string, result: unknown): RichCard 
     return null;
   }
 
-  // Check for file list in various formats
+  // Check for file CONTENT first (k_files read action)
+  if (typeof data.content === 'string' && data.content.length > 0) {
+    console.log('[RichCard:FileTree] Found content field - returning file-content card');
+    // Detect language from file extension
+    const filePath = typeof data.path === 'string' ? data.path : '';
+    const ext = filePath.split('.').pop()?.toLowerCase() || '';
+    const langMap: Record<string, string> = {
+      'ts': 'typescript', 'tsx': 'typescript', 'js': 'javascript', 'jsx': 'javascript',
+      'py': 'python', 'rs': 'rust', 'go': 'go', 'java': 'java', 'c': 'c', 'cpp': 'cpp',
+      'h': 'c', 'hpp': 'cpp', 'cs': 'csharp', 'rb': 'ruby', 'php': 'php',
+      'md': 'markdown', 'json': 'json', 'yaml': 'yaml', 'yml': 'yaml', 'toml': 'toml',
+      'html': 'html', 'css': 'css', 'scss': 'scss', 'sql': 'sql', 'sh': 'bash', 'bash': 'bash',
+    };
+    return {
+      id: `rich-${toolCallId}`,
+      type: 'file-content' as const,
+      toolCallId,
+      data: {
+        path: filePath,
+        content: data.content as string,
+        startLine: typeof data.start_line === 'number' ? data.start_line : undefined,
+        endLine: typeof data.end_line === 'number' ? data.end_line : undefined,
+        totalLines: typeof data.total_lines === 'number' ? data.total_lines : undefined,
+        language: langMap[ext] || 'text',
+      },
+    };
+  }
+
+  // Check for file list in various formats (k_files list action)
   const fileList = data.files || data.entries || data.results;
   console.log('[RichCard:FileTree] fileList check:', { hasFiles: !!data.files, hasEntries: !!data.entries, hasResults: !!data.results, fileList: fileList });
   if (!fileList || !Array.isArray(fileList)) {
-    console.log('[RichCard:FileTree] FAIL: no files/entries/results array found');
+    console.log('[RichCard:FileTree] FAIL: no files/entries/results/content found');
     return null;
   }
 
@@ -754,31 +785,79 @@ function parseCaptureToRichCard(toolCallId: string, result: unknown): RichCard |
     return null;
   }
 
-  // Parse monitors list if available
-  const monitorList = data.monitors as Array<Record<string, unknown>> | undefined;
+  // Debug: log what we received
+  console.log('[CaptureCard] Raw data:', JSON.stringify(data, null, 2).slice(0, 500));
+
+  // k_capture returns {"ok": true, "data": {...actual data...}, "error": null, "meta": {}}
+  // Unwrap the nested data if present
+  const innerData = (typeof data.data === 'object' && data.data !== null)
+    ? data.data as Record<string, unknown>
+    : data;
+
+  console.log('[CaptureCard] Inner data keys:', Object.keys(innerData));
+  console.log('[CaptureCard] Has monitors?', 'monitors' in innerData, Array.isArray(innerData.monitors));
+
+  // Parse monitors list if available (from innerData or data.monitors for list action)
+  // k_capture list_monitors returns: {index, device, left, top, right, bottom, width, height}
+  const monitorList = (innerData.monitors || data.monitors) as Array<Record<string, unknown>> | undefined;
   const monitors: CaptureMonitor[] = monitorList?.map((m) => ({
-    id: typeof m.id === 'number' ? m.id : 0,
-    name: String(m.name || ''),
+    id: typeof m.index === 'number' ? m.index : (typeof m.id === 'number' ? m.id : 0),
+    name: String(m.device || m.name || `Monitor ${m.index ?? m.id ?? 0}`),
     width: typeof m.width === 'number' ? m.width : 0,
     height: typeof m.height === 'number' ? m.height : 0,
-    primary: typeof m.primary === 'boolean' ? m.primary : undefined,
+    primary: typeof m.primary === 'boolean' ? m.primary : (m.index === 0 || m.id === 0),
+    // Additional fields from list_monitors
+    left: typeof m.left === 'number' ? m.left : undefined,
+    top: typeof m.top === 'number' ? m.top : undefined,
   })) || [];
 
-  // Parse dimensions
-  const dims = data.dimensions as Record<string, unknown> | undefined;
+  // Parse dimensions from innerData or monitor info
+  const dims = innerData.dimensions as Record<string, unknown> | undefined;
+  const monitorInfo = innerData.monitor as Record<string, unknown> | undefined;
   const dimensions = dims ? {
     width: typeof dims.width === 'number' ? dims.width : 0,
     height: typeof dims.height === 'number' ? dims.height : 0,
+  } : monitorInfo ? {
+    width: typeof monitorInfo.width === 'number' ? monitorInfo.width : 0,
+    height: typeof monitorInfo.height === 'number' ? monitorInfo.height : 0,
   } : undefined;
 
+  // Get path from innerData (screenshot action returns path and size_bytes)
+  const imagePath = typeof innerData.path === 'string' ? innerData.path
+    : typeof innerData.image_path === 'string' ? innerData.image_path
+    : typeof data.path === 'string' ? data.path
+    : undefined;
+
+  // Get file size
+  const sizeBytes = typeof innerData.size_bytes === 'number' ? innerData.size_bytes : undefined;
+
+  // Log monitors found
+  console.log('[CaptureCard] Monitor list:', monitorList?.length ?? 0, 'monitors found');
+  console.log('[CaptureCard] Parsed monitors:', monitors.length);
+
+  // Get action from meta or detect from content
+  const metaAction = (data.meta as Record<string, unknown>)?.action as string | undefined;
+  const detectedAction = metaAction
+    || (typeof data.action === 'string' ? data.action : undefined)
+    || (imagePath ? 'screenshot' : (monitors.length > 0 ? 'list_monitors' : 'unknown'));
+
   const captureData: CaptureData = {
-    action: typeof data.action === 'string' ? data.action : 'screenshot',
-    imagePath: typeof data.image_path === 'string' ? data.image_path : (typeof data.path === 'string' ? data.path : undefined),
-    timestamp: typeof data.timestamp === 'string' ? data.timestamp : undefined,
+    action: detectedAction,
+    imagePath,
+    timestamp: typeof data.timestamp === 'string' ? data.timestamp : new Date().toISOString(),
     dimensions,
     monitors: monitors.length > 0 ? monitors : undefined,
-    status: typeof data.status === 'string' ? data.status : undefined,
+    status: data.ok === true ? 'ok' : (data.ok === false ? 'error' : (typeof data.status === 'string' ? data.status : undefined)),
+    sizeBytes,
+    error: typeof data.error === 'string' ? data.error : undefined,
   };
+
+  // Log error if present
+  if (data.ok === false && data.error) {
+    console.warn('[CaptureCard] k_capture error:', data.error);
+  }
+
+  console.log('[CaptureCard] Final captureData:', captureData);
 
   return {
     id: `rich-${toolCallId}`,
@@ -1011,20 +1090,59 @@ function parseHelpToRichCard(toolCallId: string, result: unknown): RichCard | nu
     return null;
   }
 
-  // Parse all_tools list if available
-  const toolList = data.all_tools as Array<Record<string, unknown>> | undefined;
-  const allTools: HelpToolEntry[] = toolList?.map((t) => ({
-    name: String(t.name || ''),
-    description: String(t.description || ''),
-    actions: Array.isArray(t.actions) ? t.actions.map(String) : undefined,
-  })) || [];
+  // k_help returns three formats:
+  // 1. Overview: {ok, tools_count, categories: {cat: [{tool, description, actions}]}, usage, tip}
+  // 2. Specific from metadata: {ok, tool, description, actions: [...], keywords, examples, category}
+  // 3. Specific from tool help action: {ok, tool, help: {...actual help data...}}
+
+  // Unwrap nested help field if present (format 3)
+  const helpContent = (typeof data.help === 'object' && data.help !== null)
+    ? data.help as Record<string, unknown>
+    : null;
+
+  // Parse categories dict (overview mode)
+  const categories = data.categories as Record<string, Array<Record<string, unknown>>> | undefined;
+  const allTools: HelpToolEntry[] = [];
+  if (categories && typeof categories === 'object') {
+    for (const [_cat, tools] of Object.entries(categories)) {
+      if (Array.isArray(tools)) {
+        for (const t of tools) {
+          allTools.push({
+            name: String(t.tool || t.name || ''),
+            description: String(t.description || ''),
+            actions: Array.isArray(t.actions) ? t.actions.map(String) : undefined,
+          });
+        }
+      }
+    }
+  }
+
+  // Use helpContent (nested help field) if available, otherwise use data directly
+  const src = helpContent || data;
+
+  // Parse actions array into dict (specific tool mode)
+  // k_help specific tool returns actions as array, not dict
+  let actionsDict: Record<string, string> | undefined;
+  const actionsSource = src.actions;
+  if (Array.isArray(actionsSource)) {
+    actionsDict = {};
+    for (const action of actionsSource) {
+      actionsDict[String(action)] = '';
+    }
+  } else if (typeof actionsSource === 'object' && actionsSource !== null) {
+    actionsDict = actionsSource as Record<string, string>;
+  }
 
   const helpData: HelpData = {
-    tool: typeof data.tool === 'string' ? data.tool : undefined,
-    description: typeof data.description === 'string' ? data.description : undefined,
-    actions: typeof data.actions === 'object' ? data.actions as Record<string, string> : undefined,
-    examples: Array.isArray(data.examples) ? data.examples.map(String) : undefined,
+    tool: typeof data.tool === 'string' ? data.tool : undefined, // tool name is always at top level
+    description: typeof src.description === 'string' ? src.description : undefined,
+    actions: actionsDict,
+    examples: Array.isArray(src.examples) ? src.examples.map(String) : undefined,
+    keywords: Array.isArray(src.keywords) ? src.keywords.map(String) : undefined,
     allTools: allTools.length > 0 ? allTools : undefined,
+    toolsCount: typeof data.tools_count === 'number' ? data.tools_count : undefined,
+    usage: typeof src.usage === 'string' ? src.usage : undefined,
+    tip: typeof src.tip === 'string' ? src.tip : undefined,
   };
 
   return {
@@ -1073,6 +1191,79 @@ function parseGraphitiToRichCard(toolCallId: string, result: unknown): RichCard 
     type: 'graphiti',
     toolCallId,
     data: graphitiData,
+  };
+}
+
+/**
+ * Parse k_askuserquestion tool result into RichCard format
+ *
+ * k_askuserquestion returns:
+ * - On creation: {ok: true, data: {question_id, ...}} - shows interactive card
+ * - On completion: {ok: true, data: {answers: {...}}} - shows answered state
+ */
+function parseAskUserQuestionToRichCard(toolCallId: string, result: unknown): RichCard | null {
+  if (!result) return null;
+
+  let data: Record<string, unknown>;
+  if (typeof result === 'string') {
+    try {
+      const parsed = JSON.parse(result);
+      if (typeof parsed !== 'object' || parsed === null) return null;
+      data = parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  } else if (typeof result === 'object') {
+    data = result as Record<string, unknown>;
+  } else {
+    return null;
+  }
+
+  // Unwrap nested data field if present
+  const innerData = (typeof data.data === 'object' && data.data !== null)
+    ? data.data as Record<string, unknown>
+    : data;
+
+  // Get question_id
+  const questionId = typeof innerData.question_id === 'string'
+    ? innerData.question_id
+    : typeof data.question_id === 'string'
+      ? data.question_id
+      : '';
+
+  if (!questionId) {
+    console.log('[AskUserQuestion] No question_id found in result');
+    return null;
+  }
+
+  // Parse questions array
+  const questionsRaw = innerData.questions as Array<Record<string, unknown>> | undefined;
+  const questions = questionsRaw?.map((q) => ({
+    question: String(q.question || ''),
+    header: String(q.header || 'Question'),
+    multiSelect: typeof q.multiSelect === 'boolean' ? q.multiSelect : false,
+    options: (q.options as Array<Record<string, unknown>> || []).map((opt) => ({
+      label: String(opt.label || ''),
+      description: typeof opt.description === 'string' ? opt.description : undefined,
+    })),
+  })) || [];
+
+  // Get answers if already submitted
+  const answers = innerData.answers as Record<string, string | string[]> | undefined;
+  const submitted = answers !== undefined && Object.keys(answers).length > 0;
+
+  console.log('[AskUserQuestion] Parsed card:', { questionId, questionsCount: questions.length, submitted });
+
+  return {
+    id: `rich-${toolCallId}`,
+    type: 'askuserquestion',
+    toolCallId,
+    data: {
+      questionId,
+      questions,
+      answers,
+      submitted,
+    },
   };
 }
 
@@ -1668,6 +1859,7 @@ ${content}`;
                             const isKMCPToolSearchTool = toolName === 'k_MCPTOOLSEARCH' || toolName.includes('MCPTOOLSEARCH');
                             const isKHelpTool = toolName === 'k_help' && !toolName.includes('k_hooks'); // Avoid false match
                             const isKGraphitiTool = toolName === 'k_graphiti_migrate' || toolName.includes('k_graphiti');
+                            const isKAskUserQuestionTool = toolName === 'k_askuserquestion' || toolName.includes('askuserquestion');
 
                             if (isKRagTool) {
                               newRichCard = parseRAGResultToRichCard(parsed.id, parsed.result);
@@ -1703,6 +1895,8 @@ ${content}`;
                               newRichCard = parseHelpToRichCard(parsed.id, parsed.result);
                             } else if (isKGraphitiTool) {
                               newRichCard = parseGraphitiToRichCard(parsed.id, parsed.result);
+                            } else if (isKAskUserQuestionTool) {
+                              newRichCard = parseAskUserQuestionToRichCard(parsed.id, parsed.result);
                             }
                             console.log('[RichCard] Parser result:', newRichCard ? `${newRichCard.type} card created` : 'null (parser returned nothing)');
                           }
