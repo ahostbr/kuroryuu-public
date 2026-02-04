@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { EvidenceList } from './Inspector/EvidenceList';
 import { FileText, FolderOpen, AlertCircle } from 'lucide-react';
 import type { Task } from '../types/task';
+import { useClaudeTaskStore } from '../stores/claude-task-store';
 
 interface TaskFilesProps {
   task: Task;
@@ -9,6 +10,15 @@ interface TaskFilesProps {
 }
 
 export function TaskFiles({ task, projectRoot }: TaskFilesProps) {
+  const { tasks: claudeTasks, loadTasks } = useClaudeTaskStore();
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
+
+  // Find matching ClaudeTask to get worklog/checkpoint metadata
+  const claudeTask = claudeTasks.find(ct => ct.id === task.id);
+
   return (
     <div className="space-y-6 h-full flex flex-col">
       <div className="flex items-center justify-between">
@@ -16,7 +26,7 @@ export function TaskFiles({ task, projectRoot }: TaskFilesProps) {
            <FileText className="w-4 h-4" />
            Checkpoints & Sessions
         </h3>
-        <button 
+        <button
            className="text-xs flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
            onClick={() => (window as unknown as { Electron?: { openPath?: (path: string) => void } }).Electron?.openPath?.(`${projectRoot}/WORKING/evidence/${task.id}`)}
         >
@@ -34,9 +44,15 @@ export function TaskFiles({ task, projectRoot }: TaskFilesProps) {
               Worklogs are shown in the Logs tab.
            </div>
         </div>
-        
+
         <div className="p-4 overflow-auto flex-1">
-           <EvidenceList projectRoot={projectRoot} taskId={task.id} taskTitle={task.title} />
+           <EvidenceList
+             projectRoot={projectRoot}
+             taskId={task.id}
+             taskTitle={task.title}
+             worklog={claudeTask?.worklog}
+             checkpoint={claudeTask?.checkpoint}
+           />
         </div>
       </div>
     </div>

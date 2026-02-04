@@ -44,6 +44,32 @@ export interface GatewayChatResult {
   error?: string;
 }
 
+export type TaskStatus = 'backlog' | 'active' | 'delayed' | 'done';
+
+export interface Task {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  assignee?: string;
+  tags?: string[];
+  notes?: string;
+}
+
+export interface ClaudeTask {
+  id: string;
+  description: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  worklog?: string;
+  createdAt?: Date;
+  completedAt?: Date;
+}
+
+export interface OperationResult<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
 const api = {
   platform: process.platform,
   versions: {
@@ -177,6 +203,55 @@ const api = {
       mimeType?: string;
       error?: string;
     }> => ipcRenderer.invoke('fs:readImageAsBase64', path),
+  },
+  /**
+   * Task Management API
+   * Centralized todo.md operations
+   */
+  tasks: {
+    /** List all Kanban tasks */
+    list: (): Promise<Task[]> =>
+      ipcRenderer.invoke('tasks:list'),
+
+    /** Get a specific task by ID */
+    get: (taskId: string): Promise<Task | null> =>
+      ipcRenderer.invoke('tasks:get', taskId),
+
+    /** Create a new task */
+    create: (task: Omit<Task, 'id'>): Promise<OperationResult<Task>> =>
+      ipcRenderer.invoke('tasks:create', task),
+
+    /** Update an existing task */
+    update: (taskId: string, updates: Partial<Task>): Promise<OperationResult<Task>> =>
+      ipcRenderer.invoke('tasks:update', taskId, updates),
+
+    /** Delete a task */
+    delete: (taskId: string): Promise<OperationResult<void>> =>
+      ipcRenderer.invoke('tasks:delete', taskId),
+
+    /** Update task status (for drag-and-drop) */
+    setStatus: (taskId: string, status: TaskStatus): Promise<OperationResult<Task>> =>
+      ipcRenderer.invoke('tasks:setStatus', taskId, status),
+
+    /** Assign task to an agent */
+    assign: (taskId: string, assignee: string | undefined): Promise<OperationResult<Task>> =>
+      ipcRenderer.invoke('tasks:assign', taskId, assignee),
+
+    /** List Claude tasks with timestamps */
+    claudeList: (): Promise<ClaudeTask[]> =>
+      ipcRenderer.invoke('tasks:claudeList'),
+
+    /** Subscribe to task changes */
+    watch: (callback: (tasks: Task[]) => void): void => {
+      ipcRenderer.invoke('tasks:watch');
+      ipcRenderer.on('tasks:changed', (_event, tasks) => callback(tasks));
+    },
+
+    /** Unsubscribe from task changes */
+    unwatch: (): void => {
+      ipcRenderer.invoke('tasks:unwatch');
+      ipcRenderer.removeAllListeners('tasks:changed');
+    },
   },
   shell: {
     openPath: (path: string): Promise<string> =>

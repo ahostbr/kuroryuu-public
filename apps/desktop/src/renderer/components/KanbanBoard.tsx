@@ -9,7 +9,7 @@ import {
   type DragEndEvent,
   type DragStartEvent
 } from '@dnd-kit/core';
-import { useTaskStore, shouldSkipReload } from '../stores/task-store';
+import { useTaskStore } from '../stores/task-store';
 import { useFileWatch } from '../hooks/use-file-watch';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskCard } from './TaskCard';
@@ -44,11 +44,8 @@ export function KanbanBoard({ todoPath, onTaskSelect, onNewTaskRequest }: Kanban
     loadTasks();
   }, [todoPath, setTodoPath, loadTasks]);
 
-  // Auto-refresh on file change (but skip if we just wrote to file)
+  // Auto-refresh on file change (service handles skip-after-write)
   const handleFileChange = useCallback(() => {
-    if (shouldSkipReload()) {
-      return;
-    }
     refresh();
   }, [refresh]);
 

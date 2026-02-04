@@ -12,6 +12,8 @@ interface EvidenceListProps {
   projectRoot: string;
   taskId?: string;
   taskTitle?: string;
+  worklog?: string;      // Direct path from task metadata
+  checkpoint?: string;   // Direct checkpoint ref from task metadata
 }
 
 // Mapping of BUILD numbers to task IDs (based on worklog analysis)
@@ -111,21 +113,52 @@ function getTaskKeywords(taskTitle: string): string[] {
   return [...new Set(result)];
 }
 
-export function EvidenceList({ projectRoot, taskId, taskTitle }: EvidenceListProps) {
+export function EvidenceList({ projectRoot, taskId, taskTitle, worklog, checkpoint }: EvidenceListProps) {
   const [items, setItems] = useState<EvidenceItem[]>([]);
   const [loading, setLoading] = useState(false);
-  
+
   const loadEvidence = async () => {
     if (!taskId) {
       setItems([]);
       return;
     }
-    
+
     setLoading(true);
-    
+
     const allItems: EvidenceItem[] = [];
-    
-    // Scan checkpoint directories (worklogs now shown in Logs tab)
+
+    // 1. PRIORITY: Use worklog from task metadata (if provided)
+    if (worklog && worklog !== 'pending') {
+      const worklogPath = worklog.includes(':') ? worklog : `${projectRoot}/${worklog}`;
+      allItems.push({
+        type: 'worklog',
+        name: worklog.split('/').pop() || worklog,
+        path: worklogPath,
+        matchReason: 'Linked in task'
+      });
+    }
+
+    // 2. PRIORITY: Use checkpoint from task metadata (if provided)
+    if (checkpoint && checkpoint !== 'pending') {
+      const checkpointPaths = [
+        `${projectRoot}/ai/checkpoints/${checkpoint}`,
+        `${projectRoot}/ai/checkpoints/${checkpoint}.json`,
+      ];
+      for (const cpPath of checkpointPaths) {
+        const exists = await window.electronAPI.fs.exists(cpPath);
+        if (exists) {
+          allItems.push({
+            type: 'folder',
+            name: checkpoint,
+            path: cpPath,
+            matchReason: 'Linked in task'
+          });
+          break;
+        }
+      }
+    }
+
+    // 3. FALLBACK: Scan checkpoint directories by filename matching
     const taskIdLower = taskId.toLowerCase();
     const evidencePaths = [
       `${projectRoot}/WORKING/convos`,
@@ -168,7 +201,7 @@ export function EvidenceList({ projectRoot, taskId, taskTitle }: EvidenceListPro
   
   useEffect(() => {
     loadEvidence();
-  }, [projectRoot, taskId]);
+  }, [projectRoot, taskId, worklog, checkpoint]);
   
   const handleOpen = async (path: string) => {
     try {

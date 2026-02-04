@@ -3,10 +3,11 @@
  * Themed to match the current visualization theme
  * All node components wrapped with React.memo to prevent unnecessary re-renders
  */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Handle, Position } from '@xyflow/react';
-import { Terminal, Server, Play, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import { Terminal, Server, Play, CheckCircle, XCircle, Clock, FileText, Square, Eye } from 'lucide-react';
 import { useAgentFlowStore, THEME_COLORS, type AgentFlowTheme, type SessionManagerNodeData, type AgentSessionNodeData } from '../../stores/agent-flow-store';
+import { useCodingAgentsStore } from '../../stores/coding-agents-store';
 
 // Helper to get current theme colors
 function useThemeColors() {
@@ -123,12 +124,18 @@ export const SessionManagerNode = React.memo(function SessionManagerNode({
  */
 export const AgentSessionNode = React.memo(function AgentSessionNode({
   data,
+  id,
 }: {
   data: { data: AgentSessionNodeData };
+  id: string;
 }) {
   const { label, status, outputLines, duration, exitCode, pty, command, workdir } = data.data;
   const colors = useThemeColors();
   const theme = useAgentFlowStore((s) => s.theme);
+  const killSession = useCodingAgentsStore((s) => s.killSession);
+
+  // Extract session ID from node ID (format: "session-{id}")
+  const sessionId = id.replace('session-', '');
 
   // Determine border color based on status
   let borderColor = colors.success;
@@ -140,6 +147,12 @@ export const AgentSessionNode = React.memo(function AgentSessionNode({
 
   // Status icon
   const StatusIcon = status === 'running' ? Play : status === 'failed' ? XCircle : CheckCircle;
+
+  // Kill handler - stop propagation to prevent node selection
+  const handleKill = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    killSession(sessionId);
+  }, [killSession, sessionId]);
 
   return (
     <div
@@ -221,6 +234,50 @@ export const AgentSessionNode = React.memo(function AgentSessionNode({
         title={workdir}
       >
         {workdir.split(/[/\\]/).slice(-2).join('/')}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-1.5 mt-2 pt-2 border-t" style={{ borderColor: `${colors.nodeText}20` }}>
+        {/* View Logs - clicking anywhere else on node also selects it */}
+        <button
+          className="flex-1 flex items-center justify-center gap-1 px-2 py-1 rounded text-[9px] transition-colors"
+          style={{
+            backgroundColor: `${borderColor}20`,
+            color: borderColor,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = `${borderColor}40`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = `${borderColor}20`;
+          }}
+          title="View logs"
+        >
+          <Eye className="w-3 h-3" />
+          <span>VIEW</span>
+        </button>
+
+        {/* Kill - only for running sessions */}
+        {status === 'running' && (
+          <button
+            onClick={handleKill}
+            className="flex items-center justify-center gap-1 px-2 py-1 rounded text-[9px] transition-colors"
+            style={{
+              backgroundColor: `${colors.error}20`,
+              color: colors.error,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = `${colors.error}40`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = `${colors.error}20`;
+            }}
+            title="Kill session"
+          >
+            <Square className="w-3 h-3" />
+            <span>KILL</span>
+          </button>
+        )}
       </div>
     </div>
   );
