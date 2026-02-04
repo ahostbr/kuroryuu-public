@@ -65,3 +65,17 @@ Search the open agent skills ecosystem (37K+ skills) for procedural knowledge.
 - `vercel-labs/agent-skills` - Official Vercel skills
 - `anthropics/skills` - Official Anthropic skills
 - Install count indicates popularity
+
+## Security
+
+Skills fetched from skills.sh are automatically scanned for malicious patterns:
+
+- **Secrets**: Embedded API keys, tokens, private keys
+- **Shell injection**: Command substitution, dangerous shell commands
+- **Filesystem writes**: File write operations that could modify system
+- **Exfiltration**: Network requests to external domains
+- **Code injection**: eval(), exec(), dynamic code execution
+- **Obfuscation**: Base64 encoding, hex escapes, character code tricks
+
+If malicious patterns are detected, a detailed warning is displayed and the content
+should NOT be applied. Report suspicious skills to skills.sh maintainers.
