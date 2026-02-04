@@ -46,9 +46,9 @@ export interface SnapshotStats {
   files_new: number;
   files_changed: number;
   files_unmodified: number;
-  dirs_new: number;
-  dirs_changed: number;
-  dirs_unmodified: number;
+  dirs_new?: number; // Optional - not always returned by list API
+  dirs_changed?: number;
+  dirs_unmodified?: number;
   data_added: number;
   total_files_processed: number;
   total_bytes_processed: number;
@@ -65,7 +65,7 @@ export interface BackupSnapshot {
   id: string;
   short_id: string;
   parent: string | null;
-  tree: string;
+  tree?: string; // Optional - not always returned by list API
 
   // Timestamps
   time: string; // ISO timestamp

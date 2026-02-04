@@ -181,6 +181,9 @@ from .artifacts.router import router as artifacts_router
 # Security
 from .security.router import router as security_router
 
+# Tasks: Single integration point for task creation
+from .tasks.router import router as tasks_router
+
 # System: Unified stats and health
 from .system.router import router as system_router, redirect_router as system_redirect_router
 
@@ -384,6 +387,9 @@ app.include_router(pty_traffic_router)
 
 # Security: Include security defense router
 app.include_router(security_router)
+
+# Tasks: Single integration point for task creation
+app.include_router(tasks_router)
 
 # System: Include unified stats and health router
 app.include_router(system_router)

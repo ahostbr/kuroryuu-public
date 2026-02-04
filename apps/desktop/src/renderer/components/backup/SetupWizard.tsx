@@ -2,6 +2,7 @@
  * SetupWizard - First-run setup for backup configuration
  *
  * Steps:
+ * 0. Welcome/Introduction - Overview of backup features
  * 1. Select source directory
  * 2. Set repository password
  * 3. Configure exclusions
@@ -24,6 +25,13 @@ import {
   Plus,
   X,
   Download,
+  Shield,
+  History,
+  HardDrive,
+  Zap,
+  GitBranch,
+  Clock,
+  Database,
 } from 'lucide-react';
 import { useBackupStore } from '../../stores/backup-store';
 import type { BackupConfig } from '../../types/backup';
@@ -32,7 +40,7 @@ import type { BackupConfig } from '../../types/backup';
 // Types
 // ============================================================================
 
-type WizardStep = 'source' | 'password' | 'exclusions' | 'initialize';
+type WizardStep = 'welcome' | 'source' | 'password' | 'exclusions' | 'initialize';
 
 interface StepProps {
   onNext: () => void;
@@ -45,7 +53,143 @@ interface StepProps {
 // Step Components
 // ============================================================================
 
-function SourceStep({ onNext, config, setConfig }: StepProps) {
+function WelcomeStep({ onNext }: StepProps) {
+  return (
+    <div className="space-y-6">
+      {/* Hero Section */}
+      <div className="text-center mb-6">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center mx-auto mb-4 ring-4 ring-primary/20">
+          <Database className="w-10 h-10 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold text-foreground">Welcome to Backup</h2>
+        <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+          Enterprise-grade backup protection for your important files, powered by Restic
+        </p>
+      </div>
+
+      {/* Feature Grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <FeatureCard
+          icon={<Shield className="w-5 h-5" />}
+          title="AES-256 Encryption"
+          description="Your backups are encrypted with military-grade security. Only you can access them."
+        />
+        <FeatureCard
+          icon={<Zap className="w-5 h-5" />}
+          title="Fast & Efficient"
+          description="Deduplication ensures only changed data is stored, saving space and time."
+        />
+        <FeatureCard
+          icon={<GitBranch className="w-5 h-5" />}
+          title="Git-like Snapshots"
+          description="Browse and restore from any point in time with versioned snapshots."
+        />
+        <FeatureCard
+          icon={<Clock className="w-5 h-5" />}
+          title="Retention Policies"
+          description="Automatic cleanup keeps daily, weekly, and monthly backups organized."
+        />
+      </div>
+
+      {/* Setup Steps Preview */}
+      <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
+        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <History className="w-4 h-4 text-primary" />
+          Setup Process
+        </h4>
+        <div className="space-y-2.5">
+          <SetupStepPreview
+            number={1}
+            title="Choose Source"
+            description="Select the folder you want to protect"
+          />
+          <SetupStepPreview
+            number={2}
+            title="Set Password"
+            description="Create an encryption password (store it safely!)"
+          />
+          <SetupStepPreview
+            number={3}
+            title="Configure Exclusions"
+            description="Optionally exclude files like node_modules"
+          />
+          <SetupStepPreview
+            number={4}
+            title="Initialize"
+            description="Create your encrypted backup repository"
+          />
+        </div>
+      </div>
+
+      {/* Requirements Note */}
+      <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+        <div className="flex items-start gap-2">
+          <HardDrive className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-muted-foreground">
+            <span className="text-foreground font-medium">Storage:</span> Backups are stored locally in{' '}
+            <code className="text-primary bg-primary/10 px-1 rounded">~/.kuroryuu/backups</code>.
+            Ensure you have adequate disk space for your data.
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-center pt-2">
+        <button
+          onClick={onNext}
+          className="flex items-center gap-2 px-8 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+        >
+          Get Started
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 hover:border-primary/30 transition-colors">
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="text-primary">{icon}</div>
+        <h5 className="text-sm font-medium text-foreground">{title}</h5>
+      </div>
+      <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+function SetupStepPreview({
+  number,
+  title,
+  description,
+}: {
+  number: number;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+        <span className="text-xs font-semibold text-primary">{number}</span>
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium text-foreground">{title}</span>
+        <span className="text-muted-foreground"> — </span>
+        <span className="text-xs text-muted-foreground">{description}</span>
+      </div>
+    </div>
+  );
+}
+
+function SourceStep({ onNext, onBack, config, setConfig }: StepProps) {
   const [sourcePath, setSourcePath] = useState(config?.backup?.source_path || '');
   const [error, setError] = useState<string | null>(null);
 
@@ -109,13 +253,26 @@ function SourceStep({ onNext, config, setConfig }: StepProps) {
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground">
-          This will be the root directory for your backups. All files and subdirectories
-          will be included unless explicitly excluded.
-        </p>
+        {/* Tips Box */}
+        <div className="p-3 bg-secondary/30 rounded-lg border border-border/50 space-y-2">
+          <p className="text-xs font-medium text-foreground">Tips for choosing a source:</p>
+          <ul className="text-xs text-muted-foreground space-y-1 ml-4 list-disc">
+            <li>Select your main project folder or documents directory</li>
+            <li>All files and subdirectories will be included by default</li>
+            <li>You can exclude specific patterns (like node_modules) in the next steps</li>
+            <li>Only one source directory per backup configuration</li>
+          </ul>
+        </div>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-between pt-4">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-2 px-6 py-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back
+        </button>
         <button
           onClick={handleNext}
           className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
@@ -541,10 +698,10 @@ function ProgressItem({
 // ============================================================================
 
 export function SetupWizard() {
-  const [step, setStep] = useState<WizardStep>('source');
+  const [step, setStep] = useState<WizardStep>('welcome');
   const [config, setConfig] = useState<Partial<BackupConfig>>({});
 
-  const steps: WizardStep[] = ['source', 'password', 'exclusions', 'initialize'];
+  const steps: WizardStep[] = ['welcome', 'source', 'password', 'exclusions', 'initialize'];
   const currentIndex = steps.indexOf(step);
 
   const handleNext = () => {
@@ -570,6 +727,8 @@ export function SetupWizard() {
     };
 
     switch (step) {
+      case 'welcome':
+        return <WelcomeStep {...props} />;
       case 'source':
         return <SourceStep {...props} />;
       case 'password':
@@ -579,7 +738,7 @@ export function SetupWizard() {
       case 'initialize':
         return <InitializeStep {...props} />;
       default:
-        return <SourceStep {...props} />;
+        return <WelcomeStep {...props} />;
     }
   };
 

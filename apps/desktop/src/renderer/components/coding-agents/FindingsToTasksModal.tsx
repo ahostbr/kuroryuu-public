@@ -16,8 +16,7 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react';
-import { useTaskStore } from '../../stores/task-store';
-import { Task } from '../../types/task';
+// Task import removed - now using gateway endpoint for task creation
 import { Finding, FindingSeverity, FindingCategory } from '../../types/finding';
 import {
   extractFindings,
@@ -95,7 +94,6 @@ export function FindingsToTasksModal({
   const [findings, setFindings] = useState<Finding[]>([]);
   const [isCreating, setIsCreating] = useState(false);
 
-  const { createTask } = useTaskStore();
   const { isKuroryuu } = useIsThemedStyle();
 
   // Extract findings on modal open
@@ -160,21 +158,22 @@ export function FindingsToTasksModal({
     for (let i = 0; i < selected.length; i++) {
       const finding = selected[i];
 
-      const newTask: Task = {
-        id: `T${Date.now().toString(36).toUpperCase()}${i}`,
-        title: finding.title,
-        description: buildTaskDescription(finding, sessionId),
-        status: 'backlog',
-        priority: findingSeverityToPriority(finding.severity),
-        category: findingCategoryToTaskCategory(finding.category),
-        tags: [finding.category, `from:${sessionId.slice(0, 8)}`],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-
       try {
-        await createTask(newTask);
-        successCount++;
+        // Route through gateway - single integration point for task creation
+        const result = await window.electronAPI.tasks.createViaGateway({
+          title: finding.title,
+          description: buildTaskDescription(finding, sessionId),
+          status: 'backlog',
+          priority: findingSeverityToPriority(finding.severity),
+          tags: [finding.category, `from:${sessionId.slice(0, 8)}`],
+          from_session_id: sessionId,
+        });
+
+        if (result.ok) {
+          successCount++;
+        } else {
+          console.error(`Failed to create task: ${result.error}`);
+        }
       } catch (error) {
         console.error(`Failed to create task for finding ${finding.id}:`, error);
       }
