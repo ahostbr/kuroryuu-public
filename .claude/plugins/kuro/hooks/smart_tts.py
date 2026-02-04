@@ -142,14 +142,56 @@ Generate ONE specific announcement:"""
         return None
 
 
+def get_uv_path():
+    """Get UV executable path dynamically."""
+    import os
+    if os.environ.get('UV_PATH'):
+        return os.environ['UV_PATH']
+    if sys.platform == 'win32':
+        return os.path.join(os.path.expanduser('~'), '.local', 'bin', 'uv.exe')
+    return 'uv'
+
+
 def speak(text: str, voice: str = "en-GB-SoniaNeural"):
     """Generate and play TTS audio."""
+    # Import TTS queue for serialization
+    try:
+        from pathlib import Path
+        queue_path = Path(__file__).parent / 'utils' / 'tts' / 'tts_queue.py'
+        if queue_path.exists():
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("tts_queue", queue_path)
+            tts_queue = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(tts_queue)
+            use_queue = True
+        else:
+            use_queue = False
+    except Exception:
+        use_queue = False
+
+    agent_id = f"smart_tts_{os.getpid()}"
+
+    # Acquire TTS lock to prevent overlapping audio (short timeout - play anyway if fails)
+    if use_queue:
+        if not tts_queue.acquire_tts_lock(agent_id, timeout=5):
+            print(f"[SmartTTS] Queue busy - playing anyway", file=sys.stderr)
+            use_queue = False  # Don't try to release a lock we don't have
+
+    try:
+        return _speak_internal(text, voice)
+    finally:
+        if use_queue:
+            tts_queue.release_tts_lock(agent_id)
+
+
+def _speak_internal(text: str, voice: str = "en-GB-SoniaNeural"):
+    """Internal TTS implementation."""
     try:
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
             tmp_path = tmp.name
 
         try:
-            uv_path = r"C:\Users\Ryan\.local\bin\uv.exe"
+            uv_path = get_uv_path()
 
             # Generate audio
             result = subprocess.run(

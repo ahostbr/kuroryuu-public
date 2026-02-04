@@ -94,16 +94,54 @@ def acquire_tts_lock(agent_id: str, timeout: int = 30) -> bool:
         try:
             # Try to create lock file exclusively
             if sys.platform == 'win32':
-                # Windows: use exclusive create
-                import msvcrt
-                fd = os.open(str(_LOCK_FILE), os.O_RDWR | os.O_CREAT, 0o644)
+                # Windows: use exclusive file creation (cross-process)
+                # O_EXCL fails if file exists - true cross-process lock
+                lock_file_tmp = str(_LOCK_FILE) + f".{os.getpid()}"
                 try:
-                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-                    _lock_file_handle = fd
-                    _write_lock_info(agent_id)
-                    return True
-                except (OSError, IOError):
+                    # Create our temp lock file
+                    fd = os.open(lock_file_tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+                    lock_info = json.dumps({
+                        "agent_id": agent_id,
+                        "timestamp": datetime.now().isoformat(),
+                        "pid": os.getpid()
+                    }).encode()
+                    os.write(fd, lock_info)
                     os.close(fd)
+
+                    # Try to rename to actual lock file (atomic on Windows)
+                    try:
+                        os.rename(lock_file_tmp, str(_LOCK_FILE))
+                        _lock_file_handle = str(_LOCK_FILE)  # Store path, not fd
+                        return True
+                    except OSError:
+                        # Lock file exists - check if holder is still alive
+                        try:
+                            with open(_LOCK_FILE, 'r') as f:
+                                info = json.load(f)
+                            holder_pid = info.get('pid')
+                            if holder_pid:
+                                # Check if process is still running
+                                import ctypes
+                                kernel32 = ctypes.windll.kernel32
+                                SYNCHRONIZE = 0x00100000
+                                handle = kernel32.OpenProcess(SYNCHRONIZE, False, holder_pid)
+                                if handle:
+                                    kernel32.CloseHandle(handle)
+                                    # Process still running - can't acquire
+                                    os.unlink(lock_file_tmp)
+                                else:
+                                    # Process dead - take over lock
+                                    os.replace(lock_file_tmp, str(_LOCK_FILE))
+                                    _lock_file_handle = str(_LOCK_FILE)
+                                    return True
+                        except:
+                            pass
+                        try:
+                            os.unlink(lock_file_tmp)
+                        except:
+                            pass
+                except OSError:
+                    pass
             else:
                 # Unix: use fcntl
                 import fcntl
@@ -137,27 +175,20 @@ def release_tts_lock(agent_id: str) -> None:
 
     try:
         if sys.platform == 'win32':
-            import msvcrt
+            # Windows: _lock_file_handle is the path string, just delete the file
             try:
-                msvcrt.locking(_lock_file_handle, msvcrt.LK_UNLCK, 1)
+                os.unlink(_lock_file_handle)
             except:
                 pass
         else:
+            # Unix: _lock_file_handle is the fd
             import fcntl
             fcntl.flock(_lock_file_handle, fcntl.LOCK_UN)
-        os.close(_lock_file_handle)
+            os.close(_lock_file_handle)
     except OSError:
         pass
     finally:
         _lock_file_handle = None
-
-    # Clear lock file contents
-    try:
-        if _LOCK_FILE.exists():
-            with open(_LOCK_FILE, "w") as f:
-                f.write("")
-    except OSError:
-        pass
 
 
 def is_tts_locked() -> bool:
@@ -174,16 +205,29 @@ def is_tts_locked() -> bool:
 
     try:
         if sys.platform == 'win32':
-            import msvcrt
-            fd = os.open(str(_LOCK_FILE), os.O_RDWR | os.O_CREAT, 0o644)
+            # Windows: check if lock file exists and holder is still alive
             try:
-                msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
-                msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
-                os.close(fd)
+                with open(_LOCK_FILE, 'r') as f:
+                    info = json.load(f)
+                holder_pid = info.get('pid')
+                if holder_pid:
+                    import ctypes
+                    kernel32 = ctypes.windll.kernel32
+                    SYNCHRONIZE = 0x00100000
+                    handle = kernel32.OpenProcess(SYNCHRONIZE, False, holder_pid)
+                    if handle:
+                        kernel32.CloseHandle(handle)
+                        return True  # Process still running
+                    else:
+                        # Process dead - lock is stale
+                        try:
+                            os.unlink(_LOCK_FILE)
+                        except:
+                            pass
+                        return False
+            except:
                 return False
-            except (OSError, IOError):
-                os.close(fd)
-                return True
+            return False
         else:
             import fcntl
             fd = os.open(str(_LOCK_FILE), os.O_RDWR | os.O_CREAT, 0o644)

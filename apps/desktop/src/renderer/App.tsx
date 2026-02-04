@@ -11,7 +11,8 @@ import { KuroryuuDialogProvider, showDestructive } from './components/ui/dialog'
 import { Sidebar, View } from './components/Sidebar';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { CommandCenter } from './components/command-center';
-import { Insights } from './components/Insights';
+// NOTE: Insights.tsx was renamed to _old_Insights_not_in_use.tsx
+// The 'insights' route uses KuroryuuDesktopAssistantPanel instead (line 330)
 import { KuroryuuDesktopAssistantPanel } from './components/code-editor';
 import { Ideation } from './components/ideation/Ideation';
 import { Changelog } from './components/changelog/Changelog';

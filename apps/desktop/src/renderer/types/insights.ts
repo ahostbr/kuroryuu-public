@@ -42,13 +42,33 @@ export interface ToolCall {
 }
 
 // Rich visualization card types
-export type RichCardType = 'rag-results' | 'file-tree' | 'session-state' | 'tool-output';
+export type RichCardType =
+  | 'rag-results'
+  | 'file-tree'
+  | 'symbol-map'
+  | 'terminal'
+  | 'checkpoint'
+  | 'session'
+  | 'inbox'
+  | 'memory'
+  | 'collective'
+  | 'bash'
+  | 'process'
+  | 'capture'
+  | 'thinker'
+  | 'hooks'
+  | 'pccontrol'
+  | 'tool-search'
+  | 'help'
+  | 'graphiti'
+  | 'session-state'  // Legacy alias
+  | 'tool-output';
 
 export interface RichCard {
   id: string;
   type: RichCardType;
   toolCallId: string;  // Links to parent ToolCall
-  data: RAGResultsData | FileTreeData | ToolOutputData;
+  data: RAGResultsData | FileTreeData | SymbolMapData | TerminalData | CheckpointData | SessionData | InboxData | MemoryData | CollectiveData | BashData | ProcessData | CaptureData | ThinkerData | HooksData | PCControlData | ToolSearchData | HelpData | GraphitiData | ToolOutputData;
 }
 
 export interface RAGResultsData {
@@ -83,6 +103,284 @@ export interface ToolOutputData {
   toolName: string;
   output: string;
   isJson?: boolean;
+}
+
+// Terminal output for k_pty results
+export interface TerminalData {
+  sessionId: string;
+  sessions?: TerminalSession[];
+  output?: string;
+  action: string;
+  count?: number;
+}
+
+export interface TerminalSession {
+  session_id: string;
+  shell?: string;
+  cwd?: string;
+  cols?: number;
+  rows?: number;
+  source?: string;
+  created_at?: string;
+}
+
+// Checkpoint data for k_checkpoint results
+export interface CheckpointData {
+  action: string;
+  id?: string;
+  name?: string;
+  path?: string;
+  savedAt?: string;
+  checkpoints?: CheckpointEntry[];
+  count?: number;
+  checkpoint?: Record<string, unknown>;
+}
+
+export interface CheckpointEntry {
+  id: string;
+  name: string;
+  saved_at: string;
+  size_bytes?: number;
+  summary?: string;
+  tags?: string[];
+  path?: string;
+}
+
+// Session data for k_session results
+export interface SessionData {
+  sessionId: string;
+  agentId?: string;
+  processId?: string;
+  action: string;
+  startedAt?: string;
+  endedAt?: string;
+  context?: Record<string, unknown>;
+}
+
+// Inbox data for k_inbox results
+export interface InboxData {
+  action: string;
+  folder?: string;
+  messages?: InboxMessage[];
+  count?: number;
+  message?: InboxMessage;
+}
+
+export interface InboxMessage {
+  id: string;
+  from: string;
+  to?: string;
+  subject?: string;
+  type?: string;
+  priority?: string;
+  status?: string;
+  timestamp?: string;
+  payload?: Record<string, unknown>;
+}
+
+// Working memory data for k_memory results
+export interface MemoryData {
+  action: string;
+  workingMemory?: WorkingMemoryState;
+  goal?: string;
+  blockers?: string[];
+  steps?: string[];
+  todoPath?: string;
+  todoExists?: boolean;
+  todoPreview?: string;
+}
+
+export interface WorkingMemoryState {
+  active_goal?: string;
+  blockers?: string[];
+  next_steps?: string[];
+  context?: Record<string, unknown>;
+}
+
+// Collective intelligence data for k_collective results
+export interface CollectiveData {
+  action: string;
+  patterns?: CollectivePattern[];
+  skillMatrix?: Record<string, string[]>;
+  count?: number;
+}
+
+export interface CollectivePattern {
+  id: string;
+  task_type: string;
+  approach: string;
+  evidence?: string;
+  success_rate?: number;
+  uses?: number;
+  created_at?: string;
+}
+
+// Bash execution data for k_bash results
+export interface BashData {
+  action: string;
+  command?: string;
+  output?: string;
+  exitCode?: number;
+  sessionId?: string;
+  isBackground?: boolean;
+  durationMs?: number;
+}
+
+// Process management data for k_process results
+export interface ProcessData {
+  action: string;
+  sessions?: ProcessSession[];
+  count?: number;
+  sessionId?: string;
+  output?: string;
+}
+
+export interface ProcessSession {
+  id: string;
+  command: string;
+  running: boolean;
+  exit_code?: number;
+  pid?: number;
+  created_at?: string;
+}
+
+// Screen capture data for k_capture results
+export interface CaptureData {
+  action: string;
+  imagePath?: string;
+  timestamp?: string;
+  dimensions?: { width: number; height: number };
+  monitors?: CaptureMonitor[];
+  status?: string;
+}
+
+export interface CaptureMonitor {
+  id: number;
+  name: string;
+  width: number;
+  height: number;
+  primary?: boolean;
+}
+
+// Thinker channel data for k_thinker_channel results
+export interface ThinkerData {
+  action: string;
+  targetAgentId?: string;
+  messages?: ThinkerMessage[];
+  output?: string;
+  sent?: boolean;
+}
+
+export interface ThinkerMessage {
+  from: string;
+  content: string;
+  timestamp?: string;
+}
+
+// Hooks/session data for k_session (hooks) results
+export interface HooksData {
+  action: string;
+  sessionId?: string;
+  agentId?: string;
+  cliType?: string;
+  context?: Record<string, unknown>;
+  hooks?: HookEntry[];
+}
+
+export interface HookEntry {
+  name: string;
+  type: string;
+  enabled: boolean;
+  path?: string;
+}
+
+// PC Control data for k_pccontrol results
+export interface PCControlData {
+  action: string;
+  armed?: boolean;
+  status?: string;
+  screenshot?: string;
+  position?: { x: number; y: number };
+  windows?: PCWindow[];
+  element?: PCElement;
+}
+
+export interface PCWindow {
+  title: string;
+  handle?: string;
+  className?: string;
+  rect?: { x: number; y: number; width: number; height: number };
+}
+
+export interface PCElement {
+  name?: string;
+  type?: string;
+  bounds?: { x: number; y: number; width: number; height: number };
+}
+
+// Tool search data for k_MCPTOOLSEARCH results
+export interface ToolSearchData {
+  action: string;
+  query?: string;
+  mode?: string;
+  matches?: ToolSearchMatch[];
+  toolUsed?: string;
+  result?: unknown;
+}
+
+export interface ToolSearchMatch {
+  tool: string;
+  score: number;
+  description?: string;
+  actions?: string[];
+}
+
+// Help data for k_help results
+export interface HelpData {
+  tool?: string;
+  description?: string;
+  actions?: Record<string, string>;
+  examples?: string[];
+  allTools?: HelpToolEntry[];
+}
+
+export interface HelpToolEntry {
+  name: string;
+  description: string;
+  actions?: string[];
+}
+
+// Graphiti migration data for k_graphiti_migrate results
+export interface GraphitiData {
+  action: string;
+  status?: string;
+  server?: string;
+  dryRun?: boolean;
+  checkpointCount?: number;
+  worklogCount?: number;
+  migrated?: number;
+  failed?: number;
+  error?: string;
+}
+
+// Symbol map for k_repo_intel results
+export type SymbolKind = 'function' | 'class' | 'interface' | 'variable' | 'type' | 'method' | 'property' | 'module' | 'unknown';
+
+export interface SymbolEntry {
+  name: string;
+  kind: SymbolKind;
+  file: string;
+  line: number;
+  signature?: string;
+  docstring?: string;
+}
+
+export interface SymbolMapData {
+  query: string;
+  action: string;  // The k_repo_intel action that generated this
+  symbols: SymbolEntry[];
+  totalSymbols: number;
+  filesSearched?: number;
 }
 
 export interface InsightsSession {

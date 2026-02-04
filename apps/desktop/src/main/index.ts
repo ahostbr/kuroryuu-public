@@ -1,5 +1,6 @@
 import { app, BrowserWindow, screen, ipcMain, shell, protocol, dialog, Tray, Menu, nativeImage, net } from 'electron';
 import { join, dirname, extname } from 'path';
+import * as os from 'os';
 import * as fs from 'fs';
 import { spawn } from 'child_process';
 import { readFile, writeFile, readdir } from 'fs/promises';
@@ -1463,6 +1464,44 @@ function setupKuroConfigIpc(): void {
       // Extract kuro-relevant config from hooks and kuroPlugin settings
       const hooks = settings.hooks || {};
       const kuroPlugin = settings.kuroPlugin || {};
+
+      // If we have complete persisted state (version >= 1), use it directly
+      if (kuroPlugin.version && kuroPlugin.version >= 1) {
+        const config = {
+          tts: kuroPlugin.tts || {
+            provider: 'edge_tts',
+            voice: 'en-GB-SoniaNeural',
+            smartSummaries: false,
+            summaryProvider: 'gateway-auto',
+            summaryModel: '',
+            userName: 'Ryan',
+            messages: {
+              stop: 'Work complete',
+              subagentStop: 'Task finished',
+              notification: 'Your attention is needed',
+            },
+          },
+          validators: kuroPlugin.validators || {
+            ruff: false,
+            ty: false,
+            timeout: 30000,
+          },
+          hooks: kuroPlugin.hooks || {
+            ttsOnStop: false,
+            ttsOnSubagentStop: false,
+            ttsOnNotification: false,
+            taskSync: false,
+            transcriptExport: false,
+          },
+          features: kuroPlugin.features || {
+            ragInteractive: false,
+            questionMode: false,
+          },
+        };
+        return { ok: true, config };
+      }
+
+      // Legacy: reconstruct from hooks (backwards compatibility)
       const config = {
         tts: {
           provider: 'edge_tts',
@@ -1496,20 +1535,24 @@ function setupKuroConfigIpc(): void {
       };
 
       // Helper to parse TTS command: extracts message and voice
+      // Supports both edge_tts.py and smart_tts.py formats
       const parseTTSCommand = (command: string) => {
-        // Format: uv run edge_tts.py "message" --voice "voice_name"
         const voiceMatch = command.match(/--voice\s+"([^"]+)"/);
         const voice = voiceMatch ? voiceMatch[1] : null;
-        // Message is the first quoted string after edge_tts.py
-        const msgMatch = command.match(/edge_tts\.py\s+"([^"]+)"/);
+        // Message is the first quoted string after the script name
+        const msgMatch = command.match(/(?:edge_tts|smart_tts)\.py\s+"([^"]+)"/);
         const message = msgMatch ? msgMatch[1] : null;
         return { message, voice };
       };
 
+      // Helper to check if command is a TTS hook
+      const isTTSCommand = (command: string) =>
+        command?.includes('edge_tts.py') || command?.includes('smart_tts.py');
+
       // Parse TTS settings from Stop hook
       const stopHooks = hooks.Stop?.[0]?.hooks || [];
       for (const hook of stopHooks) {
-        if (hook.command?.includes('edge_tts.py')) {
+        if (isTTSCommand(hook.command)) {
           config.tts.provider = 'edge_tts';
           config.hooks.ttsOnStop = true;
           const { message, voice } = parseTTSCommand(hook.command);
@@ -1521,7 +1564,7 @@ function setupKuroConfigIpc(): void {
       // Parse SubagentStop hooks
       const subagentHooks = hooks.SubagentStop?.[0]?.hooks || [];
       for (const hook of subagentHooks) {
-        if (hook.command?.includes('edge_tts.py')) {
+        if (isTTSCommand(hook.command)) {
           config.hooks.ttsOnSubagentStop = true;
           const { message } = parseTTSCommand(hook.command);
           if (message) config.tts.messages.subagentStop = message;
@@ -1531,7 +1574,7 @@ function setupKuroConfigIpc(): void {
       // Parse Notification hooks
       const notifHooks = hooks.Notification?.[0]?.hooks || [];
       for (const hook of notifHooks) {
-        if (hook.command?.includes('edge_tts.py')) {
+        if (isTTSCommand(hook.command)) {
           config.hooks.ttsOnNotification = true;
           const { message } = parseTTSCommand(hook.command);
           if (message) config.tts.messages.notification = message;
@@ -1588,6 +1631,8 @@ function setupKuroConfigIpc(): void {
       provider: string;
       voice: string;
       smartSummaries: boolean;
+      summaryProvider: string;
+      summaryModel: string;
       userName: string;
       messages: { stop: string; subagentStop: string; notification: string };
     };
@@ -1614,16 +1659,21 @@ function setupKuroConfigIpc(): void {
       if (!settings.hooks) settings.hooks = {};
       const hooks = settings.hooks as Record<string, unknown[]>;
 
-      // Save kuroPlugin settings (voice, smartSummaries, summaryProvider, summaryModel, userName)
+      // Save complete kuroPlugin state (version 1 format)
       settings.kuroPlugin = {
-        voice: config.tts.voice,
-        smartSummaries: config.tts.smartSummaries,
-        summaryProvider: config.tts.summaryProvider,
-        summaryModel: config.tts.summaryModel,
-        userName: config.tts.userName,
+        version: 1,
+        tts: config.tts,
+        validators: config.validators,
+        hooks: config.hooks,
+        features: config.features,
       };
 
-      const uvPath = 'C:\\\\Users\\\\Ryan\\\\.local\\\\bin\\\\uv.exe';
+      // Dynamic UV path resolution - check env var first, then use platform-appropriate default
+      const uvPath = process.env.UV_PATH
+        ? process.env.UV_PATH.replace(/\\/g, '\\\\')
+        : (process.platform === 'win32'
+            ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
+            : 'uv');
       const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
       const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
       const voice = config.tts.voice || 'en-GB-SoniaNeural';
@@ -1751,7 +1801,10 @@ function setupKuroConfigIpc(): void {
     messages: { stop: string };
   }) => {
     try {
-      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const uvPath = process.env.UV_PATH ||
+        (process.platform === 'win32'
+          ? join(os.homedir(), '.local', 'bin', 'uv.exe')
+          : 'uv');
       const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
       const voice = ttsConfig.voice || 'en-GB-SoniaNeural';
       const testMessage = 'Hello, this is a test.';

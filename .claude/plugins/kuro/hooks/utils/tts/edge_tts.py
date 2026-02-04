@@ -25,8 +25,41 @@ import tempfile
 import os
 
 
+def get_uv_path():
+    """Get UV executable path dynamically."""
+    if os.environ.get('UV_PATH'):
+        return os.environ['UV_PATH']
+    if sys.platform == 'win32':
+        return os.path.join(os.path.expanduser('~'), '.local', 'bin', 'uv.exe')
+    return 'uv'
+
+
 def speak(text: str, voice: str = "en-GB-SoniaNeural"):
     """Generate and play TTS audio using Edge TTS CLI."""
+    # Import TTS queue for serialization
+    try:
+        from tts_queue import acquire_tts_lock, release_tts_lock
+        use_queue = True
+    except ImportError:
+        use_queue = False
+
+    agent_id = f"edge_tts_{os.getpid()}"
+
+    # Acquire TTS lock to prevent overlapping audio (short timeout - play anyway if fails)
+    if use_queue:
+        if not acquire_tts_lock(agent_id, timeout=5):
+            print(f"[EdgeTTS] Queue busy - playing anyway")
+            use_queue = False  # Don't try to release a lock we don't have
+
+    try:
+        return _speak_internal(text, voice)
+    finally:
+        if use_queue:
+            release_tts_lock(agent_id)
+
+
+def _speak_internal(text: str, voice: str = "en-GB-SoniaNeural"):
+    """Internal TTS implementation."""
     try:
         # Create temp file for audio
         with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
@@ -34,7 +67,7 @@ def speak(text: str, voice: str = "en-GB-SoniaNeural"):
 
         try:
             # Use edge-tts CLI via uvx
-            uv_path = r"C:\Users\Ryan\.local\bin\uv.exe"
+            uv_path = get_uv_path()
 
             # Generate audio using edge-tts CLI
             result = subprocess.run(

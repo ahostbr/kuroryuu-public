@@ -181,17 +181,23 @@ class MCPProtocol:
         try:
             result = handler(**arguments)
 
-            # Check for pending task notification and inject if present
+            # Check for pending task notification
             result_text = str(result) if not isinstance(result, dict) else json.dumps(result)
+            notification_text = None
             if session.session_id:
                 pending = check_pending_task(session.session_id)
                 if pending:
-                    notification = build_notification_block(pending)
-                    result_text = notification + result_text
+                    notification_text = build_notification_block(pending)
 
             # Wrap result in content array per MCP spec
+            # Keep notification SEPARATE from JSON to preserve parseability
+            content_blocks = []
+            if notification_text:
+                content_blocks.append({"type": "text", "text": notification_text})
+            content_blocks.append({"type": "text", "text": result_text})
+
             return self._success_response(req_id, {
-                "content": [{"type": "text", "text": result_text}],
+                "content": content_blocks,
                 "isError": not result.get("ok", True) if isinstance(result, dict) else False,
             })
         except Exception as e:

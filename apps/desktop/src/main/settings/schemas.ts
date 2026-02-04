@@ -23,6 +23,7 @@ export interface UISettings {
   matrixRainOpacity: number;
   showWelcomeOnStartup: boolean;
   checkUpdatesOnStartup: boolean;
+  enableRichToolVisualizations: boolean;
   layout: LayoutSettings;
 }
 
@@ -34,6 +35,11 @@ export interface TerminalSettings {
 export interface IntegrationSettings {
   trayCompanion: {
     launchOnStartup: boolean;
+  };
+  cliproxyapi?: {
+    enabled: boolean;           // User completed wizard and intentionally enabled
+    launchOnStartup: boolean;   // Auto-start when Desktop app launches
+    mode: 'native' | 'docker';  // How CLIProxyAPI is run
   };
 }
 
@@ -112,6 +118,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     matrixRainOpacity: 40,
     showWelcomeOnStartup: true,
     checkUpdatesOnStartup: true,
+    enableRichToolVisualizations: false,
     layout: {
       gridLayout: 'auto',
       layoutMode: 'grid',
@@ -124,6 +131,11 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
   integrations: {
     trayCompanion: {
       launchOnStartup: false,
+    },
+    cliproxyapi: {
+      enabled: false,
+      launchOnStartup: true,  // Auto-start by default once enabled
+      mode: 'native',
     },
   },
   _version: 1,

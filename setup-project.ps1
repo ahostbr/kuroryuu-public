@@ -204,6 +204,14 @@ $stepNum++
 if ($SkipPython) {
     Write-Host "  Skipped (-SkipPython)" -ForegroundColor DarkYellow
 } elseif (Test-Path $pip) {
+    # Check if uv is available (prettier progress output)
+    $uvCmd = Get-Command uv -ErrorAction SilentlyContinue
+    $useUv = $null -ne $uvCmd
+
+    if ($useUv) {
+        Write-Host "  Using uv for prettier progress..." -ForegroundColor DarkGray
+    }
+
     $requirementsFiles = @(
         "apps\mcp_core\requirements.txt",
         "apps\mcp_stdio\requirements.txt",
@@ -214,20 +222,30 @@ if ($SkipPython) {
         $reqPath = Join-Path $ProjectRoot $reqFile
         if (Test-Path $reqPath) {
             $appName = ($reqFile -split '\\')[1]
-            Write-Host "  Installing $appName dependencies..." -ForegroundColor White
-            # Temporarily allow errors (pip outputs warnings to stderr)
+            Write-Host ""
+            Write-Host "  Installing $appName dependencies..." -ForegroundColor Cyan
             $ErrorActionPreference = "Continue"
-            & $pip install -r $reqPath -q 2>&1 | Out-Null
+            if ($useUv) {
+                & uv pip install -r $reqPath --python $venvPython 2>&1
+            } else {
+                & $pip install -r $reqPath 2>&1
+            }
             $ErrorActionPreference = "Stop"
         }
     }
 
     # Install desktop app Python dependencies (voice input, audio transcription, TTS)
-    Write-Host "  Installing desktop speech/audio dependencies..." -ForegroundColor White
+    Write-Host ""
+    Write-Host "  Installing desktop speech/audio dependencies..." -ForegroundColor Cyan
     $ErrorActionPreference = "Continue"
-    & $pip install SpeechRecognition pyaudio edge-tts -q 2>&1 | Out-Null
+    if ($useUv) {
+        & uv pip install SpeechRecognition pyaudio edge-tts --python $venvPython 2>&1
+    } else {
+        & $pip install SpeechRecognition pyaudio edge-tts 2>&1
+    }
     $ErrorActionPreference = "Stop"
 
+    Write-Host ""
     Write-Host "  Python dependencies installed" -ForegroundColor Green
 } else {
     Write-Host "  ERROR: pip not found at $pip" -ForegroundColor Red
@@ -265,11 +283,11 @@ if ($SkipNode) {
                 if (Test-Path $nodeModules) {
                     Write-Host "  $appName - already installed" -ForegroundColor DarkGray
                 } else {
-                    Write-Host "  $appName - installing..." -ForegroundColor White
+                    Write-Host ""
+                    Write-Host "  $appName - installing..." -ForegroundColor Cyan
                     Push-Location $appPath
-                    # Temporarily allow errors (npm outputs warnings to stderr)
                     $ErrorActionPreference = "Continue"
-                    & npm install --silent 2>&1 | Out-Null
+                    & npm install --progress 2>&1
                     $ErrorActionPreference = "Stop"
                     Pop-Location
                     Write-Host "  $appName - done" -ForegroundColor Green
@@ -343,10 +361,11 @@ if ($SkipNode) {
             if (Test-Path $outDir) {
                 Write-Host "  $($app.Name) - already built" -ForegroundColor DarkGray
             } else {
-                Write-Host "  $($app.Name) - building..." -ForegroundColor White
+                Write-Host ""
+                Write-Host "  $($app.Name) - building..." -ForegroundColor Cyan
                 Push-Location $appPath
                 $ErrorActionPreference = "Continue"
-                & npm run build 2>&1 | Out-Null
+                & npm run build 2>&1
                 $ErrorActionPreference = "Stop"
                 Pop-Location
                 if (Test-Path $outDir) {
@@ -378,9 +397,11 @@ if (Test-Path $ffmpegBin) {
     $extractPath = Join-Path $env:TEMP "ffmpeg-kuroryuu-extract"
 
     try {
-        # Download
-        Invoke-WebRequest -Uri $ffmpegUrl -OutFile $zipPath -UseBasicParsing
-        Write-Host "  Downloaded (~80MB)" -ForegroundColor DarkGray
+        # Download with progress
+        Write-Host "  Downloading (~80MB)..." -ForegroundColor White
+        $ProgressPreference = 'Continue'
+        Invoke-WebRequest -Uri $ffmpegUrl -OutFile $zipPath
+        Write-Host "  Download complete" -ForegroundColor Green
 
         # Extract to temp
         if (Test-Path $extractPath) {
