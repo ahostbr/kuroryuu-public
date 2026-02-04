@@ -212,6 +212,9 @@ class AgentHarness:
             
             # Execute each tool call
             for tc in all_tool_calls:
+                # DEBUG: Log tool call details
+                import logging
+                logging.info(f"[Harness] Yielding tool_start: name={tc.name} id={tc.id} args={tc.arguments}")
                 yield AgentEvent(type="tool_start", data=tc)
                 
                 result = await self._execute_tool(tc)

@@ -136,6 +136,9 @@ from .traffic.pty_websocket import websocket_pty_traffic
 # Logging
 from .utils.logging_config import setup_logging, get_logger
 
+# Initialize module-level logger for endpoint handlers
+logger = get_logger(__name__)
+
 # M5: Sessions
 from .sessions.router import router as sessions_router
 
@@ -1112,6 +1115,8 @@ async def chat_stream(req: ChatRequest):
                 elif event.type == "tool_start":
                     tc = event.data
                     # Include arguments so frontend can display them
+                    # DEBUG: Log what we're sending
+                    logger.info(f"[tool_start] {tc.name} id={tc.id} args={tc.arguments}")
                     yield f"data: {json.dumps({'type': 'tool_start', 'name': tc.name, 'id': tc.id, 'arguments': tc.arguments})}\n\n"
 
                 elif event.type == "tool_end":
@@ -1123,29 +1128,43 @@ async def chat_stream(req: ChatRequest):
                         # Method 1: Direct parse (works for clean JSON)
                         try:
                             result_data = json.loads(content)
-                        except (json.JSONDecodeError, TypeError):
-                            # Method 2: Find complete JSON object in content
-                            # Handles notification prefix or multi-line content
+                            logger.debug(f"[tool_end] Direct JSON parse succeeded for {tr.tool_call_id}")
+                        except (json.JSONDecodeError, TypeError) as e:
+                            logger.debug(f"[tool_end] Direct parse failed: {e}, trying extraction...")
+                            # Method 2: Find JSON object accounting for strings
+                            # Proper brace matching that ignores braces inside strings
                             start_idx = content.find('{')
                             if start_idx >= 0:
-                                # Find matching closing brace using depth counting
                                 depth = 0
+                                in_string = False
+                                escape_next = False
                                 end_idx = -1
                                 for i, c in enumerate(content[start_idx:], start_idx):
-                                    if c == '{':
-                                        depth += 1
-                                    elif c == '}':
-                                        depth -= 1
-                                        if depth == 0:
-                                            end_idx = i
-                                            break
+                                    if escape_next:
+                                        escape_next = False
+                                        continue
+                                    if c == '\\':
+                                        escape_next = True
+                                        continue
+                                    if c == '"' and not escape_next:
+                                        in_string = not in_string
+                                        continue
+                                    if not in_string:
+                                        if c == '{':
+                                            depth += 1
+                                        elif c == '}':
+                                            depth -= 1
+                                            if depth == 0:
+                                                end_idx = i
+                                                break
                                 if end_idx > start_idx:
                                     json_str = content[start_idx:end_idx+1]
                                     try:
                                         result_data = json.loads(json_str)
-                                    except (json.JSONDecodeError, TypeError):
-                                        # Still failed - keep as string
-                                        pass
+                                        logger.debug(f"[tool_end] Extracted JSON parse succeeded")
+                                    except (json.JSONDecodeError, TypeError) as e2:
+                                        logger.warning(f"[tool_end] JSON extraction failed: {e2}")
+                                        # Keep as string
                     yield f"data: {json.dumps({'type': 'tool_end', 'id': tr.tool_call_id, 'is_error': tr.is_error, 'result': result_data})}\n\n"
                 
                 elif event.type == "done":
@@ -1651,6 +1670,155 @@ async def get_pending_interrupts(thread_id: str):
             for p in pending
         ],
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# k_askuserquestion: Interactive User Input (Desktop Assistant)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# In-memory store for pending user questions
+# Structure: { question_id: { questions, answered, answers, created_at } }
+_pending_questions: Dict[str, Dict[str, Any]] = {}
+
+
+class AskUserQuestionOption(BaseModel):
+    """Single option for a question."""
+    label: str
+    description: Optional[str] = None
+
+
+class AskUserQuestionItem(BaseModel):
+    """Single question in a question set."""
+    model_config = {"populate_by_name": True, "extra": "ignore"}
+
+    question: str
+    header: str
+    multiSelect: bool = Field(default=False, validation_alias="multi_select")
+    options: List[AskUserQuestionOption]
+
+
+class AskUserQuestionRequest(BaseModel):
+    """Request to create a new question set."""
+    questions: List[AskUserQuestionItem]
+
+
+class AskUserQuestionAnswerRequest(BaseModel):
+    """Request to submit answers."""
+    answers: Dict[str, Any] = Field(..., description="Map of question_N -> answer(s)")
+
+
+@app.post("/interact/ask")
+async def interact_create_question(request: Request):
+    """Create a pending question set for user input.
+
+    Called by k_askuserquestion MCP tool. The question set is stored
+    and the tool polls /interact/status/{id} until answered.
+
+    Returns:
+        {ok: true, question_id: "q_abc123"}
+    """
+    import uuid
+    from datetime import datetime
+
+    # Get raw body for debugging
+    try:
+        body = await request.json()
+    except Exception as e:
+        logger.error(f"[interact/ask] Failed to parse JSON: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid JSON: {e}")
+
+    # Validate with Pydantic
+    try:
+        req = AskUserQuestionRequest(**body)
+    except Exception as e:
+        logger.error(f"[interact/ask] Validation error: {e}")
+        logger.error(f"[interact/ask] Received body: {json.dumps(body, default=str)[:500]}")
+        raise HTTPException(status_code=422, detail=f"Validation error: {e}")
+
+    question_id = f"q_{uuid.uuid4().hex[:8]}"
+
+    _pending_questions[question_id] = {
+        "questions": [q.model_dump() for q in req.questions],
+        "answered": False,
+        "answers": {},
+        "created_at": datetime.now().isoformat(),
+    }
+
+    logger.info(f"[interact] Created question {question_id} with {len(req.questions)} questions")
+
+    return {"ok": True, "question_id": question_id}
+
+
+@app.post("/interact/respond/{question_id}")
+async def interact_submit_answer(question_id: str, req: AskUserQuestionAnswerRequest):
+    """Submit answers for a pending question set.
+
+    Called by Desktop Assistant AskUserQuestionCard when user clicks Submit.
+
+    Args:
+        question_id: The question set ID
+        req.answers: Map of "question_0" -> answer or ["a", "b"] for multi-select
+
+    Returns:
+        {ok: true}
+    """
+    if question_id not in _pending_questions:
+        raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
+
+    q = _pending_questions[question_id]
+    if q["answered"]:
+        raise HTTPException(status_code=400, detail=f"Question {question_id} already answered")
+
+    q["answers"] = req.answers
+    q["answered"] = True
+
+    logger.info(f"[interact] Question {question_id} answered: {list(req.answers.keys())}")
+
+    return {"ok": True}
+
+
+@app.get("/interact/status/{question_id}")
+async def interact_get_status(question_id: str):
+    """Check if a question set has been answered (for polling).
+
+    Called by k_askuserquestion MCP tool in a polling loop.
+
+    Returns:
+        {answered: bool, answers: {...}, questions: [...]}
+    """
+    if question_id not in _pending_questions:
+        raise HTTPException(status_code=404, detail=f"Question {question_id} not found")
+
+    q = _pending_questions[question_id]
+
+    return {
+        "answered": q["answered"],
+        "answers": q["answers"],
+        "questions": q["questions"],
+        "created_at": q["created_at"],
+    }
+
+
+@app.get("/interact/pending")
+async def interact_list_pending():
+    """List all pending (unanswered) question sets.
+
+    Used by Desktop Assistant to show all pending questions.
+
+    Returns:
+        {questions: [{question_id, questions, created_at}, ...]}
+    """
+    pending = [
+        {
+            "question_id": qid,
+            "questions": q["questions"],
+            "created_at": q["created_at"],
+        }
+        for qid, q in _pending_questions.items()
+        if not q["answered"]
+    ]
+
+    return {"ok": True, "pending": pending, "count": len(pending)}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -169,7 +169,14 @@ const api = {
       path: string;
       type: 'file' | 'directory';
       children?: Array<unknown>;
-    }>> => ipcRenderer.invoke('fs:readTree', path, maxDepth)
+    }>> => ipcRenderer.invoke('fs:readTree', path, maxDepth),
+    /** Read image file as base64 (for inline display) */
+    readImageAsBase64: (path: string): Promise<{
+      ok: boolean;
+      base64?: string;
+      mimeType?: string;
+      error?: string;
+    }> => ipcRenderer.invoke('fs:readImageAsBase64', path),
   },
   shell: {
     openPath: (path: string): Promise<string> =>

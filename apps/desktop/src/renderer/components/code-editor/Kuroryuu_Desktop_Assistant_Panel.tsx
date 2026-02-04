@@ -55,6 +55,7 @@ import { AtMentionPicker, type MentionItem, type MentionCategoryDef } from './At
 import { FileExplorerPanel } from '../FileExplorerPanel';
 import { InsightsTerminalPanel } from './InsightsTerminalPanel';
 import { RichCardRenderer } from '../insights/RichCardRenderer';
+import { PendingQuestionsPoller } from '../insights/PendingQuestionsPoller';
 import { useSettingsStore } from '../../stores/settings-store';
 import { toast } from '../ui/toaster';
 import { filterTerminalOutput, hasTerminalArtifacts } from '../../utils/filter-terminal-output';
@@ -1460,6 +1461,11 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
 
         {/* Messages area */}
         <div className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--cp-bg-primary)' }}>
+          {/* Pending user questions - polls Gateway for k_askuserquestion questions */}
+          <div className="px-4 pt-2">
+            <PendingQuestionsPoller />
+          </div>
+
           {messages.length === 0 ? (
             <EmptyState
               onSuggestionClick={(suggestion) => {

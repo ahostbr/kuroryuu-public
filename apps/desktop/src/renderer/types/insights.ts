@@ -1,5 +1,19 @@
 /**
- * Types for the Insights chat screen
+ * @deprecated Use KuroryuuDesktopAssistantPanel with mode="fullscreen" instead.
+ * This file is kept for backwards compatibility but will be removed.
+ *
+ * Insights Chat Screen (DEPRECATED)
+ *
+ * AI chat interface with:
+ * - Session history sidebar
+ * - Message bubbles with markdown rendering
+ * - Tool call badges
+ * - Model selector dropdown
+ * - Streaming responses
+ * - Direct Mode toggle (M1: bypasses harness/inbox)
+ * - TTS controls (speak/stop via IPC to main process)
+ * - Connection health indicator
+ * - Stop generation / Retry support
  */
 
 import { getModelDisplayName } from './domain-config';
@@ -61,14 +75,16 @@ export type RichCardType =
   | 'tool-search'
   | 'help'
   | 'graphiti'
+  | 'file-content'
   | 'session-state'  // Legacy alias
-  | 'tool-output';
+  | 'tool-output'
+  | 'askuserquestion';  // Interactive user input (k_askuserquestion)
 
 export interface RichCard {
   id: string;
   type: RichCardType;
   toolCallId: string;  // Links to parent ToolCall
-  data: RAGResultsData | FileTreeData | SymbolMapData | TerminalData | CheckpointData | SessionData | InboxData | MemoryData | CollectiveData | BashData | ProcessData | CaptureData | ThinkerData | HooksData | PCControlData | ToolSearchData | HelpData | GraphitiData | ToolOutputData;
+  data: RAGResultsData | FileTreeData | FileContentData | SymbolMapData | TerminalData | CheckpointData | SessionData | InboxData | MemoryData | CollectiveData | BashData | ProcessData | CaptureData | ThinkerData | HooksData | PCControlData | ToolSearchData | HelpData | GraphitiData | ToolOutputData | AskUserQuestionData;
 }
 
 export interface RAGResultsData {
@@ -97,6 +113,15 @@ export interface FileTreeEntry {
   type: 'file' | 'directory';
   size?: number;
   children?: FileTreeEntry[];
+}
+
+export interface FileContentData {
+  path: string;
+  content: string;
+  startLine?: number;
+  endLine?: number;
+  totalLines?: number;
+  language?: string;
 }
 
 export interface ToolOutputData {
@@ -252,6 +277,10 @@ export interface CaptureData {
   dimensions?: { width: number; height: number };
   monitors?: CaptureMonitor[];
   status?: string;
+  sizeBytes?: number;
+  error?: string;  // Error message if status is 'error'
+  base64?: string;  // Base64-encoded image data for inline preview
+  mimeType?: string;  // MIME type (e.g., "image/png", "image/jpeg")
 }
 
 export interface CaptureMonitor {
@@ -260,6 +289,8 @@ export interface CaptureMonitor {
   width: number;
   height: number;
   primary?: boolean;
+  left?: number;
+  top?: number;
 }
 
 // Thinker channel data for k_thinker_channel results
@@ -341,7 +372,11 @@ export interface HelpData {
   description?: string;
   actions?: Record<string, string>;
   examples?: string[];
+  keywords?: string[];
   allTools?: HelpToolEntry[];
+  toolsCount?: number;
+  usage?: string;
+  tip?: string;
 }
 
 export interface HelpToolEntry {
@@ -381,6 +416,28 @@ export interface SymbolMapData {
   symbols: SymbolEntry[];
   totalSymbols: number;
   filesSearched?: number;
+}
+
+// AskUserQuestion data for k_askuserquestion results
+// Mirrors Claude Code CLI's AskUserQuestion format
+export interface AskUserQuestionOption {
+  label: string;
+  description?: string;
+}
+
+export interface AskUserQuestionItem {
+  question: string;           // Full question text
+  header: string;             // Short label/chip (max 12 chars)
+  multiSelect: boolean;       // true=checkboxes, false=radio
+  options: AskUserQuestionOption[];  // 2-4 options
+}
+
+export interface AskUserQuestionData {
+  questionId: string;
+  questions: AskUserQuestionItem[];  // 1-4 questions
+  // UI state (managed by card)
+  answers?: Record<string, string | string[]>;  // question_0 -> answer(s)
+  submitted?: boolean;
 }
 
 export interface InsightsSession {

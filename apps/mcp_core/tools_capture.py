@@ -152,10 +152,10 @@ K_CAPTURE_SCRIPT = Path(os.environ.get(
     str(_get_project_root() / "ai" / "capture" / "capture_ffmpeg.py")
 )).resolve()
 
-# Visual digest output directory
+# Visual digest output directory - must match capture_ffmpeg.py's visualdigest_global_latest_dir()
 VISUAL_DIGEST_DIR = Path(os.environ.get(
     "K_CAPTURE_DIGEST_DIR",
-    str(_get_project_root() / "ai" / "capture" / "output" / "VisualDigest" / "latest")
+    str(_get_project_root() / "ai" / "capture" / "SOTS_Capture" / "VisualDigest" / "latest")
 )).resolve()
 
 # Path to ffmpeg executable - uses project's ffmpeg by default
@@ -432,12 +432,13 @@ def _action_stop(**kwargs: Any) -> Dict[str, Any]:
         return _k_capture_err(f"Failed to stop recording: {e}")
 
 
-def _action_screenshot(out: str = "", monitor_index: Optional[int] = None, **kwargs: Any) -> Dict[str, Any]:
+def _action_screenshot(out: str = "", monitor_index: Optional[int] = None, as_base64: bool = False, **kwargs: Any) -> Dict[str, Any]:
     """Take a single screenshot.
 
     Args:
         out: Output file path (default: auto-generated in screenshots folder)
         monitor_index: Specific monitor to capture (0-indexed). If None, captures entire desktop.
+        as_base64: If True, include base64-encoded image data in response for inline preview.
     """
     if not K_CAPTURE_SCRIPT.exists():
         return _k_capture_err(f"Capture script not found: {K_CAPTURE_SCRIPT}")
@@ -497,7 +498,7 @@ def _action_screenshot(out: str = "", monitor_index: Optional[int] = None, **kwa
                 }
             )
 
-        out_path = Path(out)
+        out_path = Path(out).resolve()  # Always return absolute path
         result_data: Dict[str, Any] = {
             "path": str(out_path),
             "size_bytes": out_path.stat().st_size if out_path.exists() else 0,
@@ -508,6 +509,20 @@ def _action_screenshot(out: str = "", monitor_index: Optional[int] = None, **kwa
                 "width": monitor_info.width,
                 "height": monitor_info.height,
             }
+        
+        # Add base64 image data if requested (for inline preview in Claude CLI)
+        if as_base64:
+            b64 = _read_image_as_base64(out_path)
+            if b64:
+                result_data["base64"] = b64
+                # Detect mime type from extension
+                ext = out_path.suffix.lower()
+                result_data["mime_type"] = "image/png" if ext == ".png" else "image/jpeg"
+            else:
+                result_data["base64_error"] = "Failed to read image as base64"
+        else:
+            result_data["note"] = "Image saved to disk (use as_base64=true for inline preview)"
+        
         return _k_capture_ok(result_data)
     except subprocess.TimeoutExpired:
         return _k_capture_err("Screenshot timed out")
@@ -527,11 +542,31 @@ def _read_image_as_base64(path: Path) -> Optional[str]:
 
 
 def _action_get_latest(as_base64: bool = False, **kwargs: Any) -> Dict[str, Any]:
-    """Get latest.jpg from VisualDigest."""
+    """Get latest.jpg from VisualDigest, with fallback to most recent screenshot."""
     latest_path = VISUAL_DIGEST_DIR / "latest.jpg"
+    is_fallback = False
 
+    # If latest.jpg doesn't exist, try falling back to screenshots
     if not latest_path.exists():
-        return _k_capture_err("latest.jpg not found - recording may not be active")
+        screenshot_dir = _get_project_root() / "ai" / "capture" / "output" / "screenshots"
+        fallback_candidates = ["desktop.png", "mon0.png", "mon1.png"]
+
+        best_fallback: Optional[Path] = None
+        best_mtime = 0.0
+
+        for candidate in fallback_candidates:
+            candidate_path = screenshot_dir / candidate
+            if candidate_path.exists():
+                mtime = candidate_path.stat().st_mtime
+                if mtime > best_mtime:
+                    best_mtime = mtime
+                    best_fallback = candidate_path
+
+        if best_fallback:
+            latest_path = best_fallback
+            is_fallback = True
+        else:
+            return _k_capture_err("latest.jpg not found - recording may not be active. No screenshots available as fallback.")
 
     result: Dict[str, Any] = {
         "path": str(latest_path),
@@ -539,11 +574,17 @@ def _action_get_latest(as_base64: bool = False, **kwargs: Any) -> Dict[str, Any]
         "modified": latest_path.stat().st_mtime,
     }
 
+    if is_fallback:
+        result["fallback"] = True
+        result["note"] = "Showing most recent screenshot (no active recording)"
+
     if as_base64:
         b64 = _read_image_as_base64(latest_path)
         if b64:
             result["base64"] = b64
-            result["mime_type"] = "image/jpeg"
+            # Detect mime type from extension
+            ext = latest_path.suffix.lower()
+            result["mime_type"] = "image/png" if ext == ".png" else "image/jpeg"
 
     return _k_capture_ok(result)
 
@@ -691,7 +732,7 @@ def k_capture(
         mode: Capture mode: desktop, monitor, window (for start)
         out: Output path (for start, screenshot)
         digest_fps: VisualDigest capture rate, e.g. 0.1 = 1 frame/10s (for start)
-        as_base64: Return image content as base64 (for get_latest, get_storyboard)
+        as_base64: Return image content as base64 (for screenshot, get_latest, get_storyboard)
         monitor_index: Specific monitor to capture, 0-indexed (for screenshot). Use list_monitors to see available.
 
     Returns:
