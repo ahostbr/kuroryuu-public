@@ -28,6 +28,7 @@ import {
   Code2,
   Radio,
   Cpu,
+  Archive,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
 import { useDomainConfigStore } from '../stores/domain-config-store';
@@ -58,7 +59,8 @@ export type View =
   | 'transcripts'
   | 'capture'
   | 'claude-tasks'
-  | 'coding-agents';
+  | 'coding-agents'
+  | 'backups';
 
 interface SidebarProps {
   activeView: View;
@@ -124,6 +126,7 @@ const navGroups: NavGroup[] = [
       // { id: 'canvas', label: 'Canvas', icon: Layers, shortcut: 'V' }, // Hidden: Use Graphiti tab in Command Center
       { id: 'changelog', label: 'Changelog', icon: FileText, shortcut: 'L' },
       { id: 'transcripts', label: 'Transcripts', icon: ScrollText, shortcut: 'R' },
+      { id: 'backups', label: 'Backups', icon: Archive, shortcut: 'B' },
     ],
   },
 ];

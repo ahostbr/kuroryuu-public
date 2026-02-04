@@ -42,6 +42,7 @@ import { registerSpeechHandlers } from './ipc/speech-handlers';
 import { registerCLIProxyHandlers } from './ipc/cliproxy-handlers';
 import { getCLIProxyNativeManager } from './services/cliproxy-native';
 import { registerTaskHandlers } from './ipc/task-handlers';
+import { registerBackupHandlers } from './ipc/backup-handlers';
 import { getTaskService } from './services/task-service';
 import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow, initializeState as initPCControlState } from './integrations/pccontrol-service';
 import { registerPythonHandlers, setMainWindow as setPythonMainWindow } from './integrations/python-service';
@@ -3870,6 +3871,13 @@ app.whenReady().then(async () => {
   console.log('[Main] About to register CLI Proxy handlers...');
   registerCLIProxyHandlers();
   console.log('[Main] CLI Proxy handlers registered.');
+
+  // Register Backup handlers (Restic backup management)
+  if (mainWindow) {
+    console.log('[Main] Registering backup handlers...');
+    registerBackupHandlers(mainWindow);
+    console.log('[Main] Backup handlers registered.');
+  }
 
   // NOTE: forceKillAll() was moved to BEFORE auto-start (earlier in this file)
   // The cliproxyStartupComplete flag is now set before createWindow() too

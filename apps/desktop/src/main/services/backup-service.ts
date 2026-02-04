@@ -1,0 +1,566 @@
+/**
+ * Backup Service
+ *
+ * Business logic for Restic backup management.
+ * Communicates with MCP Core's k_backup tool via HTTP.
+ */
+
+import * as path from 'path';
+import * as fs from 'fs/promises';
+import { existsSync } from 'fs';
+import { app } from 'electron';
+import type {
+  BackupConfig,
+  BackupStatus,
+  BackupSnapshot,
+  SnapshotDiff,
+  ResticBinaryStatus,
+  ListSnapshotsResponse,
+  CreateBackupResponse,
+  RestoreResponse,
+  InitRepoResponse,
+  BackupApiResponse,
+} from '../../renderer/types/backup';
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+const MCP_CORE_URL = process.env.KURORYUU_MCP_URL || 'http://127.0.0.1:8100';
+const GATEWAY_URL = process.env.KURORYUU_GATEWAY_URL || 'http://127.0.0.1:8200';
+
+/**
+ * Get the Kuroryuu config directory (~/.kuroryuu/)
+ */
+function getKuroryuuConfigDir(): string {
+  const homeDir = app.getPath('home');
+  return path.join(homeDir, '.kuroryuu');
+}
+
+/**
+ * Get the backup settings directory (~/.kuroryuu/restic-local-settings/)
+ */
+export function getBackupSettingsDir(): string {
+  return path.join(getKuroryuuConfigDir(), 'restic-local-settings');
+}
+
+/**
+ * Get the restic binary directory (~/.kuroryuu/bin/)
+ */
+export function getResticBinDir(): string {
+  return path.join(getKuroryuuConfigDir(), 'bin');
+}
+
+/**
+ * Get the restic repository directory (~/.kuroryuu/restic-repo/)
+ */
+export function getDefaultRepoPath(): string {
+  return path.join(getKuroryuuConfigDir(), 'restic-repo');
+}
+
+/**
+ * Get the config file path
+ */
+export function getConfigFilePath(): string {
+  return path.join(getBackupSettingsDir(), 'backup_config.json');
+}
+
+// ============================================================================
+// MCP Core Communication
+// ============================================================================
+
+interface MCPRequest {
+  jsonrpc: '2.0';
+  id: string;
+  method: 'tools/call';
+  params: {
+    name: string;
+    arguments: Record<string, unknown>;
+  };
+}
+
+interface MCPResponse {
+  jsonrpc: '2.0';
+  id: string;
+  result?: {
+    content: Array<{ type: string; text: string }>;
+    isError?: boolean;
+  };
+  error?: {
+    code: number;
+    message: string;
+  };
+}
+
+/**
+ * Call k_backup tool via MCP Core
+ */
+async function callBackupTool(action: string, params: Record<string, unknown> = {}): Promise<unknown> {
+  const requestId = `backup_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  const request: MCPRequest = {
+    jsonrpc: '2.0',
+    id: requestId,
+    method: 'tools/call',
+    params: {
+      name: 'k_backup',
+      arguments: {
+        action,
+        ...params,
+      },
+    },
+  };
+
+  try {
+    const response = await fetch(`${MCP_CORE_URL}/mcp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+      throw new Error(`MCP request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = (await response.json()) as MCPResponse;
+
+    if (data.error) {
+      throw new Error(data.error.message);
+    }
+
+    if (!data.result?.content?.[0]?.text) {
+      throw new Error('Invalid MCP response format');
+    }
+
+    // Parse the JSON result from text content
+    const resultText = data.result.content[0].text;
+    try {
+      return JSON.parse(resultText);
+    } catch {
+      // If not JSON, return as-is
+      return resultText;
+    }
+  } catch (error) {
+    console.error(`[BackupService] MCP call failed: ${action}`, error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// Service Class
+// ============================================================================
+
+export class BackupService {
+  private config: BackupConfig | null = null;
+
+  /**
+   * Initialize the backup service
+   */
+  async initialize(): Promise<void> {
+    // Ensure directories exist
+    const settingsDir = getBackupSettingsDir();
+    const binDir = getResticBinDir();
+
+    await fs.mkdir(settingsDir, { recursive: true });
+    await fs.mkdir(binDir, { recursive: true });
+
+    // Load config if exists
+    await this.loadConfig();
+
+    console.log('[BackupService] Initialized');
+  }
+
+  /**
+   * Load configuration from disk
+   */
+  async loadConfig(): Promise<BackupConfig | null> {
+    const configPath = getConfigFilePath();
+
+    if (!existsSync(configPath)) {
+      this.config = null;
+      return null;
+    }
+
+    try {
+      const content = await fs.readFile(configPath, 'utf-8');
+      this.config = JSON.parse(content) as BackupConfig;
+      return this.config;
+    } catch (error) {
+      console.error('[BackupService] Failed to load config:', error);
+      this.config = null;
+      return null;
+    }
+  }
+
+  /**
+   * Save configuration to disk
+   */
+  async saveConfig(config: BackupConfig): Promise<void> {
+    const configPath = getConfigFilePath();
+    const settingsDir = getBackupSettingsDir();
+
+    await fs.mkdir(settingsDir, { recursive: true });
+
+    // Write to temp file first, then rename (atomic write)
+    const tempPath = `${configPath}.tmp`;
+    await fs.writeFile(tempPath, JSON.stringify(config, null, 2), 'utf-8');
+    await fs.rename(tempPath, configPath);
+
+    this.config = config;
+    console.log('[BackupService] Config saved');
+  }
+
+  /**
+   * Get current configuration
+   */
+  getConfig(): BackupConfig | null {
+    return this.config;
+  }
+
+  /**
+   * Create default configuration
+   */
+  createDefaultConfig(sourcePath: string): BackupConfig {
+    return {
+      schema_version: '1.0',
+      repository: {
+        path: getDefaultRepoPath(),
+        type: 'local',
+        initialized: false,
+      },
+      backup: {
+        source_path: sourcePath,
+        exclusions: [
+          '**/node_modules/',
+          '**/.git/',
+          '**/dist/',
+          '**/out/',
+          '**/build/',
+          '**/__pycache__/',
+          '**/*.pyc',
+          '**/*.tmp',
+          '**/*.temp',
+          '.DS_Store',
+          'Thumbs.db',
+          '.kuroryuu/restic-repo/',
+        ],
+      },
+      retention: {
+        keep_last: 30,
+        keep_daily: 7,
+        keep_weekly: 4,
+        keep_monthly: 6,
+      },
+      schedule: {
+        enabled: false,
+        interval_hours: 24,
+      },
+    };
+  }
+
+  // ==========================================================================
+  // Status Operations
+  // ==========================================================================
+
+  /**
+   * Get comprehensive backup status
+   */
+  async getStatus(): Promise<BackupStatus> {
+    try {
+      const result = (await callBackupTool('status')) as BackupApiResponse<BackupStatus>;
+
+      if (result.ok && result.data) {
+        return result.data;
+      }
+
+      // Return default status on error
+      return {
+        is_configured: !!this.config,
+        repository_exists: false,
+        repository_accessible: false,
+        restic_installed: false,
+        restic_version: null,
+        config_path: getConfigFilePath(),
+        binary_path: path.join(getResticBinDir(), process.platform === 'win32' ? 'restic.exe' : 'restic'),
+        snapshot_count: 0,
+        last_backup_time: null,
+      };
+    } catch (error) {
+      console.error('[BackupService] getStatus failed:', error);
+      return {
+        is_configured: !!this.config,
+        repository_exists: false,
+        repository_accessible: false,
+        restic_installed: false,
+        restic_version: null,
+        config_path: getConfigFilePath(),
+        binary_path: path.join(getResticBinDir(), process.platform === 'win32' ? 'restic.exe' : 'restic'),
+        snapshot_count: 0,
+        last_backup_time: null,
+      };
+    }
+  }
+
+  /**
+   * Check/download restic binary
+   */
+  async ensureRestic(): Promise<ResticBinaryStatus> {
+    try {
+      const result = (await callBackupTool('status')) as BackupApiResponse<{
+        restic: ResticBinaryStatus;
+      }>;
+
+      if (result.ok && result.data?.restic) {
+        return result.data.restic;
+      }
+
+      return {
+        installed: false,
+        path: null,
+        version: null,
+        downloaded: false,
+      };
+    } catch (error) {
+      console.error('[BackupService] ensureRestic failed:', error);
+      return {
+        installed: false,
+        path: null,
+        version: null,
+        downloaded: false,
+      };
+    }
+  }
+
+  // ==========================================================================
+  // Repository Operations
+  // ==========================================================================
+
+  /**
+   * Initialize a new repository
+   */
+  async initRepository(password: string): Promise<InitRepoResponse> {
+    try {
+      const result = (await callBackupTool('init', { password })) as BackupApiResponse;
+
+      if (result.ok) {
+        // Update config to mark as initialized
+        if (this.config) {
+          this.config.repository.initialized = true;
+          await this.saveConfig(this.config);
+        }
+      }
+
+      return {
+        ok: result.ok,
+        message: result.ok ? 'Repository initialized successfully' : 'Failed to initialize repository',
+        error: result.error,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        ok: false,
+        message: 'Failed to initialize repository',
+        error: message,
+      };
+    }
+  }
+
+  /**
+   * Verify repository password
+   */
+  async verifyPassword(password: string): Promise<boolean> {
+    try {
+      const result = (await callBackupTool('check', { password })) as BackupApiResponse;
+      return result.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  // ==========================================================================
+  // Backup Operations
+  // ==========================================================================
+
+  /**
+   * Create a new backup
+   */
+  async createBackup(message?: string, tags?: string[]): Promise<CreateBackupResponse> {
+    try {
+      const params: Record<string, unknown> = {};
+      if (message) params.message = message;
+      if (tags?.length) params.tags = tags;
+
+      const result = (await callBackupTool('backup', params)) as BackupApiResponse<{
+        session_id: string;
+        snapshot_id?: string;
+      }>;
+
+      return {
+        ok: result.ok,
+        session_id: result.data?.session_id || '',
+        snapshot_id: result.data?.snapshot_id,
+        error: result.error,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        ok: false,
+        session_id: '',
+        error: message,
+      };
+    }
+  }
+
+  /**
+   * List snapshots
+   */
+  async listSnapshots(limit = 50): Promise<ListSnapshotsResponse> {
+    try {
+      const result = (await callBackupTool('list', { limit })) as BackupApiResponse<{
+        snapshots: BackupSnapshot[];
+        total_count: number;
+      }>;
+
+      return {
+        ok: result.ok,
+        snapshots: result.data?.snapshots || [],
+        total_count: result.data?.total_count || 0,
+      };
+    } catch (error) {
+      console.error('[BackupService] listSnapshots failed:', error);
+      return {
+        ok: false,
+        snapshots: [],
+        total_count: 0,
+      };
+    }
+  }
+
+  /**
+   * Get diff between snapshot and current state (or another snapshot)
+   */
+  async getDiff(snapshotId: string, compareTo?: string): Promise<SnapshotDiff | null> {
+    try {
+      const params: Record<string, unknown> = { snapshot_id: snapshotId };
+      if (compareTo) params.compare_to = compareTo;
+
+      const result = (await callBackupTool('diff', params)) as BackupApiResponse<SnapshotDiff>;
+
+      if (result.ok && result.data) {
+        return result.data;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('[BackupService] getDiff failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Restore files from a snapshot
+   */
+  async restore(
+    snapshotId: string,
+    targetPath: string,
+    includePaths?: string[]
+  ): Promise<RestoreResponse> {
+    try {
+      const params: Record<string, unknown> = {
+        snapshot_id: snapshotId,
+        target_path: targetPath,
+      };
+      if (includePaths?.length) params.include_paths = includePaths;
+
+      const result = (await callBackupTool('restore', params)) as BackupApiResponse<{
+        restored_files: number;
+      }>;
+
+      return {
+        ok: result.ok,
+        restored_files: result.data?.restored_files || 0,
+        target_path: targetPath,
+        error: result.error,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return {
+        ok: false,
+        restored_files: 0,
+        target_path: targetPath,
+        error: message,
+      };
+    }
+  }
+
+  // ==========================================================================
+  // Maintenance Operations
+  // ==========================================================================
+
+  /**
+   * Forget a snapshot (remove from repository)
+   */
+  async forgetSnapshot(snapshotId: string, prune = false): Promise<BackupApiResponse> {
+    try {
+      const result = (await callBackupTool('forget', {
+        snapshot_id: snapshotId,
+        prune,
+      })) as BackupApiResponse;
+
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { ok: false, error: message };
+    }
+  }
+
+  /**
+   * Prune repository to reclaim space
+   */
+  async prune(): Promise<BackupApiResponse> {
+    try {
+      const result = (await callBackupTool('prune')) as BackupApiResponse;
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { ok: false, error: message };
+    }
+  }
+
+  /**
+   * Check repository integrity
+   */
+  async checkIntegrity(): Promise<BackupApiResponse> {
+    try {
+      const result = (await callBackupTool('check')) as BackupApiResponse;
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { ok: false, error: message };
+    }
+  }
+}
+
+// Singleton instance
+let backupService: BackupService | null = null;
+
+/**
+ * Get the backup service instance
+ */
+export function getBackupService(): BackupService {
+  if (!backupService) {
+    backupService = new BackupService();
+  }
+  return backupService;
+}
+
+/**
+ * Initialize the backup service
+ */
+export async function initializeBackupService(): Promise<BackupService> {
+  const service = getBackupService();
+  await service.initialize();
+  return service;
+}
