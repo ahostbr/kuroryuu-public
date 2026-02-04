@@ -22,6 +22,9 @@ export interface CodingAgentSession {
   started_at: string;
   exit_code: number | null;
   output_lines: number;
+  // Wave metadata for /max-parallel grouping
+  wave_id?: string;
+  dependency_ids?: string[];
 }
 
 interface CodingAgentsState {

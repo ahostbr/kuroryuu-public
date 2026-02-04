@@ -67,6 +67,8 @@ def _emit_bash_output(
     exit_code: Optional[int] = None,
     command: Optional[str] = None,
     is_heartbeat: bool = False,
+    wave_id: Optional[str] = None,
+    dependency_ids: Optional[list] = None,
 ) -> None:
     """Emit bash output chunk to Gateway for real-time streaming.
 
@@ -75,6 +77,8 @@ def _emit_bash_output(
 
     Args:
         is_heartbeat: If True, this is a keep-alive signal (no output data).
+        wave_id: Wave identifier for /max-parallel grouping in Desktop UI.
+        dependency_ids: Session IDs this task depends on (for wave visualization).
     """
     event = {
         "action": "bash_heartbeat" if is_heartbeat else "bash_output",
@@ -87,6 +91,9 @@ def _emit_bash_output(
         "exit_code": exit_code,
         "command_preview": command[:80] if command else None,
         "cli_type": "k_bash",
+        # Wave metadata for /max-parallel Desktop integration
+        "wave_id": wave_id,
+        "dependency_ids": dependency_ids or [],
     }
     try:
         httpx.post(
@@ -192,6 +199,8 @@ def _run_background(
     workdir: Optional[str],
     pty_mode: bool,
     timeout: int,
+    wave_id: Optional[str] = None,
+    dependency_ids: Optional[list] = None,
 ) -> Dict[str, Any]:
     """Run command in background, return sessionId."""
     session_id = str(uuid.uuid4())[:8]
@@ -207,6 +216,9 @@ def _run_background(
         "exit_code": None,
         "process": None,
         "pty_proc": None,
+        # Wave metadata for /max-parallel Desktop integration
+        "wave_id": wave_id,
+        "dependency_ids": dependency_ids or [],
     }
 
     BASH_SESSIONS[session_id] = session
@@ -227,7 +239,7 @@ def _run_background(
     )
     heartbeat.start()
 
-    return {"ok": True, "sessionId": session_id}
+    return {"ok": True, "sessionId": session_id, "wave_id": wave_id}
 
 
 def _background_runner(
@@ -256,6 +268,9 @@ def _background_simple(
     timeout: int,
 ) -> None:
     """Background subprocess without PTY."""
+    wave_id = session.get("wave_id")
+    dependency_ids = session.get("dependency_ids")
+
     try:
         proc = subprocess.Popen(
             command,
@@ -274,12 +289,12 @@ def _background_simple(
             if time.time() - start_time > timeout:
                 proc.terminate()
                 session["output"].append("[TIMEOUT] Process killed after timeout")
-                _emit_bash_output(session["id"], "[TIMEOUT] Process killed after timeout\n", command=command)
+                _emit_bash_output(session["id"], "[TIMEOUT] Process killed after timeout\n", command=command, wave_id=wave_id, dependency_ids=dependency_ids)
                 break
 
             session["output"].append(line.rstrip('\n'))
             # Emit for real-time streaming
-            _emit_bash_output(session["id"], line, command=command)
+            _emit_bash_output(session["id"], line, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
 
         proc.wait()
         session["exit_code"] = proc.returncode
@@ -291,12 +306,14 @@ def _background_simple(
             is_final=True,
             exit_code=proc.returncode,
             command=command,
+            wave_id=wave_id,
+            dependency_ids=dependency_ids,
         )
 
     except Exception as e:
         session["output"].append(f"[ERROR] {e}")
         session["exit_code"] = -1
-        _emit_bash_output(session["id"], f"[ERROR] {e}\n", is_final=True, exit_code=-1, command=command)
+        _emit_bash_output(session["id"], f"[ERROR] {e}\n", is_final=True, exit_code=-1, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
     finally:
         session["running"] = False
 
@@ -308,6 +325,9 @@ def _background_pty(
     timeout: int,
 ) -> None:
     """Background PTY process."""
+    wave_id = session.get("wave_id")
+    dependency_ids = session.get("dependency_ids")
+
     try:
         cwd = workdir or os.getcwd()
         # Spawn PowerShell with command
@@ -323,14 +343,14 @@ def _background_pty(
             if time.time() - start_time > timeout:
                 proc.terminate()
                 session["output"].append("[TIMEOUT] Process killed after timeout")
-                _emit_bash_output(session["id"], "[TIMEOUT] Process killed after timeout\n", command=command)
+                _emit_bash_output(session["id"], "[TIMEOUT] Process killed after timeout\n", command=command, wave_id=wave_id, dependency_ids=dependency_ids)
                 break
 
             try:
                 data = proc.read(4096, blocking=False)
                 if data:
                     # Emit raw data for real-time streaming (preserves formatting)
-                    _emit_bash_output(session["id"], data, command=command)
+                    _emit_bash_output(session["id"], data, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
 
                     # Split into lines for cleaner storage
                     for line in data.split('\n'):
@@ -345,7 +365,7 @@ def _background_pty(
         try:
             remaining = proc.read(65536, blocking=False)
             if remaining:
-                _emit_bash_output(session["id"], remaining, command=command)
+                _emit_bash_output(session["id"], remaining, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
                 for line in remaining.split('\n'):
                     if line.strip():
                         session["output"].append(line.rstrip('\r'))
@@ -362,12 +382,14 @@ def _background_pty(
             is_final=True,
             exit_code=exit_code,
             command=command,
+            wave_id=wave_id,
+            dependency_ids=dependency_ids,
         )
 
     except Exception as e:
         session["output"].append(f"[ERROR] {e}")
         session["exit_code"] = -1
-        _emit_bash_output(session["id"], f"[ERROR] {e}\n", is_final=True, exit_code=-1, command=command)
+        _emit_bash_output(session["id"], f"[ERROR] {e}\n", is_final=True, exit_code=-1, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
     finally:
         session["running"] = False
 
@@ -382,6 +404,8 @@ def k_bash(
     pty: bool = False,
     background: bool = False,
     timeout: int = 300,
+    wave_id: Optional[str] = None,
+    dependency_ids: Optional[list] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Execute shell command with optional PTY and background mode.
@@ -392,10 +416,12 @@ def k_bash(
         pty: Allocate pseudo-terminal (REQUIRED for interactive CLIs!)
         background: Run in background, return sessionId immediately
         timeout: Timeout in seconds (default: 300 = 5 minutes)
+        wave_id: Wave identifier for /max-parallel grouping in Desktop UI
+        dependency_ids: Session IDs this task depends on (for wave visualization)
 
     Returns:
         Foreground: {"ok": True, "output": "...", "exit_code": 0}
-        Background: {"ok": True, "sessionId": "abc123"}
+        Background: {"ok": True, "sessionId": "abc123", "wave_id": "wave1"}
     """
     if not command:
         return {"ok": False, "error": "command is required"}
@@ -408,7 +434,7 @@ def k_bash(
 
     # Route to appropriate implementation
     if background:
-        return _run_background(command, workdir, pty, timeout)
+        return _run_background(command, workdir, pty, timeout, wave_id, dependency_ids)
     elif pty:
         return _run_foreground_pty(command, workdir, timeout)
     else:
@@ -427,7 +453,8 @@ def register_bash_tools(registry: ToolRegistry) -> None:
         description=(
             "Simple shell execution with PTY and background support. "
             "Use pty=true for interactive CLIs (codex, claude, pi). "
-            "Use background=true for long-running tasks, returns sessionId for monitoring via k_process."
+            "Use background=true for long-running tasks, returns sessionId for monitoring via k_process. "
+            "Use wave_id for /max-parallel Desktop grouping."
         ),
         input_schema={
             "type": "object",
@@ -454,6 +481,15 @@ def register_bash_tools(registry: ToolRegistry) -> None:
                     "type": "integer",
                     "default": 300,
                     "description": "Timeout in seconds (default: 300)",
+                },
+                "wave_id": {
+                    "type": "string",
+                    "description": "Wave identifier for /max-parallel grouping in Desktop UI (e.g., 'wave1', 'wave2')",
+                },
+                "dependency_ids": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Session IDs this task depends on (for wave visualization arrows)",
                 },
             },
             "required": ["command"],
