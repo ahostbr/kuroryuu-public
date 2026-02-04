@@ -32,8 +32,17 @@ interface TreeNode {
   children?: TreeNode[];
 }
 
+// Intermediate type for object-based tree construction
+interface TreeBuildNode {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  status?: 'added' | 'removed' | 'modified';
+  children?: { [key: string]: TreeBuildNode };
+}
+
 function buildTree(entries: DiffEntry[]): TreeNode[] {
-  const root: { [key: string]: TreeNode } = {};
+  const root: { [key: string]: TreeBuildNode } = {};
 
   entries.forEach((entry) => {
     const parts = entry.path.replace(/^\//, '').split('/');
@@ -54,16 +63,16 @@ function buildTree(entries: DiffEntry[]): TreeNode[] {
       }
 
       if (!isLast && current[part].children) {
-        current = current[part].children as { [key: string]: TreeNode };
+        current = current[part].children!;
       }
     });
   });
 
-  const convertToArray = (obj: { [key: string]: TreeNode }): TreeNode[] => {
+  const convertToArray = (obj: { [key: string]: TreeBuildNode }): TreeNode[] => {
     return Object.values(obj)
       .map((node) => ({
         ...node,
-        children: node.children ? convertToArray(node.children as { [key: string]: TreeNode }) : undefined,
+        children: node.children ? convertToArray(node.children) : undefined,
       }))
       .sort((a, b) => {
         // Directories first, then alphabetical

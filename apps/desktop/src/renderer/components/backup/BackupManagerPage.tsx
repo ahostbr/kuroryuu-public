@@ -261,11 +261,7 @@ export function BackupManagerPage() {
   // Show setup wizard if not configured
   if (showSetupWizard || !isConfigured) {
     return (
-      <ThemedFrame
-        title="Backup Manager"
-        icon={<HardDrive className="w-5 h-5" />}
-        className="h-full"
-      >
+      <ThemedFrame className="h-full">
         <SetupWizard />
       </ThemedFrame>
     );
@@ -290,11 +286,7 @@ export function BackupManagerPage() {
   };
 
   return (
-    <ThemedFrame
-      title="Backup Manager"
-      icon={<HardDrive className="w-5 h-5" />}
-      className="h-full"
-    >
+    <ThemedFrame className="h-full">
       <div className="flex flex-col h-full">
         {/* Tab Navigation */}
         <div className="flex gap-1 p-2 bg-secondary/50 rounded-lg mb-4">

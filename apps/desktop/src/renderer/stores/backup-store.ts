@@ -121,7 +121,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
     try {
       const result = await window.electronAPI.backup.getConfig();
       if (result.ok) {
-        const config = result.data || null;
+        const config = (result.data as BackupConfig) || null;
         set({
           config,
           isConfigured: !!config,

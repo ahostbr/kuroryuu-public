@@ -68,7 +68,10 @@ export class TaskService extends EventEmitter {
   private async readTodoFile(): Promise<string> {
     this.ensureInitialized();
     try {
-      return await fs.readFile(this.todoPath!, 'utf-8');
+      let content = await fs.readFile(this.todoPath!, 'utf-8');
+      // Normalize line endings and remove BOM for consistent section matching
+      content = content.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      return content;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return '# Tasks\n\n## Backlog\n\n## Active\n\n## Delayed\n\n## Done\n\n';

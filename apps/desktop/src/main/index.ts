@@ -2351,6 +2351,28 @@ function setupGatewayIpc(): void {
       return { error: String(error), ok: false };
     }
   });
+
+  // Create task via gateway - single integration point
+  ipcMain.handle('gateway:task:create', async (_, data: {
+    title: string;
+    description?: string;
+    status?: string;
+    priority?: string;
+    category?: string;
+    tags?: string[];
+    from_session_id?: string;
+  }) => {
+    try {
+      const response = await fetch(`${GATEWAY_URL}/v1/tasks/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return await response.json();
+    } catch (error) {
+      return { ok: false, error: String(error) };
+    }
+  });
 }
 
 /**

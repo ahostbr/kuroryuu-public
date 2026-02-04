@@ -252,6 +252,17 @@ const api = {
       ipcRenderer.invoke('tasks:unwatch');
       ipcRenderer.removeAllListeners('tasks:changed');
     },
+
+    /** Create task via gateway - single integration point */
+    createViaGateway: (data: {
+      title: string;
+      description?: string;
+      status?: string;
+      priority?: string;
+      tags?: string[];
+      from_session_id?: string;
+    }): Promise<{ ok: boolean; task_id?: string; error?: string }> =>
+      ipcRenderer.invoke('gateway:task:create', data),
   },
   shell: {
     openPath: (path: string): Promise<string> =>
