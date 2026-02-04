@@ -235,7 +235,7 @@ export function AskUserQuestionCard({
                     <input
                       type={q.multiSelect ? 'checkbox' : 'radio'}
                       name={key}
-                      checked={isOtherSelected(qIdx)}
+                      checked={!!isOtherSelected(qIdx)}
                       onChange={() => {}}
                       disabled={submitted}
                       className="mt-0.5 w-4 h-4 accent-primary"

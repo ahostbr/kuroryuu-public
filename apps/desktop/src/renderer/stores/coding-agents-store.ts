@@ -2,8 +2,16 @@
  * Coding Agents Store - Manages background coding agent sessions
  *
  * Polls k_process(action="list") to get session state from MCP server.
+ * Archives completed sessions to IndexedDB for persistence across restarts.
  */
 import { create } from 'zustand';
+import {
+  archiveSession,
+  loadArchivedSessions,
+  deleteArchivedSession,
+  pruneOldSessions,
+  type ArchivedSession,
+} from './coding-agents-persistence';
 
 export interface CodingAgentSession {
   id: string;
@@ -18,17 +26,22 @@ export interface CodingAgentSession {
 
 interface CodingAgentsState {
   sessions: CodingAgentSession[];
+  archivedSessions: ArchivedSession[];
   selectedSessionId: string | null;
   isLoading: boolean;
   error: string | null;
   pollingInterval: NodeJS.Timeout | null;
+  previousSessionIds: Set<string>; // Track running sessions to detect completion
 
   // Actions
   loadSessions: () => Promise<void>;
+  loadArchivedSessions: () => Promise<void>;
   selectSession: (id: string | null) => void;
   killSession: (id: string) => Promise<boolean>;
   sendInput: (id: string, data: string) => Promise<boolean>;
   getSessionLog: (id: string, offset?: number, limit?: number) => Promise<string>;
+  getArchivedLog: (id: string) => string | null;
+  deleteArchived: (id: string) => Promise<void>;
   startPolling: (intervalMs?: number) => void;
   stopPolling: () => void;
 }
@@ -59,10 +72,12 @@ async function mcpCall(toolName: string, args: Record<string, unknown>): Promise
 
 export const useCodingAgentsStore = create<CodingAgentsState>((set, get) => ({
   sessions: [],
+  archivedSessions: [],
   selectedSessionId: null,
   isLoading: false,
   error: null,
   pollingInterval: null,
+  previousSessionIds: new Set<string>(),
 
   loadSessions: async () => {
     set({ isLoading: true, error: null });
@@ -77,11 +92,63 @@ export const useCodingAgentsStore = create<CodingAgentsState>((set, get) => ({
         throw new Error(result.error || 'Failed to load sessions');
       }
 
-      set({ sessions: result.sessions || [], isLoading: false });
+      const liveSessions = result.sessions || [];
+      const { previousSessionIds, archivedSessions } = get();
+
+      // Detect sessions that just completed (were running, now stopped)
+      const currentIds = new Set(liveSessions.map(s => s.id));
+      const completedSessions = liveSessions.filter(s =>
+        !s.running && previousSessionIds.has(s.id) &&
+        !archivedSessions.some(a => a.id === s.id)
+      );
+
+      // Archive newly completed sessions
+      for (const session of completedSessions) {
+        try {
+          // Fetch final logs before archiving
+          const logResult = await mcpCall('k_process', {
+            action: 'log',
+            sessionId: session.id,
+            offset: 0,
+            limit: 5000,
+          }) as { ok: boolean; output?: string };
+
+          const logs = logResult.ok ? (logResult.output || '') : '';
+          await archiveSession(session, logs);
+          console.log(`[CodingAgentsStore] Auto-archived session: ${session.id}`);
+        } catch (archiveErr) {
+          console.error('[CodingAgentsStore] Failed to archive session:', archiveErr);
+        }
+      }
+
+      // Update previous IDs for next comparison (only running sessions)
+      const runningIds = new Set(liveSessions.filter(s => s.running).map(s => s.id));
+
+      // Reload archived sessions if we archived anything
+      if (completedSessions.length > 0) {
+        await get().loadArchivedSessions();
+        // Prune old sessions
+        await pruneOldSessions(100);
+      }
+
+      set({
+        sessions: liveSessions,
+        isLoading: false,
+        previousSessionIds: runningIds,
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       set({ error: message, isLoading: false });
       console.error('[CodingAgentsStore] loadSessions error:', err);
+    }
+  },
+
+  loadArchivedSessions: async () => {
+    try {
+      const archived = await loadArchivedSessions();
+      set({ archivedSessions: archived });
+    } catch (err) {
+      console.error('[CodingAgentsStore] loadArchivedSessions error:', err);
     }
   },
 
@@ -149,16 +216,32 @@ export const useCodingAgentsStore = create<CodingAgentsState>((set, get) => ({
     }
   },
 
+  getArchivedLog: (id) => {
+    const { archivedSessions } = get();
+    const archived = archivedSessions.find(a => a.id === id);
+    return archived?.logs || null;
+  },
+
+  deleteArchived: async (id) => {
+    try {
+      await deleteArchivedSession(id);
+      const { archivedSessions } = get();
+      set({ archivedSessions: archivedSessions.filter(a => a.id !== id) });
+    } catch (err) {
+      console.error('[CodingAgentsStore] deleteArchived error:', err);
+    }
+  },
+
   startPolling: (intervalMs = 5000) => {
-    const { pollingInterval, loadSessions } = get();
+    const { pollingInterval, loadSessions, loadArchivedSessions } = get();
 
     // Clear existing interval if any
     if (pollingInterval) {
       clearInterval(pollingInterval);
     }
 
-    // Initial load
-    loadSessions();
+    // Initial load - archived first, then live
+    loadArchivedSessions().then(() => loadSessions());
 
     // Start polling
     const interval = setInterval(() => {

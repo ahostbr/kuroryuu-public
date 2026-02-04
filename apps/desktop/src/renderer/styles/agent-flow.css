@@ -1,0 +1,291 @@
+/**
+ * Agent Flow Styles - Theme-aware styling for Coding Agents graph visualization
+ * Follows the same pattern as pty-traffic.css
+ */
+
+/* ============================================
+   BASE STYLES (Cyberpunk Default)
+   ============================================ */
+
+.agent-flow-panel {
+  background: rgba(0, 0, 0, 0.85);
+  border: 2px solid #00ffff;
+  border-radius: 8px;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  min-width: 180px;
+}
+
+.agent-flow-panel-header {
+  color: #00ffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px #00ffff;
+}
+
+.agent-flow-panel-content {
+  padding: 12px 16px;
+}
+
+.agent-flow-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  border-radius: 4px;
+  color: #00ffff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.agent-flow-button:hover {
+  background: rgba(0, 255, 255, 0.2);
+  border-color: #00ffff;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+}
+
+.agent-flow-button.active {
+  background: rgba(0, 255, 255, 0.3);
+  border-color: #00ffff;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+}
+
+/* Stats bar styling */
+.agent-flow-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 6px 16px;
+  background: rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  font-size: 12px;
+}
+
+.agent-flow-neon-cyan {
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff;
+}
+
+.agent-flow-neon-green {
+  color: #00ff88;
+  text-shadow: 0 0 10px #00ff88;
+}
+
+.agent-flow-neon-red {
+  color: #ff3366;
+  text-shadow: 0 0 10px #ff3366;
+}
+
+.agent-flow-neon-purple {
+  color: #ff00ff;
+  text-shadow: 0 0 10px #ff00ff;
+}
+
+/* Empty state */
+.agent-flow-empty-state {
+  color: rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+}
+
+/* ReactFlow Controls override */
+.agent-flow-controls {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.2) !important;
+}
+
+.agent-flow-controls button {
+  background: transparent !important;
+  border: none !important;
+  color: #00ffff !important;
+}
+
+.agent-flow-controls button:hover {
+  background: rgba(0, 255, 255, 0.2) !important;
+}
+
+/* MiniMap override */
+.agent-flow-minimap {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid rgba(0, 255, 255, 0.3) !important;
+  border-radius: 6px !important;
+}
+
+/* ============================================
+   KURORYUU THEME
+   ============================================ */
+
+[data-agent-theme="kuroryuu"] .agent-flow-panel,
+[data-agent-theme="kuroryuu"].agent-flow-panel {
+  background: rgba(10, 10, 12, 0.92);
+  border: 2px solid #c9a227;
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-panel-header {
+  color: #c9a227;
+  border-bottom-color: rgba(201, 162, 39, 0.3);
+  text-shadow: 0 0 10px #c9a227;
+  font-family: "Reggae One", "MS Gothic", serif;
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-button {
+  background: rgba(201, 162, 39, 0.1);
+  border-color: rgba(201, 162, 39, 0.4);
+  color: #c9a227;
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-button:hover {
+  background: rgba(201, 162, 39, 0.2);
+  border-color: #c9a227;
+  box-shadow: 0 0 15px rgba(201, 162, 39, 0.4);
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-button.active {
+  background: rgba(201, 162, 39, 0.3);
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.5);
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-neon-cyan {
+  color: #c9a227;
+  text-shadow: 0 0 10px #c9a227;
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-neon-green {
+  color: #c9a227;
+  text-shadow: 0 0 10px #c9a227;
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-neon-red {
+  color: #8b1e1e;
+  text-shadow: 0 0 10px #8b1e1e;
+}
+
+[data-agent-theme="kuroryuu"] .agent-flow-neon-purple {
+  color: #c9a227;
+  text-shadow: 0 0 10px #c9a227;
+}
+
+/* ============================================
+   RETRO THEME (CRT / Phosphor Green)
+   ============================================ */
+
+[data-agent-theme="retro"] .agent-flow-panel,
+[data-agent-theme="retro"].agent-flow-panel {
+  background: rgba(5, 10, 5, 0.95);
+  border: 2px dashed #33ff00;
+  box-shadow: 0 0 20px rgba(51, 255, 0, 0.3);
+  font-family: "VT323", "Courier New", monospace;
+}
+
+[data-agent-theme="retro"] .agent-flow-panel-header {
+  color: #33ff00;
+  border-bottom: 1px dashed rgba(51, 255, 0, 0.3);
+  text-shadow: 0 0 10px #33ff00;
+  font-family: "VT323", "Courier New", monospace;
+}
+
+[data-agent-theme="retro"] .agent-flow-button {
+  background: rgba(51, 255, 0, 0.1);
+  border: 1px dashed rgba(51, 255, 0, 0.4);
+  color: #33ff00;
+  font-family: "VT323", "Courier New", monospace;
+}
+
+[data-agent-theme="retro"] .agent-flow-button:hover {
+  background: rgba(51, 255, 0, 0.2);
+  border-color: #33ff00;
+  box-shadow: 0 0 15px rgba(51, 255, 0, 0.4);
+}
+
+[data-agent-theme="retro"] .agent-flow-button.active {
+  background: rgba(51, 255, 0, 0.3);
+  box-shadow: 0 0 20px rgba(51, 255, 0, 0.5);
+}
+
+[data-agent-theme="retro"] .agent-flow-neon-cyan,
+[data-agent-theme="retro"] .agent-flow-neon-green,
+[data-agent-theme="retro"] .agent-flow-neon-purple {
+  color: #33ff00;
+  text-shadow: 0 0 10px #33ff00;
+}
+
+[data-agent-theme="retro"] .agent-flow-neon-red {
+  color: #ff0000;
+  text-shadow: 0 0 10px #ff0000;
+}
+
+/* Scanline overlay for retro theme */
+.agent-flow-scanline-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  animation: agent-flow-scanlineFlicker 0.1s infinite;
+}
+
+@keyframes agent-flow-scanlineFlicker {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.95; }
+}
+
+/* CRT screen edge glow */
+.agent-flow-crt-effect {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 99;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Node pulse animation for running sessions */
+.agent-session-running {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Edge glow animation */
+@keyframes edgeGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+.agent-flow-edge-active {
+  animation: edgeGlow 1.5s ease-in-out infinite;
+}

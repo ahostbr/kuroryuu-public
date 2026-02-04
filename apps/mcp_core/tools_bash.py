@@ -30,7 +30,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import httpx
+
 from protocol import ToolRegistry
+
+# Gateway URL for real-time streaming
+GATEWAY_URL = os.environ.get("KURORYUU_GATEWAY_URL", "http://127.0.0.1:8200")
 
 # ============================================================================
 # Session storage (shared with tools_process.py)
@@ -49,6 +54,44 @@ try:
     PYWINPTY_AVAILABLE = True
 except ImportError:
     pass
+
+
+# ============================================================================
+# Real-time streaming to Gateway
+# ============================================================================
+
+def _emit_bash_output(
+    session_id: str,
+    output_chunk: str,
+    is_final: bool = False,
+    exit_code: Optional[int] = None,
+    command: Optional[str] = None,
+) -> None:
+    """Emit bash output chunk to Gateway for real-time streaming.
+
+    Fire-and-forget POST to /v1/pty-traffic/emit endpoint.
+    Failures are silently ignored to not block the background process.
+    """
+    event = {
+        "action": "bash_output",
+        "session_id": session_id,
+        "response": output_chunk,
+        "response_size": len(output_chunk),
+        "success": True,
+        "is_final": is_final,
+        "exit_code": exit_code,
+        "command_preview": command[:80] if command else None,
+        "cli_type": "k_bash",
+    }
+    try:
+        httpx.post(
+            f"{GATEWAY_URL}/v1/pty-traffic/emit",
+            json=event,
+            timeout=1.0,
+        )
+    except Exception:
+        pass  # Don't block background process on emit failure
+
 
 # ============================================================================
 # Core implementation
@@ -203,16 +246,29 @@ def _background_simple(
             if time.time() - start_time > timeout:
                 proc.terminate()
                 session["output"].append("[TIMEOUT] Process killed after timeout")
+                _emit_bash_output(session["id"], "[TIMEOUT] Process killed after timeout\n", command=command)
                 break
 
             session["output"].append(line.rstrip('\n'))
+            # Emit for real-time streaming
+            _emit_bash_output(session["id"], line, command=command)
 
         proc.wait()
         session["exit_code"] = proc.returncode
 
+        # Emit final event
+        _emit_bash_output(
+            session["id"],
+            "",
+            is_final=True,
+            exit_code=proc.returncode,
+            command=command,
+        )
+
     except Exception as e:
         session["output"].append(f"[ERROR] {e}")
         session["exit_code"] = -1
+        _emit_bash_output(session["id"], f"[ERROR] {e}\n", is_final=True, exit_code=-1, command=command)
     finally:
         session["running"] = False
 
@@ -239,11 +295,15 @@ def _background_pty(
             if time.time() - start_time > timeout:
                 proc.terminate()
                 session["output"].append("[TIMEOUT] Process killed after timeout")
+                _emit_bash_output(session["id"], "[TIMEOUT] Process killed after timeout\n", command=command)
                 break
 
             try:
                 data = proc.read(4096, blocking=False)
                 if data:
+                    # Emit raw data for real-time streaming (preserves formatting)
+                    _emit_bash_output(session["id"], data, command=command)
+
                     # Split into lines for cleaner storage
                     for line in data.split('\n'):
                         if line.strip():
@@ -257,17 +317,29 @@ def _background_pty(
         try:
             remaining = proc.read(65536, blocking=False)
             if remaining:
+                _emit_bash_output(session["id"], remaining, command=command)
                 for line in remaining.split('\n'):
                     if line.strip():
                         session["output"].append(line.rstrip('\r'))
         except Exception:
             pass
 
-        session["exit_code"] = proc.exitstatus() if hasattr(proc, 'exitstatus') else 0
+        exit_code = proc.exitstatus() if hasattr(proc, 'exitstatus') else 0
+        session["exit_code"] = exit_code
+
+        # Emit final event
+        _emit_bash_output(
+            session["id"],
+            "",
+            is_final=True,
+            exit_code=exit_code,
+            command=command,
+        )
 
     except Exception as e:
         session["output"].append(f"[ERROR] {e}")
         session["exit_code"] = -1
+        _emit_bash_output(session["id"], f"[ERROR] {e}\n", is_final=True, exit_code=-1, command=command)
     finally:
         session["running"] = False
 

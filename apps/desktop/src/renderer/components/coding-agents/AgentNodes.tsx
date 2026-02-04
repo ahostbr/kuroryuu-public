@@ -1,0 +1,233 @@
+/**
+ * Custom React Flow nodes for Agent Flow visualization
+ * Themed to match the current visualization theme
+ * All node components wrapped with React.memo to prevent unnecessary re-renders
+ */
+import React from 'react';
+import { Handle, Position } from '@xyflow/react';
+import { Terminal, Server, Play, CheckCircle, XCircle, Clock, FileText } from 'lucide-react';
+import { useAgentFlowStore, THEME_COLORS, type AgentFlowTheme, type SessionManagerNodeData, type AgentSessionNodeData } from '../../stores/agent-flow-store';
+
+// Helper to get current theme colors
+function useThemeColors() {
+  const theme = useAgentFlowStore((s) => s.theme);
+  return THEME_COLORS[theme];
+}
+
+// Get border style based on theme
+function getBorderStyle(theme: AgentFlowTheme): string {
+  return theme === 'retro' ? 'dashed' : 'solid';
+}
+
+// Get font family based on theme
+function getFontFamily(theme: AgentFlowTheme): string {
+  switch (theme) {
+    case 'kuroryuu':
+      return '"Reggae One", "MS Gothic", serif';
+    case 'retro':
+      return '"VT323", "Courier New", monospace';
+    default:
+      return 'inherit';
+  }
+}
+
+/**
+ * Session Manager Node - central hub showing aggregate stats
+ */
+export const SessionManagerNode = React.memo(function SessionManagerNode({
+  data,
+}: {
+  data: { data: SessionManagerNodeData };
+}) {
+  const { label, totalSessions, activeCount, completedCount, failedCount } = data.data;
+  const colors = useThemeColors();
+  const theme = useAgentFlowStore((s) => s.theme);
+
+  return (
+    <div
+      className="relative px-6 py-5 rounded-xl backdrop-blur-sm min-w-[160px]"
+      style={{
+        backgroundColor: colors.nodeBg,
+        border: `3px ${getBorderStyle(theme)} ${colors.hub}`,
+        boxShadow: `0 0 40px ${colors.hub}60, inset 0 0 20px ${colors.hub}20`,
+        fontFamily: getFontFamily(theme),
+      }}
+    >
+      <Handle
+        type="source"
+        position={Position.Top}
+        className="!w-4 !h-4 !border-2"
+        style={{ backgroundColor: colors.hub, borderColor: colors.nodeBg }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!w-4 !h-4 !border-2"
+        style={{ backgroundColor: colors.hub, borderColor: colors.nodeBg }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!w-4 !h-4 !border-2"
+        style={{ backgroundColor: colors.hub, borderColor: colors.nodeBg }}
+      />
+      <Handle
+        type="source"
+        position={Position.Left}
+        className="!w-4 !h-4 !border-2"
+        style={{ backgroundColor: colors.hub, borderColor: colors.nodeBg }}
+      />
+
+      <div className="flex items-center justify-center gap-2 mb-3">
+        <Server className="w-6 h-6" style={{ color: colors.hub }} />
+        <span className="text-sm font-bold tracking-wider" style={{ color: colors.hub }}>
+          {label}
+        </span>
+      </div>
+
+      <div className="text-center mb-2">
+        <span className="text-2xl font-bold" style={{ color: colors.nodeText }}>
+          {totalSessions}
+        </span>
+        <span className="text-xs ml-1" style={{ color: `${colors.nodeText}80` }}>
+          sessions
+        </span>
+      </div>
+
+      <div className="flex justify-center gap-4 text-[11px]">
+        {activeCount > 0 && (
+          <div className="flex items-center gap-1">
+            <Play className="w-3 h-3" style={{ color: colors.running }} />
+            <span style={{ color: colors.running }}>{activeCount}</span>
+          </div>
+        )}
+        {completedCount > 0 && (
+          <div className="flex items-center gap-1">
+            <CheckCircle className="w-3 h-3" style={{ color: colors.success }} />
+            <span style={{ color: colors.success }}>{completedCount}</span>
+          </div>
+        )}
+        {failedCount > 0 && (
+          <div className="flex items-center gap-1">
+            <XCircle className="w-3 h-3" style={{ color: colors.error }} />
+            <span style={{ color: colors.error }}>{failedCount}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+/**
+ * Agent Session Node - represents a single coding agent session
+ */
+export const AgentSessionNode = React.memo(function AgentSessionNode({
+  data,
+}: {
+  data: { data: AgentSessionNodeData };
+}) {
+  const { label, status, outputLines, duration, exitCode, pty, command, workdir } = data.data;
+  const colors = useThemeColors();
+  const theme = useAgentFlowStore((s) => s.theme);
+
+  // Determine border color based on status
+  let borderColor = colors.success;
+  if (status === 'running') {
+    borderColor = colors.running;
+  } else if (status === 'failed') {
+    borderColor = colors.error;
+  }
+
+  // Status icon
+  const StatusIcon = status === 'running' ? Play : status === 'failed' ? XCircle : CheckCircle;
+
+  return (
+    <div
+      className="relative px-4 py-3 rounded-lg backdrop-blur-sm min-w-[130px]"
+      style={{
+        backgroundColor: colors.nodeBg,
+        border: `2px ${getBorderStyle(theme)} ${borderColor}`,
+        boxShadow: `0 0 20px ${borderColor}40`,
+        fontFamily: getFontFamily(theme),
+      }}
+    >
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!w-3 !h-3 !border-2"
+        style={{ backgroundColor: borderColor, borderColor: colors.nodeBg }}
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!w-3 !h-3 !border-2"
+        style={{ backgroundColor: borderColor, borderColor: colors.nodeBg }}
+      />
+
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-2">
+        <Terminal className="w-4 h-4" style={{ color: borderColor }} />
+        <span className="text-xs font-bold" style={{ color: borderColor }}>
+          {label}
+        </span>
+        {pty && (
+          <span
+            className="px-1 py-0.5 rounded text-[8px] uppercase"
+            style={{
+              backgroundColor: `${borderColor}20`,
+              color: borderColor,
+            }}
+          >
+            PTY
+          </span>
+        )}
+      </div>
+
+      {/* Status Row */}
+      <div className="flex items-center gap-2 mb-1">
+        <StatusIcon
+          className="w-3 h-3"
+          style={{
+            color: borderColor,
+            animation: status === 'running' ? 'pulse 1.5s infinite' : 'none',
+          }}
+        />
+        <span className="text-[10px] capitalize" style={{ color: `${colors.nodeText}90` }}>
+          {status}
+        </span>
+        {exitCode !== null && exitCode !== 0 && (
+          <span className="text-[10px]" style={{ color: colors.error }}>
+            (exit: {exitCode})
+          </span>
+        )}
+      </div>
+
+      {/* Stats Row */}
+      <div className="flex justify-between text-[10px]" style={{ color: `${colors.nodeText}70` }}>
+        <div className="flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          <span>{duration}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <FileText className="w-3 h-3" />
+          <span>{outputLines}</span>
+        </div>
+      </div>
+
+      {/* Truncated workdir */}
+      <div
+        className="mt-1 text-[9px] truncate max-w-[120px]"
+        style={{ color: `${colors.nodeText}50` }}
+        title={workdir}
+      >
+        {workdir.split(/[/\\]/).slice(-2).join('/')}
+      </div>
+    </div>
+  );
+});
+
+// Export node types for ReactFlow
+export const agentNodeTypes = {
+  'session-manager': SessionManagerNode,
+  'agent-session': AgentSessionNode,
+};

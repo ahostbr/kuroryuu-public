@@ -145,31 +145,48 @@ function RoadmapEmptyState({ onGenerate }: { onGenerate: () => void }) {
 function GenerationProgressScreen({ onCancel }: { onCancel: () => void }) {
   const { generationProgress, features } = useRoadmapStore();
 
+  // Show "Thinking..." when waiting for LLM response (no features yet and progress < 50)
+  const isThinking = features.length === 0 && generationProgress < 50;
+
   return (
     <div className="h-full flex flex-col items-center justify-center text-center p-8">
       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-400/20 to-purple-500/20 flex items-center justify-center mb-6 animate-pulse">
         <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
       </div>
-      
+
       <h2 className="text-xl font-semibold text-foreground mb-2">
         Building Roadmap...
       </h2>
-      <p className="text-muted-foreground mb-6">
-        Identified {features.length} features so far
-      </p>
 
-      {/* Progress Bar */}
-      <div className="w-full max-w-sm mb-6">
-        <div className="h-2 bg-secondary rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-            style={{ width: `${generationProgress}%` }}
-          />
-        </div>
-        <div className="mt-2 text-sm text-muted-foreground">
-          {Math.round(generationProgress)}% complete
-        </div>
-      </div>
+      {isThinking ? (
+        <p className="text-muted-foreground mb-6">
+          Thinking
+          <span className="inline-flex ml-0.5">
+            <span className="animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}>.</span>
+            <span className="animate-bounce" style={{ animationDelay: '200ms', animationDuration: '1s' }}>.</span>
+            <span className="animate-bounce" style={{ animationDelay: '400ms', animationDuration: '1s' }}>.</span>
+          </span>
+        </p>
+      ) : (
+        <>
+          <p className="text-muted-foreground mb-6">
+            Identified {features.length} features so far
+          </p>
+
+          {/* Progress Bar */}
+          <div className="w-full max-w-sm mb-6">
+            <div className="h-2 bg-secondary rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+                style={{ width: `${generationProgress}%` }}
+              />
+            </div>
+            <div className="mt-2 text-sm text-muted-foreground">
+              {Math.round(generationProgress)}% complete
+            </div>
+          </div>
+        </>
+      )}
 
       <button
         onClick={onCancel}
