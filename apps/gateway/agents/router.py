@@ -17,7 +17,7 @@ from __future__ import annotations
 import secrets
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Request
 
 from .models import (
     Agent,
@@ -54,6 +54,7 @@ def _validate_desktop_secret(secret: Optional[str]) -> bool:
 
 @router.post("/_x9k_desktop_auth")
 async def register_desktop_secret(
+    request: Request,
     x_desktop_secret: str = Header(..., alias="X-Kuroryuu-Desktop-Secret")
 ):
     """Register Desktop app's session secret.
@@ -61,15 +62,28 @@ async def register_desktop_secret(
     DESKTOP-ONLY: Called once at Desktop startup.
     The secret is used to authenticate role management requests.
 
-    Security: This prevents agents from self-promoting via curl/Bash.
+    Security:
+    - Only accepts requests from localhost (127.0.0.1 or ::1)
+    - Prevents external attackers from registering a malicious secret
+    - Prevents agents from self-promoting via curl/Bash from remote
     """
     global _desktop_secret
+
+    # SECURITY: Only allow from localhost
+    client_ip = request.client.host if request.client else None
+    if client_ip not in ("127.0.0.1", "::1"):
+        logger.warning(f"[SECURITY] Desktop auth rejected from non-localhost: {client_ip}")
+        raise HTTPException(
+            status_code=403,
+            detail="Desktop auth only allowed from localhost"
+        )
 
     # Validate secret format (64 hex chars = 32 bytes)
     if len(x_desktop_secret) != 64 or not all(c in '0123456789abcdef' for c in x_desktop_secret.lower()):
         raise HTTPException(status_code=400, detail="Invalid secret format")
 
     _desktop_secret = x_desktop_secret
+    logger.info(f"[SECURITY] Desktop secret registered from {client_ip}")
     return {"ok": True, "message": "Desktop secret registered"}
 
 

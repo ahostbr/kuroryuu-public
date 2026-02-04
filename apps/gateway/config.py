@@ -10,12 +10,16 @@ Environment Variables:
     KURORYUU_AUTH_USERNAME: Auth username (default: Guest)
     KURORYUU_AUTH_PASSWORD_HASH: Pre-hashed password (SHA256)
     KURORYUU_SESSION_TTL_DAYS: Session cookie TTL (default: 7)
-    KURORYUU_CORS_ORIGINS: Comma-separated origins or * (default: *)
-    KURORYUU_PUBLIC_DOMAIN: Public domain for external access
-    KURORYUU_ALLOW_EXTERNAL: Allow external connections (default: false)
+    KURORYUU_CORS_ORIGINS: Comma-separated origins (default: localhost only)
+    KURORYUU_PUBLIC_DOMAIN: Public domain for tunnel access
     KURORYUU_MCP_URL: MCP server URL (default: http://127.0.0.1:8100)
     KURORYUU_PROXY_PORT: Tunnel proxy port (default: 8199)
     KURORYUU_TRUSTED_PROXIES: Trusted proxy IPs for X-Forwarded headers (default: none)
+
+SECURITY NOTE:
+    External access is NOT supported via direct exposure. Use Cloudflare Tunnel
+    or Tailscale for secure remote access. The gateway is designed to run on
+    localhost only.
 """
 
 from __future__ import annotations
@@ -81,19 +85,28 @@ class GatewayConfig:
         os.environ.get("KURORYUU_SESSION_TTL_DAYS", "7")
     ))
 
-    # CORS
+    # CORS - Restricted by default to localhost origins + Electron renderer
+    # SECURITY: Do NOT use "*" in production - it allows CSRF attacks from any website
     cors_origins: List[str] = field(default_factory=lambda: _parse_list(
-        os.environ.get("KURORYUU_CORS_ORIGINS", "*"),
-        default=["*"]
+        os.environ.get("KURORYUU_CORS_ORIGINS", ""),
+        default=[
+            "http://localhost:3000",      # Web UI dev server
+            "http://127.0.0.1:3000",
+            "http://localhost:5173",      # Vite dev server
+            "http://127.0.0.1:5173",
+            "http://localhost:8200",      # Gateway self (for SPA)
+            "http://127.0.0.1:8200",
+            "null",                        # Electron renderer (file:// origin)
+        ]
     ))
 
-    # External Access
+    # External Access (via tunnels only - direct external access NOT supported)
+    # Use Cloudflare Tunnel or Tailscale for secure remote access
     public_domain: str = field(default_factory=lambda: os.environ.get(
         "KURORYUU_PUBLIC_DOMAIN", ""
     ))
-    allow_external: bool = field(default_factory=lambda: _parse_bool(
-        os.environ.get("KURORYUU_ALLOW_EXTERNAL", "false"), default=False
-    ))
+    # NOTE: KURORYUU_ALLOW_EXTERNAL has been REMOVED for security.
+    # External access should ONLY be via Cloudflare Tunnel or Tailscale.
 
     # MCP Server (centralized - previously duplicated in 3 files)
     mcp_url: str = field(default_factory=lambda: os.environ.get(

@@ -9,6 +9,9 @@ import json
 import logging
 from datetime import datetime, timedelta
 
+# Import origin validation from main websocket module
+from ..websocket import validate_websocket_origin
+
 logger = logging.getLogger(__name__)
 
 # Ping/Pong keep-alive constants
@@ -312,6 +315,11 @@ async def websocket_traffic_flow(websocket: WebSocket):
     - event_types: ["request", "response", "error"] - Filter by event type
     - agent_ids: ["agent_1", "agent_2"] - Filter by agent ID
     """
+    # SECURITY: Validate origin before accepting connection
+    if not await validate_websocket_origin(websocket):
+        await websocket.close(code=4003, reason="Forbidden: Invalid origin")
+        return
+
     await traffic_ws_manager.connect(websocket)
 
     try:

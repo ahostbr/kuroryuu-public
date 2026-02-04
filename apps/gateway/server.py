@@ -124,7 +124,7 @@ from .chat_proxy import router as chat_proxy_router, get_bootstrap_content
 from .websocket import router as websocket_router, broadcast_leader_message
 
 # Traffic Monitoring (Network Visualization)
-from .traffic.middleware import TrafficMonitoringMiddleware
+from .traffic.middleware import TrafficMonitoringMiddleware, OriginValidationMiddleware
 from .traffic.router import router as traffic_router
 from .traffic.websocket import websocket_traffic_flow
 from .traffic.storage import cleanup_task as traffic_cleanup_task
@@ -300,11 +300,24 @@ app.add_middleware(
 # Traffic monitoring middleware (for network visualization)
 app.add_middleware(TrafficMonitoringMiddleware)
 
+# Origin validation middleware (security - CSRF protection for POST/PUT/DELETE)
+# Must be added AFTER traffic monitoring to run BEFORE it in the middleware chain
+app.add_middleware(OriginValidationMiddleware)
+
 # Trusted proxies middleware (for running behind nginx/Caddy)
 # Enables correct client IP detection from X-Forwarded-For headers
 if config.trusted_proxies:
-    trusted_hosts = config.trusted_proxies if "*" not in config.trusted_proxies else "*"
-    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=trusted_hosts)
+    # SECURITY: Reject wildcard proxy trust - it allows IP spoofing attacks
+    if "*" in config.trusted_proxies:
+        import sys
+        logger.error("=" * 60)
+        logger.error("SECURITY ERROR: Wildcard proxy trust (*) is NOT ALLOWED")
+        logger.error("This allows attackers to spoof their IP via X-Forwarded-For header")
+        logger.error("Configure specific proxy IPs in KURORYUU_TRUSTED_PROXIES instead")
+        logger.error("Example: KURORYUU_TRUSTED_PROXIES=10.0.0.1,10.0.0.2")
+        logger.error("=" * 60)
+        sys.exit(1)
+    app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=config.trusted_proxies)
 
 # M2: Include agent registry router
 app.include_router(agents_router)
@@ -2265,18 +2278,35 @@ def main():
     # Use centralized config (already loaded from env/.env file)
     port = config.port
     host = config.host
-    
+
     # Initialize harness store
     harness_store = get_harness_store()
 
     # Initialize logging
     logger = setup_logging()
+
+    # SECURITY WARNING: Non-localhost binding
+    localhost_addresses = ("127.0.0.1", "localhost", "::1")
+    if host not in localhost_addresses:
+        logger.warning("=" * 70)
+        logger.warning("  SECURITY WARNING: Binding to non-localhost address!")
+        logger.warning(f"  Host: {host}")
+        logger.warning("")
+        logger.warning("  Direct external exposure is NOT RECOMMENDED.")
+        logger.warning("  For secure remote access, use one of:")
+        logger.warning("    - Cloudflare Tunnel (cloudflared)")
+        logger.warning("    - Tailscale")
+        logger.warning("")
+        logger.warning("  These provide authentication and encryption.")
+        logger.warning("  See: Docs/Guides/SECURITY.md")
+        logger.warning("=" * 70)
+
     logger.info(f"Starting Kuroryuu Gateway on {host}:{port}")
     logger.info(f"LLM Backend: {get_backend_name()}")
     logger.info(f"MCP Server: {MCP_URL}")
     logger.info(f"Harness Dir: {HARNESS_DIR}")
     logger.info(f"Slash Commands: {', '.join(SLASH_COMMANDS.keys())}")
-    
+
     uvicorn.run(app, host=host, port=port)
 
 

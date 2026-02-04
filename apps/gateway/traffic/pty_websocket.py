@@ -9,6 +9,9 @@ import json
 import logging
 from datetime import datetime, timedelta
 
+# Import origin validation from main websocket module
+from ..websocket import validate_websocket_origin
+
 logger = logging.getLogger(__name__)
 
 # Ping/Pong keep-alive constants
@@ -299,6 +302,11 @@ async def websocket_pty_traffic(websocket: WebSocket):
     - errors_only: true
     - blocked_only: true
     """
+    # SECURITY: Validate origin before accepting connection
+    if not await validate_websocket_origin(websocket):
+        await websocket.close(code=4003, reason="Forbidden: Invalid origin")
+        return
+
     await pty_ws_manager.connect(websocket)
 
     try:

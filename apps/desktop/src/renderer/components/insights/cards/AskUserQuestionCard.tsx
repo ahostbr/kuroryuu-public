@@ -138,16 +138,16 @@ export function AskUserQuestionCard({
   const questionCount = data.questions.length;
 
   return (
-    <div className="border border-purple-500/30 rounded-lg overflow-hidden bg-card/50 mt-2">
+    <div className="border border-border/50 rounded-lg overflow-hidden bg-card/50 mt-2">
       {/* Header */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-purple-500/10 hover:bg-purple-500/20 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors"
       >
         {submitted ? (
           <CheckCircle className="w-4 h-4 text-green-400" />
         ) : (
-          <HelpCircle className="w-4 h-4 text-purple-400" />
+          <HelpCircle className="w-4 h-4 text-muted-foreground" />
         )}
         <span className="text-sm font-medium text-foreground">
           {submitted ? 'Answered' : 'User Input Required'}
@@ -177,7 +177,7 @@ export function AskUserQuestionCard({
             return (
               <div key={qIdx} className="space-y-2">
                 {/* Header chip */}
-                <span className="inline-block px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] uppercase tracking-wide">
+                <span className="inline-block px-2 py-0.5 rounded bg-muted text-muted-foreground text-[10px] uppercase tracking-wide">
                   {q.header}
                 </span>
 
@@ -196,7 +196,7 @@ export function AskUserQuestionCard({
                         key={oIdx}
                         className={`flex items-start gap-3 p-2 rounded-lg border cursor-pointer transition-colors ${
                           isSelected
-                            ? 'border-purple-500/50 bg-purple-500/10'
+                            ? 'border-primary/50 bg-primary/10'
                             : 'border-border/50 hover:bg-muted/30'
                         } ${submitted ? 'cursor-default opacity-70' : ''}`}
                       >
@@ -208,7 +208,7 @@ export function AskUserQuestionCard({
                             handleSelect(qIdx, opt.label, q.multiSelect)
                           }
                           disabled={submitted}
-                          className="mt-0.5 w-4 h-4 accent-purple-500"
+                          className="mt-0.5 w-4 h-4 accent-primary"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="text-sm text-foreground">
@@ -228,7 +228,7 @@ export function AskUserQuestionCard({
                   <label
                     className={`flex items-start gap-3 p-2 rounded-lg border cursor-pointer transition-colors ${
                       isOtherSelected(qIdx)
-                        ? 'border-purple-500/50 bg-purple-500/10'
+                        ? 'border-primary/50 bg-primary/10'
                         : 'border-border/50 hover:bg-muted/30'
                     } ${submitted ? 'cursor-default opacity-70' : ''}`}
                   >
@@ -238,7 +238,7 @@ export function AskUserQuestionCard({
                       checked={isOtherSelected(qIdx)}
                       onChange={() => {}}
                       disabled={submitted}
-                      className="mt-0.5 w-4 h-4 accent-purple-500"
+                      className="mt-0.5 w-4 h-4 accent-primary"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-foreground mb-1">Other</div>
@@ -248,7 +248,7 @@ export function AskUserQuestionCard({
                         value={otherValue}
                         onChange={(e) => handleOtherInput(qIdx, e.target.value)}
                         disabled={submitted}
-                        className="w-full px-2 py-1 text-sm bg-background border border-border/50 rounded focus:outline-none focus:border-purple-500/50 disabled:opacity-50"
+                        className="w-full px-2 py-1 text-sm bg-background border border-border/50 rounded focus:outline-none focus:border-primary/50 disabled:opacity-50"
                       />
                     </div>
                   </label>
@@ -269,7 +269,7 @@ export function AskUserQuestionCard({
             <button
               onClick={handleSubmit}
               disabled={!allAnswered || isSubmitting}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium text-white"
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-primary hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium text-primary-foreground"
             >
               {isSubmitting ? (
                 <>
@@ -291,13 +291,12 @@ export function AskUserQuestionCard({
           )}
 
           {/* Footer */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t border-border/30">
+          <div className="flex items-center gap-4 text-[10px] text-muted-foreground/50 pt-2 border-t border-border/30">
             <span className="flex items-center gap-1">
-              <HelpCircle className="w-3 h-3" />
               {data.questionId}
             </span>
             {submitted && (
-              <span className="flex items-center gap-1 text-green-400">
+              <span className="flex items-center gap-1 text-green-400/70">
                 <CheckCircle className="w-3 h-3" />
                 Complete
               </span>
