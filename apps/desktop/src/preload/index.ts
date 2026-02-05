@@ -1978,6 +1978,18 @@ const api = {
     /** Check if global TTS hooks are installed */
     status: (): Promise<{ installed: boolean }> =>
       ipcRenderer.invoke('global-hooks:status'),
+    /** Validate prerequisites for global TTS hooks */
+    validate: (): Promise<{
+      valid: boolean;
+      uvFound: boolean;
+      uvPath: string | null;
+      scriptFound: boolean;
+      scriptPath: string | null;
+      errors: string[];
+    }> => ipcRenderer.invoke('global-hooks:validate'),
+    /** Test global TTS by playing a test announcement */
+    test: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('global-hooks:test'),
   },
 
   // Backup API - Restic backup management
