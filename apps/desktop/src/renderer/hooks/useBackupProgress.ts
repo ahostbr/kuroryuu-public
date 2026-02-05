@@ -160,22 +160,24 @@ export function useBackupProgress(options: BackupProgressOptions = {}): UseBacku
       };
 
       ws.onclose = () => {
+        isConnectedRef.current = false;
+
+        // Suppress logging during React Strict Mode teardown
         if (!mountedRef.current) return;
 
-        isConnectedRef.current = false;
         console.log('[BackupProgress] WebSocket disconnected');
 
         // Attempt reconnect after delay if still mounted
-        if (mountedRef.current) {
-          reconnectTimeoutRef.current = setTimeout(() => {
-            if (mountedRef.current) {
-              connect();
-            }
-          }, 3000);
-        }
+        reconnectTimeoutRef.current = setTimeout(() => {
+          if (mountedRef.current) {
+            connect();
+          }
+        }, 3000);
       };
 
       ws.onerror = (error) => {
+        // Suppress error logging during React Strict Mode teardown
+        if (!mountedRef.current) return;
         console.error('[BackupProgress] WebSocket error:', error);
       };
 
@@ -192,6 +194,12 @@ export function useBackupProgress(options: BackupProgressOptions = {}): UseBacku
     }
 
     if (wsRef.current) {
+      // Remove event handlers to prevent "closed before established" errors
+      // during React Strict Mode teardown
+      wsRef.current.onopen = null;
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
+      wsRef.current.onmessage = null;
       wsRef.current.close();
       wsRef.current = null;
     }
