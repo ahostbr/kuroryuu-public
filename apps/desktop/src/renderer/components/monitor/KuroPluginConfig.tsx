@@ -27,7 +27,9 @@ import {
   Mic,
   CheckCircle2,
   XCircle,
+  Info,
 } from 'lucide-react';
+import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -233,6 +235,7 @@ function FieldRow({ label, description, children }: FieldRowProps) {
 // Main Component
 // ============================================================================
 export function KuroPluginConfig() {
+  const teamsActive = useClaudeTeamsStore((s) => s.teams.length > 0);
   const [config, setConfig] = useState<KuroConfig>(DEFAULT_CONFIG);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -736,6 +739,15 @@ export function KuroPluginConfig() {
 
         {/* Hooks */}
         <CollapsibleSection title="Hooks" icon={Webhook} defaultOpen={false}>
+          {teamsActive && (
+            <div className="flex items-start gap-2 p-3 mb-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-400 leading-relaxed">
+                TTS hooks are running globally while Claude Teams are active.
+                Local TTS hooks are temporarily disabled to avoid double announcements.
+              </p>
+            </div>
+          )}
           <FieldRow label="TTS on Stop" description="Speak when session ends">
             <Toggle
               checked={config.hooks.ttsOnStop}

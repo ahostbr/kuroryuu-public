@@ -1,6 +1,8 @@
 import { getSettings } from '../settings';
 import { WindowsTTS } from './windows-tts';
 import { EdgeTTS } from './edge-tts';
+import { ElevenLabsTTS } from './elevenlabs-tts';
+import { getApiKey } from '../token-store';
 
 export interface TTSBackend {
   speak(text: string): Promise<{ success: boolean; error?: string }>;
@@ -18,6 +20,7 @@ export interface TTSResult {
 
 let windowsTTS: WindowsTTS;
 let edgeTTS: EdgeTTS;
+let elevenlabsTTS: ElevenLabsTTS | null = null;
 let currentBackend: TTSBackend;
 let isSpeaking = false;
 
@@ -25,13 +28,41 @@ export function initializeTTS(): void {
   console.log('[TTS] initializeTTS() called');
   windowsTTS = new WindowsTTS();
   edgeTTS = new EdgeTTS();
-  
+
+  // Initialize ElevenLabs if API key exists
+  const apiKey = getApiKey('elevenlabs');
+  if (apiKey) {
+    const settings = getSettings();
+    elevenlabsTTS = new ElevenLabsTTS({
+      apiKey,
+      voiceId: settings.elevenlabsVoice,
+      modelId: settings.elevenlabsModelId,
+      stability: settings.elevenlabsStability,
+      similarityBoost: settings.elevenlabsSimilarity
+    });
+    console.log('[TTS] ElevenLabs initialized');
+  }
+
   // Set initial backend based on settings
   const settings = getSettings();
   console.log('[TTS] Settings engine:', settings.engine);
-  currentBackend = settings.engine === 'edge' ? edgeTTS : windowsTTS;
-  
+  currentBackend = selectBackend(settings.engine);
+
   console.log('[TTS] Manager initialized with backend:', settings.engine);
+}
+
+function selectBackend(engine: string): TTSBackend {
+  switch (engine) {
+    case 'elevenlabs':
+      if (elevenlabsTTS) return elevenlabsTTS;
+      console.warn('[TTS] ElevenLabs not configured, falling back to Edge');
+      return edgeTTS;
+    case 'windows':
+      return windowsTTS;
+    case 'edge':
+    default:
+      return edgeTTS;
+  }
 }
 
 export async function speakText(text: string): Promise<TTSResult> {
@@ -42,15 +73,13 @@ export async function speakText(text: string): Promise<TTSResult> {
   }
   
   const settings = getSettings();
-  console.log('[TTS] Settings engine:', settings.engine, 'currentBackend:', currentBackend === edgeTTS ? 'edge' : 'windows');
-  
+  console.log('[TTS] Settings engine:', settings.engine);
+
   // Switch backend if needed
-  if (settings.engine === 'edge' && currentBackend !== edgeTTS) {
-    console.log('[TTS] Switching to Edge TTS');
-    currentBackend = edgeTTS;
-  } else if (settings.engine === 'windows' && currentBackend !== windowsTTS) {
-    console.log('[TTS] Switching to Windows TTS');
-    currentBackend = windowsTTS;
+  const newBackend = selectBackend(settings.engine);
+  if (newBackend !== currentBackend) {
+    console.log('[TTS] Switching backend to:', settings.engine);
+    currentBackend = newBackend;
   }
   
   // Truncate text if too long
@@ -80,6 +109,14 @@ export async function speakText(text: string): Promise<TTSResult> {
       if (settings.edgeVoice) {
         currentBackend.setVoice(settings.edgeVoice);
       }
+    } else if (currentBackend === elevenlabsTTS && elevenlabsTTS) {
+      console.log('[TTS] Configuring ElevenLabs TTS - voice:', settings.elevenlabsVoice, 'model:', settings.elevenlabsModelId);
+      elevenlabsTTS.updateConfig({
+        voiceId: settings.elevenlabsVoice,
+        modelId: settings.elevenlabsModelId,
+        stability: settings.elevenlabsStability,
+        similarityBoost: settings.elevenlabsSimilarity
+      });
     }
     
     console.log('[TTS] Speaking text with backend...');
@@ -107,8 +144,15 @@ export function stopSpeaking(): void {
 
 export async function getVoices(): Promise<string[]> {
   const settings = getSettings();
-  const backend = settings.engine === 'edge' ? edgeTTS : windowsTTS;
-  
+  let backend: TTSBackend;
+  if (settings.engine === 'elevenlabs' && elevenlabsTTS) {
+    backend = elevenlabsTTS;
+  } else if (settings.engine === 'edge') {
+    backend = edgeTTS;
+  } else {
+    backend = windowsTTS;
+  }
+
   try {
     return await backend.getVoices();
   } catch (error) {
@@ -124,4 +168,27 @@ export function isTTSSpeaking(): boolean {
 export function getCurrentEngine(): string {
   const settings = getSettings();
   return settings.engine;
+}
+
+export function reinitializeElevenLabs(): void {
+  const apiKey = getApiKey('elevenlabs');
+  if (apiKey) {
+    const settings = getSettings();
+    elevenlabsTTS = new ElevenLabsTTS({
+      apiKey,
+      voiceId: settings.elevenlabsVoice,
+      modelId: settings.elevenlabsModelId,
+      stability: settings.elevenlabsStability,
+      similarityBoost: settings.elevenlabsSimilarity
+    });
+    console.log('[TTS] ElevenLabs reinitialized');
+  } else {
+    elevenlabsTTS = null;
+    console.log('[TTS] ElevenLabs cleared (no API key)');
+  }
+}
+
+export async function getElevenLabsVoices(): Promise<any[]> {
+  if (!elevenlabsTTS) return [];
+  return await elevenlabsTTS.getVoicesFromApi();
 }

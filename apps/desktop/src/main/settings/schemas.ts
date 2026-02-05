@@ -24,6 +24,7 @@ export interface UISettings {
   showWelcomeOnStartup: boolean;
   checkUpdatesOnStartup: boolean;
   enableRichToolVisualizations: boolean;
+  devMode: boolean;
   layout: LayoutSettings;
 }
 
@@ -119,6 +120,7 @@ export const DEFAULT_USER_SETTINGS: UserSettings = {
     showWelcomeOnStartup: true,
     checkUpdatesOnStartup: true,
     enableRichToolVisualizations: false,
+    devMode: false,
     layout: {
       gridLayout: 'auto',
       layoutMode: 'grid',

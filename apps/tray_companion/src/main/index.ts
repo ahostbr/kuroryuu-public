@@ -9,6 +9,8 @@ import { initializeClipboardMonitor, startClipboardMonitoring, stopClipboardMoni
 import { initializeMCP, getMCPInstance } from './mcp-integration';
 import { initializeLMStudio, getLMStudioInstance, resolvePromptsDir } from './lmstudio-integration';
 import { initializeSpeechRecognition, setMainWindow, startAlwaysListenMode, stopAlwaysListenMode, isCurrentlyListening, startListening, stopListening } from './speech-recognition';
+import { initializeTokenStore, saveApiKey, getApiKey, deleteApiKey, hasApiKey } from './token-store';
+import { reinitializeElevenLabs, getElevenLabsVoices } from './tts/tts-manager';
 
 let settingsWindow: BrowserWindow | null = null;
 
@@ -130,6 +132,7 @@ app.whenReady().then(async () => {
   });
 
   // Initialize all modules
+  initializeTokenStore();
   initializeSettings();
   initializeTTS();
   initializeHotkeys();
@@ -246,6 +249,58 @@ ipcMain.handle('tts:getVoices', async () => {
   const voices = await getVoices();
   console.log('[IPC] tts:getVoices returning:', voices);
   return voices;
+});
+
+// ElevenLabs API key management
+ipcMain.handle('elevenlabs:setApiKey', async (_, apiKey: string) => {
+  try {
+    saveApiKey('elevenlabs', apiKey);
+    reinitializeElevenLabs();
+    return { success: true };
+  } catch (error) {
+    console.error('[IPC] elevenlabs:setApiKey error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle('elevenlabs:hasApiKey', () => {
+  return hasApiKey('elevenlabs');
+});
+
+ipcMain.handle('elevenlabs:removeApiKey', () => {
+  try {
+    deleteApiKey('elevenlabs');
+    reinitializeElevenLabs();
+    return { success: true };
+  } catch (error) {
+    console.error('[IPC] elevenlabs:removeApiKey error:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+ipcMain.handle('elevenlabs:getVoices', async () => {
+  try {
+    return await getElevenLabsVoices();
+  } catch (error) {
+    console.error('[IPC] elevenlabs:getVoices error:', error);
+    return [];
+  }
+});
+
+ipcMain.handle('elevenlabs:testVoice', async (_, voiceId: string, text: string) => {
+  try {
+    const apiKey = getApiKey('elevenlabs');
+    if (!apiKey) {
+      return { success: false, error: 'No API key configured' };
+    }
+    // Import and use ElevenLabsTTS for preview
+    const { ElevenLabsTTS } = await import('./tts/elevenlabs-tts');
+    const tempTTS = new ElevenLabsTTS({ apiKey, voiceId });
+    return await tempTTS.speak(text || 'Hello, this is a voice preview.');
+  } catch (error) {
+    console.error('[IPC] elevenlabs:testVoice error:', error);
+    return { success: false, error: String(error) };
+  }
 });
 
 ipcMain.handle('hotkey:register', (_, accelerator: string, action: string) => {

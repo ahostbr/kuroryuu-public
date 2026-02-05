@@ -15,6 +15,7 @@ import {
   Bot,
   Database,
   AlertTriangle,
+  Code,
 } from 'lucide-react';
 import { BackupRestorePanel } from './BackupRestorePanel';
 import { FullResetDialog } from './FullResetDialog';
@@ -190,6 +191,7 @@ export function AppSettingsDialog() {
     setKuroryuuDecorativeFrames,
     setTrayCompanionLaunchOnStartup,
     setEnableRichToolVisualizations,
+    setDevMode,
     saveSettings,
   } = useSettingsStore();
 
@@ -411,6 +413,24 @@ export function AppSettingsDialog() {
               description="Create backups and restore from previous states"
             >
               <BackupRestorePanel />
+            </SettingSection>
+
+            {/* Developer Options */}
+            <SettingSection
+              icon={Code}
+              title="Developer"
+              description="Development and debugging features"
+            >
+              <div className="space-y-3">
+                <Toggle
+                  enabled={appSettings.devMode ?? false}
+                  onChange={setDevMode}
+                  label="Dev Mode (keyboard shortcuts + HMR)"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Keyboard shortcuts take effect immediately. HMR requires app restart.
+                </p>
+              </div>
             </SettingSection>
 
             {/* Full App Reset - Danger Zone */}

@@ -35,7 +35,8 @@ GATEWAY_URL = "http://127.0.0.1:8200/v1/chat/proxy"
 
 
 def get_settings():
-    """Load kuroPlugin settings from .claude/settings.json"""
+    """Load kuroPlugin settings from .claude/settings.json (project or global fallback)"""
+    # 1. Walk up from cwd looking for project-level settings
     current = Path.cwd()
     while current != current.parent:
         settings_path = current / ".claude" / "settings.json"
@@ -43,11 +44,54 @@ def get_settings():
             try:
                 with open(settings_path) as f:
                     settings = json.load(f)
-                    return settings.get("kuroPlugin", {})
+                    plugin = settings.get("kuroPlugin", {})
+                    if plugin:  # Found project-level config with kuroPlugin
+                        return plugin
             except Exception:
                 pass
         current = current.parent
+
+    # 2. Fallback: global ~/.claude/settings.json
+    global_settings_path = Path.home() / ".claude" / "settings.json"
+    if global_settings_path.exists():
+        try:
+            with open(global_settings_path) as f:
+                settings = json.load(f)
+                return settings.get("kuroPlugin", {})
+        except Exception:
+            pass
+
     return {}
+
+
+def should_skip_global():
+    """Check if a local project instance will handle TTS (avoid double-fire).
+
+    When running from global hooks (KURORYUU_TTS_SOURCE=global),
+    check if CWD is in a project with local TTS hooks enabled.
+    If so, skip - the local hooks will handle it.
+    """
+    source = os.environ.get("KURORYUU_TTS_SOURCE", "")
+    if source != "global":
+        return False  # Not running from global hooks
+
+    # Check if cwd is in a project with local TTS enabled
+    current = Path.cwd()
+    while current != current.parent:
+        settings_path = current / ".claude" / "settings.json"
+        if settings_path.exists():
+            try:
+                with open(settings_path) as f:
+                    settings = json.load(f)
+                    hooks = settings.get("kuroPlugin", {}).get("hooks", {})
+                    if (hooks.get("ttsOnStop") or
+                        hooks.get("ttsOnSubagentStop") or
+                        hooks.get("ttsOnNotification")):
+                        return True  # Local hooks will handle it
+            except Exception:
+                pass
+        current = current.parent
+    return False
 
 
 def generate_summary_via_gateway(task_description: str, summary_type: str, agent_name: str = None,
@@ -330,6 +374,11 @@ def main():
     parser.add_argument("--provider", "-p", default=None, help="Summary provider override")
     parser.add_argument("--model", "-m", default=None, help="LLM model override (for LMStudio)")
     args = parser.parse_args()
+
+    # Guard: skip if running from global hooks and local hooks are enabled
+    if should_skip_global():
+        print("[SmartTTS] Skipping - local project hooks will handle TTS", file=sys.stderr)
+        sys.exit(0)
 
     # Load settings
     settings = get_settings()

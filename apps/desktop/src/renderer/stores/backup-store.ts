@@ -122,11 +122,14 @@ export const useBackupStore = create<BackupState>((set, get) => ({
       const result = await window.electronAPI.backup.getConfig();
       if (result.ok) {
         const config = (result.data as BackupConfig) || null;
+        // Only consider configured if config exists AND repository is initialized
+        // This ensures partial setups don't skip the wizard
+        const isFullyConfigured = !!config && config.repository?.initialized === true;
         set({
           config,
-          isConfigured: !!config,
+          isConfigured: isFullyConfigured,
           isLoading: false,
-          showSetupWizard: !config,
+          showSetupWizard: !isFullyConfigured,
         });
       } else {
         set({
@@ -146,7 +149,14 @@ export const useBackupStore = create<BackupState>((set, get) => ({
     try {
       const result = await window.electronAPI.backup.saveConfig(config);
       if (result.ok) {
-        set({ config, isConfigured: true, isLoading: false, showSetupWizard: false });
+        // Only mark as configured if repository is initialized
+        const isFullyConfigured = config.repository?.initialized === true;
+        set({
+          config,
+          isConfigured: isFullyConfigured,
+          isLoading: false,
+          showSetupWizard: !isFullyConfigured,
+        });
       } else {
         set({ error: result.error || 'Failed to save config', isLoading: false });
       }

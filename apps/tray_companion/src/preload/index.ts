@@ -75,6 +75,15 @@ const api = {
     }
   },
 
+  // ElevenLabs TTS API
+  elevenlabs: {
+    setApiKey: (apiKey: string) => ipcRenderer.invoke('elevenlabs:setApiKey', apiKey),
+    hasApiKey: () => ipcRenderer.invoke('elevenlabs:hasApiKey'),
+    removeApiKey: () => ipcRenderer.invoke('elevenlabs:removeApiKey'),
+    getVoices: () => ipcRenderer.invoke('elevenlabs:getVoices'),
+    testVoice: (voiceId: string, text?: string) => ipcRenderer.invoke('elevenlabs:testVoice', voiceId, text || '')
+  },
+
   // Speech Recognition API
   speech: {
     startListening: () => ipcRenderer.invoke('speech:startListening'),

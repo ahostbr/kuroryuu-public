@@ -1898,6 +1898,88 @@ const api = {
     return () => ipcRenderer.removeListener('leader-monitor:alert', handler);
   },
 
+  /**
+   * Claude Teams API (Agent Teams file watcher + CLI bridge)
+   * Monitors ~/.claude/teams/ and ~/.claude/tasks/ for real-time team state.
+   */
+  claudeTeams: {
+    /** Start watching teams/tasks directories, returns initial snapshot */
+    startWatching: (): Promise<{ ok: boolean; snapshot?: unknown; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:start-watching'),
+    /** Stop watching */
+    stopWatching: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:stop-watching'),
+    /** Get all teams from disk */
+    getTeams: (): Promise<{ ok: boolean; teams?: unknown[]; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:get-teams'),
+    /** Get tasks for a specific team */
+    getTasks: (teamName: string): Promise<{ ok: boolean; tasks?: unknown[]; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:get-tasks', teamName),
+    /** Get inbox messages for a specific team + agent */
+    getMessages: (teamName: string, agentName: string): Promise<{ ok: boolean; messages?: unknown[]; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:get-messages', teamName, agentName),
+    /** Fire-and-forget CLI command */
+    execCli: (args: string[]): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:exec-cli', args),
+    /** Create a team (convenience wrapper around execCli) */
+    createTeam: (params: { name: string; description: string; teammates?: unknown[] }): Promise<boolean> =>
+      ipcRenderer.invoke('claude-teams:exec-cli', ['--team', 'create', params.name]).then(() => true).catch(() => false),
+    /** Send message to a teammate (convenience wrapper) */
+    messageTeammate: (params: { teamName: string; recipient: string; content: string }): Promise<boolean> =>
+      ipcRenderer.invoke('claude-teams:exec-cli', ['--team', 'message', params.recipient, params.content]).then(() => true).catch(() => false),
+    /** Request teammate shutdown (convenience wrapper) */
+    shutdownTeammate: (params: { teamName: string; recipient: string }): Promise<boolean> =>
+      ipcRenderer.invoke('claude-teams:exec-cli', ['--team', 'shutdown', params.recipient]).then(() => true).catch(() => false),
+    /** Cleanup a team (convenience wrapper) */
+    cleanupTeam: (params: { teamName: string }): Promise<boolean> =>
+      ipcRenderer.invoke('claude-teams:exec-cli', ['--team', 'cleanup']).then(() => true).catch(() => false),
+    /** Refresh data for a specific team */
+    refreshTeam: (teamName: string): Promise<void> =>
+      ipcRenderer.invoke('claude-teams:get-teams').then(() => {}),
+    /** Listen for state update events from file watcher */
+    onStateUpdate: (callback: (event: unknown) => void) => {
+      const handlers = [
+        (_: unknown, data: unknown) => callback({ type: 'team-config-changed', ...(data as Record<string, unknown>) }),
+        (_: unknown, data: unknown) => callback({ type: 'tasks-changed', ...(data as Record<string, unknown>) }),
+        (_: unknown, data: unknown) => callback({ type: 'inbox-changed', ...(data as Record<string, unknown>) }),
+        (_: unknown, data: unknown) => callback({ type: 'team-deleted', ...(data as Record<string, unknown>) }),
+        (_: unknown, data: unknown) => callback({ type: 'watcher-error', ...(data as Record<string, unknown>) }),
+      ];
+      ipcRenderer.on('claude-teams:config-updated', handlers[0]);
+      ipcRenderer.on('claude-teams:tasks-updated', handlers[1]);
+      ipcRenderer.on('claude-teams:messages-updated', handlers[2]);
+      ipcRenderer.on('claude-teams:team-deleted', handlers[3]);
+      ipcRenderer.on('claude-teams:watcher-error', handlers[4]);
+      return () => {
+        ipcRenderer.removeListener('claude-teams:config-updated', handlers[0]);
+        ipcRenderer.removeListener('claude-teams:tasks-updated', handlers[1]);
+        ipcRenderer.removeListener('claude-teams:messages-updated', handlers[2]);
+        ipcRenderer.removeListener('claude-teams:team-deleted', handlers[3]);
+        ipcRenderer.removeListener('claude-teams:watcher-error', handlers[4]);
+      };
+    },
+  },
+
+  // Global Hooks API - Manage TTS hooks in ~/.claude/settings.json for Agent Teams
+  globalHooks: {
+    /** Install TTS hooks in global settings for Agent Teams teammates */
+    installTts: (config: {
+      voice: string;
+      smartSummaries: boolean;
+      messages: { stop: string; subagentStop: string; notification: string };
+      summaryProvider?: string;
+      summaryModel?: string;
+      userName?: string;
+    }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('global-hooks:install-tts', config),
+    /** Remove TTS hooks from global settings */
+    removeTts: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('global-hooks:remove-tts'),
+    /** Check if global TTS hooks are installed */
+    status: (): Promise<{ installed: boolean }> =>
+      ipcRenderer.invoke('global-hooks:status'),
+  },
+
   // Backup API - Restic backup management
   backup: {
     // Configuration

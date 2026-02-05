@@ -1,7 +1,7 @@
 import Store from 'electron-store';
 
 export interface Settings {
-  engine: 'windows' | 'edge';
+  engine: 'windows' | 'edge' | 'elevenlabs';
   sttEngine: 'google' | 'whisper';
   autoSpeak: boolean;
   hotkeyEnabled: boolean;
@@ -12,6 +12,11 @@ export interface Settings {
   windowsVoice: string;
   edgeRate: number;
   edgeVoice: string;
+  // ElevenLabs settings
+  elevenlabsVoice: string;
+  elevenlabsModelId: 'eleven_turbo_v2_5' | 'eleven_multilingual_v2';
+  elevenlabsStability: number;
+  elevenlabsSimilarity: number;
   // Voice Assistant settings (provider-agnostic)
   voiceEnabled: boolean;
   localLlmUrl: string;
@@ -42,6 +47,11 @@ export const DEFAULT_SETTINGS: Settings = {
   windowsVoice: '',
   edgeRate: 100,
   edgeVoice: 'en-US-AriaNeural',
+  // ElevenLabs defaults
+  elevenlabsVoice: 'rachel',
+  elevenlabsModelId: 'eleven_turbo_v2_5',
+  elevenlabsStability: 0.5,
+  elevenlabsSimilarity: 0.75,
   // Voice Assistant defaults (provider-agnostic)
   voiceEnabled: false,
   localLlmUrl: 'http://127.0.0.1:1234',
@@ -142,7 +152,7 @@ export function setSetting<K extends keyof Settings>(key: K, value: Settings[K])
 function sanitizeSettings(settings: Partial<Settings>): Partial<Settings> {
   const sanitized: Partial<Settings> = {};
 
-  if (settings.engine && ['windows', 'edge'].includes(settings.engine)) {
+  if (settings.engine && ['windows', 'edge', 'elevenlabs'].includes(settings.engine)) {
     sanitized.engine = settings.engine;
   }
 
@@ -185,7 +195,24 @@ function sanitizeSettings(settings: Partial<Settings>): Partial<Settings> {
   if (typeof settings.edgeVoice === 'string' && settings.edgeVoice.trim()) {
     sanitized.edgeVoice = settings.edgeVoice.trim();
   }
-  
+
+  // ElevenLabs settings
+  if (typeof settings.elevenlabsVoice === 'string' && settings.elevenlabsVoice.trim()) {
+    sanitized.elevenlabsVoice = settings.elevenlabsVoice.trim();
+  }
+
+  if (settings.elevenlabsModelId && ['eleven_turbo_v2_5', 'eleven_multilingual_v2'].includes(settings.elevenlabsModelId)) {
+    sanitized.elevenlabsModelId = settings.elevenlabsModelId;
+  }
+
+  if (typeof settings.elevenlabsStability === 'number') {
+    sanitized.elevenlabsStability = Math.max(0, Math.min(1, settings.elevenlabsStability));
+  }
+
+  if (typeof settings.elevenlabsSimilarity === 'number') {
+    sanitized.elevenlabsSimilarity = Math.max(0, Math.min(1, settings.elevenlabsSimilarity));
+  }
+
   // Voice Assistant settings (provider-agnostic)
   if (typeof settings.voiceEnabled === 'boolean') {
     sanitized.voiceEnabled = settings.voiceEnabled;

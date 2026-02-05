@@ -1422,3 +1422,233 @@
 [data-theme="kuroryuu"] .copilot-panel .cp-streaming-dot {
   box-shadow: 0 0 6px var(--cp-accent-gold-glow);
 }
+
+/* ========================================
+   DRAMATIC EMPTY STATE - Kuroryuu Dragon
+   Black Dragon of Illusory Fog (黒龍幻霧)
+   ======================================== */
+
+/* Container with vignette + scanlines */
+.cp-empty-dramatic {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+  min-height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Vignette overlay */
+.cp-empty-dramatic::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(0, 0, 0, 0.5) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Scanlines overlay */
+.cp-empty-dramatic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.03) 2px,
+    rgba(0, 0, 0, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Content sits above overlays */
+.cp-empty-dramatic > * {
+  position: relative;
+  z-index: 3;
+}
+
+/* Large gold kanji header */
+.cp-empty-kanji {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #c9a227;
+  text-shadow:
+    0 0 20px rgba(201, 162, 39, 0.4),
+    0 0 40px rgba(201, 162, 39, 0.2),
+    0 0 80px rgba(201, 162, 39, 0.1);
+  letter-spacing: 0.15em;
+  line-height: 1.2;
+  margin-bottom: 6px;
+  animation: cp-gold-shimmer 4s ease-in-out infinite;
+}
+
+/* Monospace subtitle */
+.cp-empty-subtitle-mono {
+  font-size: 10px;
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(201, 162, 39, 0.45);
+  margin-bottom: 20px;
+}
+
+/* ASCII dragon art block */
+.cp-empty-ascii {
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 0.38rem;
+  line-height: 1.1;
+  color: rgba(180, 40, 40, 0.65);
+  white-space: pre;
+  user-select: none;
+  margin: 0 auto 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: center;
+  animation: cp-crimson-pulse 4s ease-in-out infinite;
+}
+
+/* Brand text below ASCII art */
+.cp-empty-brand {
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 6px;
+  color: var(--cp-text-bright);
+  margin-bottom: 2px;
+}
+
+.cp-empty-brand-sub {
+  font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
+  font-size: 9px;
+  color: var(--cp-text-muted);
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+/* Dragon logo separator */
+.cp-empty-dragon-sep {
+  margin-bottom: 20px;
+  filter: drop-shadow(0 0 12px rgba(201, 162, 39, 0.4));
+}
+
+/* 2x2 action card grid */
+.cp-empty-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  width: 100%;
+  max-width: 420px;
+}
+
+/* Glass action card */
+.cp-empty-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(201, 162, 39, 0.03);
+  border: 1px solid rgba(201, 162, 39, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: left;
+}
+
+.cp-empty-card:hover {
+  background: rgba(201, 162, 39, 0.08);
+  border-color: rgba(201, 162, 39, 0.35);
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.06);
+  transform: translateY(-1px);
+}
+
+.cp-empty-card-icon {
+  color: rgba(201, 162, 39, 0.5);
+  flex-shrink: 0;
+  transition: color 0.25s ease;
+}
+
+.cp-empty-card:hover .cp-empty-card-icon {
+  color: #c9a227;
+}
+
+.cp-empty-card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cp-empty-card-label {
+  font-size: 13px;
+  color: var(--cp-text-secondary);
+  transition: color 0.25s ease;
+}
+
+.cp-empty-card:hover .cp-empty-card-label {
+  color: var(--cp-text-bright);
+}
+
+.cp-empty-card-desc {
+  font-size: 10px;
+  color: var(--cp-text-muted);
+  opacity: 0.6;
+}
+
+/* Crimson pulse animation for ASCII dragon */
+@keyframes cp-crimson-pulse {
+  0%, 100% {
+    text-shadow: 0 0 6px rgba(180, 40, 40, 0.15);
+    color: rgba(180, 40, 40, 0.55);
+  }
+  50% {
+    text-shadow:
+      0 0 12px rgba(180, 40, 40, 0.35),
+      0 0 25px rgba(180, 40, 40, 0.12);
+    color: rgba(180, 40, 40, 0.75);
+  }
+}
+
+/* Gold shimmer animation for kanji */
+@keyframes cp-gold-shimmer {
+  0%, 100% {
+    text-shadow:
+      0 0 20px rgba(201, 162, 39, 0.3),
+      0 0 40px rgba(201, 162, 39, 0.15);
+  }
+  50% {
+    text-shadow:
+      0 0 30px rgba(201, 162, 39, 0.5),
+      0 0 60px rgba(201, 162, 39, 0.25),
+      0 0 100px rgba(201, 162, 39, 0.1);
+  }
+}
+
+/* Compact mode: single column grid, smaller kanji */
+.cp-empty-compact .cp-empty-kanji {
+  font-size: 2rem;
+}
+
+.cp-empty-compact .cp-empty-ascii {
+  font-size: 0.28rem;
+}
+
+.cp-empty-compact .cp-empty-grid {
+  grid-template-columns: 1fr;
+  max-width: 280px;
+}
+
+.cp-empty-compact .cp-empty-card {
+  padding: 10px 14px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .cp-empty-ascii,
+  .cp-empty-kanji {
+    animation: none !important;
+  }
+}

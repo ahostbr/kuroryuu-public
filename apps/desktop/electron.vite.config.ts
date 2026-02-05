@@ -32,7 +32,7 @@ export default defineConfig({
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
     server: {
-      hmr: false  // Disable hot module replacement
+      hmr: process.env.KURORYUU_DEV_MODE === 'true'  // Enable HMR when devMode is on
     },
     build: {
       rollupOptions: {

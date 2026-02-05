@@ -27,8 +27,8 @@ import { EditDocModal } from './components/editdoc';  // Global markdown editor 
 import { Dojo } from './components/dojo';  // Feature planning workspace
 import { Transcripts } from './components/transcripts';  // Archived conversations
 import { ClaudeTaskMonitor } from './components/monitor';  // Claude Code task monitoring
-import { CodingAgents } from './components/coding-agents';  // Background coding agent sessions
-import { BackupManagerPage } from './components/backup';  // Restic backup management
+import { ClaudeTeams } from './components/claude-teams';  // Claude Code Agent Teams orchestration
+// BackupManagerPage removed - backups now in IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
   AppSettingsDialog,
@@ -267,7 +267,10 @@ export function App() {
     setActiveView('capture');
   }, []);
 
-  // Disabled: useKeyboardShortcuts(setActiveView, handleOpenSettings, !modalOpen);
+  // Enable keyboard shortcuts when devMode is on
+  const devMode = useSettingsStore((s) => s.appSettings.devMode);
+  console.log('[App] devMode:', devMode, 'modalOpen:', modalOpen, 'shortcuts enabled:', devMode && !modalOpen);
+  useKeyboardShortcuts(setActiveView, handleOpenSettings, devMode && !modalOpen);
 
   // Apply theme
   useTheme();
@@ -349,11 +352,8 @@ export function App() {
               {/* Claude Task Monitor - Real-time Claude Code task tracking */}
               {activeView === 'claude-tasks' && <ClaudeTaskMonitor />}
 
-              {/* Coding Agents - Background coding agent sessions (k_bash + k_process) */}
-              {activeView === 'coding-agents' && <CodingAgents />}
-
-              {/* Backups - Restic backup management */}
-              {activeView === 'backups' && <BackupManagerPage />}
+              {/* Claude Teams - Agent Teams orchestration */}
+              {activeView === 'claude-teams' && <ClaudeTeams />}
 
             </ErrorBoundary>
           </main>

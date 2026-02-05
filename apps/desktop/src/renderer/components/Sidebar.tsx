@@ -28,7 +28,7 @@ import {
   Code2,
   Radio,
   Cpu,
-  Archive,
+  Users,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
 import { useDomainConfigStore } from '../stores/domain-config-store';
@@ -59,8 +59,7 @@ export type View =
   | 'transcripts'
   | 'capture'
   | 'claude-tasks'
-  | 'coding-agents'
-  | 'backups';
+  | 'claude-teams';
 
 interface SidebarProps {
   activeView: View;
@@ -89,6 +88,7 @@ const navGroups: NavGroup[] = [
     label: 'Plan',
     icon: ClipboardList,
     items: [
+      { id: 'claude-tasks', label: 'Claude Plugin', icon: Sparkles, shortcut: 'C' },
       { id: 'dojo', label: 'Dojo', icon: Swords, shortcut: 'D' },
       { id: 'kanban', label: 'Kanban', icon: LayoutGrid, shortcut: 'K' },
       // { id: 'dag', label: 'Task DAG', icon: Share2, shortcut: 'G' }, // Hidden: Use Graphiti tab in Command Center
@@ -99,9 +99,9 @@ const navGroups: NavGroup[] = [
     label: 'Build',
     icon: Hammer,
     items: [
+      { id: 'insights', label: 'ChatBot', icon: Brain, shortcut: 'N' },
+      { id: 'claude-teams', label: 'Claude Teams', icon: Users, shortcut: 'A' },
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
-      { id: 'worktrees', label: 'GitHub', icon: GitBranch, shortcut: 'W' },
-      { id: 'insights', label: 'Insights', icon: Brain, shortcut: 'N' },
     ],
   },
   {
@@ -109,12 +109,10 @@ const navGroups: NavGroup[] = [
     label: 'Monitor',
     icon: Eye,
     items: [
-      { id: 'claude-tasks', label: 'Claude Plugin', icon: Sparkles, shortcut: 'C' },
-      { id: 'coding-agents', label: 'Coding Agents', icon: Bot, shortcut: 'A' },
+      { id: 'capture', label: 'Capture', icon: Camera, shortcut: 'P' },
+      { id: 'command-center', label: 'Command Center', icon: Terminal, shortcut: 'M' },
       { id: 'traffic-flow', label: 'HTTP Traffic', icon: Activity, shortcut: 'F' },
       { id: 'pty-traffic', label: 'PTY Traffic', icon: Radio, shortcut: 'Y' },
-      { id: 'command-center', label: 'Command Center', icon: Terminal, shortcut: 'M' },
-      { id: 'capture', label: 'Capture', icon: Camera, shortcut: 'P' },
     ],
   },
   {
@@ -122,11 +120,11 @@ const navGroups: NavGroup[] = [
     label: 'Chronicles',
     icon: Package,
     items: [
-      { id: 'memory', label: 'Memory', icon: Bot },
-      // { id: 'canvas', label: 'Canvas', icon: Layers, shortcut: 'V' }, // Hidden: Use Graphiti tab in Command Center
       { id: 'changelog', label: 'Changelog', icon: FileText, shortcut: 'L' },
+      { id: 'worktrees', label: 'GitHub', icon: GitBranch, shortcut: 'W' },
+      { id: 'memory', label: 'Memory', icon: Bot },
       { id: 'transcripts', label: 'Transcripts', icon: ScrollText, shortcut: 'R' },
-      { id: 'backups', label: 'Backups', icon: Archive, shortcut: 'B' },
+      // { id: 'canvas', label: 'Canvas', icon: Layers, shortcut: 'V' }, // Hidden: Use Graphiti tab in Command Center
     ],
   },
 ];
