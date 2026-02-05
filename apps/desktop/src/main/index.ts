@@ -1725,20 +1725,19 @@ function setupKuroConfigIpc(): void {
       const voice = config.tts.voice || 'en-GB-SoniaNeural';
       const useSmartTts = config.tts.smartSummaries;
 
-      // Update Stop hooks
-      if (config.hooks.ttsOnStop) {
-        const ttsCommand = useSmartTts
-          ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
-          : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
-        hooks.Stop = [{
-          hooks: [
-            { type: 'command', command: `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`, timeout: 10 },
-            { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
-            { type: 'command', command: ttsCommand, timeout: 30000 },
-          ],
-        }];
-      } else {
-        delete hooks.Stop;
+      // Update Stop hooks - always keep session log + transcript export, only toggle TTS
+      {
+        const stopHookEntries: Array<{ type: string; command: string; timeout: number }> = [
+          { type: 'command', command: `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`, timeout: 10 },
+          { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
+        ];
+        if (config.hooks.ttsOnStop) {
+          const ttsCommand = useSmartTts
+            ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
+            : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
+          stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: 30000 });
+        }
+        hooks.Stop = [{ hooks: stopHookEntries }];
       }
 
       // Update SubagentStop hooks
