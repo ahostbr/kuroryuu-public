@@ -14,11 +14,136 @@
  */
 
 import { ipcMain, type BrowserWindow } from 'electron';
-import { spawn } from 'child_process';
-import { readFile } from 'fs/promises';
+import { spawn, execSync } from 'child_process';
+import { readFile, access, mkdir, writeFile as writeFileAsync } from 'fs/promises';
+import { existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { claudeTeamsWatcher } from './claude-teams-watcher';
+
+// -----------------------------------------------------------------------
+// UV Binary Resolution (cached)
+// -----------------------------------------------------------------------
+
+let _cachedUvPath: string | null = null;
+
+/**
+ * Find the UV binary dynamically using which/where + common fallback paths.
+ * Returns the path with forward slashes escaped for JSON embedding, or null.
+ */
+function findUvBinary(): string | null {
+  if (_cachedUvPath) return _cachedUvPath;
+
+  // 1. Try which/where (finds UV if it's in PATH)
+  try {
+    const cmd = process.platform === 'win32' ? 'where.exe uv' : 'which uv';
+    const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
+    // where.exe may return multiple lines - take the first
+    const firstLine = result.split(/\r?\n/)[0].trim();
+    if (firstLine && existsSync(firstLine)) {
+      _cachedUvPath = firstLine;
+      console.log('[GlobalHooks] Found UV via PATH:', _cachedUvPath);
+      return _cachedUvPath;
+    }
+  } catch {
+    // Not in PATH, try fallbacks
+  }
+
+  // 2. Fallback: common install locations
+  const home = os.homedir();
+  const candidates = process.platform === 'win32'
+    ? [
+        path.join(home, '.local', 'bin', 'uv.exe'),
+        path.join(home, '.cargo', 'bin', 'uv.exe'),
+        path.join(home, 'AppData', 'Local', 'uv', 'uv.exe'),
+      ]
+    : [
+        path.join(home, '.local', 'bin', 'uv'),
+        path.join(home, '.cargo', 'bin', 'uv'),
+        '/usr/local/bin/uv',
+        '/usr/bin/uv',
+      ];
+
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      _cachedUvPath = candidate;
+      console.log('[GlobalHooks] Found UV at fallback path:', _cachedUvPath);
+      return _cachedUvPath;
+    }
+  }
+
+  console.warn('[GlobalHooks] UV binary not found');
+  return null;
+}
+
+/** Resolve project root from __dirname (main process is in apps/desktop/out/main/) */
+function getProjectRoot(): string {
+  return path.resolve(__dirname, '..', '..', '..', '..');
+}
+
+/** Get absolute path to smart_tts.py */
+function getSmartTtsPath(): string {
+  return path.join(getProjectRoot(), '.claude', 'plugins', 'kuro', 'hooks', 'smart_tts.py');
+}
+
+/** Escape backslashes for embedding in hook command strings (bash-safe) */
+function escapePath(p: string): string {
+  return p.replace(/\\/g, '\\\\');
+}
+
+interface ValidationResult {
+  valid: boolean;
+  uvFound: boolean;
+  uvPath: string | null;
+  scriptFound: boolean;
+  scriptPath: string | null;
+  errors: string[];
+}
+
+/** Validate all prerequisites for global TTS hooks */
+async function validateGlobalHooksPrereqs(): Promise<ValidationResult> {
+  const errors: string[] = [];
+
+  // Check UV
+  const uvPath = findUvBinary();
+  const uvFound = uvPath !== null;
+  if (!uvFound) {
+    errors.push(
+      process.platform === 'win32'
+        ? 'UV not found. Install: powershell -c "irm https://astral.sh/uv/install.ps1 | iex"'
+        : 'UV not found. Install: curl -LsSf https://astral.sh/uv/install.sh | sh',
+    );
+  }
+
+  // Check smart_tts.py
+  const scriptPath = getSmartTtsPath();
+  let scriptFound = false;
+  try {
+    await access(scriptPath);
+    scriptFound = true;
+  } catch {
+    errors.push(`smart_tts.py not found at: ${scriptPath}`);
+  }
+
+  // Check ~/.claude/ exists or can be created
+  const claudeDir = path.join(os.homedir(), '.claude');
+  if (!existsSync(claudeDir)) {
+    try {
+      await mkdir(claudeDir, { recursive: true });
+    } catch {
+      errors.push(`Cannot create ~/.claude/ directory: ${claudeDir}`);
+    }
+  }
+
+  return {
+    valid: uvFound && scriptFound && errors.length === 0,
+    uvFound,
+    uvPath,
+    scriptFound,
+    scriptPath: scriptFound ? scriptPath : null,
+    errors,
+  };
+}
 
 /**
  * Register all Claude Teams IPC handlers and configure the watcher.
@@ -129,6 +254,13 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
     userName?: string;
   }) => {
     try {
+      // Validate prerequisites first
+      const validation = await validateGlobalHooksPrereqs();
+      if (!validation.valid) {
+        console.error('[GlobalHooks] Validation failed:', validation.errors);
+        return { ok: false, error: `Prerequisites not met: ${validation.errors.join('; ')}` };
+      }
+
       const globalSettingsPath = path.join(os.homedir(), '.claude', 'settings.json');
 
       // Read existing global settings
@@ -143,15 +275,9 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
       if (!settings.hooks) settings.hooks = {};
       const hooks = settings.hooks as Record<string, unknown>;
 
-      // Build absolute paths
-      const uvPath = process.platform === 'win32'
-        ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
-        : 'uv';
-
-      // Resolve project root from __dirname (main process is in apps/desktop/out/main/)
-      const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
-      const smartTtsAbsolute = path.join(projectRoot, '.claude', 'plugins', 'kuro', 'hooks', 'smart_tts.py')
-        .replace(/\\/g, '\\\\');
+      // Use dynamically resolved paths
+      const uvPath = escapePath(validation.uvPath!);
+      const smartTtsAbsolute = escapePath(validation.scriptPath!);
 
       const voice = ttsConfig.voice || 'en-GB-SoniaNeural';
 
@@ -207,7 +333,6 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
       };
 
       // Write back
-      const { writeFile: writeFileAsync } = await import('fs/promises');
       await writeFileAsync(globalSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
 
       console.log('[GlobalHooks] Installed TTS hooks in global settings');
@@ -275,6 +400,63 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
       return { installed: false };
     }
   });
+  // -----------------------------------------------------------------------
+  // Global TTS Hooks - Validation & Testing
+  // -----------------------------------------------------------------------
+
+  ipcMain.handle('global-hooks:validate', async () => {
+    try {
+      // Clear cached UV path to force re-detection
+      _cachedUvPath = null;
+      return await validateGlobalHooksPrereqs();
+    } catch (err) {
+      return {
+        valid: false,
+        uvFound: false,
+        uvPath: null,
+        scriptFound: false,
+        scriptPath: null,
+        errors: [String(err)],
+      };
+    }
+  });
+
+  ipcMain.handle('global-hooks:test', async () => {
+    try {
+      const validation = await validateGlobalHooksPrereqs();
+      if (!validation.valid) {
+        return { ok: false, error: `Prerequisites not met: ${validation.errors.join('; ')}` };
+      }
+
+      // Run smart_tts.py with a test message using the resolved UV path
+      return new Promise<{ ok: boolean; error?: string }>((resolve) => {
+        const child = spawn(validation.uvPath!, [
+          'run', validation.scriptPath!, 'Global TTS test successful', '--type', 'stop', '--voice', 'en-GB-SoniaNeural',
+        ], {
+          shell: true,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          timeout: 15000,
+        });
+
+        let stderr = '';
+        child.stderr?.on('data', (data: Buffer) => { stderr += data.toString(); });
+
+        child.on('close', (code) => {
+          if (code === 0) {
+            resolve({ ok: true });
+          } else {
+            resolve({ ok: false, error: stderr || `Process exited with code ${code}` });
+          }
+        });
+
+        child.on('error', (err) => {
+          resolve({ ok: false, error: String(err) });
+        });
+      });
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
 }
 
 /**
@@ -291,6 +473,8 @@ export function cleanupClaudeTeamsIpc(): void {
     'global-hooks:install-tts',
     'global-hooks:remove-tts',
     'global-hooks:status',
+    'global-hooks:validate',
+    'global-hooks:test',
   ];
 
   for (const channel of channels) {
