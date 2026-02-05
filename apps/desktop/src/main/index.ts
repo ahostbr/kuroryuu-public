@@ -31,6 +31,7 @@ import { setupLinearIpc } from './integrations/linear-service';
 import { setupWorktreeIpc, configureWorktrees } from './worktree-manager';
 import { setupGitIpc, configureGitService } from './git-service';
 import { setupAgentIpc } from './agent-orchestrator';
+import { setupClaudeTeamsIpc } from './claude-teams-ipc';
 import { setupSecurityIpc } from './security-scanner';
 import { setupOrchestrationIpc } from './orchestration-client';
 import { mainLogger } from './utils/file-logger';
@@ -3533,6 +3534,13 @@ app.whenReady().then(async () => {
   const settingsService = initSettingsService(projectRoot);
   console.log('[Main] Settings service initialized for project:', projectRoot);
 
+  // Set devMode env var for HMR (Vite reads this at startup)
+  const devMode = settingsService.get('ui.devMode') as boolean | undefined;
+  if (devMode) {
+    process.env.KURORYUU_DEV_MODE = 'true';
+    console.log('[Main] Dev mode enabled - HMR will be active on next restart');
+  }
+
   // Load Graphiti configuration from settings (opt-in feature)
   const graphitiSettings = settingsService.get('graphiti') as { enabled?: boolean; serverUrl?: string } | undefined;
   if (graphitiSettings?.enabled) {
@@ -3641,6 +3649,7 @@ app.whenReady().then(async () => {
   console.log('[Main] Task service initialized with project root:', taskServiceProjectRoot);
 
   createWindow();
+  setupClaudeTeamsIpc(mainWindow!);
 
   // === CodeEditor Window IPC ===
   ipcMain.handle('code-editor:open', () => {
@@ -3951,6 +3960,8 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+}).catch((err) => {
+  console.error('[Main] FATAL: app.whenReady() failed:', err);
 });
 
 app.on('window-all-closed', () => {

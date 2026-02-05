@@ -29,6 +29,7 @@ import { useSettings, type GraphitiSettings } from '../../hooks/useSettings';
 import { toast } from '../ui/toast';
 import { ThemedFrame } from '../ui/ThemedFrame';
 import { useIsThemedStyle } from '../../hooks/useTheme';
+import { BackupRestorePanel } from './BackupRestorePanel';
 
 type ProviderStatus = {
   connected: boolean;
@@ -697,7 +698,7 @@ export function IntegrationsDialog() {
                     GitHub Developer Settings
                   </a>
                   {' · '}
-                  <span className="text-muted-foreground">Callback: kuroryuu://oauth/callback/github</span>
+                  <span className="text-muted-foreground">Callback: http://127.0.0.1:17123/callback</span>
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -774,6 +775,14 @@ export function IntegrationsDialog() {
                   <GraphitiSection />
                 </div>
               </div>
+            </div>
+
+            {/* Row 4: Backups (full width) */}
+            <div className="bg-card/30 rounded-lg p-3 border border-border/50">
+              <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Backups
+              </h2>
+              <BackupRestorePanel />
             </div>
           </div>
 

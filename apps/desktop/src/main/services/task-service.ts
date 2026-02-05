@@ -74,7 +74,7 @@ export class TaskService extends EventEmitter {
       return content;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return '# Tasks\n\n## Backlog\n\n## Active\n\n## Delayed\n\n## Done\n\n';
+        return '# Tasks\n\n## Backlog\n\n## Active\n\n## Delayed\n\n## Done\n\n## Claude Tasks\n<!-- Tasks synced from Claude Code TaskCreate/TaskUpdate -->\n\n';
       }
       throw error;
     }
@@ -82,11 +82,34 @@ export class TaskService extends EventEmitter {
 
   /**
    * Write content to todo.md file
+   * Preserves Claude Tasks section to prevent sync hook overwrites
    */
   private async writeTodoFile(content: string): Promise<void> {
     this.ensureInitialized();
     this.skipNextReload = true;
+
+    // Preserve Claude Tasks section if it exists in current file but not in new content
+    try {
+      const currentContent = await fs.readFile(this.todoPath!, 'utf-8');
+      const claudeSection = this.extractClaudeTasksSection(currentContent);
+
+      if (claudeSection && !content.includes('## Claude Tasks')) {
+        content = content.trimEnd() + '\n\n' + claudeSection;
+      }
+    } catch {
+      // File doesn't exist yet, no section to preserve
+    }
+
     await fs.writeFile(this.todoPath!, content, 'utf-8');
+  }
+
+  /**
+   * Extract the Claude Tasks section from content
+   * Used to preserve it during Kanban write operations
+   */
+  private extractClaudeTasksSection(content: string): string | null {
+    const match = content.match(/## Claude Tasks[\s\S]*/);
+    return match ? match[0].trim() : null;
   }
 
   /**

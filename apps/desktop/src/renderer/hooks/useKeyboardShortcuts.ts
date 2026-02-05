@@ -19,10 +19,12 @@ export function useKeyboardShortcuts(
   enabled = true
 ) {
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    console.log('[useKeyboardShortcuts] keydown:', e.key, 'target:', (e.target as HTMLElement).tagName);
     // Don't trigger shortcuts when typing in inputs
     const target = e.target as HTMLElement;
     const tagName = target.tagName.toLowerCase();
     if (tagName === 'input' || tagName === 'textarea' || target.contentEditable === 'true') {
+      console.log('[useKeyboardShortcuts] Ignoring - in input/textarea');
       return;
     }
 
@@ -38,7 +40,7 @@ export function useKeyboardShortcuts(
 
     const shortcuts: Record<string, View> = {
       'k': 'kanban',
-      'a': 'terminals',
+      'a': 'claude-teams',
       'n': 'insights',
       'd': 'dojo',
       'i': 'ideation',
@@ -57,10 +59,15 @@ export function useKeyboardShortcuts(
   }, [onNavigate, onOpenSettings]);
 
   useEffect(() => {
+    console.log('[useKeyboardShortcuts] enabled:', enabled);
     if (!enabled) return;
-    
+
+    console.log('[useKeyboardShortcuts] Adding keydown listener');
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      console.log('[useKeyboardShortcuts] Removing keydown listener');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [handleKeyDown, enabled]);
 }
 

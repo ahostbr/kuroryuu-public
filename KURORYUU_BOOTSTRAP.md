@@ -1,6 +1,6 @@
 # KURORYUU BOOTSTRAP
 
-> Minimal startup. Full rules: `KURORYUU_LAWS.md`
+> Minimal startup. MUST READ : `KURORYUU_LAWS_INDEX.md`
 >
 > **Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 16 MCP tools → 118 actions
 

@@ -74,6 +74,24 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
   const termIdRef = useRef(termId);
   termIdRef.current = termId;
 
+  // Safe fit wrapper - validates container and handles errors
+  const safeFit = useCallback(() => {
+    if (!containerRef.current || !fitAddonRef.current || !termRef.current) {
+      return false;
+    }
+    const rect = containerRef.current.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) {
+      return false;
+    }
+    try {
+      fitAddonRef.current.fit();
+      return true;
+    } catch (e) {
+      console.warn('[Terminal] Fit failed:', e);
+      return false;
+    }
+  }, []);
+
   // Log mount/unmount for lifecycle debugging (runs once)
   useEffect(() => {
     fileLogger.log('Terminal', 'Component mounted', { terminalId, initialPtyId: initialId });
@@ -291,9 +309,9 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
     if (termRef.current && initialized) {
       termRef.current.options.fontSize = terminalFontSize;
       termRef.current.options.fontFamily = FONT_FAMILY_MAP[terminalFont] || FONT_FAMILY_MAP['jetbrains-mono'];
-      fitAddonRef.current?.fit();
+      safeFit(); // Use safeFit to handle dimension edge cases
     }
-  }, [terminalFontSize, terminalFont, initialized]);
+  }, [terminalFontSize, terminalFont, initialized, safeFit]);
 
   // Cleanup effect - only on actual unmount (empty deps prevents re-run on parent re-render)
   useEffect(() => {
@@ -331,14 +349,15 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
   // Sync resize to PTY when termId available
   useEffect(() => {
     if (!termRef.current || !termId || !fitAddonRef.current) return;
-    
+
     const term = termRef.current;
-    const fitAddon = fitAddonRef.current;
-    
+
     // Fit immediately when PTY connects - this ensures content renders
-    fitAddon.fit();
-    window.electronAPI.pty.resize(termId, term.cols, term.rows);
-    
+    // Use safeFit to handle cases where container dimensions are not ready
+    if (safeFit()) {
+      window.electronAPI.pty.resize(termId, term.cols, term.rows);
+    }
+
     // Debounce resize to avoid excessive IPC calls during window resize
     let resizeTimer: NodeJS.Timeout | null = null;
     const handleResize = () => {
@@ -348,8 +367,10 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
         const currentTermId = termIdRef.current;
         if (!currentTermId || !termRef.current) return;
 
-        fitAddon.fit();
-        window.electronAPI.pty.resize(currentTermId, termRef.current.cols, termRef.current.rows);
+        // Use safeFit to handle container dimension edge cases
+        if (safeFit()) {
+          window.electronAPI.pty.resize(currentTermId, termRef.current.cols, termRef.current.rows);
+        }
       }, 50); // 50ms debounce
     };
 
@@ -362,7 +383,7 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
       if (resizeTimer) clearTimeout(resizeTimer);
       resizeObserver.disconnect();
     };
-  }, [termId]);
+  }, [termId, safeFit]);
 
   // Handle input - uses ref to avoid stale closure after navigation
   useEffect(() => {
