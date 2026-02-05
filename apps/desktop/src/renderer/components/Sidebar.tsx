@@ -119,7 +119,7 @@ const navGroups: NavGroup[] = [
   },
   {
     id: 'ship',
-    label: 'Log',
+    label: 'Chronicles',
     icon: Package,
     items: [
       { id: 'memory', label: 'Memory', icon: Bot },

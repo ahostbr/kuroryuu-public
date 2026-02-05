@@ -86,6 +86,18 @@ function Add-ClaudeTask {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
     $taskLine = "- [ ] ${taskId}: ${cleanDesc} @agent [worklog: pending] (created: $timestamp)"
 
+    # Create ## Claude Tasks section if it doesn't exist
+    if ($content -notmatch "## Claude Tasks") {
+        Write-Log "Creating missing ## Claude Tasks section"
+        if ($content -match "(## Change History)") {
+            # Insert before Change History
+            $content = $content -replace "(## Change History)", "## Claude Tasks`n`n`$1"
+        } else {
+            # Append at end
+            $content = $content.TrimEnd() + "`n`n## Claude Tasks`n"
+        }
+    }
+
     # Find insertion point (after <!-- comment --> or after ## Claude Tasks header)
     if ($content -match "(## Claude Tasks\s*\r?\n(?:<!--.*?-->\s*\r?\n)?)") {
         $insertAfter = $Matches[1]
@@ -100,7 +112,7 @@ function Add-ClaudeTask {
 }
 
 # ============================================================================
-# Helper: Mark task as completed
+# Helper: Mark task as completed (only in Claude Tasks section)
 # ============================================================================
 function Complete-ClaudeTask {
     param(
@@ -110,20 +122,34 @@ function Complete-ClaudeTask {
 
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm"
 
-    # Find and update the task line
-    # Match: - [ ] T###: ... and change to - [x] T###: ... (completed: timestamp)
-    $pattern = "- \[ \] (${taskId}:.*?)(\r?\n)"
-    if ($content -match $pattern) {
-        $taskLine = $Matches[1]
-        # Add completed timestamp if not already present
-        if ($taskLine -notmatch "\(completed:") {
-            $newLine = "- [x] ${taskLine} (completed: $timestamp)"
-        } else {
-            $newLine = "- [x] ${taskLine}"
-        }
-        return $content -replace [regex]::Escape("- [ ] ${taskLine}"), $newLine
+    # Only search within the Claude Tasks section to avoid matching Kanban tasks
+    if ($content -notmatch "## Claude Tasks") {
+        Write-Log "No Claude Tasks section found - cannot complete task"
+        return $content
     }
 
+    # Extract Claude Tasks section (between ## Claude Tasks and next ## or end)
+    $sectionPattern = "(?s)(## Claude Tasks\s*\r?\n)(.*?)(?=\r?\n## |\z)"
+    if ($content -match $sectionPattern) {
+        $sectionHeader = $Matches[1]
+        $sectionContent = $Matches[2]
+
+        # Find and update the task line within the section
+        $taskPattern = "- \[ \] (${taskId}:.*?)(\r?\n|$)"
+        if ($sectionContent -match $taskPattern) {
+            $taskLine = $Matches[1]
+            # Add completed timestamp if not already present
+            if ($taskLine -notmatch "\(completed:") {
+                $newLine = "- [x] ${taskLine} (completed: $timestamp)"
+            } else {
+                $newLine = "- [x] ${taskLine}"
+            }
+            $newSectionContent = $sectionContent -replace [regex]::Escape("- [ ] ${taskLine}"), $newLine
+            return $content -replace [regex]::Escape("${sectionHeader}${sectionContent}"), "${sectionHeader}${newSectionContent}"
+        }
+    }
+
+    Write-Log "Task $taskId not found in Claude Tasks section"
     return $content
 }
 

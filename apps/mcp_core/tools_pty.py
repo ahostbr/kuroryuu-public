@@ -23,6 +23,11 @@ import httpx
 
 from pty_manager import get_pty_manager, PYWINPTY_AVAILABLE
 from pty_registry import get_pty_registry
+from command_security import (
+    BLOCKED_COMMAND_PATTERNS,
+    check_dangerous_command as _check_dangerous_command,
+    redact_secrets as _redact_secrets,
+)
 
 # Shared async HTTP client (lazy initialization)
 _async_client: Optional[httpx.AsyncClient] = None
@@ -240,68 +245,8 @@ def _process_escape_sequences(data: str) -> str:
 
 # ============================================================================
 # Dangerous command blocking (Agent Safety)
+# NOTE: BLOCKED_COMMAND_PATTERNS and _check_dangerous_command imported from command_security.py
 # ============================================================================
-
-BLOCKED_COMMAND_PATTERNS = [
-    # Destructive file operations
-    r'rm\s+(-[rf]+\s+)*[/~]',       # rm -rf / or ~
-    r'del\s+/[sqf]',                # Windows del with dangerous flags
-    r'rmdir\s+/[sq]',               # Windows rmdir recursive
-    r'rd\s+/[sq]',                  # Windows rd alias
-
-    # Disk/partition operations
-    r'format\s+[a-z]:',             # Format drives
-    r'diskpart',                    # Disk partitioning
-    r'mkfs\.',                      # Linux format (mkfs.ext4, etc.)
-    r'dd\s+if=.+of=/dev',           # Disk write
-    r'fdisk',                       # Partition editor
-
-    # System damage
-    r':\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;',  # Fork bomb (bash)
-    r'%0\|%0',                      # Fork bomb (Windows)
-    r'shutdown\s+[/-]',             # Shutdown commands
-    r'\bhalt\b',                    # System halt
-    r'init\s+0',                    # Linux halt
-
-    # Credential/key access
-    r'cat.+\.ssh/',                 # SSH keys (Linux)
-    r'type.+\\\.ssh\\',             # SSH keys (Windows)
-    r'cat.+\.aws/',                 # AWS credentials
-    r'cat.+\.config/gcloud',        # GCloud credentials
-    r'reg\s+query.+SAM',            # Windows SAM database
-    r'mimikatz',                    # Credential dumper
-    r'sekurlsa',                    # Mimikatz module
-
-    # Download and execute
-    r'curl.+\|\s*(ba)?sh',          # curl | bash
-    r'wget.+-O-?\s*\|\s*(ba)?sh',   # wget | sh
-    r'Invoke-WebRequest.+\|\s*iex', # PowerShell download exec
-    r'IEX\s*\(.+DownloadString',    # PowerShell IEX variant
-
-    # Reverse shells
-    r'nc\s+.+-e\s+/bin/',           # Netcat reverse shell
-    r'bash\s+-i\s+>&\s+/dev/tcp',   # Bash reverse shell
-    r'ncat.+--exec',                # Ncat exec
-
-    # Registry/system config attacks
-    r'reg\s+(delete|add)\s+HK(LM|CU)',  # Registry modification
-    r'bcdedit',                     # Boot config edit
-    r'vssadmin\s+delete',           # Delete shadow copies
-    r'wbadmin\s+delete',            # Delete backups
-]
-
-
-def _check_dangerous_command(cmd: str) -> Dict[str, Any] | None:
-    """Check if command matches dangerous patterns. Returns error dict if blocked."""
-    for pattern in BLOCKED_COMMAND_PATTERNS:
-        if re.search(pattern, cmd, re.IGNORECASE):
-            return {
-                "ok": False,
-                "error_code": "DANGEROUS_COMMAND_BLOCKED",
-                "message": f"Command blocked by safety filter: matches dangerous pattern",
-                "details": {"pattern": pattern, "command_preview": cmd[:100]},
-            }
-    return None
 
 # ============================================================================
 # Leader-only enforcement
@@ -937,23 +882,7 @@ def _desktop_term_read(
         }
 
 
-def _redact_secrets(text: str) -> str:
-    """Redact common secret patterns from terminal output."""
-    patterns = [
-        (r'sk-[a-zA-Z0-9]{20,}', '[REDACTED_API_KEY]'),
-        (r'ghp_[a-zA-Z0-9]{36,}', '[REDACTED_GITHUB_TOKEN]'),
-        (r'Bearer [a-zA-Z0-9_-]+', 'Bearer [REDACTED]'),
-        (r'export\s+\w*TOKEN\w*=\S+', 'export TOKEN=[REDACTED]'),
-        (r'export\s+\w*KEY\w*=\S+', 'export KEY=[REDACTED]'),
-        (r'ANTHROPIC_API_KEY=\S+', 'ANTHROPIC_API_KEY=[REDACTED]'),
-        (r'OPENAI_API_KEY=\S+', 'OPENAI_API_KEY=[REDACTED]'),
-    ]
-
-    for pattern, replacement in patterns:
-        text = re.sub(pattern, replacement, text)
-
-    return text
-
+# NOTE: _redact_secrets imported from command_security.py
 
 # ============================================================================
 # Action implementations

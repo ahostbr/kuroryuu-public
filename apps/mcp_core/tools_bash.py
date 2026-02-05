@@ -33,6 +33,7 @@ from typing import Any, Dict, Optional
 import httpx
 
 from protocol import ToolRegistry
+from command_security import check_dangerous_command, redact_secrets, emit_security_event
 
 # Gateway URL for real-time streaming
 GATEWAY_URL = os.environ.get("KURORYUU_GATEWAY_URL", "http://127.0.0.1:8200")
@@ -137,7 +138,7 @@ def _run_foreground_simple(command: str, workdir: Optional[str], timeout: int) -
         )
         return {
             "ok": True,
-            "output": result.stdout + result.stderr,
+            "output": redact_secrets(result.stdout + result.stderr),
             "exit_code": result.returncode,
         }
     except subprocess.TimeoutExpired:
@@ -187,7 +188,7 @@ def _run_foreground_pty(command: str, workdir: Optional[str], timeout: int) -> D
 
         return {
             "ok": True,
-            "output": "".join(output_chunks),
+            "output": redact_secrets("".join(output_chunks)),
             "exit_code": proc.exitstatus() if hasattr(proc, 'exitstatus') else 0,
         }
     except Exception as e:
@@ -292,9 +293,10 @@ def _background_simple(
                 _emit_bash_output(session["id"], "[TIMEOUT] Process killed after timeout\n", command=command, wave_id=wave_id, dependency_ids=dependency_ids)
                 break
 
-            session["output"].append(line.rstrip('\n'))
+            redacted_line = redact_secrets(line.rstrip('\n'))
+            session["output"].append(redacted_line)
             # Emit for real-time streaming
-            _emit_bash_output(session["id"], line, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
+            _emit_bash_output(session["id"], redact_secrets(line), command=command, wave_id=wave_id, dependency_ids=dependency_ids)
 
         proc.wait()
         session["exit_code"] = proc.returncode
@@ -349,11 +351,13 @@ def _background_pty(
             try:
                 data = proc.read(4096, blocking=False)
                 if data:
-                    # Emit raw data for real-time streaming (preserves formatting)
-                    _emit_bash_output(session["id"], data, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
+                    # Redact secrets before emit/storage
+                    redacted_data = redact_secrets(data)
+                    # Emit for real-time streaming (preserves formatting)
+                    _emit_bash_output(session["id"], redacted_data, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
 
                     # Split into lines for cleaner storage
-                    for line in data.split('\n'):
+                    for line in redacted_data.split('\n'):
                         if line.strip():
                             session["output"].append(line.rstrip('\r'))
             except Exception:
@@ -365,8 +369,9 @@ def _background_pty(
         try:
             remaining = proc.read(65536, blocking=False)
             if remaining:
-                _emit_bash_output(session["id"], remaining, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
-                for line in remaining.split('\n'):
+                redacted_remaining = redact_secrets(remaining)
+                _emit_bash_output(session["id"], redacted_remaining, command=command, wave_id=wave_id, dependency_ids=dependency_ids)
+                for line in redacted_remaining.split('\n'):
                     if line.strip():
                         session["output"].append(line.rstrip('\r'))
         except Exception:
@@ -425,6 +430,22 @@ def k_bash(
     """
     if not command:
         return {"ok": False, "error": "command is required"}
+
+    # Security validation - check for dangerous command patterns
+    danger_err = check_dangerous_command(command)
+    if danger_err:
+        # Emit security event for monitoring
+        emit_security_event(
+            tool_name="k_bash",
+            session_id=str(uuid.uuid4())[:8],
+            command=command,
+            blocked=True,
+            blocked_pattern=danger_err.get("details", {}).get("pattern"),
+            error_code=danger_err.get("error_code"),
+            error_message=danger_err.get("message"),
+            wave_id=wave_id if 'wave_id' in dir() else None,
+        )
+        return danger_err
 
     # Resolve workdir
     if workdir:
