@@ -155,12 +155,17 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
 
       const voice = ttsConfig.voice || 'en-GB-SoniaNeural';
 
+      // Global hook commands set KURORYUU_TTS_SOURCE=global so smart_tts.py
+      // can detect it's running from global hooks (for double-fire prevention).
+      // Claude Code runs hooks through bash (even on Windows), so use POSIX syntax.
+      const envPrefix = 'KURORYUU_TTS_SOURCE=global';
+
       // Install Stop hook
       hooks.Stop = [{
         hooks: [
           {
             type: 'command',
-            command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}"`,
+            command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}"`,
             timeout: 30000,
           },
         ],
@@ -171,7 +176,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
         hooks: [
           {
             type: 'command',
-            command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`,
+            command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`,
             timeout: 30000,
           },
         ],
@@ -182,7 +187,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
         hooks: [
           {
             type: 'command',
-            command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}"`,
+            command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}"`,
             timeout: 30000,
           },
         ],
