@@ -53,6 +53,7 @@ interface SettingsState {
   setEnableAnimations: (enabled: boolean) => void;
   setMatrixRainOpacity: (opacity: number) => void;
   setKuroryuuDecorativeFrames: (enabled: boolean) => void;
+  setGenUIImperialMode: (enabled: boolean) => void;
   setTrayCompanionLaunchOnStartup: (enabled: boolean) => void;
   setGraphitiEnabled: (enabled: boolean) => void;
   setGraphitiRetention: (retention: GraphitiRetentionPeriod) => void;
@@ -99,6 +100,7 @@ const defaultAppSettings: AppSettings = {
   enableAnimations: true,
   matrixRainOpacity: 40,
   kuroryuuDecorativeFrames: false, // Opt-in decorative dragon frames
+  genuiImperialMode: true, // Imperial mode on by default
   enableRichToolVisualizations: false, // Opt-in rich tool visualizations
   devMode: false, // Dev mode: keyboard shortcuts + HMR
   integrations: {
@@ -238,6 +240,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     // DISABLED: Feature not fully polished, force to false
     set((s) => ({ appSettings: { ...s.appSettings, kuroryuuDecorativeFrames: false } }));
     window.electronAPI?.settings?.set?.('ui.kuroryuuDecorativeFrames', false).catch(console.error);
+  },
+  setGenUIImperialMode: (genuiImperialMode) => {
+    set((s) => ({ appSettings: { ...s.appSettings, genuiImperialMode } }));
+    window.electronAPI?.settings?.set?.('ui.genuiImperialMode', genuiImperialMode).catch(console.error);
   },
   setTrayCompanionLaunchOnStartup: (enabled) => {
     set((s) => ({
@@ -448,6 +454,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         enableAnimations,
         matrixRainOpacity,
         kuroryuuDecorativeFrames,
+        genuiImperialMode,
         enableRichToolVisualizations,
         devMode,
         trayCompanionLaunchOnStartup,
@@ -464,6 +471,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         window.electronAPI?.settings?.get?.('ui.enableAnimations'),
         window.electronAPI?.settings?.get?.('ui.matrixRainOpacity'),
         window.electronAPI?.settings?.get?.('ui.kuroryuuDecorativeFrames'),
+        window.electronAPI?.settings?.get?.('ui.genuiImperialMode'),
         window.electronAPI?.settings?.get?.('ui.enableRichToolVisualizations'),
         window.electronAPI?.settings?.get?.('ui.devMode'),
         window.electronAPI?.settings?.get?.('integrations.trayCompanion.launchOnStartup'),
@@ -484,6 +492,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         if (isBoolean(enableAnimations)) newSettings.enableAnimations = enableAnimations;
         if (isNumber(matrixRainOpacity)) newSettings.matrixRainOpacity = matrixRainOpacity;
         if (isBoolean(kuroryuuDecorativeFrames)) newSettings.kuroryuuDecorativeFrames = kuroryuuDecorativeFrames;
+        if (isBoolean(genuiImperialMode)) newSettings.genuiImperialMode = genuiImperialMode;
         if (isBoolean(enableRichToolVisualizations)) newSettings.enableRichToolVisualizations = enableRichToolVisualizations;
         if (isBoolean(devMode)) newSettings.devMode = devMode;
         if (isBoolean(trayCompanionLaunchOnStartup)) {

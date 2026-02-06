@@ -722,6 +722,28 @@ body {
    GENUI — Imperial Intelligence Dashboard
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ── GenUI Theme Variables ─────────────────────────────── */
+.genui-root {
+  --g-accent: hsl(var(--primary));
+  --g-accent-fg: hsl(var(--primary-foreground));
+  --g-crimson: hsl(var(--destructive));
+  --g-bg: hsl(var(--background));
+  --g-card: hsl(var(--card));
+  --g-fg: hsl(var(--foreground));
+  --g-muted: hsl(var(--muted-foreground));
+  --g-border: hsl(var(--border));
+}
+
+.genui-root.genui-imperial {
+  --g-accent: rgb(201,169,98);
+  --g-crimson: rgb(139,38,53);
+  --g-bg: rgb(13,13,15);
+  --g-card: rgb(17,17,19);
+  --g-fg: rgb(250,250,250);
+  --g-muted: rgb(122,117,109);
+  --g-border: rgba(201,169,98,0.12);
+}
+
 /* Staggered entrance for dashboard components */
 @keyframes genuiReveal {
   from {
@@ -742,14 +764,14 @@ body {
 
 /* Gold border glow on cards */
 @keyframes genuiGlowPulse {
-  0%, 100% { box-shadow: 0 0 0 rgba(201,169,98,0), inset 0 1px 0 rgba(201,169,98,0.06); }
-  50% { box-shadow: 0 0 12px rgba(201,169,98,0.08), inset 0 1px 0 rgba(201,169,98,0.1); }
+  0%, 100% { box-shadow: 0 0 0 color-mix(in srgb, var(--g-accent) 0%, transparent), inset 0 1px 0 color-mix(in srgb, var(--g-accent) 6%, transparent); }
+  50% { box-shadow: 0 0 12px color-mix(in srgb, var(--g-accent) 8%, transparent), inset 0 1px 0 color-mix(in srgb, var(--g-accent) 10%, transparent); }
 }
 
 /* GenUI card base */
 .genui-card {
-  background: linear-gradient(135deg, rgba(17,17,19,0.95) 0%, rgba(22,22,28,0.98) 100%);
-  border: 1px solid rgba(201,169,98,0.12);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--g-card) 95%, transparent) 0%, color-mix(in srgb, var(--g-card) 98%, transparent) 100%);
+  border: 1px solid var(--g-border);
   border-radius: 6px;
   position: relative;
   overflow: hidden;
@@ -761,24 +783,24 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,169,98,0.008) 2px, rgba(201,169,98,0.008) 4px);
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, color-mix(in srgb, var(--g-accent) 0.8%, transparent) 2px, color-mix(in srgb, var(--g-accent) 0.8%, transparent) 4px);
   pointer-events: none;
   z-index: 1;
 }
 
 .genui-card:hover {
-  border-color: rgba(201,169,98,0.3);
-  box-shadow: 0 0 20px rgba(201,169,98,0.06), 0 4px 20px rgba(0,0,0,0.3);
+  border-color: color-mix(in srgb, var(--g-accent) 30%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--g-accent) 6%, transparent), 0 4px 20px rgba(0,0,0,0.3);
 }
 
 /* Gold left accent bar */
 .genui-accent-left {
-  border-left: 2px solid rgba(201,169,98,0.4);
+  border-left: 2px solid color-mix(in srgb, var(--g-accent) 40%, transparent);
 }
 
 /* Crimson left accent bar */
 .genui-accent-crimson {
-  border-left: 2px solid rgba(139,38,53,0.5);
+  border-left: 2px solid color-mix(in srgb, var(--g-crimson) 50%, transparent);
 }
 
 /* Zone header decorative line */
@@ -793,20 +815,20 @@ body {
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, rgba(201,169,98,0.25) 0%, transparent 80%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--g-accent) 25%, transparent) 0%, transparent 80%);
 }
 
 /* Hero zone gradient */
 .genui-hero {
-  background: linear-gradient(135deg, rgba(139,38,53,0.08) 0%, rgba(17,17,19,0.95) 40%, rgba(201,169,98,0.04) 100%);
-  border: 1px solid rgba(201,169,98,0.15);
-  border-left: 3px solid rgba(201,169,98,0.5);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--g-crimson) 8%, transparent) 0%, color-mix(in srgb, var(--g-card) 95%, transparent) 40%, color-mix(in srgb, var(--g-accent) 4%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--g-accent) 15%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--g-accent) 50%, transparent);
 }
 
 /* Metric card — dramatic stat display */
 .genui-metric {
-  background: linear-gradient(160deg, rgba(17,17,19,0.97) 0%, rgba(25,22,30,0.98) 100%);
-  border: 1px solid rgba(201,169,98,0.1);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--g-card) 97%, transparent) 0%, color-mix(in srgb, var(--g-card) 98%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, var(--g-accent) 10%, transparent);
   position: relative;
 }
 
@@ -817,15 +839,15 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(201,169,98,0.3), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 30%, transparent), transparent);
 }
 
 .genui-metric:hover {
-  border-color: rgba(201,169,98,0.25);
+  border-color: color-mix(in srgb, var(--g-accent) 25%, transparent);
 }
 
 .genui-metric:hover::after {
-  background: linear-gradient(90deg, transparent, rgba(201,169,98,0.5), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 50%, transparent), transparent);
 }
 
 /* Tag pill style */
@@ -834,29 +856,29 @@ body {
   font-size: 0.7rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  border: 1px solid rgba(201,169,98,0.2);
-  color: rgba(201,169,98,0.7);
-  background: rgba(201,169,98,0.04);
+  border: 1px solid color-mix(in srgb, var(--g-accent) 20%, transparent);
+  color: color-mix(in srgb, var(--g-accent) 70%, transparent);
+  background: color-mix(in srgb, var(--g-accent) 4%, transparent);
   padding: 3px 10px;
   border-radius: 2px;
   transition: all 300ms ease;
 }
 
 .genui-tag:hover {
-  border-color: rgba(201,169,98,0.45);
-  color: rgba(201,169,98,0.95);
-  background: rgba(201,169,98,0.08);
-  text-shadow: 0 0 8px rgba(201,169,98,0.3);
+  border-color: color-mix(in srgb, var(--g-accent) 45%, transparent);
+  color: color-mix(in srgb, var(--g-accent) 95%, transparent);
+  background: color-mix(in srgb, var(--g-accent) 8%, transparent);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--g-accent) 30%, transparent);
 }
 
 /* Progress bar glow */
 @keyframes genuiProgressGlow {
-  0%, 100% { box-shadow: 0 0 8px rgba(201,169,98,0.3); }
-  50% { box-shadow: 0 0 20px rgba(201,169,98,0.5), 0 0 40px rgba(139,38,53,0.2); }
+  0%, 100% { box-shadow: 0 0 8px color-mix(in srgb, var(--g-accent) 30%, transparent); }
+  50% { box-shadow: 0 0 20px color-mix(in srgb, var(--g-accent) 50%, transparent), 0 0 40px color-mix(in srgb, var(--g-crimson) 20%, transparent); }
 }
 
 .genui-progress-bar {
-  background: linear-gradient(90deg, rgba(139,38,53,0.8), rgba(201,169,98,0.9));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--g-crimson) 80%, transparent), color-mix(in srgb, var(--g-accent) 90%, transparent));
   animation: genuiProgressGlow 2s ease-in-out infinite;
   border-radius: 2px;
 }
@@ -867,23 +889,25 @@ body {
   pointer-events: none;
 }
 
+.genui-root:not(.genui-imperial) .genui-scanlines { display: none; }
+
 /* Monospace label style */
 .genui-label {
   font-family: ui-monospace, 'Share Tech Mono', 'Cascadia Code', monospace;
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: rgba(201,169,98,0.45);
+  color: color-mix(in srgb, var(--g-accent) 45%, transparent);
 }
 
 /* Gold divider */
 .genui-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(201,169,98,0.2), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 20%, transparent), transparent);
 }
 
 /* Checkmark style */
 .genui-check {
-  color: rgba(201,169,98,0.7);
+  color: color-mix(in srgb, var(--g-accent) 70%, transparent);
   font-size: 0.7rem;
 }
