@@ -94,6 +94,9 @@ class ClaudeTeamsWatcher {
   private mainWindow: BrowserWindow | null = null;
   private isWatching = false;
   private isRendererReady = false;
+  private stalenessTimer: ReturnType<typeof setInterval> | null = null;
+  private static readonly STALENESS_CHECK_MS = 60_000;
+  private static readonly STALENESS_THRESHOLD_MS = 30 * 60_000;
 
   /**
    * Set the main window reference for IPC communication.
@@ -185,6 +188,7 @@ class ClaudeTeamsWatcher {
     });
 
     this.isWatching = true;
+    this.startStalenessDetection();
     console.log('[ClaudeTeamsWatcher] Started watching', TEAMS_DIR, 'and', TASKS_DIR);
 
     // Send initial full snapshot
@@ -203,6 +207,7 @@ class ClaudeTeamsWatcher {
       await this.tasksWatcher.close();
       this.tasksWatcher = null;
     }
+    this.stopStalenessDetection();
     this.isWatching = false;
     console.log('[ClaudeTeamsWatcher] Stopped watching');
   }
@@ -212,6 +217,99 @@ class ClaudeTeamsWatcher {
    */
   getStatus(): boolean {
     return this.isWatching;
+  }
+
+  /**
+   * Directly delete team directories from disk.
+   * Reliable cleanup path -- bypasses CLI entirely.
+   */
+  async cleanupTeamDirectories(teamName: string): Promise<{ ok: boolean; error?: string }> {
+    if (!teamName || teamName.includes('/') || teamName.includes('\\') || teamName.includes('..')) {
+      return { ok: false, error: `Invalid team name: ${teamName}` };
+    }
+
+    const teamsPath = path.join(TEAMS_DIR, teamName);
+    const tasksPath = path.join(TASKS_DIR, teamName);
+    const errors: string[] = [];
+
+    try {
+      await fs.promises.rm(teamsPath, { recursive: true, force: true });
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        errors.push(`teams: ${(err as Error).message}`);
+      }
+    }
+
+    try {
+      await fs.promises.rm(tasksPath, { recursive: true, force: true });
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+        errors.push(`tasks: ${(err as Error).message}`);
+      }
+    }
+
+    if (errors.length > 0) {
+      return { ok: false, error: errors.join('; ') };
+    }
+    console.log('[ClaudeTeamsWatcher] Cleaned up directories for:', teamName);
+    return { ok: true };
+  }
+
+  // -------------------------------------------------------------------------
+  // Staleness detection
+  // -------------------------------------------------------------------------
+
+  private startStalenessDetection(): void {
+    if (this.stalenessTimer) return;
+    this.stalenessTimer = setInterval(() => this.checkStaleness(), ClaudeTeamsWatcher.STALENESS_CHECK_MS);
+  }
+
+  private stopStalenessDetection(): void {
+    if (this.stalenessTimer) {
+      clearInterval(this.stalenessTimer);
+      this.stalenessTimer = null;
+    }
+  }
+
+  private async checkStaleness(): Promise<void> {
+    try {
+      const teamNames = await this.listSubdirs(TEAMS_DIR);
+      const now = Date.now();
+
+      for (const teamName of teamNames) {
+        try {
+          const configPath = path.join(TEAMS_DIR, teamName, 'config.json');
+          const configStat = await fs.promises.stat(configPath);
+          let latestActivity = configStat.mtimeMs;
+
+          // Check task files too
+          const taskDir = path.join(TASKS_DIR, teamName);
+          try {
+            const taskFiles = await this.listJsonFiles(taskDir);
+            for (const tf of taskFiles) {
+              const taskStat = await fs.promises.stat(path.join(taskDir, tf));
+              if (taskStat.mtimeMs > latestActivity) latestActivity = taskStat.mtimeMs;
+            }
+          } catch { /* no task dir is fine */ }
+
+          // Check inbox files
+          const inboxDir = path.join(TEAMS_DIR, teamName, 'inboxes');
+          try {
+            const inboxFiles = await this.listJsonFiles(inboxDir);
+            for (const inf of inboxFiles) {
+              const inboxStat = await fs.promises.stat(path.join(inboxDir, inf));
+              if (inboxStat.mtimeMs > latestActivity) latestActivity = inboxStat.mtimeMs;
+            }
+          } catch { /* no inbox dir is fine */ }
+
+          if (now - latestActivity > ClaudeTeamsWatcher.STALENESS_THRESHOLD_MS) {
+            this.send('claude-teams:team-stale', { teamName, lastActivity: latestActivity });
+          }
+        } catch { /* file gone, skip */ }
+      }
+    } catch (err) {
+      console.error('[ClaudeTeamsWatcher] Staleness check error:', err);
+    }
   }
 
   // -------------------------------------------------------------------------

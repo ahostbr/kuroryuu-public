@@ -2017,8 +2017,8 @@ const api = {
     shutdownTeammate: (params: { teamName: string; recipient: string }): Promise<boolean> =>
       ipcRenderer.invoke('claude-teams:exec-cli', ['--team', 'shutdown', params.recipient]).then(() => true).catch(() => false),
     /** Cleanup a team (convenience wrapper) */
-    cleanupTeam: (params: { teamName: string }): Promise<boolean> =>
-      ipcRenderer.invoke('claude-teams:exec-cli', ['--team', 'cleanup']).then(() => true).catch(() => false),
+    cleanupTeam: (params: { teamName: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:cleanup-team', params.teamName),
     /** Refresh data for a specific team */
     refreshTeam: (teamName: string): Promise<void> =>
       ipcRenderer.invoke('claude-teams:get-teams').then(() => {}),
@@ -2030,18 +2030,21 @@ const api = {
         (_: unknown, data: unknown) => callback({ type: 'inbox-changed', ...(data as Record<string, unknown>) }),
         (_: unknown, data: unknown) => callback({ type: 'team-deleted', ...(data as Record<string, unknown>) }),
         (_: unknown, data: unknown) => callback({ type: 'watcher-error', ...(data as Record<string, unknown>) }),
+        (_: unknown, data: unknown) => callback({ type: 'team-stale', ...(data as Record<string, unknown>) }),
       ];
       ipcRenderer.on('claude-teams:config-updated', handlers[0]);
       ipcRenderer.on('claude-teams:tasks-updated', handlers[1]);
       ipcRenderer.on('claude-teams:messages-updated', handlers[2]);
       ipcRenderer.on('claude-teams:team-deleted', handlers[3]);
       ipcRenderer.on('claude-teams:watcher-error', handlers[4]);
+      ipcRenderer.on('claude-teams:team-stale', handlers[5]);
       return () => {
         ipcRenderer.removeListener('claude-teams:config-updated', handlers[0]);
         ipcRenderer.removeListener('claude-teams:tasks-updated', handlers[1]);
         ipcRenderer.removeListener('claude-teams:messages-updated', handlers[2]);
         ipcRenderer.removeListener('claude-teams:team-deleted', handlers[3]);
         ipcRenderer.removeListener('claude-teams:watcher-error', handlers[4]);
+        ipcRenderer.removeListener('claude-teams:team-stale', handlers[5]);
       };
     },
   },

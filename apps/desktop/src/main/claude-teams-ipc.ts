@@ -259,6 +259,22 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
   );
 
   // -----------------------------------------------------------------------
+  // Direct team cleanup (reliable, replaces fire-and-forget CLI)
+  // -----------------------------------------------------------------------
+
+  ipcMain.handle(
+    'claude-teams:cleanup-team',
+    async (_event, teamName: string) => {
+      try {
+        return await claudeTeamsWatcher.cleanupTeamDirectories(teamName);
+      } catch (err) {
+        console.error('[ClaudeTeamsIPC] Cleanup failed:', err);
+        return { ok: false, error: String(err) };
+      }
+    },
+  );
+
+  // -----------------------------------------------------------------------
   // Team Session Archives (persistence)
   // -----------------------------------------------------------------------
 
@@ -561,6 +577,7 @@ export function cleanupClaudeTeamsIpc(): void {
     'claude-teams:get-tasks',
     'claude-teams:get-messages',
     'claude-teams:exec-cli',
+    'claude-teams:cleanup-team',
     'claude-teams:archive-session',
     'claude-teams:list-archives',
     'claude-teams:load-archive',
