@@ -17,12 +17,14 @@ import {
   Clock,
   Loader2,
   ListTodo,
+  Archive,
 } from 'lucide-react';
 import { useClaudeTeamsStore, setupClaudeTeamsIpcListeners } from '../../stores/claude-teams-store';
 import { useTeamFlowStore } from '../../stores/team-flow-store';
 import { TeamFlowPanel } from './TeamFlowPanel';
 import { TeammateDetailPanel } from './TeammateDetailPanel';
 import { TaskListPanel } from './TaskListPanel';
+import { TeamHistoryPanel } from './TeamHistoryPanel';
 import type { FlowViewMode } from '../../types/claude-teams';
 
 const VIEW_TABS: { id: FlowViewMode; label: string; icon: React.ElementType; ready: boolean }[] = [
@@ -47,7 +49,10 @@ export function ClaudeTeams() {
 
   const [activeView, setActiveView] = useState<FlowViewMode>('hub-spokes');
   const [showTasks, setShowTasks] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const setViewMode = useTeamFlowStore((s) => s.setViewMode);
+  const history = useClaudeTeamsStore((s) => s.history);
+  const loadHistory = useClaudeTeamsStore((s) => s.loadHistory);
 
   // Sync view mode to flow store when tab changes
   const handleViewChange = (view: FlowViewMode) => {
@@ -64,12 +69,13 @@ export function ClaudeTeams() {
   useEffect(() => {
     const cleanupListeners = setupClaudeTeamsIpcListeners();
     startWatching();
+    loadHistory();
 
     return () => {
       cleanupListeners();
       stopWatching();
     };
-  }, [startWatching, stopWatching]);
+  }, [startWatching, stopWatching, loadHistory]);
 
   // Auto-select first team if none selected
   useEffect(() => {
@@ -143,6 +149,24 @@ export function ClaudeTeams() {
             </button>
           )}
 
+          {/* History toggle */}
+          <button
+            onClick={() => setShowHistory((v) => !v)}
+            className={`p-2 rounded-lg transition-colors relative ${
+              showHistory
+                ? 'text-primary bg-primary/10'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+            }`}
+            title="Team history"
+          >
+            <Archive className="w-4 h-4" />
+            {history.length > 0 && !showHistory && (
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary text-[9px] text-primary-foreground flex items-center justify-center font-bold">
+                {history.length > 9 ? '9+' : history.length}
+              </span>
+            )}
+          </button>
+
           {/* Connection status */}
           <span
             className={`w-2 h-2 rounded-full ${
@@ -201,7 +225,10 @@ export function ClaudeTeams() {
 
       {/* Main content area */}
       <div className="flex-1 overflow-hidden flex flex-col">
-        {isLoading && teams.length === 0 ? (
+        {showHistory ? (
+          /* History view */
+          <TeamHistoryPanel />
+        ) : isLoading && teams.length === 0 ? (
           /* Loading state */
           <div className="h-full flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 text-muted-foreground">
@@ -227,6 +254,15 @@ export function ClaudeTeams() {
                   Use the Teammate tool with operation: "spawnTeam"
                 </code>
               </div>
+              {history.length > 0 && (
+                <button
+                  onClick={() => setShowHistory(true)}
+                  className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                >
+                  <Archive className="w-4 h-4" />
+                  View {history.length} past session{history.length !== 1 ? 's' : ''}
+                </button>
+              )}
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span
                   className={`w-2 h-2 rounded-full ${isWatching ? 'bg-green-400' : 'bg-red-400'}`}

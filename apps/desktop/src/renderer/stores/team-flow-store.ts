@@ -136,7 +136,7 @@ const GRAPH_REBUILD_DEBOUNCE_MS = 200;
 /**
  * Build hub+spokes layout: lead at center (0,0), teammates at equal angles around radius.
  */
-function buildHubSpokesGraph(
+export function buildHubSpokesGraph(
   team: TeamSnapshot,
   theme: TeamFlowTheme
 ): { nodes: TeamFlowNode[]; edges: TeamFlowEdge[] } {
@@ -243,7 +243,7 @@ function buildHubSpokesGraph(
 /**
  * Build hierarchy layout: Team Root → Lead → Teammates → Tasks (top-down tree).
  */
-function buildHierarchyGraph(
+export function buildHierarchyGraph(
   team: TeamSnapshot,
   theme: TeamFlowTheme
 ): { nodes: TeamFlowNode[]; edges: TeamFlowEdge[] } {
@@ -429,7 +429,7 @@ function buildHierarchyGraph(
  * Build timeline layout: left-to-right chronological flow.
  * [Start] → [Teammates Column] → [Tasks by status] → [Completed]
  */
-function buildTimelineGraph(
+export function buildTimelineGraph(
   team: TeamSnapshot,
   theme: TeamFlowTheme
 ): { nodes: TeamFlowNode[]; edges: TeamFlowEdge[] } {

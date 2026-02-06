@@ -1960,6 +1960,45 @@ const api = {
     },
   },
 
+  // Team History API - Session archival and replay
+  teamHistory: {
+    /** Archive a team session before cleanup */
+    archiveSession: (data: {
+      teamName: string;
+      config: unknown;
+      tasks: unknown[];
+      inboxes: Record<string, unknown[]>;
+    }): Promise<{ ok: boolean; id?: string; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:archive-session', data),
+    /** List all archived sessions (lightweight, no full data) */
+    listArchives: (): Promise<{
+      ok: boolean;
+      entries: {
+        id: string;
+        teamName: string;
+        archivedAt: string;
+        createdAt: number;
+        duration: number;
+        stats: {
+          memberCount: number;
+          taskCount: number;
+          completedTasks: number;
+          pendingTasks: number;
+          inProgressTasks: number;
+          messageCount: number;
+        };
+        filePath: string;
+      }[];
+      error?: string;
+    }> => ipcRenderer.invoke('claude-teams:list-archives'),
+    /** Load a full archived session by ID */
+    loadArchive: (archiveId: string): Promise<{ ok: boolean; archive?: unknown; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:load-archive', archiveId),
+    /** Delete an archived session */
+    deleteArchive: (archiveId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:delete-archive', archiveId),
+  },
+
   // Global Hooks API - Manage TTS hooks in ~/.claude/settings.json for Agent Teams
   globalHooks: {
     /** Install TTS hooks in global settings for Agent Teams teammates */

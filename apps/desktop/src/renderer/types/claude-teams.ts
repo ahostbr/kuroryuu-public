@@ -175,6 +175,42 @@ export type ClaudeTeamsIpcEvent =
   | { type: 'watcher-error'; error: string };
 
 // ============================================================================
+// TEAM HISTORY / ARCHIVES (disk: {projectRoot}/ai/team-history/)
+// ============================================================================
+
+export interface ArchivedTeamStats {
+  memberCount: number;
+  taskCount: number;
+  completedTasks: number;
+  pendingTasks: number;
+  inProgressTasks: number;
+  messageCount: number;
+}
+
+export interface ArchivedTeamSession {
+  schema: 'kuroryuu_team_archive_v1';
+  id: string;
+  archivedAt: string;
+  teamName: string;
+  createdAt: number;
+  duration: number;
+  stats: ArchivedTeamStats;
+  config: TeamConfig;
+  tasks: TeamTask[];
+  inboxes: Record<string, InboxMessage[]>;
+}
+
+export interface TeamHistoryEntry {
+  id: string;
+  teamName: string;
+  archivedAt: string;
+  createdAt: number;
+  duration: number;
+  stats: ArchivedTeamStats;
+  filePath: string;
+}
+
+// ============================================================================
 // CLI COMMANDS (renderer -> main, fire-and-forget)
 // ============================================================================
 
@@ -224,6 +260,10 @@ export interface ClaudeTeamsState {
   selectedTeamTasks: TeamTask[];
   selectedTeamMessages: InboxMessage[];
 
+  // History (archived sessions)
+  history: TeamHistoryEntry[];
+  isLoadingHistory: boolean;
+
   // Actions - data
   setTeams: (teams: TeamSnapshot[]) => void;
   selectTeam: (teamName: string | null) => void;
@@ -242,6 +282,10 @@ export interface ClaudeTeamsState {
   shutdownTeammate: (params: ShutdownTeammateParams) => Promise<boolean>;
   cleanupTeam: (params: CleanupTeamParams) => Promise<boolean>;
   refreshTeam: (teamName: string) => Promise<void>;
+
+  // Actions - history
+  loadHistory: () => Promise<void>;
+  deleteArchive: (archiveId: string) => Promise<boolean>;
 }
 
 // ============================================================================
