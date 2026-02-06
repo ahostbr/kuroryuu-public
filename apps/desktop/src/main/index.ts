@@ -2340,25 +2340,47 @@ $player.Close()
       }
 
       const files = await readdir(backupsDir);
-      const backups: Array<{ id: string; timestamp: string; name?: string; size: number; config?: any }> = [];
+      const backups: Array<{ id: string; timestamp: string; name?: string; size: number; config?: any; isAuto?: boolean }> = [];
 
       for (const file of files) {
-        if (file.startsWith('backup_') && file.endsWith('.json')) {
-          try {
-            const filepath = join(backupsDir, file);
-            const stat = fs.statSync(filepath);
-            const content = await readFile(filepath, 'utf-8');
-            const data = JSON.parse(content);
+        if (!file.endsWith('.json')) continue;
+        const isManual = file.startsWith('backup_');
+        const isAuto = file.startsWith('auto_backup_');
+        if (!isManual && !isAuto) continue;
+
+        try {
+          const filepath = join(backupsDir, file);
+          const stat = fs.statSync(filepath);
+          const content = await readFile(filepath, 'utf-8');
+          const data = JSON.parse(content);
+
+          if (isAuto) {
+            // Auto-backups store raw settings — extract kuroPlugin as config
+            // Parse timestamp from filename: auto_backup_YYYYMMDDHHMMSS.json
+            const tsMatch = file.match(/auto_backup_(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.json/);
+            const timestamp = tsMatch
+              ? `${tsMatch[1]}-${tsMatch[2]}-${tsMatch[3]}T${tsMatch[4]}:${tsMatch[5]}:${tsMatch[6]}`
+              : stat.mtime.toISOString();
+            backups.push({
+              id: file,
+              timestamp,
+              name: 'Auto',
+              size: stat.size,
+              config: data.kuroPlugin || {},
+              isAuto: true,
+            });
+          } else {
+            // Manual backups: {timestamp, name, config}
             backups.push({
               id: file,
               timestamp: data.timestamp || file,
               name: data.name,
               size: stat.size,
-              config: data.config, // Include full config for preview
+              config: data.config,
             });
-          } catch (e) {
-            console.warn(`[KuroConfig] Failed to read backup ${file}:`, e);
           }
+        } catch (e) {
+          console.warn(`[KuroConfig] Failed to read backup ${file}:`, e);
         }
       }
 
@@ -2431,10 +2453,11 @@ $player.Close()
         return { ok: false, error: 'Invalid backup ID' };
       }
 
-      // Read backup file
+      // Read backup file — handle both manual ({timestamp,config}) and auto (raw settings) formats
       const content = await readFile(filepath, 'utf-8');
       const backup = JSON.parse(content);
-      const restoredConfig = backup.config;
+      const isAuto = backupId.startsWith('auto_backup_');
+      const restoredConfig = isAuto ? (backup.kuroPlugin || {}) : backup.config;
 
       const writer = getSettingsWriter();
       const result = await writer.write(SETTINGS_PATH, {

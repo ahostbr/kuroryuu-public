@@ -530,7 +530,9 @@ def main():
     tts_config = settings.get("tts", {})  # TTS settings are nested under "tts" key
     smart_summaries = tts_config.get("smartSummaries", False)
     user_name = tts_config.get("userName", "Your Name")
-    voice = args.voice or tts_config.get("voice", "en-GB-SoniaNeural")
+    # Settings voice takes priority over CLI arg (CLI arg is baked at save time
+    # and may be stale if user changed voice without restarting Claude Code)
+    voice = tts_config.get("voice") or args.voice or "en-GB-SoniaNeural"
     provider = args.provider or tts_config.get("summaryProvider", "gateway-auto")
     model = args.model or tts_config.get("summaryModel", "")
 

@@ -38,7 +38,7 @@ export function GenUILoading({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12" style={{ background: 'rgba(13,13,15,1)' }}>
+    <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12" style={{ background: 'var(--g-bg)' }}>
       {/* Scanline overlay */}
       <div className="genui-scanlines" />
 
@@ -47,24 +47,24 @@ export function GenUILoading({
         {/* Imperial Header */}
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center gap-4 mb-2">
-            <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.3))' }} />
+            <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 30%, transparent))' }} />
             <span style={{
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.55rem',
               letterSpacing: '0.3em',
-              color: 'rgba(201,169,98,0.35)',
+              color: 'color-mix(in srgb, var(--g-accent) 35%, transparent)',
               textTransform: 'uppercase',
             }}>
               Pipeline Active
             </span>
-            <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, rgba(201,169,98,0.3), transparent)' }} />
+            <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, color-mix(in srgb, var(--g-accent) 30%, transparent), transparent)' }} />
           </div>
 
           <h2 style={{
             fontSize: '1.8rem',
             fontWeight: 700,
             letterSpacing: '0.08em',
-            color: 'rgba(250,250,250,0.9)',
+            color: 'color-mix(in srgb, var(--g-fg) 90%, transparent)',
             fontFamily: "Georgia, 'Times New Roman', serif",
           }}>
             Forging Dashboard
@@ -73,7 +73,7 @@ export function GenUILoading({
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
             fontSize: '0.65rem',
             letterSpacing: '0.15em',
-            color: 'rgba(122,117,109,0.5)',
+            color: 'color-mix(in srgb, var(--g-muted) 50%, transparent)',
             textTransform: 'uppercase',
           }}>
             The imperial engine is processing your content
@@ -86,19 +86,19 @@ export function GenUILoading({
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
             fontSize: '0.6rem',
             letterSpacing: '0.1em',
-            color: 'rgba(201,169,98,0.45)',
+            color: 'color-mix(in srgb, var(--g-accent) 45%, transparent)',
             textTransform: 'uppercase',
           }}>
             <span>Progress</span>
-            <span style={{ color: 'rgba(201,169,98,0.7)', fontWeight: 600 }}>{Math.round(progress)}%</span>
+            <span style={{ color: 'color-mix(in srgb, var(--g-accent) 70%, transparent)', fontWeight: 600 }}>{Math.round(progress)}%</span>
           </div>
 
           <div
             className="relative overflow-hidden rounded-sm"
             style={{
               height: '6px',
-              background: 'rgba(17,17,19,0.8)',
-              border: '1px solid rgba(201,169,98,0.08)',
+              background: 'color-mix(in srgb, var(--g-card) 80%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)',
             }}
           >
             {/* Progress fill */}
@@ -106,8 +106,8 @@ export function GenUILoading({
               className="h-full transition-all duration-700 ease-out relative"
               style={{
                 width: `${progress}%`,
-                background: 'linear-gradient(90deg, rgba(139,38,53,0.8) 0%, rgba(201,169,98,0.6) 70%, rgba(201,169,98,0.9) 100%)',
-                boxShadow: '0 0 12px rgba(201,169,98,0.3)',
+                background: 'linear-gradient(90deg, color-mix(in srgb, var(--g-crimson) 80%, transparent) 0%, color-mix(in srgb, var(--g-accent) 60%, transparent) 70%, color-mix(in srgb, var(--g-accent) 90%, transparent) 100%)',
+                boxShadow: '0 0 12px color-mix(in srgb, var(--g-accent) 30%, transparent)',
               }}
             >
               {/* Leading glow edge */}
@@ -117,8 +117,8 @@ export function GenUILoading({
                 top: '-2px',
                 bottom: '-2px',
                 width: '4px',
-                background: 'rgba(201,169,98,0.9)',
-                boxShadow: '0 0 8px rgba(201,169,98,0.6), 0 0 16px rgba(201,169,98,0.3)',
+                background: 'color-mix(in srgb, var(--g-accent) 90%, transparent)',
+                boxShadow: '0 0 8px color-mix(in srgb, var(--g-accent) 60%, transparent), 0 0 16px color-mix(in srgb, var(--g-accent) 30%, transparent)',
                 borderRadius: '2px',
               }} />
             </div>
@@ -129,8 +129,8 @@ export function GenUILoading({
         <div
           className="rounded-md overflow-hidden"
           style={{
-            background: 'rgba(17,17,19,0.6)',
-            border: '1px solid rgba(201,169,98,0.06)',
+            background: 'color-mix(in srgb, var(--g-card) 60%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--g-accent) 6%, transparent)',
           }}
         >
           <div className="grid grid-cols-3">
@@ -145,11 +145,11 @@ export function GenUILoading({
                   className="relative flex flex-col items-center py-5 px-3 transition-all duration-500"
                   style={{
                     background: isCurrent
-                      ? 'rgba(201,169,98,0.03)'
+                      ? 'color-mix(in srgb, var(--g-accent) 3%, transparent)'
                       : isCompleted
-                        ? 'rgba(139,38,53,0.03)'
+                        ? 'color-mix(in srgb, var(--g-crimson) 3%, transparent)'
                         : 'transparent',
-                    borderRight: index < STEPS.length - 1 ? '1px solid rgba(201,169,98,0.06)' : 'none',
+                    borderRight: index < STEPS.length - 1 ? '1px solid color-mix(in srgb, var(--g-accent) 6%, transparent)' : 'none',
                   }}
                 >
                   {/* Step number */}
