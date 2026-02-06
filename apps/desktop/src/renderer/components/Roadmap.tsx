@@ -64,7 +64,7 @@ function RoadmapEmptyState({ onGenerate }: { onGenerate: () => void }) {
   return (
     <div
       ref={containerRef}
-      className="h-full flex flex-col items-center relative overflow-hidden select-none"
+      className="h-full min-h-0 flex flex-col items-center relative overflow-hidden select-none"
       style={{ background: 'radial-gradient(ellipse at center, rgba(50,20,8,0.4) 0%, transparent 70%)' }}
     >
       {/* Scanlines */}
@@ -83,7 +83,7 @@ function RoadmapEmptyState({ onGenerate }: { onGenerate: () => void }) {
       />
 
       {/* Scrollable content column */}
-      <div className="relative z-[3] flex flex-col items-center gap-2 px-4 py-8 overflow-y-auto max-w-2xl w-full">
+      <div className="relative z-[3] h-full min-h-0 flex flex-col items-center gap-2 px-4 pt-8 pb-12 overflow-y-auto max-w-2xl w-full">
         {/* Kanji */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -243,11 +243,12 @@ function RoadmapEmptyState({ onGenerate }: { onGenerate: () => void }) {
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="w-full max-w-md mt-4 p-4 rounded-xl text-left overflow-hidden"
+              className="w-full max-w-md mt-4 p-4 rounded-xl text-left overflow-y-auto"
               style={{
                 background: 'rgba(18,16,14,0.95)',
                 border: '1px solid rgba(201,162,39,0.2)',
                 backdropFilter: 'blur(10px)',
+                maxHeight: 'min(28rem, calc(100vh - 16rem))',
               }}
             >
               <div className="flex items-center justify-between mb-4">
