@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Task } from '../types/task';
 import { User, Clock, Tag, Edit2, Check, X } from 'lucide-react';
 
@@ -10,6 +10,13 @@ interface TaskOverviewProps {
 export function TaskOverview({ task, onDescriptionChange }: TaskOverviewProps) {
   const [editing, setEditing] = useState(false);
   const [description, setDescription] = useState(task.description || '');
+
+  // Sync local state when task prop changes (file watcher, store refresh)
+  useEffect(() => {
+    if (!editing) {
+      setDescription(task.description || '');
+    }
+  }, [task.description]);
 
   const handleSave = () => {
     onDescriptionChange?.(description);
