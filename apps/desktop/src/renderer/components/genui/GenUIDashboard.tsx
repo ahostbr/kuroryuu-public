@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSettingsStore } from '../../stores/settings-store';
 import { A2UIRenderer } from './A2UIRenderer';
 import { ZONE_ORDER, getGridSpan } from './LayoutEngine';
 import { A2UIComponent } from '../../types/genui';
@@ -32,6 +33,9 @@ export const GenUIDashboard: React.FC<GenUIDashboardProps> = ({
   onToggleSource,
   onReset
 }) => {
+  const imperialMode = useSettingsStore((s) => s.appSettings.genuiImperialMode);
+  const toggleMode = useSettingsStore((s) => s.setGenUIImperialMode);
+
   const totalComponents = Object.values(componentsByZone).reduce(
     (sum, components) => sum + components.length,
     0
@@ -48,34 +52,52 @@ export const GenUIDashboard: React.FC<GenUIDashboardProps> = ({
       <div
         className="relative z-[2] flex items-center justify-between px-5 py-3"
         style={{
-          background: 'linear-gradient(180deg, rgba(17,17,19,0.98) 0%, rgba(10,10,11,0.95) 100%)',
-          borderBottom: '1px solid rgba(201,169,98,0.15)',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          background: 'linear-gradient(180deg, color-mix(in srgb, var(--g-card) 98%, transparent) 0%, color-mix(in srgb, var(--g-bg) 95%, transparent) 100%)',
+          borderBottom: '1px solid color-mix(in srgb, var(--g-accent) 15%, transparent)',
+          boxShadow: '0 4px 20px color-mix(in srgb, var(--g-bg) 40%, transparent)',
         }}
       >
         <div className="flex items-center gap-4">
           {/* Gold accent mark */}
           <div
             className="w-1 h-8 rounded-sm"
-            style={{ background: 'linear-gradient(180deg, rgba(201,169,98,0.6), rgba(139,38,53,0.4))' }}
+            style={{ background: 'linear-gradient(180deg, color-mix(in srgb, var(--g-accent) 60%, transparent), color-mix(in srgb, var(--g-crimson) 40%, transparent))' }}
           />
           <div>
             <h2
               className="text-base font-semibold tracking-wide"
-              style={{ color: 'var(--foreground)', textShadow: '0 0 30px rgba(201,169,98,0.1)' }}
+              style={{ color: 'var(--foreground)', textShadow: '0 0 30px color-mix(in srgb, var(--g-accent) 10%, transparent)' }}
             >
               {documentTitle || 'Untitled Document'}
             </h2>
             <div className="flex items-center gap-2 mt-0.5">
-              <span className="genui-label" style={{ color: 'rgba(201,169,98,0.6)' }}>{documentType}</span>
-              <span style={{ color: 'rgba(201,169,98,0.2)' }}>/</span>
-              <span className="genui-label" style={{ color: 'rgba(122,117,109,0.5)' }}>{layoutType}</span>
-              <span style={{ color: 'rgba(201,169,98,0.2)' }}>/</span>
-              <span className="genui-label" style={{ color: 'rgba(122,117,109,0.4)' }}>{totalComponents} components</span>
+              <span className="genui-label" style={{ color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)' }}>{documentType}</span>
+              <span style={{ color: 'color-mix(in srgb, var(--g-accent) 20%, transparent)' }}>/</span>
+              <span className="genui-label" style={{ color: 'color-mix(in srgb, var(--g-muted) 50%, transparent)' }}>{layoutType}</span>
+              <span style={{ color: 'color-mix(in srgb, var(--g-accent) 20%, transparent)' }}>/</span>
+              <span className="genui-label" style={{ color: 'color-mix(in srgb, var(--g-muted) 40%, transparent)' }}>{totalComponents} components</span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Theme toggle button */}
+          <button
+            onClick={() => toggleMode(!imperialMode)}
+            style={{
+              fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+              fontSize: '0.55rem',
+              letterSpacing: '0.1em',
+              padding: '3px 10px',
+              borderRadius: '3px',
+              border: '1px solid color-mix(in srgb, var(--g-accent) 20%, transparent)',
+              background: 'color-mix(in srgb, var(--g-accent) 5%, transparent)',
+              color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)',
+              cursor: 'pointer',
+              textTransform: 'uppercase' as const,
+            }}
+          >
+            {imperialMode ? '\u25C8 Imperial' : '\u25C7 Themed'}
+          </button>
           <button onClick={onRegenerate} className="cp-term-btn--gold px-3 py-1.5 rounded text-xs uppercase tracking-wider" style={{ fontFamily: "ui-monospace, 'Share Tech Mono', monospace" }}>
             Regenerate
           </button>
@@ -101,7 +123,7 @@ export const GenUIDashboard: React.FC<GenUIDashboardProps> = ({
                 <div className="genui-zone-header mb-4">
                   <span
                     className="genui-label flex items-center gap-2"
-                    style={{ color: zoneName === 'hero' ? 'rgba(201,169,98,0.6)' : 'rgba(201,169,98,0.35)' }}
+                    style={{ color: zoneName === 'hero' ? 'color-mix(in srgb, var(--g-accent) 60%, transparent)' : 'color-mix(in srgb, var(--g-accent) 35%, transparent)' }}
                   >
                     <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{ZONE_ICONS[zoneName] || '\u25A0'}</span>
                     {zoneName}
@@ -156,7 +178,7 @@ export const GenUIDashboard: React.FC<GenUIDashboardProps> = ({
           {/* Bottom watermark */}
           <div className="genui-divider mt-8" />
           <div className="text-center py-4">
-            <span className="genui-label" style={{ color: 'rgba(201,169,98,0.15)', fontSize: '0.6rem' }}>
+            <span className="genui-label" style={{ color: 'color-mix(in srgb, var(--g-accent) 15%, transparent)', fontSize: '0.6rem' }}>
               Generated by Kuroryuu GenUI Engine
             </span>
           </div>

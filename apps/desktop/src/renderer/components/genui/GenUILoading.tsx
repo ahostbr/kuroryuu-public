@@ -199,10 +199,10 @@ export function GenUILoading({
                     letterSpacing: '0.2em',
                     textTransform: 'uppercase',
                     color: isCompleted
-                      ? 'rgba(201,169,98,0.65)'
+                      ? 'color-mix(in srgb, var(--g-accent) 65%, transparent)'
                       : isCurrent
-                        ? 'rgba(250,250,250,0.8)'
-                        : 'rgba(122,117,109,0.35)',
+                        ? 'color-mix(in srgb, var(--g-fg) 80%, transparent)'
+                        : 'color-mix(in srgb, var(--g-muted) 35%, transparent)',
                     fontWeight: isCurrent ? 600 : 400,
                   }}>
                     {step.label}
@@ -212,7 +212,7 @@ export function GenUILoading({
                   <span style={{
                     fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                     fontSize: '0.5rem',
-                    color: 'rgba(122,117,109,0.3)',
+                    color: 'color-mix(in srgb, var(--g-muted) 30%, transparent)',
                     marginTop: '4px',
                   }}>
                     {step.key}
@@ -226,7 +226,7 @@ export function GenUILoading({
                       left: '20%',
                       right: '20%',
                       height: '2px',
-                      background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.5), transparent)',
+                      background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 50%, transparent), transparent)',
                       animation: 'genuiGlowPulse 2s ease-in-out infinite',
                     }} />
                   )}
@@ -240,8 +240,8 @@ export function GenUILoading({
         <div
           className="text-center py-5 rounded-md"
           style={{
-            background: 'rgba(17,17,19,0.6)',
-            border: '1px solid rgba(201,169,98,0.08)',
+            background: 'color-mix(in srgb, var(--g-card) 60%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)',
             position: 'relative',
             overflow: 'hidden',
           }}
@@ -250,7 +250,7 @@ export function GenUILoading({
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
             fontSize: '0.55rem',
             letterSpacing: '0.2em',
-            color: 'rgba(201,169,98,0.4)',
+            color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
             textTransform: 'uppercase',
             marginBottom: '8px',
           }}>
@@ -260,9 +260,9 @@ export function GenUILoading({
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
             fontSize: '2.5rem',
             fontWeight: 700,
-            color: 'rgba(250,250,250,0.95)',
+            color: 'color-mix(in srgb, var(--g-fg) 95%, transparent)',
             lineHeight: 1,
-            textShadow: '0 0 20px rgba(201,169,98,0.15)',
+            textShadow: '0 0 20px color-mix(in srgb, var(--g-accent) 15%, transparent)',
           }}>
             {componentCount}
           </div>
@@ -274,7 +274,7 @@ export function GenUILoading({
             left: '30%',
             right: '30%',
             height: '1px',
-            background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.3), transparent)',
+            background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 30%, transparent), transparent)',
           }} />
         </div>
 
@@ -285,16 +285,16 @@ export function GenUILoading({
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.6rem',
               letterSpacing: '0.15em',
-              color: 'rgba(201,169,98,0.4)',
+              color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
               textTransform: 'uppercase',
             }}>
               System Log
             </span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(201,169,98,0.06)' }} />
+            <div style={{ flex: 1, height: '1px', background: 'color-mix(in srgb, var(--g-accent) 6%, transparent)' }} />
             <span style={{
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.5rem',
-              color: 'rgba(122,117,109,0.3)',
+              color: 'color-mix(in srgb, var(--g-muted) 30%, transparent)',
             }}>
               {activityLog.length} entries
             </span>
@@ -304,11 +304,11 @@ export function GenUILoading({
             className="overflow-y-auto rounded-md"
             style={{
               height: '240px',
-              background: 'rgba(10,10,12,0.9)',
-              border: '1px solid rgba(201,169,98,0.06)',
+              background: 'color-mix(in srgb, var(--g-bg) 90%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--g-accent) 6%, transparent)',
               padding: '12px 16px',
               scrollbarWidth: 'thin',
-              scrollbarColor: 'rgba(201,169,98,0.15) transparent',
+              scrollbarColor: 'color-mix(in srgb, var(--g-accent) 15%, transparent) transparent',
             }}
           >
             {activityLog.length === 0 ? (
@@ -316,7 +316,7 @@ export function GenUILoading({
                 <span style={{
                   fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                   fontSize: '0.7rem',
-                  color: 'rgba(201,169,98,0.3)',
+                  color: 'color-mix(in srgb, var(--g-accent) 30%, transparent)',
                 }}>
                   {'\u25B6'} Awaiting pipeline output...
                 </span>
@@ -328,13 +328,13 @@ export function GenUILoading({
                   className="flex gap-3 py-1 genui-reveal"
                   style={{
                     animationDelay: `${index * 0.05}s`,
-                    borderBottom: '1px solid rgba(201,169,98,0.02)',
+                    borderBottom: '1px solid color-mix(in srgb, var(--g-accent) 2%, transparent)',
                   }}
                 >
                   <span style={{
                     fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                     fontSize: '0.6rem',
-                    color: 'rgba(122,117,109,0.35)',
+                    color: 'color-mix(in srgb, var(--g-muted) 35%, transparent)',
                     whiteSpace: 'nowrap',
                   }}>
                     {new Date(entry.timestamp).toLocaleTimeString('en-US', { hour12: false })}
@@ -343,10 +343,10 @@ export function GenUILoading({
                     fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                     fontSize: '0.6rem',
                     color: entry.step === 'Component Generation'
-                      ? 'rgba(201,169,98,0.6)'
+                      ? 'color-mix(in srgb, var(--g-accent) 60%, transparent)'
                       : entry.step === 'Content Analysis'
                         ? 'rgba(59,130,246,0.6)'
-                        : 'rgba(139,38,53,0.6)',
+                        : 'color-mix(in srgb, var(--g-crimson) 60%, transparent)',
                     whiteSpace: 'nowrap',
                     fontWeight: 600,
                   }}>
@@ -355,7 +355,7 @@ export function GenUILoading({
                   <span style={{
                     fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                     fontSize: '0.6rem',
-                    color: 'rgba(250,250,250,0.6)',
+                    color: 'color-mix(in srgb, var(--g-fg) 60%, transparent)',
                   }}>
                     {entry.message}
                   </span>
@@ -375,15 +375,15 @@ export function GenUILoading({
             fontSize: '0.65rem',
             letterSpacing: '0.2em',
             textTransform: 'uppercase',
-            color: 'rgba(139,38,53,0.6)',
-            background: 'rgba(17,17,19,0.6)',
-            border: '1px solid rgba(139,38,53,0.15)',
+            color: 'color-mix(in srgb, var(--g-crimson) 60%, transparent)',
+            background: 'color-mix(in srgb, var(--g-card) 60%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--g-crimson) 15%, transparent)',
             cursor: 'pointer',
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,38,53,0.4)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--g-crimson) 40%, transparent)';
             (e.currentTarget as HTMLElement).style.color = 'rgba(231,76,94,0.8)';
-            (e.currentTarget as HTMLElement).style.background = 'rgba(139,38,53,0.08)';
+            (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--g-crimson) 8%, transparent)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,38,53,0.15)';
