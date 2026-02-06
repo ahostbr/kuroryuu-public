@@ -5,14 +5,15 @@
  * Features two views: Sessions (list) and Agent Flow (graph)
  */
 import { useEffect, useState } from 'react';
-import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList } from 'lucide-react';
+import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users } from 'lucide-react';
 import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
 import { SessionCard } from './SessionCard';
 import { SessionLogViewer } from './SessionLogViewer';
 import { AgentFlowPanel } from './AgentFlowPanel';
 import { FindingsToTasksModal } from './FindingsToTasksModal';
+import { AgentsTab } from '../command-center/tabs/AgentsTab';
 
-type ViewTab = 'sessions' | 'flow';
+type ViewTab = 'sessions' | 'flow' | 'terminal-agents';
 
 export function KuroryuuAgents() {
   const {
@@ -93,6 +94,17 @@ export function KuroryuuAgents() {
               <GitBranch className="w-3.5 h-3.5" />
               Agent Flow
             </button>
+            <button
+              onClick={() => setActiveTab('terminal-agents')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'terminal-agents'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Terminal Agents
+            </button>
           </div>
         </div>
         <button
@@ -114,7 +126,11 @@ export function KuroryuuAgents() {
       )}
 
       {/* Content */}
-      {activeTab === 'sessions' ? (
+      {activeTab === 'terminal-agents' ? (
+        <div className="flex-1 overflow-hidden">
+          <AgentsTab />
+        </div>
+      ) : activeTab === 'sessions' ? (
         <div className="flex-1 overflow-hidden flex">
           {/* Session List */}
           <div className="w-80 border-r border-border flex-shrink-0 overflow-y-auto p-4 space-y-4">

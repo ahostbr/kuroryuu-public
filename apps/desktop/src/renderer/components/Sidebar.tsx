@@ -112,7 +112,7 @@ const navGroups: NavGroup[] = [
     icon: Eye,
     items: [
       { id: 'capture', label: 'Capture', icon: Camera, shortcut: 'P' },
-      { id: 'command-center', label: 'Command Center', icon: Terminal, shortcut: 'M' },
+      { id: 'command-center', label: 'Server Status', icon: Terminal, shortcut: 'M' },
       { id: 'traffic-flow', label: 'HTTP Traffic', icon: Activity, shortcut: 'F' },
       { id: 'pty-traffic', label: 'PTY Traffic', icon: Radio, shortcut: 'Y' },
     ],

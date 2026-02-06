@@ -1,14 +1,13 @@
 /**
- * Command Center
+ * Server Status
  *
- * Full stack command center for managing agents, tools, and servers.
+ * Server status dashboard for managing tools and servers.
  * Features real-time WebSocket updates and tool execution.
  */
 import React, { useEffect } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
-import { Users, Wrench, Server, RefreshCw, Wifi, WifiOff, Network } from 'lucide-react';
+import { Wrench, Server, RefreshCw, Wifi, WifiOff, Network } from 'lucide-react';
 import { useCommandCenter } from '../../hooks/useCommandCenter';
-import { AgentsTab } from './tabs/AgentsTab';
 import { ToolsTab } from './tabs/ToolsTab';
 import { ServersTab } from './tabs/ServersTab';
 import { GraphitiCanvas } from '../graphiti/GraphitiCanvas';
@@ -52,7 +51,7 @@ export function CommandCenter() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-semibold text-foreground">Command Center</h1>
+          <h1 className="text-xl font-semibold text-foreground">Server Status</h1>
 
           {/* Connection Status */}
           <div
@@ -114,18 +113,6 @@ export function CommandCenter() {
       >
         <Tabs.List className="flex gap-1 px-6 pt-4 border-b border-border">
           <Tabs.Trigger
-            value="agents"
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium transition-colors ${
-              activeTab === 'agents'
-                ? 'bg-secondary text-foreground border-b-2 border-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            Agents
-          </Tabs.Trigger>
-
-          <Tabs.Trigger
             value="tools"
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium transition-colors ${
               activeTab === 'tools'
@@ -164,10 +151,6 @@ export function CommandCenter() {
             </Tabs.Trigger>
           )}
         </Tabs.List>
-
-        <Tabs.Content value="agents" className="flex-1 overflow-auto">
-          <AgentsTab />
-        </Tabs.Content>
 
         <Tabs.Content value="tools" className="flex-1 overflow-auto">
           <ToolsTab />

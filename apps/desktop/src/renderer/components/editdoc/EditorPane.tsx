@@ -25,6 +25,7 @@ interface EditorPaneProps {
   className?: string;
   showMinimap?: boolean;
   showFoldGutter?: boolean;
+  readOnly?: boolean;
 }
 
 // Helper to extract word at position
@@ -252,6 +253,7 @@ export function EditorPane({
   className = '',
   showMinimap = false,
   showFoldGutter = true,
+  readOnly = false,
 }: EditorPaneProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
@@ -375,6 +377,12 @@ export function EditorPane({
       }));
     }
 
+    // Read-only mode (Phase 16)
+    if (readOnly) {
+      extensions.push(EditorState.readOnly.of(true));
+      extensions.push(EditorView.editable.of(false));
+    }
+
     const state = EditorState.create({
       doc: content,
       extensions,
@@ -398,7 +406,7 @@ export function EditorPane({
       view.destroy();
       viewRef.current = null;
     };
-  }, [language, handleEditorClick, handleKeyDown, showFoldGutter]); // Recreate editor when language or fold gutter changes
+  }, [language, handleEditorClick, handleKeyDown, showFoldGutter, readOnly]); // Recreate editor when language, fold gutter, or readOnly changes
 
   // Update content when it changes externally
   useEffect(() => {

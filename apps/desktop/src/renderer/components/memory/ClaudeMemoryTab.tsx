@@ -16,6 +16,7 @@ import {
   AlertCircle,
   HardDrive,
 } from 'lucide-react';
+import { EditorPane } from '../editdoc/EditorPane';
 
 interface MemoryFile {
   name: string;
@@ -31,6 +32,12 @@ function formatSize(bytes: number): string {
 function countLines(content: string): number {
   if (!content) return 0;
   return content.split('\n').length;
+}
+
+function getLanguage(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const map: Record<string, string> = { md: 'markdown', json: 'json', yaml: 'yaml', py: 'python', ts: 'typescript', js: 'javascript' };
+  return map[ext || ''] || 'markdown';
 }
 
 export function ClaudeMemoryTab() {
@@ -252,27 +259,25 @@ export function ClaudeMemoryTab() {
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         ) : editing ? (
-          /* Edit mode */
-          <textarea
-            value={editContent}
-            onChange={(e) => setEditContent(e.target.value)}
-            className="w-full h-full p-4 bg-background text-sm text-foreground font-mono resize-none focus:outline-none"
-            spellCheck={false}
+          /* Edit mode — CodeMirror with full editing */
+          <EditorPane
+            content={editContent}
+            onChange={setEditContent}
+            onSave={saveFile}
+            language={getLanguage(activeFile || 'MEMORY.md')}
+            showMinimap={false}
+            showFoldGutter={true}
           />
         ) : fileContent ? (
-          /* Display mode with line numbers */
-          <div className="p-4 overflow-x-auto">
-            <pre className="text-sm font-mono leading-relaxed">
-              {fileContent.split('\n').map((line, i) => (
-                <div key={i} className="flex hover:bg-secondary/30 transition-colors">
-                  <span className="select-none text-muted-foreground/40 text-right pr-4 min-w-[3rem] flex-shrink-0">
-                    {i + 1}
-                  </span>
-                  <span className="text-foreground whitespace-pre-wrap break-words">{line}</span>
-                </div>
-              ))}
-            </pre>
-          </div>
+          /* Display mode — CodeMirror read-only with syntax highlighting */
+          <EditorPane
+            content={fileContent}
+            onChange={() => {}}
+            language={getLanguage(activeFile || 'MEMORY.md')}
+            readOnly
+            showMinimap={false}
+            showFoldGutter={true}
+          />
         ) : null}
 
         {/* Other memory files */}
@@ -309,9 +314,16 @@ export function ClaudeMemoryTab() {
                           <Edit3 className="w-3 h-3" />
                           Open
                         </button>
-                        <pre className="text-xs font-mono bg-secondary/40 rounded p-3 overflow-x-auto max-h-[300px] overflow-y-auto text-muted-foreground leading-relaxed">
-                          {otherFileContents[file.name]}
-                        </pre>
+                        <div className="rounded overflow-hidden max-h-[300px]">
+                          <EditorPane
+                            content={otherFileContents[file.name]}
+                            onChange={() => {}}
+                            language={getLanguage(file.name)}
+                            readOnly
+                            showMinimap={false}
+                            showFoldGutter={false}
+                          />
+                        </div>
                       </div>
                     ) : (
                       <div className="flex items-center justify-center py-3">

@@ -82,7 +82,7 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
     selectedServerId: null,
 
     // UI State
-    activeTab: 'agents',
+    activeTab: 'tools',
     isInitialized: false,
     error: null,
 
@@ -135,7 +135,7 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
         set({ isInitialized: true });
       } catch (error) {
         set({
-          error: error instanceof Error ? error.message : 'Failed to initialize Command Center',
+          error: error instanceof Error ? error.message : 'Failed to initialize Server Status',
         });
       }
     },
