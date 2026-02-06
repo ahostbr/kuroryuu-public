@@ -117,7 +117,7 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
             "description": "Session/thread persistence with JSON payloads",
             "actions": {
                 "help": "Show this help",
-                "save": "Save checkpoint. Params: name (required), data (required), summary, tags, worklog (bool: auto-generate worklog)",
+                "save": "Save checkpoint. Params: name (required), data (required), summary, tags, worklog (bool), task_id (auto-link sidecar)",
                 "append": "Update latest checkpoint in-place. Params: name (required), data (deep-merged), summary (replaced if given), tags (appended)",
                 "list": "List checkpoints. Params: name (filter), limit",
                 "load": "Load checkpoint. Params: id (or 'latest' for global latest), name (for namespace latest)",
@@ -126,6 +126,35 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
         },
         "error": None,
     }
+
+
+def _read_task_meta() -> Dict[str, Any]:
+    """Read ai/task-meta.json, return empty structure if missing."""
+    meta_path = get_project_root() / "ai" / "task-meta.json"
+    try:
+        with meta_path.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"version": 1, "tasks": {}}
+
+
+def _write_task_meta(meta: Dict[str, Any]) -> None:
+    """Write ai/task-meta.json atomically."""
+    meta_path = get_project_root() / "ai" / "task-meta.json"
+    meta_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_json_atomic(meta_path, meta)
+
+
+def _link_task_sidecar(task_id: str, checkpoint_id: str, worklog_rel: Optional[str]) -> None:
+    """Link checkpoint + worklog to a task in ai/task-meta.json sidecar."""
+    meta = _read_task_meta()
+    tasks = meta.setdefault("tasks", {})
+    entry = tasks.setdefault(task_id, {})
+    entry["checkpoint"] = checkpoint_id
+    if worklog_rel:
+        entry["worklog"] = worklog_rel
+    entry["updatedAt"] = _iso(_now_local())
+    _write_task_meta(meta)
 
 
 def _generate_worklog(
@@ -205,6 +234,7 @@ def _action_save(
     summary: str = "",
     tags: Optional[List[str]] = None,
     worklog: bool = False,
+    task_id: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Save a checkpoint with arbitrary data. Optionally generate a worklog."""
@@ -279,6 +309,13 @@ def _action_save(
         }
         if worklog_path:
             result["worklog_path"] = str(worklog_path)
+
+        # Auto-link task sidecar if task_id provided
+        if task_id:
+            wl_rel = str(worklog_path.relative_to(get_project_root())).replace("\\", "/") if worklog_path else None
+            _link_task_sidecar(task_id, checkpoint_id, wl_rel)
+            result["task_linked"] = task_id
+
         return result
     except Exception as e:
         return {"ok": False, "error_code": "SAVE_FAILED", "message": str(e)}
@@ -521,6 +558,7 @@ def k_checkpoint(
     limit: int = 20,
     id: str = "",
     worklog: bool = False,
+    task_id: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Kuroryuu Checkpoint - Session/thread persistence.
@@ -536,6 +574,7 @@ def k_checkpoint(
         limit: Max checkpoints to return (for list)
         id: Checkpoint ID (for load, use 'latest' for most recent)
         worklog: Auto-generate worklog file alongside checkpoint (for save)
+        task_id: Task ID to auto-link checkpoint+worklog in ai/task-meta.json (for save)
 
     Returns:
         {ok, ...} response dict
@@ -567,6 +606,7 @@ def k_checkpoint(
         limit=limit,
         id=id,
         worklog=worklog,
+        task_id=task_id,
         **kwargs,
     )
 
@@ -618,6 +658,11 @@ def register_checkpoint_tools(registry: "ToolRegistry") -> None:
                     "type": "boolean",
                     "default": False,
                     "description": "Auto-generate worklog file alongside checkpoint (for save)",
+                },
+                "task_id": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Task ID (e.g. T001) to auto-link checkpoint+worklog in ai/task-meta.json",
                 },
             },
             "required": ["action"],

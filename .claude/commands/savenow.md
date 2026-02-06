@@ -26,7 +26,8 @@ k_checkpoint(
     "changes": { "key": "description" }, // summary of changes
     "agent": "claude"                    // agent identifier
   },
-  worklog=true   // <-- auto-generates KuroRyuuWorkLog_ file
+  worklog=true,    // <-- auto-generates KuroRyuuWorkLog_ file
+  task_id="T001"   // <-- auto-links checkpoint+worklog to ai/task-meta.json
 )
 ```
 
@@ -36,6 +37,12 @@ The `worklog=true` flag automatically:
 - Renders files modified, changes, summary, and tags sections
 - Back-patches the worklog path into the checkpoint data
 
+The `task_id` parameter automatically:
+- Links the checkpoint ID to the task's entry in `ai/task-meta.json`
+- Links the worklog path (if `worklog=true`) to the same entry
+- Sets `updatedAt` timestamp on the sidecar entry
+- No manual sidecar edits needed — one call does everything
+
 **Confirm** the save completed — response includes both `path` and `worklog_path`.
 
 ## Example Output
@@ -44,4 +51,5 @@ The `worklog=true` flag automatically:
 Saved:
 - Checkpoint: cp_20260205_220000_a1b2c3d4 (descriptive-name)
 - Worklog: Docs/worklogs/KuroRyuuWorkLog_20260205_220000_descriptive_name.md
+- Task linked: T001 (checkpoint + worklog auto-linked in ai/task-meta.json)
 ```
