@@ -19,6 +19,7 @@ $projectRoot = (Get-Location).Path
 $todoPath = Join-Path $projectRoot "ai\todo.md"
 $logFile = Join-Path $projectRoot "ai\hooks\claude-task-debug.log"
 $taskMapFile = Join-Path $projectRoot "ai\hooks\task_id_map.json"
+$metaPath = Join-Path $projectRoot "ai\task-meta.json"
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 # ============================================================================
@@ -207,6 +208,101 @@ function Save-TaskIdMap {
     $json = $Map | ConvertTo-Json -Depth 3
     # Use .NET method to avoid BOM
     [System.IO.File]::WriteAllText($taskMapFile, $json, [System.Text.Encoding]::UTF8)
+}
+
+# ============================================================================
+# Sidecar Metadata (ai/task-meta.json)
+# ============================================================================
+function Get-TaskMeta {
+    if (-not (Test-Path $metaPath)) {
+        return @{ version = 1; tasks = @{} }
+    }
+    try {
+        $content = Get-Content $metaPath -Raw -Encoding UTF8
+        $content = $content -replace '^\xEF\xBB\xBF', ''
+        $content = $content.Trim()
+        if ($content -and $content.Length -gt 2) {
+            $json = $content | ConvertFrom-Json
+            $meta = @{ version = $json.version; tasks = @{} }
+            if ($json.tasks) {
+                $json.tasks.PSObject.Properties | ForEach-Object {
+                    $taskObj = @{}
+                    $_.Value.PSObject.Properties | ForEach-Object {
+                        $taskObj[$_.Name] = $_.Value
+                    }
+                    $meta.tasks[$_.Name] = $taskObj
+                }
+            }
+            return $meta
+        }
+    } catch {
+        Write-Log "ERROR loading task meta: $($_.Exception.Message)"
+    }
+    return @{ version = 1; tasks = @{} }
+}
+
+function Save-TaskMeta {
+    param([hashtable]$Meta)
+    $metaDir = Split-Path $metaPath -Parent
+    if (-not (Test-Path $metaDir)) {
+        New-Item -ItemType Directory -Path $metaDir -Force | Out-Null
+    }
+    $json = $Meta | ConvertTo-Json -Depth 4
+    # UTF-8 WITHOUT BOM — critical for Python json.load() compatibility
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($metaPath, $json, $utf8NoBom)
+}
+
+function Write-TaskSidecar {
+    param(
+        [string]$TaskId,
+        [string]$Description,
+        [object]$ToolInput
+    )
+
+    $meta = Get-TaskMeta
+    if (-not $meta.tasks) {
+        $meta.tasks = @{}
+    }
+
+    $entry = @{}
+
+    # Full description (not truncated)
+    if ($Description) {
+        $entry.description = $Description
+    }
+
+    # Priority from tool_input (validate)
+    if ($ToolInput -and $ToolInput.priority) {
+        $priority = $ToolInput.priority.ToString().ToLower()
+        if ($priority -in @('low', 'medium', 'high')) {
+            $entry.priority = $priority
+        }
+    }
+
+    # Category from tool_input (validate)
+    if ($ToolInput -and $ToolInput.category) {
+        $category = $ToolInput.category.ToString().ToLower()
+        $validCategories = @('feature', 'bug_fix', 'refactoring', 'documentation',
+                            'security', 'performance', 'ui_ux', 'infrastructure', 'testing')
+        if ($category -in $validCategories) {
+            $entry.category = $category
+        }
+    }
+
+    # Timestamps (ISO 8601 UTC)
+    $now = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    $entry.createdAt = $now
+    $entry.updatedAt = $now
+
+    $meta.tasks[$TaskId] = $entry
+
+    try {
+        Save-TaskMeta -Meta $meta
+        Write-Log "Sidecar written for $TaskId (description: $($Description.Length) chars)"
+    } catch {
+        Write-Log "ERROR writing sidecar: $($_.Exception.Message)"
+    }
 }
 
 # ============================================================================
@@ -445,6 +541,9 @@ try {
         } else {
             Write-Log "WARNING: No mappings were created"
         }
+
+        # Write sidecar metadata (full description, not truncated)
+        Write-TaskSidecar -TaskId $taskId -Description $description -ToolInput $toolInput
 
         Write-Log "SUCCESS: Created $taskId"
         Write-Output "{`"ok`": true, `"action`": `"created`", `"taskId`": `"$taskId`"}"

@@ -1,4 +1,5 @@
 ﻿# Tasks
+<!-- Full descriptions, priority, and metadata: ai/task-meta.json | API: GET /v1/tasks/{id} -->
 
 ## Backlog
 - [ ] T001: Example backlog task
