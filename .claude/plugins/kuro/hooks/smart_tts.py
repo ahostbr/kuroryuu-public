@@ -266,20 +266,24 @@ def _speak_internal(text: str, voice: str = "en-GB-SoniaNeural"):
                 $ms = $duration.TimeSpan.TotalMilliseconds + 500
                 Start-Sleep -Milliseconds $ms
             }} else {{
-                Start-Sleep -Seconds 15
-            }}
-            # Safety: poll position until playback stops advancing
-            $lastPos = -1
-            $staleCount = 0
-            while ($staleCount -lt 3) {{
+                # No duration info — use position polling instead of fixed sleep
+                $lastPos = -1
+                $staleCount = 0
+                $maxPolls = 120
+                $polls = 0
+                # Wait for playback to start
                 Start-Sleep -Milliseconds 500
-                $curPos = $player.Position.TotalMilliseconds
-                if ($curPos -le $lastPos -or $curPos -eq 0) {{
-                    $staleCount++
-                }} else {{
-                    $staleCount = 0
+                while ($staleCount -lt 3 -and $polls -lt $maxPolls) {{
+                    Start-Sleep -Milliseconds 500
+                    $curPos = $player.Position.TotalMilliseconds
+                    if ($curPos -le $lastPos) {{
+                        $staleCount++
+                    }} else {{
+                        $staleCount = 0
+                    }}
+                    $lastPos = $curPos
+                    $polls++
                 }}
-                $lastPos = $curPos
             }}
             $player.Close()
             '''
