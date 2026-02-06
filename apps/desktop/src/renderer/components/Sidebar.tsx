@@ -59,7 +59,8 @@ export type View =
   | 'transcripts'
   | 'capture'
   | 'claude-tasks'
-  | 'claude-teams';
+  | 'claude-teams'
+  | 'kuroryuu-agents';
 
 interface SidebarProps {
   activeView: View;
@@ -101,6 +102,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: 'insights', label: 'ChatBot', icon: Brain, shortcut: 'N' },
       { id: 'claude-teams', label: 'Claude Teams', icon: Users, shortcut: 'A' },
+      { id: 'kuroryuu-agents', label: 'Kuroryuu Agents', icon: Bot, shortcut: 'U' },
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
     ],
   },

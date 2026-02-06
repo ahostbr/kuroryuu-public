@@ -43,6 +43,7 @@ import {
   Check,
 } from 'lucide-react';
 import { MemoryCard, type MemoryNode } from './MemoryCard';
+import { ClaudeMemoryTab } from './ClaudeMemoryTab';
 import { useSettings, type GraphitiSettings } from '../../hooks/useSettings';
 import { useCaptureStore } from '../../stores/capture-store';
 import { RecordingIndicator } from '../capture/RecordingIndicator';
@@ -50,6 +51,7 @@ import { CheckpointsPanel } from '../checkpoints/CheckpointsPanel';
 
 type MemoryType = 'all' | 'fact' | 'event' | 'entity' | 'preference';
 type ViewMode = 'list' | 'graph';
+type MemoryTab = 'graphiti' | 'claude';
 
 interface SearchResult {
   type: string;
@@ -120,6 +122,7 @@ const nodeTypes = { memory: MemoryGraphNode };
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function MemoryPanel() {
+  const [activeTab, setActiveTab] = useState<MemoryTab>('graphiti');
   const [graphitiSettings] = useSettings<GraphitiSettings>('graphiti');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<MemoryType>('all');
@@ -357,9 +360,60 @@ export function MemoryPanel() {
       }))
     : filteredMemories;
 
+  // Tab bar component (rendered at top of every view)
+  const tabBar = (
+    <div className="flex items-center border-b border-border bg-secondary/20">
+      <button
+        onClick={() => setActiveTab('graphiti')}
+        className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+          activeTab === 'graphiti'
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        Graphiti
+        {activeTab === 'graphiti' && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500" />
+        )}
+      </button>
+      <button
+        onClick={() => setActiveTab('claude')}
+        className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+          activeTab === 'claude'
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+        }`}
+      >
+        Claude Memory
+        {activeTab === 'claude' && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500" />
+        )}
+      </button>
+    </div>
+  );
+
+  // Claude Memory tab selected - render it regardless of Graphiti state
+  if (activeTab === 'claude') {
+    return (
+      <div className="flex flex-col h-full">
+        {tabBar}
+        <div className="flex-1 overflow-hidden">
+          <ClaudeMemoryTab />
+        </div>
+      </div>
+    );
+  }
+
   // Not enabled state - show Checkpoints panel instead
   if (!enabled) {
-    return <CheckpointsPanel />;
+    return (
+      <div className="flex flex-col h-full">
+        {tabBar}
+        <div className="flex-1 overflow-hidden">
+          <CheckpointsPanel />
+        </div>
+      </div>
+    );
   }
 
   // Launch Graphiti server via Electron IPC
@@ -413,6 +467,7 @@ export function MemoryPanel() {
   if (healthStatus === 'unhealthy') {
     return (
       <div className="flex flex-col h-full">
+        {tabBar}
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -601,6 +656,7 @@ export function MemoryPanel() {
 
   return (
     <div className="flex flex-col h-full">
+      {tabBar}
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">

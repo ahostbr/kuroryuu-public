@@ -255,21 +255,38 @@ def _speak_internal(text: str, voice: str = "en-GB-SoniaNeural"):
             Add-Type -AssemblyName presentationCore
             $player = New-Object System.Windows.Media.MediaPlayer
             $player.Open("{tmp_path}")
-            Start-Sleep -Milliseconds 300
+            Start-Sleep -Milliseconds 800
             $player.Play()
             $duration = $player.NaturalDuration
+            if (-not $duration.HasTimeSpan) {{
+                Start-Sleep -Milliseconds 500
+                $duration = $player.NaturalDuration
+            }}
             if ($duration.HasTimeSpan) {{
                 $ms = $duration.TimeSpan.TotalMilliseconds + 500
                 Start-Sleep -Milliseconds $ms
             }} else {{
-                Start-Sleep -Seconds 5
+                Start-Sleep -Seconds 15
+            }}
+            # Safety: poll position until playback stops advancing
+            $lastPos = -1
+            $staleCount = 0
+            while ($staleCount -lt 3) {{
+                Start-Sleep -Milliseconds 500
+                $curPos = $player.Position.TotalMilliseconds
+                if ($curPos -le $lastPos -or $curPos -eq 0) {{
+                    $staleCount++
+                }} else {{
+                    $staleCount = 0
+                }}
+                $lastPos = $curPos
             }}
             $player.Close()
             '''
             subprocess.run(
                 ["powershell.exe", "-NoProfile", "-Command", ps_cmd],
                 capture_output=True,
-                timeout=30
+                timeout=60
             )
 
             print(f"[SmartTTS] Announced: {text}")

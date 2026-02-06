@@ -264,6 +264,13 @@ export interface ClaudeTeamsState {
   history: TeamHistoryEntry[];
   isLoadingHistory: boolean;
 
+  // Templates (saved team configurations)
+  templates: TeamTemplate[];
+  isLoadingTemplates: boolean;
+
+  // Health (derived teammate responsiveness)
+  teammateHealth: Record<string, TeammateHealthInfo>;
+
   // Actions - data
   setTeams: (teams: TeamSnapshot[]) => void;
   selectTeam: (teamName: string | null) => void;
@@ -286,6 +293,49 @@ export interface ClaudeTeamsState {
   // Actions - history
   loadHistory: () => Promise<void>;
   deleteArchive: (archiveId: string) => Promise<boolean>;
+
+  // Actions - templates
+  loadTemplates: () => Promise<void>;
+  saveTemplate: (template: Omit<TeamTemplate, 'id' | 'createdAt'>) => Promise<boolean>;
+  deleteTemplate: (templateId: string) => Promise<boolean>;
+  toggleTemplateFavorite: (templateId: string) => Promise<boolean>;
+
+  // Actions - health
+  checkTeammateHealth: () => void;
+
+  // Actions - bulk operations
+  shutdownAllTeammates: (teamName: string) => Promise<boolean>;
+  broadcastToTeammates: (teamName: string, content: string) => Promise<boolean>;
+}
+
+// ============================================================================
+// TEAM TEMPLATES (disk: {projectRoot}/ai/team-templates.json)
+// ============================================================================
+
+export interface TeamTemplate {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;          // ISO 8601
+  isFavorite: boolean;
+  config: {
+    teammates: Array<{
+      name: string;
+      prompt: string;
+      model?: string;
+      color?: string;
+      planModeRequired?: boolean;
+    }>;
+  };
+}
+
+// ============================================================================
+// TEAMMATE HEALTH (derived, not on disk)
+// ============================================================================
+
+export interface TeammateHealthInfo {
+  lastActivity: number;       // Epoch ms of last inbox activity
+  isUnresponsive: boolean;    // True if >5min with active task and no activity
 }
 
 // ============================================================================

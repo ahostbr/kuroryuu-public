@@ -1,10 +1,12 @@
 /**
  * CreateTeamDialog - Modal for creating a new Claude Agent Team.
- * Fields: name, description, teammates with per-teammate config.
+ * Enhanced (Phase 12): template selector, per-teammate model dropdown,
+ * "Save as Template" button, and star/favorite toggle.
  */
-import { useState, useCallback } from 'react';
-import { X, Users, Plus, Minus, Play, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Users, Plus, Minus, Play, User, Star, Save, ChevronDown, Trash2 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
+import type { TeamTemplate } from '../../types/claude-teams';
 
 interface TeammateConfig {
   name: string;
@@ -33,10 +35,27 @@ interface CreateTeamDialogProps {
 
 export function CreateTeamDialog({ isOpen, onClose }: CreateTeamDialogProps) {
   const createTeam = useClaudeTeamsStore((s) => s.createTeam);
+  const templates = useClaudeTeamsStore((s) => s.templates);
+  const loadTemplates = useClaudeTeamsStore((s) => s.loadTemplates);
+  const saveTemplate = useClaudeTeamsStore((s) => s.saveTemplate);
+  const deleteTemplate = useClaudeTeamsStore((s) => s.deleteTemplate);
+  const toggleTemplateFavorite = useClaudeTeamsStore((s) => s.toggleTemplateFavorite);
 
   const [description, setDescription] = useState('');
   const [teammates, setTeammates] = useState<TeammateConfig[]>([{ ...DEFAULT_TEAMMATE }]);
   const [isCreating, setIsCreating] = useState(false);
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDesc, setTemplateDesc] = useState('');
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+
+  // Load templates when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadTemplates();
+    }
+  }, [isOpen, loadTemplates]);
 
   if (!isOpen) return null;
 
@@ -54,6 +73,46 @@ export function CreateTeamDialog({ isOpen, onClose }: CreateTeamDialogProps) {
     setTeammates(
       teammates.map((t, i) => (i === index ? { ...t, ...updates } : t))
     );
+  };
+
+  const applyTemplate = (template: TeamTemplate) => {
+    setTeammates(
+      template.config.teammates.map((t) => ({
+        name: t.name,
+        prompt: t.prompt,
+        model: t.model || 'claude-sonnet-4-5-20250929',
+        planModeRequired: t.planModeRequired || false,
+      }))
+    );
+    setShowTemplateDropdown(false);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) return;
+    setIsSavingTemplate(true);
+    try {
+      const validTeammates = teammates.filter((t) => t.name.trim());
+      await saveTemplate({
+        name: templateName.trim(),
+        description: templateDesc.trim(),
+        isFavorite: false,
+        config: {
+          teammates: validTeammates.map((t) => ({
+            name: t.name.trim(),
+            prompt: t.prompt.trim(),
+            model: t.model,
+            planModeRequired: t.planModeRequired || undefined,
+          })),
+        },
+      });
+      setTemplateName('');
+      setTemplateDesc('');
+      setShowSaveTemplate(false);
+    } catch (err) {
+      console.error('[CreateTeamDialog] save template error:', err);
+    } finally {
+      setIsSavingTemplate(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -87,6 +146,8 @@ export function CreateTeamDialog({ isOpen, onClose }: CreateTeamDialogProps) {
     }
   };
 
+  const hasValidTeammates = teammates.some((t) => t.name.trim());
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -113,6 +174,82 @@ export function CreateTeamDialog({ isOpen, onClose }: CreateTeamDialogProps) {
 
         {/* Content */}
         <div className="p-6 space-y-4 overflow-y-auto flex-1">
+          {/* Template Selector */}
+          <div className="relative">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Start from Template
+            </label>
+            <button
+              onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-secondary border border-border hover:border-primary/50 transition-colors text-sm"
+            >
+              <span className="text-muted-foreground">
+                {templates.length > 0
+                  ? `Choose a template (${templates.length} saved)`
+                  : 'No saved templates'}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${showTemplateDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown */}
+            {showTemplateDropdown && templates.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded-lg shadow-xl max-h-[200px] overflow-y-auto">
+                {templates.map((tpl) => (
+                  <div
+                    key={tpl.id}
+                    className="flex items-center gap-2 px-3 py-2 hover:bg-secondary cursor-pointer transition-colors group"
+                  >
+                    {/* Favorite toggle */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTemplateFavorite(tpl.id);
+                      }}
+                      className="shrink-0"
+                      title={tpl.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      <Star
+                        className={`w-3.5 h-3.5 transition-colors ${
+                          tpl.isFavorite
+                            ? 'text-yellow-400 fill-yellow-400'
+                            : 'text-muted-foreground hover:text-yellow-400'
+                        }`}
+                      />
+                    </button>
+
+                    {/* Template info (clickable to apply) */}
+                    <div
+                      className="flex-1 min-w-0"
+                      onClick={() => applyTemplate(tpl)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium truncate">{tpl.name}</span>
+                        <span className="text-[10px] text-muted-foreground shrink-0">
+                          {tpl.config.teammates.length} teammate{tpl.config.teammates.length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      {tpl.description && (
+                        <p className="text-xs text-muted-foreground truncate">{tpl.description}</p>
+                      )}
+                    </div>
+
+                    {/* Delete */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTemplate(tpl.id);
+                      }}
+                      className="shrink-0 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-all"
+                      title="Delete template"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Task Description */}
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-2">
@@ -215,6 +352,59 @@ export function CreateTeamDialog({ isOpen, onClose }: CreateTeamDialogProps) {
               ))}
             </div>
           </div>
+
+          {/* Save as Template (inline form, collapsible) */}
+          {hasValidTeammates && (
+            <div className="border border-border rounded-lg bg-secondary/20">
+              {!showSaveTemplate ? (
+                <button
+                  onClick={() => setShowSaveTemplate(true)}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  Save current config as template
+                </button>
+              ) : (
+                <div className="p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                    <Save className="w-3.5 h-3.5" />
+                    Save as Template
+                  </div>
+                  <input
+                    type="text"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    placeholder="Template name"
+                    className="w-full px-3 py-1.5 rounded-md bg-secondary border border-border focus:border-primary focus:outline-none text-sm"
+                    autoFocus
+                  />
+                  <input
+                    type="text"
+                    value={templateDesc}
+                    onChange={(e) => setTemplateDesc(e.target.value)}
+                    placeholder="Description (optional)"
+                    className="w-full px-3 py-1.5 rounded-md bg-secondary border border-border focus:border-primary focus:outline-none text-sm"
+                  />
+                  <div className="flex items-center gap-2 justify-end">
+                    <button
+                      onClick={() => { setShowSaveTemplate(false); setTemplateName(''); setTemplateDesc(''); }}
+                      className="px-2 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveTemplate}
+                      disabled={!templateName.trim() || isSavingTemplate}
+                      className="flex items-center gap-1 px-3 py-1 rounded text-xs bg-primary/20 text-primary hover:bg-primary/30 transition-colors disabled:opacity-50"
+                    >
+                      <Save className="w-3 h-3" />
+                      {isSavingTemplate ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}
