@@ -13,7 +13,40 @@ export interface Task {
   assignee?: string;
   tags?: string[];
   notes?: string;
+  // Sidecar metadata (from ai/task-meta.json)
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  category?: 'feature' | 'bug_fix' | 'refactoring' | 'documentation' | 'security' | 'performance' | 'ui_ux' | 'infrastructure' | 'testing';
+  complexity?: 'sm' | 'md' | 'lg';
+  worklog?: string;
+  checkpoint?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  contextFiles?: string[];
 }
+
+export interface TaskMeta {
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  category?: 'feature' | 'bug_fix' | 'refactoring' | 'documentation' | 'security' | 'performance' | 'ui_ux' | 'infrastructure' | 'testing';
+  complexity?: 'sm' | 'md' | 'lg';
+  worklog?: string;
+  checkpoint?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  contextFiles?: string[];
+}
+
+interface TaskMetaFile {
+  version: number;
+  tasks: Record<string, TaskMeta>;
+}
+
+/** Single source of truth: keys that live in ai/task-meta.json, NOT in todo.md */
+export const SIDECAR_KEYS: ReadonlyArray<keyof TaskMeta> = [
+  'description', 'priority', 'category', 'complexity',
+  'worklog', 'checkpoint', 'createdAt', 'updatedAt', 'contextFiles',
+] as const;
 
 export interface ClaudeTask {
   id: string;
@@ -40,6 +73,7 @@ interface TasksChangedCallback {
 export class TaskService extends EventEmitter {
   private projectRoot: string | null = null;
   private todoPath: string | null = null;
+  private metaPath: string | null = null;
   private watcher: FSWatcher | null = null;
   private skipNextReload = false;
   private debounceTimer: NodeJS.Timeout | null = null;
@@ -51,6 +85,7 @@ export class TaskService extends EventEmitter {
   initialize(projectRoot: string): void {
     this.projectRoot = projectRoot;
     this.todoPath = join(projectRoot, 'ai', 'todo.md');
+    this.metaPath = join(projectRoot, 'ai', 'task-meta.json');
   }
 
   /**
@@ -110,6 +145,51 @@ export class TaskService extends EventEmitter {
   private extractClaudeTasksSection(content: string): string | null {
     const match = content.match(/## Claude Tasks[\s\S]*/);
     return match ? match[0].trim() : null;
+  }
+
+  // ===========================================================================
+  // Sidecar metadata (ai/task-meta.json)
+  // ===========================================================================
+
+  private async readMeta(): Promise<TaskMetaFile> {
+    try {
+      const raw = await fs.readFile(this.metaPath!, 'utf-8');
+      return JSON.parse(raw) as TaskMetaFile;
+    } catch {
+      return { version: 1, tasks: {} };
+    }
+  }
+
+  private async writeMeta(meta: TaskMetaFile): Promise<void> {
+    await fs.writeFile(this.metaPath!, JSON.stringify(meta, null, 2), 'utf-8');
+  }
+
+  async getTaskMeta(taskId: string): Promise<TaskMeta | null> {
+    const meta = await this.readMeta();
+    return meta.tasks[taskId] || null;
+  }
+
+  async updateTaskMeta(taskId: string, updates: Partial<TaskMeta>): Promise<TaskMeta> {
+    const meta = await this.readMeta();
+    const existing = meta.tasks[taskId] || {};
+    const merged = { ...existing, ...updates, updatedAt: new Date().toISOString() };
+    meta.tasks[taskId] = merged;
+    await this.writeMeta(meta);
+    return merged;
+  }
+
+  async deleteTaskMeta(taskId: string): Promise<void> {
+    const meta = await this.readMeta();
+    delete meta.tasks[taskId];
+    await this.writeMeta(meta);
+  }
+
+  async linkWorklog(taskId: string, path: string): Promise<TaskMeta> {
+    return this.updateTaskMeta(taskId, { worklog: path });
+  }
+
+  async linkCheckpoint(taskId: string, ref: string): Promise<TaskMeta> {
+    return this.updateTaskMeta(taskId, { checkpoint: ref });
   }
 
   /**
@@ -249,6 +329,21 @@ export class TaskService extends EventEmitter {
       }
     }
 
+    // Merge sidecar metadata onto tasks using canonical SIDECAR_KEYS
+    const meta = await this.readMeta();
+    for (const task of tasks) {
+      const m = meta.tasks[task.id];
+      if (m) {
+        const taskRec = task as unknown as Record<string, unknown>;
+        const metaRec = m as unknown as Record<string, unknown>;
+        for (const key of SIDECAR_KEYS) {
+          if (metaRec[key] !== undefined) {
+            taskRec[key] = metaRec[key];
+          }
+        }
+      }
+    }
+
     return tasks;
   }
 
@@ -286,6 +381,18 @@ export class TaskService extends EventEmitter {
     lines.splice(sectionIndex + 1, 0, taskLine);
 
     await this.writeTodoFile(lines.join('\n'));
+
+    // Write initial metadata to sidecar — uses SIDECAR_KEYS as single source of truth
+    const initialMeta: Partial<TaskMeta> = { createdAt: new Date().toISOString() };
+    const taskRec = task as unknown as Record<string, unknown>;
+    const metaRec = initialMeta as unknown as Record<string, unknown>;
+    for (const key of SIDECAR_KEYS) {
+      if (key !== 'createdAt' && key !== 'updatedAt' && taskRec[key] != null) {
+        metaRec[key] = taskRec[key];
+      }
+    }
+    await this.updateTaskMeta(newTask.id, initialMeta);
+
     this.emit('tasksChanged', await this.listTasks());
 
     return newTask;
@@ -383,6 +490,10 @@ export class TaskService extends EventEmitter {
     lines.splice(taskIndex, 1);
 
     await this.writeTodoFile(lines.join('\n'));
+
+    // Clean sidecar entry
+    await this.deleteTaskMeta(taskId);
+
     this.emit('tasksChanged', await this.listTasks());
   }
 

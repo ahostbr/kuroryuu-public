@@ -26,63 +26,88 @@ export function TaskLogs({ taskId, projectRoot, logs: propLogs, isLive = false }
   const [loading, setLoading] = useState(false)
   const { confirm } = useKuroryuuDialog()
 
-  // Load logs from Docs/worklogs/ (KiroWorklogs)
+  // Parse a worklog markdown file into log entries
+  const parseWorklogContent = (content: string, filename: string): LogEntry[] => {
+    const parsedLogs: LogEntry[] = []
+
+    // Extract timestamp from filename: KiroWorkLog_YYYYMMDD_HHMMSS or KuroRyuuWorkLog_YYYYMMDD_HHMMSS
+    const dateMatch = filename.match(/(\d{8})_(\d{6})/)
+    let timestamp = new Date().toISOString()
+    if (dateMatch) {
+      const [, date, time] = dateMatch
+      timestamp = `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)} ${time.slice(0,2)}:${time.slice(2,4)}:${time.slice(4,6)}`
+    }
+
+    const lines = content.split('\n')
+    for (const line of lines) {
+      if (!line.trim() || line.startsWith('#')) continue
+
+      let level: LogEntry['level'] = 'info'
+      if (line.toLowerCase().includes('error') || line.includes('FAILED')) level = 'error'
+      else if (line.toLowerCase().includes('warn') || line.includes('TODO')) level = 'warn'
+      else if (line.includes('DONE') || line.includes('completed')) level = 'info'
+      else if (line.startsWith('-') || line.startsWith('*')) level = 'debug'
+
+      if (line.startsWith('-') || line.startsWith('*') || line.startsWith('>')) {
+        const message = line.replace(/^[-*>]\s*/, '').trim()
+        if (message && message.length > 5) {
+          parsedLogs.push({ timestamp, level, message })
+        }
+      }
+    }
+
+    return parsedLogs
+  }
+
+  // Load logs — check sidecar worklog first, then fall back to filename scan
   const loadLogs = async () => {
     if (!projectRoot || !taskId) return
 
     setLoading(true)
     try {
       const worklogDir = `${projectRoot}/Docs/worklogs`
-      const entries = await window.electronAPI.fs.readDir(worklogDir)
       const parsedLogs: LogEntry[] = []
-      const taskIdLower = taskId.toLowerCase()
 
-      // Find worklogs that might match this task
-      for (const entry of entries) {
-        if (!entry.endsWith('.md')) continue
+      // 1. Check sidecar metadata for directly linked worklog
+      let sidecarWorklogLoaded = false
+      try {
+        const meta = await window.electronAPI.tasks.getMeta(taskId)
+        if (meta?.worklog && meta.worklog !== 'pending') {
+          const worklogPath = meta.worklog.startsWith('/')
+            ? meta.worklog
+            : `${projectRoot}/${meta.worklog}`
+          const content = await window.electronAPI.fs.readFile(worklogPath)
+          const filename = meta.worklog.split('/').pop() || ''
+          parsedLogs.push(...parseWorklogContent(content, filename))
+          sidecarWorklogLoaded = true
+        }
+      } catch {
+        // Sidecar not available or worklog file not found — fall through
+      }
 
-        const nameLower = entry.toLowerCase()
-        // Match on task ID or task-related keywords in filename
-        if (!nameLower.includes(taskIdLower)) continue
-
+      // 2. Fall back to filename scan if no sidecar worklog
+      if (!sidecarWorklogLoaded) {
         try {
-          const content = await window.electronAPI.fs.readFile(`${worklogDir}/${entry}`)
+          const entries = await window.electronAPI.fs.readDir(worklogDir)
+          const taskIdLower = taskId.toLowerCase()
 
-          // Extract timestamp from filename: KiroWorkLog_YYYYMMDD_HHMMSS_Description.md
-          const dateMatch = entry.match(/(\d{8})_(\d{6})/)
-          let timestamp = new Date().toISOString()
-          if (dateMatch) {
-            const [, date, time] = dateMatch
-            timestamp = `${date.slice(0,4)}-${date.slice(4,6)}-${date.slice(6,8)} ${time.slice(0,2)}:${time.slice(2,4)}:${time.slice(4,6)}`
-          }
+          for (const entry of entries) {
+            if (!entry.endsWith('.md')) continue
+            const nameLower = entry.toLowerCase()
+            if (!nameLower.includes(taskIdLower)) continue
 
-          // Parse worklog content for key entries
-          const lines = content.split('\n')
-          for (const line of lines) {
-            // Skip empty lines and headers
-            if (!line.trim() || line.startsWith('#')) continue
-
-            // Determine level based on content
-            let level: LogEntry['level'] = 'info'
-            if (line.toLowerCase().includes('error') || line.includes('❌') || line.includes('FAILED')) level = 'error'
-            else if (line.toLowerCase().includes('warn') || line.includes('⚠') || line.includes('TODO')) level = 'warn'
-            else if (line.includes('✅') || line.includes('DONE') || line.includes('completed')) level = 'info'
-            else if (line.startsWith('-') || line.startsWith('*')) level = 'debug'
-
-            // Only include bullet points and notable lines
-            if (line.startsWith('-') || line.startsWith('*') || line.startsWith('>')) {
-              const message = line.replace(/^[-*>]\s*/, '').trim()
-              if (message && message.length > 5) {
-                parsedLogs.push({ timestamp, level, message })
-              }
+            try {
+              const content = await window.electronAPI.fs.readFile(`${worklogDir}/${entry}`)
+              parsedLogs.push(...parseWorklogContent(content, entry))
+            } catch {
+              // File read error, skip
             }
           }
         } catch {
-          // File read error, skip
+          // Directory doesn't exist yet
         }
       }
 
-      // Sort by timestamp (most recent first)
       parsedLogs.sort((a, b) => b.timestamp.localeCompare(a.timestamp))
       setLogs(parsedLogs)
     } catch (err) {

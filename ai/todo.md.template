@@ -1,0 +1,18 @@
+﻿# Tasks
+
+## Backlog
+- [ ] T001: Example backlog task
+
+## Active
+- [~] T002: Example active task @agent_name
+
+## Delayed
+
+## Done
+- [x] T003: Example completed task
+
+## Claude Tasks
+<!-- Tasks synced from Claude Code TaskCreate/TaskUpdate -->
+- [ ] T001: Example pending task @agent [worklog: pending] (created: 2026-01-01 12:00)
+- [~] T002: Example in-progress task @agent [worklog: pending] (created: 2026-01-01 12:00)
+- [x] T003: Example completed task @agent [worklog: Docs/worklogs/KiroWorkLog_example.md] (created: 2026-01-01 12:00) (completed: 2026-01-01 13:00)

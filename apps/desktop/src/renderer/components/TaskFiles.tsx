@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { EvidenceList } from './Inspector/EvidenceList';
 import { FileText, FolderOpen, AlertCircle } from 'lucide-react';
 import type { Task } from '../types/task';
@@ -11,13 +11,35 @@ interface TaskFilesProps {
 
 export function TaskFiles({ task, projectRoot }: TaskFilesProps) {
   const { tasks: claudeTasks, loadTasks } = useClaudeTaskStore();
+  const [sidecarWorklog, setSidecarWorklog] = useState<string | undefined>();
+  const [sidecarCheckpoint, setSidecarCheckpoint] = useState<string | undefined>();
 
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
 
-  // Find matching ClaudeTask to get worklog/checkpoint metadata
+  // Fetch sidecar metadata for this task
+  useEffect(() => {
+    const fetchMeta = async () => {
+      try {
+        const meta = await window.electronAPI.tasks.getMeta(task.id);
+        if (meta) {
+          if (meta.worklog && meta.worklog !== 'pending') setSidecarWorklog(meta.worklog);
+          if (meta.checkpoint && meta.checkpoint !== 'pending') setSidecarCheckpoint(meta.checkpoint);
+        }
+      } catch {
+        // Sidecar not available
+      }
+    };
+    fetchMeta();
+  }, [task.id]);
+
+  // Find matching ClaudeTask as fallback
   const claudeTask = claudeTasks.find(ct => ct.id === task.id);
+
+  // Prefer sidecar, fall back to Claude task cross-reference
+  const worklog = sidecarWorklog || claudeTask?.worklog;
+  const checkpoint = sidecarCheckpoint || claudeTask?.checkpoint;
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -50,8 +72,8 @@ export function TaskFiles({ task, projectRoot }: TaskFilesProps) {
              projectRoot={projectRoot}
              taskId={task.id}
              taskTitle={task.title}
-             worklog={claudeTask?.worklog}
-             checkpoint={claudeTask?.checkpoint}
+             worklog={worklog}
+             checkpoint={checkpoint}
            />
         </div>
       </div>
