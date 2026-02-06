@@ -724,14 +724,14 @@ body {
 
 /* ── GenUI Theme Variables ─────────────────────────────── */
 .genui-root {
-  --g-accent: hsl(var(--primary));
-  --g-accent-fg: hsl(var(--primary-foreground));
-  --g-crimson: hsl(var(--destructive));
-  --g-bg: hsl(var(--background));
-  --g-card: hsl(var(--card));
-  --g-fg: hsl(var(--foreground));
-  --g-muted: hsl(var(--muted-foreground));
-  --g-border: hsl(var(--border));
+  --g-accent: var(--primary);
+  --g-accent-fg: var(--primary-foreground);
+  --g-crimson: var(--destructive);
+  --g-bg: var(--background);
+  --g-card: var(--card);
+  --g-fg: var(--foreground);
+  --g-muted: var(--muted-foreground);
+  --g-border: var(--border);
 }
 
 .genui-root.genui-imperial {
