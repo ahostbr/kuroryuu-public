@@ -17,6 +17,7 @@ import type {
   CleanupTeamParams,
   ClaudeTeamsState,
   ClaudeTeamsIpcEvent,
+  TeamHistoryEntry,
 } from '../types/claude-teams';
 
 /**
@@ -175,6 +176,10 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   selectedTeam: null,
   selectedTeamTasks: [],
   selectedTeamMessages: [],
+
+  // History
+  history: [],
+  isLoadingHistory: false,
 
   // -- Data Actions --
 
@@ -343,8 +348,30 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   cleanupTeam: async (params) => {
     try {
       set({ isLoading: true });
+
+      // Auto-archive team state before cleanup (data is still in memory)
+      const { teams } = get();
+      const teamSnapshot = teams.find((t) => t.config.name === params.teamName);
+      if (teamSnapshot) {
+        try {
+          await window.electronAPI?.teamHistory?.archiveSession?.({
+            teamName: params.teamName,
+            config: teamSnapshot.config,
+            tasks: teamSnapshot.tasks,
+            inboxes: teamSnapshot.inboxes,
+          });
+          console.log('[ClaudeTeamsStore] Archived team before cleanup:', params.teamName);
+        } catch (archiveErr) {
+          console.error('[ClaudeTeamsStore] Archive failed (proceeding with cleanup):', archiveErr);
+        }
+      }
+
       const result = await window.electronAPI?.claudeTeams?.cleanupTeam?.(params);
       set({ isLoading: false });
+
+      // Refresh history list after archival
+      get().loadHistory();
+
       return result ?? false;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to cleanup team';
@@ -359,6 +386,39 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
       await window.electronAPI?.claudeTeams?.refreshTeam?.(teamName);
     } catch (err) {
       console.error('[ClaudeTeamsStore] refreshTeam error:', err);
+    }
+  },
+
+  // -- History Actions --
+
+  loadHistory: async () => {
+    try {
+      set({ isLoadingHistory: true });
+      const result = await window.electronAPI?.teamHistory?.listArchives?.();
+      if (result?.ok) {
+        set({ history: result.entries ?? [], isLoadingHistory: false });
+      } else {
+        set({ isLoadingHistory: false });
+      }
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] loadHistory error:', err);
+      set({ isLoadingHistory: false });
+    }
+  },
+
+  deleteArchive: async (archiveId) => {
+    try {
+      const result = await window.electronAPI?.teamHistory?.deleteArchive?.(archiveId);
+      if (result?.ok) {
+        // Remove from local state
+        const { history } = get();
+        set({ history: history.filter((h) => h.id !== archiveId) });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] deleteArchive error:', err);
+      return false;
     }
   },
 }));

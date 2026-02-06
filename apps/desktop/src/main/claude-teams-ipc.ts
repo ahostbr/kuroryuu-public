@@ -11,6 +11,10 @@
  *   claude-teams:get-tasks       - Read tasks for a given team
  *   claude-teams:get-messages    - Read inbox for team + agent
  *   claude-teams:exec-cli        - Spawn a claude CLI command (fire-and-forget)
+ *   claude-teams:archive-session - Archive team state before cleanup
+ *   claude-teams:list-archives   - List all archived sessions
+ *   claude-teams:load-archive    - Load a specific archived session
+ *   claude-teams:delete-archive  - Delete an archived session
  */
 
 import { ipcMain, type BrowserWindow } from 'electron';
@@ -20,6 +24,12 @@ import { existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { claudeTeamsWatcher } from './claude-teams-watcher';
+import {
+  archiveTeamSession,
+  listArchivedSessions,
+  loadArchivedSession,
+  deleteArchivedSession,
+} from './claude-teams-archive';
 
 // -----------------------------------------------------------------------
 // UV Binary Resolution (cached)
@@ -238,6 +248,53 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
         console.error('[ClaudeTeamsIPC] CLI exec failed:', err);
         return { ok: false, error: String(err) };
       }
+    },
+  );
+
+  // -----------------------------------------------------------------------
+  // Team Session Archives (persistence)
+  // -----------------------------------------------------------------------
+
+  ipcMain.handle(
+    'claude-teams:archive-session',
+    async (_event, data: {
+      teamName: string;
+      config: unknown;
+      tasks: unknown[];
+      inboxes: Record<string, unknown[]>;
+    }) => {
+      return archiveTeamSession(data);
+    },
+  );
+
+  ipcMain.handle('claude-teams:list-archives', async () => {
+    try {
+      const entries = await listArchivedSessions();
+      return { ok: true, entries };
+    } catch (err) {
+      return { ok: false, error: String(err), entries: [] };
+    }
+  });
+
+  ipcMain.handle(
+    'claude-teams:load-archive',
+    async (_event, archiveId: string) => {
+      try {
+        const archive = await loadArchivedSession(archiveId);
+        if (!archive) {
+          return { ok: false, error: `Archive not found: ${archiveId}` };
+        }
+        return { ok: true, archive };
+      } catch (err) {
+        return { ok: false, error: String(err) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    'claude-teams:delete-archive',
+    async (_event, archiveId: string) => {
+      return deleteArchivedSession(archiveId);
     },
   );
 
@@ -470,6 +527,10 @@ export function cleanupClaudeTeamsIpc(): void {
     'claude-teams:get-tasks',
     'claude-teams:get-messages',
     'claude-teams:exec-cli',
+    'claude-teams:archive-session',
+    'claude-teams:list-archives',
+    'claude-teams:load-archive',
+    'claude-teams:delete-archive',
     'global-hooks:install-tts',
     'global-hooks:remove-tts',
     'global-hooks:status',
