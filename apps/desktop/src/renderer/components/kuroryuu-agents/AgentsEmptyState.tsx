@@ -58,7 +58,12 @@ const DRAGON_ASCII = `                                ==++++++++++=
                                #####%###%%     #%%%#* *##+*#%%%*++#***#%%
                                   =*#%%%%%%%%%%%%%%%%%%#####%%%#`;
 
-export function AgentsEmptyState() {
+interface AgentsEmptyStateProps {
+  message?: string;
+  hint?: string;
+}
+
+export function AgentsEmptyState({ message, hint }: AgentsEmptyStateProps = {}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
 
@@ -186,13 +191,13 @@ export function AgentsEmptyState() {
           className="text-center space-y-1.5"
         >
           <p className="text-sm text-muted-foreground">
-            Select a session to view agent logs
+            {message ?? 'Select a session to view agent logs'}
           </p>
           <p
             className="font-mono tracking-wider"
             style={{ fontSize: '10px', color: 'rgba(201,162,39,0.35)' }}
           >
-            Spawn agents via k_bash &middot; Monitor via k_process
+            {hint ?? <>Spawn agents via k_bash &middot; Monitor via k_process</>}
           </p>
         </motion.div>
       </div>

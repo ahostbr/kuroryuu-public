@@ -11,8 +11,9 @@
 import Store from 'electron-store';
 import { BrowserWindow } from 'electron';
 import { join, dirname, basename } from 'path';
-import { existsSync, mkdirSync } from 'fs';
-import { copyFile, readFile, readdir, unlink, stat } from 'fs/promises';
+import { existsSync, mkdirSync, readFileSync } from 'fs';
+import { copyFile, readFile, readdir, unlink, stat, writeFile } from 'fs/promises';
+import { homedir } from 'os';
 import {
   UserSettings,
   ProjectSettings,
@@ -145,6 +146,15 @@ export class SettingsService {
    */
   get(namespace: string, scope?: SettingsScope): unknown {
     const resolvedScope = scope || this.resolveScope(namespace);
+
+    // Dev mode is shared with Electron-wide settings used by dev tooling/HMR bootstrap.
+    if (resolvedScope === 'user' && namespace === 'ui.devMode') {
+      const globalDevMode = this.readElectronGlobalDevMode();
+      if (typeof globalDevMode === 'boolean') {
+        return globalDevMode;
+      }
+    }
+
     const store = this.getStore(resolvedScope);
 
     if (!store) {
@@ -175,6 +185,10 @@ export class SettingsService {
     // Write back entire store (electron-store handles atomic writes)
     // Using double cast because we're dynamically modifying a typed store
     store.store = data as unknown as UserSettings & ProjectSettings;
+
+    if (resolvedScope === 'user' && namespace === 'ui.devMode') {
+      void this.writeElectronGlobalDevMode(value);
+    }
 
     // Notify listeners
     this.notifyChange(namespace, value, resolvedScope);
@@ -300,12 +314,14 @@ export class SettingsService {
       }
     }
 
-    // Notify renderer via IPC
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      try {
-        this.mainWindow.webContents.send('settings:changed', event);
-      } catch (err) {
-        // Window may be destroyed during event
+    // Notify ALL renderer windows (main + GenUI + CodeEditor)
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win.isDestroyed()) {
+        try {
+          win.webContents.send('settings:changed', event);
+        } catch (err) {
+          // Window may be destroyed during event
+        }
       }
     }
 
@@ -315,6 +331,55 @@ export class SettingsService {
   // ============================================================================
   // Internal Helpers
   // ============================================================================
+
+  private getElectronGlobalSettingsPath(): string {
+    const appData =
+      process.env.APPDATA ??
+      (process.platform === 'darwin'
+        ? join(homedir(), 'Library', 'Application Support')
+        : join(homedir(), '.config'));
+    return join(appData, 'Electron', 'settings.json');
+  }
+
+  private readElectronGlobalDevMode(): boolean | undefined {
+    try {
+      const settingsPath = this.getElectronGlobalSettingsPath();
+      if (!existsSync(settingsPath)) return undefined;
+      const raw = readFileSync(settingsPath, 'utf8');
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const value = deepGet(parsed, 'ui.devMode');
+      return typeof value === 'boolean' ? value : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async writeElectronGlobalDevMode(value: unknown): Promise<void> {
+    if (typeof value !== 'boolean') return;
+    try {
+      const settingsPath = this.getElectronGlobalSettingsPath();
+      const settingsDir = dirname(settingsPath);
+      if (!existsSync(settingsDir)) {
+        mkdirSync(settingsDir, { recursive: true });
+      }
+
+      let data: Record<string, unknown> = {};
+      if (existsSync(settingsPath)) {
+        const raw = await readFile(settingsPath, 'utf8');
+        try {
+          data = JSON.parse(raw) as Record<string, unknown>;
+        } catch {
+          data = {};
+        }
+      }
+
+      deepSet(data, 'ui.devMode', value);
+      await writeFile(settingsPath, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
+      console.log(`[SettingsService] Mirrored ui.devMode to Electron settings: ${settingsPath}`);
+    } catch (err) {
+      console.error('[SettingsService] Failed to mirror ui.devMode to Electron settings:', err);
+    }
+  }
 
   /**
    * Resolve scope based on namespace

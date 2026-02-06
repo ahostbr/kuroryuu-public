@@ -15,7 +15,17 @@ function resolveUserSettingsPath(): string {
       ? resolve(homedir(), 'Library', 'Application Support')
       : resolve(homedir(), '.config'));
 
-  return resolve(appData, 'Kuroryuu', 'settings.json');
+  const candidates = [
+    // Electron-wide settings (used by electron-vite dev bootstrap context).
+    resolve(appData, 'Electron', 'settings.json'),
+    // Current desktop app name (matches electron-store path in development).
+    resolve(appData, 'kuroryuu-desktop', 'settings.json'),
+    // Legacy/alternate app folder.
+    resolve(appData, 'Kuroryuu', 'settings.json'),
+  ];
+
+  const existing = candidates.find((p) => existsSync(p));
+  return existing ?? candidates[0];
 }
 
 function readDevModeFlag(): boolean {

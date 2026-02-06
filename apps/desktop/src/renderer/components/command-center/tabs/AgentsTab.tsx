@@ -9,6 +9,7 @@ import { Users, Crown, HardHat, Circle, Activity, RefreshCw } from 'lucide-react
 import { useAgentStore } from '../../../stores/agent-store';
 import { AgentCard } from '../agents/AgentCard';
 import { AgentDetailPanel } from '../agents/AgentDetailPanel';
+import { AgentsEmptyState } from '../../kuroryuu-agents/AgentsEmptyState';
 import type { LiveAgent, AgentFilter } from '../../../types/command-center';
 
 const FILTER_OPTIONS: { value: AgentFilter; label: string; icon?: React.ReactNode }[] = [
@@ -101,15 +102,14 @@ export function AgentsTab() {
         {/* Agent Grid */}
         <div className="flex-1 overflow-auto">
           {filteredAgents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <Users className="w-16 h-16 text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">No Agents Active</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                {agents.length > 0
-                  ? `No agents match the "${agentFilter}" filter. Try selecting "All".`
-                  : 'No agents are currently registered. Start a Claude CLI session to see agents appear here.'}
-              </p>
-            </div>
+            <AgentsEmptyState
+              message={agents.length > 0
+                ? `No agents match the "${agentFilter}" filter. Try selecting "All".`
+                : 'No Agents Active'}
+              hint={agents.length > 0
+                ? undefined
+                : 'Start a Claude CLI session to see agents appear here'}
+            />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredAgents.map((agent) => (

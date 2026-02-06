@@ -430,6 +430,12 @@ export function AppSettingsDialog() {
                 <p className="text-xs text-muted-foreground">
                   Keyboard shortcuts take effect immediately. HMR requires desktop dev server restart.
                 </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="w-full px-3 py-2 text-sm bg-secondary text-foreground border border-border rounded-lg hover:bg-secondary/80 transition-colors"
+                >
+                  Hot Reload Now
+                </button>
               </div>
             </SettingSection>
 
