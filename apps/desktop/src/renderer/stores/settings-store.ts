@@ -285,7 +285,20 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
   setDevMode: (enabled) => {
     set((s) => ({ appSettings: { ...s.appSettings, devMode: enabled } }));
-    window.electronAPI?.settings?.set?.('ui.devMode', enabled).catch(console.error);
+    void (async () => {
+      try {
+        await window.electronAPI?.settings?.set?.('ui.devMode', enabled, 'user');
+        const persisted = await window.electronAPI?.settings?.get?.('ui.devMode', 'user');
+        if (persisted !== enabled) {
+          console.error('[settings-store] Failed to persist ui.devMode to user settings', {
+            expected: enabled,
+            actual: persisted,
+          });
+        }
+      } catch (err) {
+        console.error('[settings-store] Error persisting ui.devMode to user settings', err);
+      }
+    })();
   },
 
   // Project Settings
@@ -473,7 +486,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         window.electronAPI?.settings?.get?.('ui.kuroryuuDecorativeFrames'),
         window.electronAPI?.settings?.get?.('ui.genuiImperialMode'),
         window.electronAPI?.settings?.get?.('ui.enableRichToolVisualizations'),
-        window.electronAPI?.settings?.get?.('ui.devMode'),
+        window.electronAPI?.settings?.get?.('ui.devMode', 'user'),
         window.electronAPI?.settings?.get?.('integrations.trayCompanion.launchOnStartup'),
         window.electronAPI?.settings?.get?.('graphiti.enabled'),
         window.electronAPI?.settings?.get?.('graphiti.retention'),

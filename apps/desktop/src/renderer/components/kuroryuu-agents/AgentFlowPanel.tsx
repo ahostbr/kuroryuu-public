@@ -22,6 +22,7 @@ import { useAgentFlowStore, type AgentFlowTheme } from '../../stores/agent-flow-
 import { useSettingsStore } from '../../stores/settings-store';
 import { agentNodeTypes } from './AgentNodes';
 import { AgentFlowControls } from './AgentFlowControls';
+import { AgentsEmptyState } from './AgentsEmptyState';
 import { SpawnAgentDialog } from './SpawnAgentDialog';
 import { SessionLogViewer } from './SessionLogViewer';
 import { SessionManagerModal } from './SessionManagerModal';
@@ -284,15 +285,10 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
           </div>
 
           {sessions.length === 0 ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center agent-flow-empty-state">
-                <Bot className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No Kuroryuu agent sessions</p>
-                <p className="text-xs mt-1 opacity-60">
-                  Use k_bash with background=true to spawn agents
-                </p>
-              </div>
-            </div>
+            <AgentsEmptyState
+              message="No Kuroryuu agent sessions"
+              hint="Use k_bash with background=true to spawn agents"
+            />
           ) : (
             <ReactFlow
               nodes={nodes}

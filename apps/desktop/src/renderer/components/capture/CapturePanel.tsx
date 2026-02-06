@@ -351,11 +351,11 @@ export const CapturePanel: React.FC = () => {
 
   return (
     <div
-      className="h-full flex flex-col relative overflow-hidden"
+      className="capture-root h-full flex flex-col relative overflow-hidden"
       style={{
         background: isRecording
-          ? 'radial-gradient(ellipse at center, rgba(139,38,53,0.15) 0%, transparent 70%)'
-          : 'radial-gradient(ellipse at center, rgba(50,20,8,0.3) 0%, transparent 70%)',
+          ? 'radial-gradient(ellipse at center, color-mix(in srgb, var(--cp-crimson) 15%, transparent) 0%, transparent 70%)'
+          : 'radial-gradient(ellipse at center, color-mix(in srgb, var(--cp-accent) 8%, transparent) 0%, transparent 70%)',
       }}
     >
       {/* Scanlines */}
@@ -378,7 +378,7 @@ export const CapturePanel: React.FC = () => {
         className="absolute pointer-events-none select-none leading-[1.1] z-[1]"
         style={{
           fontSize: 'clamp(0.18rem, 0.35vw, 0.3rem)',
-          color: isRecording ? 'rgba(139,38,53,0.06)' : 'rgba(140,30,30,0.06)',
+          color: 'color-mix(in srgb, var(--cp-crimson) 6%, transparent)',
           fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
           top: '50%',
           left: '50%',
@@ -397,30 +397,30 @@ export const CapturePanel: React.FC = () => {
           <div
             className="flex items-center justify-center gap-3 px-4 py-2"
             style={{
-              background: 'linear-gradient(90deg, transparent, rgba(139,38,53,0.35), transparent)',
-              borderBottom: '1px solid rgba(139,38,53,0.4)',
+              background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--cp-crimson) 35%, transparent), transparent)',
+              borderBottom: '1px solid color-mix(in srgb, var(--cp-crimson) 40%, transparent)',
             }}
           >
             <div
               className="w-2 h-2 rounded-full"
               style={{
-                background: '#e74c5e',
-                boxShadow: '0 0 6px rgba(231,76,94,0.6)',
+                background: 'var(--cp-crimson)',
+                boxShadow: '0 0 6px color-mix(in srgb, var(--cp-crimson) 60%, transparent)',
                 animation: 'capturePulse 1.5s ease-in-out infinite',
               }}
             />
             <span
               className="font-mono text-[11px] uppercase tracking-[0.2em]"
-              style={{ color: '#e74c5e' }}
+              style={{ color: 'var(--cp-crimson)' }}
             >
               Recording Active
             </span>
             <span
               className="font-mono text-[11px] px-2 py-0.5"
               style={{
-                color: '#e74c5e',
-                background: 'rgba(139,38,53,0.2)',
-                border: '1px solid rgba(139,38,53,0.3)',
+                color: 'var(--cp-crimson)',
+                background: 'color-mix(in srgb, var(--cp-crimson) 20%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--cp-crimson) 30%, transparent)',
               }}
             >
               {formatDuration(recordingDuration)}
@@ -428,8 +428,8 @@ export const CapturePanel: React.FC = () => {
             <div
               className="w-2 h-2 rounded-full"
               style={{
-                background: '#e74c5e',
-                boxShadow: '0 0 6px rgba(231,76,94,0.6)',
+                background: 'var(--cp-crimson)',
+                boxShadow: '0 0 6px color-mix(in srgb, var(--cp-crimson) 60%, transparent)',
                 animation: 'capturePulse 1.5s ease-in-out infinite 0.75s',
               }}
             />
@@ -441,18 +441,18 @@ export const CapturePanel: React.FC = () => {
           className="flex items-center justify-between px-5 py-3"
           style={{
             borderBottom: isRecording
-              ? '1px solid rgba(139,38,53,0.25)'
-              : '1px solid rgba(201,169,98,0.08)',
+              ? '1px solid color-mix(in srgb, var(--cp-crimson) 25%, transparent)'
+              : '1px solid color-mix(in srgb, var(--cp-accent) 8%, transparent)',
           }}
         >
           <div className="flex items-center gap-3">
             <Crosshair
               className="w-4 h-4"
-              style={{ color: isRecording ? '#8b2635' : 'rgba(201,169,98,0.6)' }}
+              style={{ color: isRecording ? 'color-mix(in srgb, var(--cp-crimson) 80%, transparent)' : 'color-mix(in srgb, var(--cp-accent) 60%, transparent)' }}
             />
             <span
               className="font-mono text-sm uppercase tracking-[0.15em]"
-              style={{ color: isRecording ? 'rgba(231,76,94,0.8)' : 'rgba(201,169,98,0.6)' }}
+              style={{ color: isRecording ? 'color-mix(in srgb, var(--cp-crimson) 80%, transparent)' : 'color-mix(in srgb, var(--cp-accent) 60%, transparent)' }}
             >
               龍眼 Capture
             </span>
@@ -460,8 +460,8 @@ export const CapturePanel: React.FC = () => {
               <span
                 className="font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5"
                 style={{
-                  color: '#e74c5e',
-                  border: '1px solid rgba(139,38,53,0.5)',
+                  color: 'var(--cp-crimson)',
+                  border: '1px solid color-mix(in srgb, var(--cp-crimson) 50%, transparent)',
                   animation: 'capturePulse 2s ease-in-out infinite',
                 }}
               >
@@ -486,37 +486,32 @@ export const CapturePanel: React.FC = () => {
             <div
               className="p-4"
               style={{
-                border: '1px solid rgba(201,169,98,0.25)',
-                background: 'rgba(201,169,98,0.04)',
+                border: '1px solid color-mix(in srgb, var(--cp-accent) 25%, transparent)',
+                background: 'color-mix(in srgb, var(--cp-accent) 4%, transparent)',
               }}
             >
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#c9a962' }} />
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: 'var(--cp-accent)' }} />
                 <div className="flex-1">
-                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: '#c9a962' }}>
+                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--cp-accent)' }}>
                     FFmpeg Not Found
                   </p>
-                  <p className="text-xs mt-1.5" style={{ color: 'rgba(201,169,98,0.6)' }}>
+                  <p className="text-xs mt-1.5" style={{ color: 'color-mix(in srgb, var(--cp-accent) 60%, transparent)' }}>
                     Screen recording requires FFmpeg. Run{' '}
-                    <code className="font-mono px-1" style={{ color: 'rgba(201,169,98,0.8)', background: 'rgba(201,169,98,0.1)' }}>
+                    <code className="font-mono px-1" style={{ color: 'color-mix(in srgb, var(--cp-accent) 80%, transparent)', background: 'color-mix(in srgb, var(--cp-accent) 10%, transparent)' }}>
                       setup-project.ps1
                     </code>{' '}
                     to install automatically, or download manually:
                   </p>
                   <button
                     onClick={handleDownloadFfmpeg}
-                    className="cp-term-btn--gold mt-2.5 flex items-center gap-2 px-3 py-1.5 font-mono text-xs uppercase tracking-wider"
-                    style={{
-                      border: '1px solid rgba(201,169,98,0.3)',
-                      color: 'rgba(201,169,98,0.7)',
-                      transition: 'all 300ms ease',
-                    }}
+                    className="cp-term-btn cp-term-btn--gold mt-2.5 flex items-center gap-2 px-3 py-1.5 font-mono text-xs uppercase tracking-wider"
                   >
                     <Download size={12} />
                     &gt; Download FFmpeg
                     <ExternalLink size={10} />
                   </button>
-                  <p className="text-[10px] mt-2 font-mono" style={{ color: 'rgba(122,117,109,0.4)' }}>
+                  <p className="text-[10px] mt-2 font-mono" style={{ color: 'color-mix(in srgb, var(--cp-muted) 40%, transparent)' }}>
                     Extract to: ffmpeg/win64/bin/
                   </p>
                 </div>
@@ -529,33 +524,33 @@ export const CapturePanel: React.FC = () => {
             <div
               className="p-4"
               style={{
-                border: '1px solid rgba(139,38,53,0.4)',
-                background: 'rgba(139,38,53,0.08)',
+                border: '1px solid color-mix(in srgb, var(--cp-crimson) 40%, transparent)',
+                background: 'color-mix(in srgb, var(--cp-crimson) 8%, transparent)',
                 animation: 'captureGlow 3s ease-in-out infinite',
               }}
             >
               <div className="flex items-center gap-4">
                 <div className="relative flex-shrink-0">
-                  <Circle className="w-5 h-5" fill="currentColor" style={{ color: '#e74c5e' }} />
+                  <Circle className="w-5 h-5" fill="currentColor" style={{ color: 'var(--cp-crimson)' }} />
                   <Circle
                     className="w-5 h-5 absolute inset-0 opacity-40"
                     fill="currentColor"
-                    style={{ color: '#e74c5e', animation: 'capturePulse 1.5s ease-in-out infinite' }}
+                    style={{ color: 'var(--cp-crimson)', animation: 'capturePulse 1.5s ease-in-out infinite' }}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: '#e74c5e' }}>
+                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: 'var(--cp-crimson)' }}>
                     Recording In Progress
                   </p>
-                  <p className="text-[11px] mt-0.5" style={{ color: 'rgba(231,76,94,0.5)' }}>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'color-mix(in srgb, var(--cp-crimson) 50%, transparent)' }}>
                     Screen capture active &middot; VisualDigest updating every 10s
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p className="font-mono text-lg tabular-nums" style={{ color: '#e74c5e' }}>
+                  <p className="font-mono text-lg tabular-nums" style={{ color: 'var(--cp-crimson)' }}>
                     {formatDuration(recordingDuration)}
                   </p>
-                  <p className="font-mono text-[10px] uppercase" style={{ color: 'rgba(231,76,94,0.4)' }}>
+                  <p className="font-mono text-[10px] uppercase" style={{ color: 'color-mix(in srgb, var(--cp-crimson) 40%, transparent)' }}>
                     elapsed
                   </p>
                 </div>
@@ -565,17 +560,17 @@ export const CapturePanel: React.FC = () => {
             <div
               className="p-4"
               style={{
-                border: '1px solid rgba(201,169,98,0.1)',
-                background: 'rgba(201,169,98,0.02)',
+                border: '1px solid color-mix(in srgb, var(--cp-accent) 10%, transparent)',
+                background: 'color-mix(in srgb, var(--cp-accent) 2%, transparent)',
               }}
             >
               <div className="flex items-center gap-3">
-                <Crosshair className="w-4 h-4" style={{ color: 'rgba(201,169,98,0.4)' }} />
+                <Crosshair className="w-4 h-4" style={{ color: 'color-mix(in srgb, var(--cp-accent) 40%, transparent)' }} />
                 <div>
-                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: 'rgba(201,169,98,0.6)' }}>
+                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: 'color-mix(in srgb, var(--cp-accent) 60%, transparent)' }}>
                     Standby
                   </p>
-                  <p className="text-[11px] mt-0.5" style={{ color: 'rgba(122,117,109,0.4)' }}>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'color-mix(in srgb, var(--cp-muted) 40%, transparent)' }}>
                     Start recording to enable agent vision
                   </p>
                 </div>
@@ -587,7 +582,7 @@ export const CapturePanel: React.FC = () => {
           <div>
             <span
               className="font-mono text-[10px] uppercase tracking-[0.2em] mb-2.5 block"
-              style={{ color: 'rgba(201,169,98,0.4)' }}
+              style={{ color: 'color-mix(in srgb, var(--cp-accent) 40%, transparent)' }}
             >
               Capture Mode
             </span>
@@ -608,11 +603,11 @@ export const CapturePanel: React.FC = () => {
             </div>
           </div>
 
-          {/* Gold separator */}
+          {/* Accent separator */}
           <div
             className="h-px"
             style={{
-              background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.15) 30%, rgba(201,169,98,0.15) 70%, transparent)',
+              background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--cp-accent) 15%, transparent) 30%, color-mix(in srgb, var(--cp-accent) 15%, transparent) 70%, transparent)',
             }}
           />
 
@@ -665,16 +660,16 @@ export const CapturePanel: React.FC = () => {
             <div className="space-y-2">
               <span
                 className="font-mono text-[10px] uppercase tracking-[0.2em] block"
-                style={{ color: 'rgba(201,169,98,0.4)' }}
+                style={{ color: 'color-mix(in srgb, var(--cp-accent) 40%, transparent)' }}
               >
                 Latest Frame
               </span>
-              <div className="relative p-0.5" style={{ border: '1px solid rgba(201,169,98,0.12)' }}>
+              <div className="relative p-0.5" style={{ border: '1px solid color-mix(in srgb, var(--cp-accent) 12%, transparent)' }}>
                 {/* Corner brackets */}
-                <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: '2px solid rgba(201,169,98,0.45)', borderLeft: '2px solid rgba(201,169,98,0.45)' }} />
-                <div className="absolute top-0 right-0 w-4 h-4" style={{ borderTop: '2px solid rgba(201,169,98,0.45)', borderRight: '2px solid rgba(201,169,98,0.45)' }} />
-                <div className="absolute bottom-0 left-0 w-4 h-4" style={{ borderBottom: '2px solid rgba(201,169,98,0.45)', borderLeft: '2px solid rgba(201,169,98,0.45)' }} />
-                <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: '2px solid rgba(201,169,98,0.45)', borderRight: '2px solid rgba(201,169,98,0.45)' }} />
+                <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)', borderLeft: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)' }} />
+                <div className="absolute top-0 right-0 w-4 h-4" style={{ borderTop: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)', borderRight: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)' }} />
+                <div className="absolute bottom-0 left-0 w-4 h-4" style={{ borderBottom: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)', borderLeft: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)' }} />
+                <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)', borderRight: '2px solid color-mix(in srgb, var(--cp-accent) 45%, transparent)' }} />
 
                 {/* Image scanlines */}
                 <div
@@ -690,9 +685,9 @@ export const CapturePanel: React.FC = () => {
                 <div
                   className="absolute bottom-1.5 right-1.5 font-mono text-[10px] px-1.5 py-0.5 z-20"
                   style={{
-                    color: 'rgba(201,169,98,0.7)',
+                    color: 'color-mix(in srgb, var(--cp-accent) 70%, transparent)',
                     background: 'rgba(0,0,0,0.7)',
-                    border: '1px solid rgba(201,169,98,0.2)',
+                    border: '1px solid color-mix(in srgb, var(--cp-accent) 20%, transparent)',
                   }}
                 >
                   LATEST FRAME
@@ -702,7 +697,7 @@ export const CapturePanel: React.FC = () => {
           )}
 
           {/* Info panel — collapsible terminal */}
-          <div style={{ borderTop: '1px solid rgba(201,169,98,0.06)' }}>
+          <div style={{ borderTop: '1px solid color-mix(in srgb, var(--cp-accent) 6%, transparent)' }}>
             <button
               onClick={() => setShowInfo(!showInfo)}
               className="w-full flex items-center gap-2 py-2.5 group"
@@ -710,18 +705,18 @@ export const CapturePanel: React.FC = () => {
               <ChevronDown
                 size={12}
                 style={{
-                  color: 'rgba(122,117,109,0.4)',
+                  color: 'color-mix(in srgb, var(--cp-muted) 40%, transparent)',
                   transform: showInfo ? 'rotate(0deg)' : 'rotate(-90deg)',
                   transition: 'transform 300ms ease',
                 }}
               />
               <span
                 className="font-mono text-[10px] uppercase tracking-[0.2em]"
-                style={{ color: 'rgba(122,117,109,0.4)' }}
+                style={{ color: 'color-mix(in srgb, var(--cp-muted) 40%, transparent)' }}
               >
                 System.Info
               </span>
-              <div className="flex-1 h-px" style={{ background: 'rgba(122,117,109,0.1)' }} />
+              <div className="flex-1 h-px" style={{ background: 'color-mix(in srgb, var(--cp-muted) 10%, transparent)' }} />
             </button>
 
             {showInfo && (
@@ -737,13 +732,13 @@ export const CapturePanel: React.FC = () => {
                   <div
                     key={i}
                     className="flex items-start gap-2 font-mono text-[11px]"
-                    style={{ color: 'rgba(122,117,109,0.45)' }}
+                    style={{ color: 'color-mix(in srgb, var(--cp-muted) 45%, transparent)' }}
                   >
-                    <span style={{ color: 'rgba(201,169,98,0.35)' }}>$</span>
+                    <span style={{ color: 'color-mix(in srgb, var(--cp-accent) 35%, transparent)' }}>$</span>
                     <span>
                       {line.text}
                       {line.code && (
-                        <code style={{ color: 'rgba(201,169,98,0.6)' }}>{line.code}</code>
+                        <code style={{ color: 'color-mix(in srgb, var(--cp-accent) 60%, transparent)' }}>{line.code}</code>
                       )}
                     </span>
                   </div>
