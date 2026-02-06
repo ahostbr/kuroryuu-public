@@ -197,7 +197,7 @@ KURORYUU_TOOL_DOCS = """
 | Tool | Actions | Parameters |
 |------|---------|------------|
 | `k_session` | start, end, context, log | action, agent_id, cli_type, process_id, session_id, message |
-| `k_checkpoint` | save, list, load | action, name, summary, data, tags, id, limit |
+| `k_checkpoint` | save, append, list, load | action, name, summary, data, tags, id, limit |
 | `k_files` | read, write, edit, list | action, path, content, old_str, new_str, start_line, end_line |
 | `k_rag` | query, status, index | action, query, top_k, scope, exts, force |
 | `k_repo_intel` | status, run, get, list | action, report, query, limit, only |

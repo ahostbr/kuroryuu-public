@@ -58,7 +58,7 @@ import screenshotHttp1 from '../../../../../../../assets/screens/http_1.jpg';
 import screenshotHttp2 from '../../../../../../../assets/screens/http_2.jpg';
 import screenshotHttp3 from '../../../../../../../assets/screens/http_3.jpg';
 
-// Screenshot imports - Command Center (2)
+// Screenshot imports - Server Status (2)
 import screenshotCommandCenter1 from '../../../../../../../assets/screens/command_center_1.jpg';
 import screenshotCommandCenter2 from '../../../../../../../assets/screens/command_center_2.jpg';
 
@@ -266,11 +266,10 @@ const features: Feature[] = [
   {
     id: 'command-center',
     icon: Radio,
-    title: 'Command Center',
-    shortDesc: 'Central hub for agents, tools, and servers',
-    longDesc: 'Manage active agents, browse available tools, monitor server health, and access Graphiti.',
+    title: 'Server Status',
+    shortDesc: 'Central hub for tools and servers',
+    longDesc: 'Browse available tools, monitor server health, and access Graphiti.',
     bullets: [
-      'Agent status management',
       'Tool browser with MCP integrations',
       'Server health monitoring',
       'Graphiti knowledge graph (if enabled)',
