@@ -1,9 +1,8 @@
 /**
- * CalloutCard Component
- * Displays informational callouts with type-specific styling and colors.
+ * CalloutCard Component — Imperial callout display
+ * Type-specific styling with dramatic accent borders.
  */
 import React from 'react';
-import { Card, CardContent } from '../../../ui/card';
 
 export interface CalloutCardProps {
   type: 'tip' | 'warning' | 'info' | 'danger' | 'success' | 'error' | 'note' | string;
@@ -12,34 +11,47 @@ export interface CalloutCardProps {
   icon?: string;
 }
 
-export function CalloutCard({ type, title, content, icon }: CalloutCardProps): React.ReactElement {
-  const typeConfig: Record<string, { borderColor: string; icon: string; iconBg: string; titleColor: string }> = {
-    tip: { borderColor: 'border-l-4 border-l-primary', icon: '\uD83D\uDCA1', iconBg: 'bg-primary/20', titleColor: 'text-primary' },
-    warning: { borderColor: 'border-l-4 border-l-yellow-500', icon: '\u26A0\uFE0F', iconBg: 'bg-yellow-500/20', titleColor: 'text-yellow-400' },
-    info: { borderColor: 'border-l-4 border-l-blue-400', icon: '\u2139\uFE0F', iconBg: 'bg-blue-400/20', titleColor: 'text-blue-400' },
-    danger: { borderColor: 'border-l-4 border-l-red-500', icon: '\uD83D\uDEA8', iconBg: 'bg-red-500/20', titleColor: 'text-red-400' },
-    success: { borderColor: 'border-l-4 border-l-emerald-500', icon: '\u2705', iconBg: 'bg-emerald-500/20', titleColor: 'text-emerald-400' },
-    error: { borderColor: 'border-l-4 border-l-red-500', icon: '\uD83D\uDEA8', iconBg: 'bg-red-500/20', titleColor: 'text-red-400' },
-    note: { borderColor: 'border-l-4 border-l-muted-foreground', icon: '\uD83D\uDCDD', iconBg: 'bg-muted', titleColor: 'text-muted-foreground' },
-  };
+const TYPE_STYLES: Record<string, { border: string; iconBg: string; titleColor: string; icon: string }> = {
+  tip:     { border: 'rgba(201,169,98,0.4)', iconBg: 'rgba(201,169,98,0.1)', titleColor: 'rgba(201,169,98,0.85)', icon: '\u25C8' },
+  warning: { border: 'rgba(245,158,11,0.4)', iconBg: 'rgba(245,158,11,0.1)', titleColor: 'rgba(251,191,36,0.85)', icon: '\u25B3' },
+  info:    { border: 'rgba(59,130,246,0.4)',  iconBg: 'rgba(59,130,246,0.1)',  titleColor: 'rgba(96,165,250,0.85)',  icon: '\u25CF' },
+  danger:  { border: 'rgba(139,38,53,0.5)',   iconBg: 'rgba(139,38,53,0.15)', titleColor: 'rgba(231,76,94,0.85)',  icon: '\u2716' },
+  success: { border: 'rgba(34,197,94,0.4)',   iconBg: 'rgba(34,197,94,0.1)',  titleColor: 'rgba(74,222,128,0.85)', icon: '\u2713' },
+  error:   { border: 'rgba(139,38,53,0.5)',   iconBg: 'rgba(139,38,53,0.15)', titleColor: 'rgba(231,76,94,0.85)',  icon: '\u2716' },
+  note:    { border: 'rgba(122,117,109,0.3)', iconBg: 'rgba(122,117,109,0.08)', titleColor: 'rgba(168,168,179,0.85)', icon: '\u25A0' },
+};
 
-  const config = typeConfig[type] || typeConfig.info;
-  const displayIcon = icon || config.icon;
+export function CalloutCard({ type, title, content, icon }: CalloutCardProps): React.ReactElement {
+  const style = TYPE_STYLES[type] || TYPE_STYLES.info;
+  const displayIcon = icon || style.icon;
 
   return (
-    <Card className={`bg-card ${config.borderColor} border-border`}>
-      <CardContent className="pt-6">
+    <div
+      className="genui-card rounded-md overflow-hidden"
+      style={{ borderLeft: `3px solid ${style.border}` }}
+    >
+      <div className="px-5 py-4">
         <div className="flex items-start gap-3">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${config.iconBg} shrink-0`}>
-            <span className="text-lg">{displayIcon}</span>
+          <div
+            className="flex items-center justify-center w-7 h-7 rounded shrink-0"
+            style={{ background: style.iconBg }}
+          >
+            <span style={{ color: style.titleColor, fontSize: '0.8rem' }}>{displayIcon}</span>
           </div>
-          <div className="flex-1 space-y-1">
-            <div className={`font-semibold ${config.titleColor}`}>{title}</div>
-            <p className="text-sm text-foreground/80">{content}</p>
+          <div className="flex-1 space-y-1.5">
+            <div
+              className="text-sm font-semibold tracking-wide"
+              style={{ color: style.titleColor }}
+            >
+              {title}
+            </div>
+            <p className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.75)' }}>
+              {content}
+            </p>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

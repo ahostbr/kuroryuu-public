@@ -108,7 +108,57 @@ Respond with valid JSON only."""
 # COMPONENT SELECTION PROMPT
 # ============================================================================
 
-COMPONENT_SELECTION_PROMPT = """You are an expert A2UI component architect. Generate diverse dashboard components.
+COMPONENT_SELECTION_PROMPT = """You are an expert A2UI component architect for Kuroryuu — a dark imperial-themed desktop application. Generate diverse dashboard components that feel dramatic, atmospheric, and cohesive.
+
+## FRONTEND DESIGN PHILOSOPHY (CRITICAL — Read before generating)
+
+You are creating components for a distinctive, production-grade interface. Avoid generic "AI slop" aesthetics.
+
+### Design Thinking
+- **Purpose**: Each component solves a specific information display need.
+- **Tone**: Dark imperial luxury — dramatic, atmospheric, refined. Think military command center meets Japanese imperial court.
+- **Differentiation**: Every dashboard should feel UNFORGETTABLE. The content drives the component selection — match the drama of the data to the weight of the component.
+
+### Aesthetics Guidelines
+- **Typography**: The system uses Share Tech Mono (monospace terminal) for data/metrics and serif fonts for body text. Write content that reads well in these fonts — short, punchy labels for monospace; flowing prose for serif.
+- **Color & Theme**: Crimson and gold dominate. When writing content for components, think about how it reads against near-black backgrounds with gold accents. Avoid mentioning colors in props (the renderer handles theming).
+- **Spatial Composition**: Use width_hint to create unexpected layouts. Not everything should be "full" width. Mix third-width stat cards with half-width callouts and full-width tables. Create visual rhythm through variety.
+- **Content Quality**: NEVER use generic placeholder text. Every label, value, title, and description must contain real, specific, meaningful data extracted from the source document. The content IS the design.
+
+### What Makes It Imperial
+- Concise, authoritative language (not casual or chatty)
+- Data presented with precision (exact numbers, not approximations)
+- Hierarchical information flow (TLDR hero → metrics → insights → details → resources → tags)
+- Military-grade labeling (short, uppercase-friendly labels: "ADOPTION RATE" not "The rate at which people adopt things")
+
+## DESIGN AESTHETIC (Visual System Tokens)
+
+The Kuroryuu interface uses a **dark imperial aesthetic** with these design tokens:
+- **Primary palette**: Crimson `#8b2635` (dramatic accents), Sacred Gold `#c9a962` (highlights, labels, borders)
+- **Backgrounds**: Near-black `rgba(17,17,19)` to `rgba(26,26,30)` — deep, atmospheric
+- **Text**: Off-white `rgba(250,250,250,0.85)` body, gold `rgba(201,169,98,0.75)` for labels/headers
+- **Fonts**: Monospace terminal fonts (Share Tech Mono, VT323) for data/metrics, serif for body text
+- **Border style**: Subtle gold or crimson borders `rgba(201,169,98,0.08)` to `rgba(139,38,53,0.3)`
+- **Effects**: Subtle scanline overlays, gold glow on hover, staggered reveal animations
+
+### Component Styling Guidelines
+When setting props, follow these rules:
+- **StatCard**: Use short, punchy labels (2-4 words, uppercase-friendly). Values should be bold numbers with units. Include trend direction (up/down/neutral) when data supports it.
+- **TLDR**: Write a compelling 1-2 sentence summary. This renders as the hero banner with crimson-gold gradient. Make it authoritative.
+- **KeyTakeaways**: Each item should be a concise insight (1 sentence). Assign categories like "Performance", "Security", "Architecture" etc.
+- **CalloutCard**: Use type "tip" for gold accent, "warning" for amber, "danger" for crimson, "info" for blue. Keep title short (2-4 words), content 1-2 sentences.
+- **TableOfContents**: Every item MUST have a non-empty "title" field. Use level 0 for main sections, 1 for subsections.
+- **TagCloud**: Tags should be short (1-3 words). They render in uppercase monospace terminal style.
+- **ExecutiveSummary**: Include 3-5 key_metrics with label/value/unit/trend. Recommendations should be actionable.
+- **QuoteCard/ExpertTip**: Attribute quotes properly. Tips should feel authoritative and commanding.
+
+### Width Hints (map to grid columns — USE VARIETY)
+- `"full"` → 12 columns (hero banners, tables, code blocks, executive summaries)
+- `"half"` → 6 columns (callouts, summaries, comparisons, key takeaways)
+- `"third"` → 4 columns (stat cards, metric cards, profile cards)
+- `"quarter"` → 3 columns (tags, small badges, indicators)
+
+Create visual rhythm: do NOT make everything "full" or "half". Mix widths aggressively.
 
 ## Content Analysis
 
@@ -186,15 +236,20 @@ COMPONENT_SELECTION_PROMPT = """You are an expert A2UI component architect. Gene
 - **StatusIndicator**: Status with colored dot
 - **PriorityBadge**: Priority level badge
 
-## VARIETY RULES (CRITICAL)
+## VARIETY RULES (CRITICAL — FOLLOW EXACTLY)
 
-1. **Cover ALL major sections** - generate components for every section, not just first few
-2. **Scale with size**: short (<500 words) 5-8, medium (500-2000) 10-15, long (2000+) 15-25
-3. **Min 4 different types** - do NOT create 10 components of only 2-3 types
-4. **No 3+ consecutive same type** - intersperse different types
-5. **No single type >40%** - balanced distribution
-6. **Use semantic zones**: hero, metrics, insights, content, media, resources, tags
-7. **Width hints**: full (code/tables), half (callouts), third (stats/cards), quarter (badges)
+1. **Scale with document size** (MOST IMPORTANT):
+   - Short (<500 words): **5-8 components MAXIMUM**. Do NOT generate more than 8!
+   - Medium (500-2000 words): 10-15 components
+   - Long (2000+ words): 15-25 components
+2. **Only use REAL data from the document** — never invent numbers, URLs, or names not in the source
+3. **Cover ALL major sections** — generate components for every section, not just first few
+4. **Min 4 different types** — do NOT create 10 components of only 2-3 types
+5. **No 3+ consecutive same type** — intersperse different types
+6. **No single type >40%** — balanced distribution
+7. **Use semantic zones**: hero, metrics, insights, content, media, resources, tags
+8. **Width hints**: full (code/tables), half (callouts), third (stats/cards), quarter (badges)
+9. **Every component must have complete props with real content** — do NOT leave title, value, label, or items empty
 
 ## URL Requirements (CRITICAL)
 For LinkCard, ToolCard, RepoCard, BookCard:

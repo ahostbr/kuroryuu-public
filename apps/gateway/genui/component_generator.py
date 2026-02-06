@@ -171,10 +171,14 @@ async def _select_components_with_llm(
     system_prompt = (
         "You are an expert A2UI component architect. Generate diverse dashboard components.\n"
         "CRITICAL: Return valid JSON with a 'components' array.\n"
-        "Each component needs: component_type, priority, zone, and props with actual document data.\n"
+        "Each component needs: component_type, priority, zone, and props with REAL data from the document.\n"
         "RULES:\n"
-        "1. Cover ALL sections. 2. Use 6+ different types. 3. No single type >40%.\n"
-        "4. Never 3+ consecutive same type. 5. For 5+ sections, generate 15-25 components."
+        "1. SHORT docs (<500 words): 5-8 components MAX. Do NOT over-generate.\n"
+        "2. Use 4+ different component types. No single type >40%.\n"
+        "3. Never 3+ consecutive same type.\n"
+        "4. EVERY prop must contain real content from the document. Never use empty or placeholder values.\n"
+        "5. For TableOfContents, every item MUST have a 'title' string.\n"
+        "6. Only use LinkCard/ToolCard/RepoCard if the document contains valid https:// URLs."
     )
 
     prompt = format_component_selection_prompt(content_analysis, layout_decision)
@@ -268,14 +272,29 @@ def _build_by_type(
         if not items:
             sections = content_analysis.get("sections", [])
             items = [{"title": s, "anchor": f"#{s.lower().replace(' ', '-')}"} for s in sections[:8]]
-        return _make_component("TableOfContents", {"items": items}) if items else None
+        # Ensure every item has a title
+        validated = []
+        for item in items:
+            if isinstance(item, str):
+                validated.append({"title": item, "anchor": f"#{item.lower().replace(' ', '-')}"})
+            elif isinstance(item, dict):
+                title = item.get("title") or item.get("label") or item.get("name") or item.get("text") or item.get("anchor", "").lstrip("#").replace("-", " ").title()
+                if title:
+                    item["title"] = title
+                    validated.append(item)
+        return _make_component("TableOfContents", {"items": validated}) if validated else None
 
     # --- Data & Statistics ---
     if component_type == "StatCard":
+        title = props.get("label", props.get("title", ""))
+        value = str(props.get("value", ""))
+        # Skip StatCards with no meaningful data
+        if not title or not value or value in ("N/A", "0", ""):
+            return None
         trend = props.get("trend", "neutral")
         return _make_component("StatCard", {
-            "title": props.get("label", props.get("title", "Metric")),
-            "value": str(props.get("value", "N/A")),
+            "title": title,
+            "value": value,
             "unit": props.get("unit"),
             "trend": trend,
             "trendValue": props.get("trendValue", props.get("change_value")),

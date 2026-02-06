@@ -1,9 +1,8 @@
 /**
- * TagCloud Component
- * Displays multiple tags in a word cloud or fluid layout with optional size variation.
+ * TagCloud Component — Imperial tag display
+ * Terminal-style monospace tags with gold accents.
  */
 import React from 'react';
-import { Badge } from '../../../ui/badge';
 
 export interface TagItem { name: string; count?: number; }
 
@@ -16,36 +15,30 @@ export interface TagCloudProps {
   maxSize?: number;
 }
 
-export function TagCloud({ tags, maxTags, onTagClick, sizeVariation = true, minSize = 0.75, maxSize = 1.5 }: TagCloudProps): React.ReactElement {
-  const normalizedTags: TagItem[] = tags.map(tag => typeof tag === 'string' ? { name: tag, count: 1 } : tag);
+export function TagCloud({ tags, maxTags, onTagClick }: TagCloudProps): React.ReactElement {
+  const normalizedTags: TagItem[] = (tags || []).map(tag =>
+    typeof tag === 'string' ? { name: tag, count: 1 } : tag
+  );
   const displayedTags = maxTags ? normalizedTags.slice(0, maxTags) : normalizedTags;
-  const counts = displayedTags.map(t => t.count || 1);
-  const minCount = Math.min(...counts);
-  const maxCount = Math.max(...counts);
-
-  const getTagSize = (count: number = 1): number => {
-    if (!sizeVariation || minCount === maxCount) return 1;
-    const normalized = (count - minCount) / (maxCount - minCount);
-    return minSize + normalized * (maxSize - minSize);
-  };
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
       {displayedTags.map((tag, idx) => {
         const tagName = typeof tag === 'string' ? tag : tag.name;
         const tagCount = typeof tag === 'string' ? 1 : tag.count;
-        const size = getTagSize(tagCount);
         return (
-          <Badge
+          <span
             key={idx}
-            variant="secondary"
-            className={`bg-secondary text-foreground border border-border hover:bg-primary/10 hover:border-primary/30 ${onTagClick ? 'cursor-pointer transition-all duration-200' : ''}`}
-            style={{ fontSize: `${size}rem` }}
+            className={`genui-tag ${onTagClick ? 'cursor-pointer' : ''}`}
             onClick={() => onTagClick?.(tagName)}
           >
             {tagName}
-            {tagCount !== undefined && tagCount > 1 && <span className="ml-1.5 text-xs text-muted-foreground">({tagCount})</span>}
-          </Badge>
+            {tagCount !== undefined && tagCount > 1 && (
+              <span style={{ marginLeft: '4px', opacity: 0.5, fontSize: '0.6rem' }}>
+                {tagCount}
+              </span>
+            )}
+          </span>
         );
       })}
     </div>

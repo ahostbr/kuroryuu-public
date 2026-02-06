@@ -73,7 +73,7 @@ export const LeadNode = React.memo(function LeadNode({
       }}
     >
       <Handle
-        type="source"
+        type="target"
         position={Position.Top}
         className="!w-4 !h-4 !border-2"
         style={{ backgroundColor: colors.hub, borderColor: colors.nodeBg }}

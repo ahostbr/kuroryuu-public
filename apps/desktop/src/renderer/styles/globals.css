@@ -717,3 +717,173 @@ body {
 .bg-success { background-color: var(--success); }
 .bg-warning { background-color: var(--warning); }
 .bg-info { background-color: var(--info); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GENUI — Imperial Intelligence Dashboard
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Staggered entrance for dashboard components */
+@keyframes genuiReveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.genui-reveal {
+  animation: genuiReveal 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Gold border glow on cards */
+@keyframes genuiGlowPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(201,169,98,0), inset 0 1px 0 rgba(201,169,98,0.06); }
+  50% { box-shadow: 0 0 12px rgba(201,169,98,0.08), inset 0 1px 0 rgba(201,169,98,0.1); }
+}
+
+/* GenUI card base */
+.genui-card {
+  background: linear-gradient(135deg, rgba(17,17,19,0.95) 0%, rgba(22,22,28,0.98) 100%);
+  border: 1px solid rgba(201,169,98,0.12);
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 400ms cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.genui-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(201,169,98,0.008) 2px, rgba(201,169,98,0.008) 4px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.genui-card:hover {
+  border-color: rgba(201,169,98,0.3);
+  box-shadow: 0 0 20px rgba(201,169,98,0.06), 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* Gold left accent bar */
+.genui-accent-left {
+  border-left: 2px solid rgba(201,169,98,0.4);
+}
+
+/* Crimson left accent bar */
+.genui-accent-crimson {
+  border-left: 2px solid rgba(139,38,53,0.5);
+}
+
+/* Zone header decorative line */
+.genui-zone-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.genui-zone-header::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(201,169,98,0.25) 0%, transparent 80%);
+}
+
+/* Hero zone gradient */
+.genui-hero {
+  background: linear-gradient(135deg, rgba(139,38,53,0.08) 0%, rgba(17,17,19,0.95) 40%, rgba(201,169,98,0.04) 100%);
+  border: 1px solid rgba(201,169,98,0.15);
+  border-left: 3px solid rgba(201,169,98,0.5);
+}
+
+/* Metric card — dramatic stat display */
+.genui-metric {
+  background: linear-gradient(160deg, rgba(17,17,19,0.97) 0%, rgba(25,22,30,0.98) 100%);
+  border: 1px solid rgba(201,169,98,0.1);
+  position: relative;
+}
+
+.genui-metric::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(201,169,98,0.3), transparent);
+}
+
+.genui-metric:hover {
+  border-color: rgba(201,169,98,0.25);
+}
+
+.genui-metric:hover::after {
+  background: linear-gradient(90deg, transparent, rgba(201,169,98,0.5), transparent);
+}
+
+/* Tag pill style */
+.genui-tag {
+  font-family: ui-monospace, 'Share Tech Mono', 'Cascadia Code', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid rgba(201,169,98,0.2);
+  color: rgba(201,169,98,0.7);
+  background: rgba(201,169,98,0.04);
+  padding: 3px 10px;
+  border-radius: 2px;
+  transition: all 300ms ease;
+}
+
+.genui-tag:hover {
+  border-color: rgba(201,169,98,0.45);
+  color: rgba(201,169,98,0.95);
+  background: rgba(201,169,98,0.08);
+  text-shadow: 0 0 8px rgba(201,169,98,0.3);
+}
+
+/* Progress bar glow */
+@keyframes genuiProgressGlow {
+  0%, 100% { box-shadow: 0 0 8px rgba(201,169,98,0.3); }
+  50% { box-shadow: 0 0 20px rgba(201,169,98,0.5), 0 0 40px rgba(139,38,53,0.2); }
+}
+
+.genui-progress-bar {
+  background: linear-gradient(90deg, rgba(139,38,53,0.8), rgba(201,169,98,0.9));
+  animation: genuiProgressGlow 2s ease-in-out infinite;
+  border-radius: 2px;
+}
+
+/* Scanline overlay for dashboard */
+.genui-scanlines {
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px);
+  pointer-events: none;
+}
+
+/* Monospace label style */
+.genui-label {
+  font-family: ui-monospace, 'Share Tech Mono', 'Cascadia Code', monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: rgba(201,169,98,0.45);
+}
+
+/* Gold divider */
+.genui-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,169,98,0.2), transparent);
+}
+
+/* Checkmark style */
+.genui-check {
+  color: rgba(201,169,98,0.7);
+  font-size: 0.7rem;
+}
