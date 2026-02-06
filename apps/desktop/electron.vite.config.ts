@@ -1,6 +1,41 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { homedir } from 'os';
+
+function resolveUserSettingsPath(): string {
+  if (process.env.KURORYUU_SETTINGS_PATH) {
+    return process.env.KURORYUU_SETTINGS_PATH;
+  }
+
+  const appData =
+    process.env.APPDATA ??
+    (process.platform === 'darwin'
+      ? resolve(homedir(), 'Library', 'Application Support')
+      : resolve(homedir(), '.config'));
+
+  return resolve(appData, 'Kuroryuu', 'settings.json');
+}
+
+function readDevModeFlag(): boolean {
+  if (process.env.KURORYUU_DEV_MODE === 'true') {
+    return true;
+  }
+
+  try {
+    const settingsPath = resolveUserSettingsPath();
+    if (!existsSync(settingsPath)) return false;
+
+    const raw = readFileSync(settingsPath, 'utf8');
+    const parsed = JSON.parse(raw) as { ui?: { devMode?: unknown } };
+    return parsed?.ui?.devMode === true;
+  } catch {
+    return false;
+  }
+}
+
+const devModeEnabled = readDevModeFlag();
 
 export default defineConfig({
   main: {
@@ -32,7 +67,7 @@ export default defineConfig({
   renderer: {
     root: resolve(__dirname, 'src/renderer'),
     server: {
-      hmr: process.env.KURORYUU_DEV_MODE === 'true'  // Enable HMR when devMode is on
+      hmr: devModeEnabled,
     },
     build: {
       rollupOptions: {

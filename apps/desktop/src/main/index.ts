@@ -3980,11 +3980,12 @@ app.whenReady().then(async () => {
   const settingsService = initSettingsService(projectRoot);
   console.log('[Main] Settings service initialized for project:', projectRoot);
 
-  // Set devMode env var for HMR (Vite reads this at startup)
+  // Keep env flag aligned for subprocesses/debug tooling.
+  // HMR flag is resolved in electron.vite.config.ts at dev-server startup.
   const devMode = settingsService.get('ui.devMode') as boolean | undefined;
   if (devMode) {
     process.env.KURORYUU_DEV_MODE = 'true';
-    console.log('[Main] Dev mode enabled - HMR will be active on next restart');
+    console.log('[Main] Dev mode enabled');
   }
 
   // Load Graphiti configuration from settings (opt-in feature)

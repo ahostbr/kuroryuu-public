@@ -428,7 +428,7 @@ export function AppSettingsDialog() {
                   label="Dev Mode (keyboard shortcuts + HMR)"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Keyboard shortcuts take effect immediately. HMR requires app restart.
+                  Keyboard shortcuts take effect immediately. HMR requires desktop dev server restart.
                 </p>
               </div>
             </SettingSection>

@@ -11,7 +11,7 @@ interface ShortcutConfig {
 
 /**
  * Global keyboard shortcuts for navigation
- * Matches Auto-Claude shortcuts: K, A, N, D, I, L, C, M, W
+ * Mirrors sidebar shortcut badges.
  */
 export function useKeyboardShortcuts(
   onNavigate: (view: View) => void,
@@ -39,16 +39,25 @@ export function useKeyboardShortcuts(
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     const shortcuts: Record<string, View> = {
-      'k': 'kanban',
-      'a': 'claude-teams',
-      'n': 'insights',
+      // PLAN
+      'c': 'claude-tasks',
       'd': 'dojo',
-      'i': 'ideation',
-      'l': 'changelog',
-      'c': 'context',
-      'y': 'memory',
+      'k': 'kanban',
+      // BUILD
+      'n': 'insights',
+      'a': 'claude-teams',
+      'u': 'kuroryuu-agents',
+      'g': 'genui',
+      't': 'terminals',
+      // MONITOR
+      'p': 'capture',
       'm': 'command-center',
+      'f': 'traffic-flow',
+      'y': 'pty-traffic',
+      // CHRONICLES
+      'l': 'changelog',
       'w': 'worktrees',
+      'r': 'transcripts',
     };
 
     const view = shortcuts[e.key.toLowerCase()];

@@ -27,7 +27,7 @@ import { AGENT_PHASE_CONFIG } from '../types/settings';
 const isString = (v: unknown): v is string => typeof v === 'string';
 const isNumber = (v: unknown): v is number => typeof v === 'number';
 const isBoolean = (v: unknown): v is boolean => typeof v === 'boolean';
-const isThemeId = (v: unknown): v is ThemeId => isString(v) && ['base', 'hacker', 'minimal', 'kuroryuu'].includes(v);
+const isThemeId = (v: unknown): v is ThemeId => isString(v) && ['oscura-midnight', 'dusk', 'lime', 'ocean', 'retro', 'neo', 'forest', 'matrix', 'grunge', 'kuroryuu'].includes(v);
 const isUIScale = (v: unknown): v is UIScale => isNumber(v) && [0.8, 0.9, 1, 1.1, 1.2].includes(v);
 const isLanguage = (v: unknown): v is Language => isString(v) && ['en', 'ja', 'pt-BR'].includes(v);
 const isTerminalFont = (v: unknown): v is TerminalFont => isString(v) && ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Monaco', 'Menlo', 'Consolas'].includes(v);
