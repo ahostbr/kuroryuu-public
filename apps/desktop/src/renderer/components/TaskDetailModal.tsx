@@ -336,7 +336,12 @@ export function TaskDetailModal({ task, open, onOpenChange, projectRoot }: TaskD
 
             <div className="flex-1 overflow-auto min-h-0 bg-background/30">
               <Tabs.Content value="overview" className="h-full p-6 outline-none animate-in fade-in slide-in-from-bottom-2 duration-200">
-                <TaskOverview task={task} />
+                <TaskOverview
+                  task={task}
+                  onDescriptionChange={async (desc) => {
+                    await updateTask(task.id, { description: desc });
+                  }}
+                />
               </Tabs.Content>
               
               <Tabs.Content value="logs" className="h-full p-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-200">
