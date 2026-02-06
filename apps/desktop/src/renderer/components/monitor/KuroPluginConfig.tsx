@@ -135,6 +135,148 @@ interface LMStudioModel {
 }
 
 // ============================================================================
+// Global TTS Status Panel (shown when Claude Teams are active)
+// ============================================================================
+
+interface GlobalHooksValidation {
+  valid: boolean;
+  uvFound: boolean;
+  uvPath: string | null;
+  scriptFound: boolean;
+  scriptPath: string | null;
+  errors: string[];
+}
+
+function GlobalTtsStatusPanel() {
+  const [validation, setValidation] = useState<GlobalHooksValidation | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
+
+  const loadValidation = async () => {
+    setIsValidating(true);
+    setTestResult(null);
+    try {
+      const result = await (window as unknown as { electronAPI: { globalHooks: { validate: () => Promise<GlobalHooksValidation> } } }).electronAPI?.globalHooks?.validate?.();
+      if (result) setValidation(result);
+    } catch {
+      setValidation({ valid: false, uvFound: false, uvPath: null, scriptFound: false, scriptPath: null, errors: ['Failed to validate'] });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const runTest = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const result = await (window as unknown as { electronAPI: { globalHooks: { test: () => Promise<{ ok: boolean; error?: string }> } } }).electronAPI?.globalHooks?.test?.();
+      if (result) setTestResult(result);
+    } catch (err) {
+      setTestResult({ ok: false, error: String(err) });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  useEffect(() => { loadValidation(); }, []);
+
+  return (
+    <div className="flex flex-col gap-2 p-3 mb-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+      <div className="flex items-start gap-2">
+        <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-blue-400 leading-relaxed">
+          TTS hooks are running globally while Claude Teams are active.
+          Local TTS hooks are temporarily disabled to avoid double announcements.
+        </p>
+      </div>
+
+      {isValidating ? (
+        <div className="flex items-center gap-2 text-xs text-blue-400">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Validating prerequisites...
+        </div>
+      ) : validation ? (
+        <div className="flex flex-col gap-2">
+          {/* Status badges */}
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            <div className="flex items-center gap-1.5">
+              {validation.uvFound ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+              ) : (
+                <XCircle className="w-3.5 h-3.5 text-red-500" />
+              )}
+              <span className={validation.uvFound ? 'text-green-400' : 'text-red-400'}>
+                UV {validation.uvFound ? 'found' : 'missing'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {validation.scriptFound ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+              ) : (
+                <XCircle className="w-3.5 h-3.5 text-red-500" />
+              )}
+              <span className={validation.scriptFound ? 'text-green-400' : 'text-red-400'}>
+                smart_tts.py {validation.scriptFound ? 'found' : 'missing'}
+              </span>
+            </div>
+          </div>
+
+          {/* Errors */}
+          {validation.errors.length > 0 && (
+            <div className="flex flex-col gap-1 p-2 bg-red-500/10 border border-red-500/20 rounded">
+              {validation.errors.map((error, i) => (
+                <p key={i} className="text-xs text-red-400 font-mono break-all">{error}</p>
+              ))}
+            </div>
+          )}
+
+          {/* Test result */}
+          {testResult && (
+            <div className={cn(
+              'flex items-center gap-1.5 text-xs p-2 rounded',
+              testResult.ok ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400',
+            )}>
+              {testResult.ok ? (
+                <><CheckCircle2 className="w-3.5 h-3.5" /> Test passed</>
+              ) : (
+                <><XCircle className="w-3.5 h-3.5" /> {testResult.error || 'Test failed'}</>
+              )}
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={loadValidation}
+              disabled={isValidating}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-secondary hover:bg-secondary/80 text-foreground rounded transition-colors"
+            >
+              <RefreshCw className={cn('w-3 h-3', isValidating && 'animate-spin')} />
+              Revalidate
+            </button>
+            {validation.valid && (
+              <button
+                onClick={runTest}
+                disabled={isTesting}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded transition-colors"
+              >
+                {isTesting ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Play className="w-3 h-3" />
+                )}
+                Test Global TTS
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+// ============================================================================
 // Toggle Component
 // ============================================================================
 interface ToggleProps {
@@ -740,13 +882,7 @@ export function KuroPluginConfig() {
         {/* Hooks */}
         <CollapsibleSection title="Hooks" icon={Webhook} defaultOpen={false}>
           {teamsActive && (
-            <div className="flex items-start gap-2 p-3 mb-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-400 leading-relaxed">
-                TTS hooks are running globally while Claude Teams are active.
-                Local TTS hooks are temporarily disabled to avoid double announcements.
-              </p>
-            </div>
+            <GlobalTtsStatusPanel />
           )}
           <FieldRow label="TTS on Stop" description="Speak when session ends">
             <Toggle
