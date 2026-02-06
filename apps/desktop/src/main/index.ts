@@ -1491,6 +1491,61 @@ function setupFsIpc(): void {
 }
 
 /**
+ * Setup IPC handlers for Claude Code auto memory files
+ * Reads/writes ~/.claude/projects/{hash}/memory/ directory
+ */
+function setupClaudeMemoryIpc(): void {
+  const homeDir = os.homedir();
+  // Project path hash: replace path separators with dashes, strip leading dash, strip colon
+  const projectPath = require('path').resolve(__dirname, '..', '..', '..', '..');
+  const hash = projectPath.replace(/[\\/]/g, '-').replace(/^-/, '').replace(/:/, '');
+  const memDir = require('path').join(homeDir, '.claude', 'projects', hash, 'memory');
+
+  ipcMain.handle('claude-memory:list', async () => {
+    try {
+      if (!fs.existsSync(memDir)) return { ok: true, files: [] };
+      const entries = fs.readdirSync(memDir);
+      const files = entries.map(name => {
+        const stat = fs.statSync(require('path').join(memDir, name));
+        return { name, size: stat.size };
+      });
+      return { ok: true, files };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+
+  ipcMain.handle('claude-memory:read', async (_, filename: string) => {
+    try {
+      // Sanitize filename to prevent path traversal
+      const safeName = require('path').basename(filename);
+      const filePath = require('path').join(memDir, safeName);
+      if (!fs.existsSync(filePath)) return { ok: false, error: 'File not found' };
+      const content = fs.readFileSync(filePath, 'utf-8');
+      return { ok: true, content };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+
+  ipcMain.handle('claude-memory:write', async (_, filename: string, content: string) => {
+    try {
+      // Sanitize filename to prevent path traversal
+      const safeName = require('path').basename(filename);
+      const filePath = require('path').join(memDir, safeName);
+      // Ensure directory exists
+      if (!fs.existsSync(memDir)) {
+        fs.mkdirSync(memDir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, content, 'utf-8');
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+}
+
+/**
  * Setup IPC handlers for Kuro Plugin Configuration
  * Reads/writes .claude/settings.json for TTS, validators, hooks config
  */
@@ -3507,6 +3562,7 @@ app.whenReady().then(async () => {
   }
 
   setupFsIpc();
+  setupClaudeMemoryIpc();
   setupKuroConfigIpc();
   setupMcpIpc();
   setupGatewayIpc();

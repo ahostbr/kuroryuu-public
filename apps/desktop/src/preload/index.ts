@@ -1960,6 +1960,19 @@ const api = {
     },
   },
 
+  /**
+   * Claude Code Auto Memory API
+   * Reads/writes ~/.claude/projects/{hash}/memory/ files
+   */
+  claudeMemory: {
+    list: (): Promise<{ ok: boolean; files?: { name: string; size: number }[]; error?: string }> =>
+      ipcRenderer.invoke('claude-memory:list'),
+    read: (filename: string): Promise<{ ok: boolean; content?: string; error?: string }> =>
+      ipcRenderer.invoke('claude-memory:read', filename),
+    write: (filename: string, content: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-memory:write', filename, content),
+  },
+
   // Team History API - Session archival and replay
   teamHistory: {
     /** Archive a team session before cleanup */
@@ -1997,6 +2010,53 @@ const api = {
     /** Delete an archived session */
     deleteArchive: (archiveId: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('claude-teams:delete-archive', archiveId),
+  },
+
+  // Team Templates API - Save/load team configuration templates
+  teamTemplates: {
+    /** List all saved templates */
+    list: (): Promise<{
+      ok: boolean;
+      templates: Array<{
+        id: string;
+        name: string;
+        description: string;
+        createdAt: string;
+        isFavorite: boolean;
+        config: {
+          teammates: Array<{
+            name: string;
+            prompt: string;
+            model?: string;
+            color?: string;
+            planModeRequired?: boolean;
+          }>;
+        };
+      }>;
+      error?: string;
+    }> => ipcRenderer.invoke('claude-teams:list-templates'),
+    /** Save a new template */
+    save: (template: {
+      name: string;
+      description: string;
+      isFavorite: boolean;
+      config: {
+        teammates: Array<{
+          name: string;
+          prompt: string;
+          model?: string;
+          color?: string;
+          planModeRequired?: boolean;
+        }>;
+      };
+    }): Promise<{ ok: boolean; template?: unknown; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:save-template', template),
+    /** Delete a template by ID */
+    delete: (templateId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:delete-template', templateId),
+    /** Toggle favorite status on a template */
+    toggleFavorite: (templateId: string): Promise<{ ok: boolean; isFavorite?: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:toggle-template-favorite', templateId),
   },
 
   // Global Hooks API - Manage TTS hooks in ~/.claude/settings.json for Agent Teams

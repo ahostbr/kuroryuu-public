@@ -18,6 +18,10 @@ import {
   Loader2,
   ListTodo,
   Archive,
+  Power,
+  Megaphone,
+  Send,
+  X,
 } from 'lucide-react';
 import { useClaudeTeamsStore, setupClaudeTeamsIpcListeners } from '../../stores/claude-teams-store';
 import { useTeamFlowStore } from '../../stores/team-flow-store';
@@ -53,6 +57,26 @@ export function ClaudeTeams() {
   const setViewMode = useTeamFlowStore((s) => s.setViewMode);
   const history = useClaudeTeamsStore((s) => s.history);
   const loadHistory = useClaudeTeamsStore((s) => s.loadHistory);
+  const checkTeammateHealth = useClaudeTeamsStore((s) => s.checkTeammateHealth);
+  const shutdownAllTeammates = useClaudeTeamsStore((s) => s.shutdownAllTeammates);
+  const broadcastToTeammates = useClaudeTeamsStore((s) => s.broadcastToTeammates);
+
+  const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
+  const [showBroadcastInput, setShowBroadcastInput] = useState(false);
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+
+  const handleShutdownAll = async () => {
+    if (!selectedTeam) return;
+    await shutdownAllTeammates(selectedTeam.config.name);
+    setShowShutdownConfirm(false);
+  };
+
+  const handleBroadcast = async () => {
+    if (!selectedTeam || !broadcastMessage.trim()) return;
+    await broadcastToTeammates(selectedTeam.config.name, broadcastMessage.trim());
+    setBroadcastMessage('');
+    setShowBroadcastInput(false);
+  };
 
   // Sync view mode to flow store when tab changes
   const handleViewChange = (view: FlowViewMode) => {
@@ -83,6 +107,14 @@ export function ClaudeTeams() {
       selectTeam(teams[0].config.name);
     }
   }, [teams, selectedTeamId, selectTeam]);
+
+  // Periodic health check for teammate responsiveness
+  useEffect(() => {
+    if (!selectedTeam) return;
+    checkTeammateHealth();
+    const interval = setInterval(checkTeammateHealth, 30_000); // every 30s
+    return () => clearInterval(interval);
+  }, [selectedTeam, checkTeammateHealth]);
 
   const memberCount = selectedTeam?.config.members.length ?? 0;
   const taskCount = selectedTeam?.tasks.filter((t) => t.status !== 'deleted').length ?? 0;
@@ -220,6 +252,79 @@ export function ClaudeTeams() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Bulk operations bar */}
+      {selectedTeam && (selectedTeam.config.members.length > 1) && (
+        <div className="border-b border-border px-4 py-1.5 flex items-center gap-2">
+          {/* Shutdown All */}
+          {!showShutdownConfirm ? (
+            <button
+              onClick={() => setShowShutdownConfirm(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+              title="Shutdown all teammates"
+            >
+              <Power className="w-3.5 h-3.5" />
+              Shutdown All
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-400">Shutdown all teammates?</span>
+              <button
+                onClick={handleShutdownAll}
+                className="px-2 py-0.5 rounded text-xs font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                Confirm
+              </button>
+              <button
+                onClick={() => setShowShutdownConfirm(false)}
+                className="px-2 py-0.5 rounded text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          <span className="text-border">|</span>
+
+          {/* Broadcast */}
+          {!showBroadcastInput ? (
+            <button
+              onClick={() => setShowBroadcastInput(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title="Broadcast message to all teammates"
+            >
+              <Megaphone className="w-3.5 h-3.5" />
+              Broadcast
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 flex-1">
+              <input
+                type="text"
+                value={broadcastMessage}
+                onChange={(e) => setBroadcastMessage(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleBroadcast()}
+                placeholder="Type message to broadcast..."
+                className="flex-1 px-2 py-1 rounded text-xs bg-secondary border border-border focus:border-primary outline-none"
+                autoFocus
+              />
+              <button
+                onClick={handleBroadcast}
+                disabled={!broadcastMessage.trim()}
+                className="p-1 rounded text-primary hover:bg-primary/10 transition-colors disabled:opacity-40"
+                title="Send broadcast"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => { setShowBroadcastInput(false); setBroadcastMessage(''); }}
+                className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 

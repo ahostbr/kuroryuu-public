@@ -28,6 +28,7 @@ import { Dojo } from './components/dojo';  // Feature planning workspace
 import { Transcripts } from './components/transcripts';  // Archived conversations
 import { ClaudeTaskMonitor } from './components/monitor';  // Claude Code task monitoring
 import { ClaudeTeams } from './components/claude-teams';  // Claude Code Agent Teams orchestration
+import { KuroryuuAgents } from './components/kuroryuu-agents';  // Kuroryuu Agents (rebranded coding-agents)
 // BackupManagerPage removed - backups now in IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
@@ -354,6 +355,9 @@ export function App() {
 
               {/* Claude Teams - Agent Teams orchestration */}
               {activeView === 'claude-teams' && <ClaudeTeams />}
+
+              {/* Kuroryuu Agents - Background agent session management */}
+              {activeView === 'kuroryuu-agents' && <KuroryuuAgents />}
 
             </ErrorBoundary>
           </main>

@@ -7,6 +7,7 @@ import React from 'react';
 import { Handle, Position } from '@xyflow/react';
 import { Crown, User, CheckCircle, Clock, XCircle, MessageSquare, Users, Hash } from 'lucide-react';
 import { useTeamFlowStore, THEME_COLORS, type TeamFlowTheme } from '../../stores/team-flow-store';
+import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import type { TeamNodeData } from '../../types/claude-teams';
 
 function useThemeColors() {
@@ -155,10 +156,19 @@ export const TeammateNode = React.memo(function TeammateNode({
   const { label, status, model, color, taskCount, unreadCount, agentType } = data.data;
   const colors = useThemeColors();
   const theme = useTeamFlowStore((s) => s.theme);
+  const healthInfo = useClaudeTeamsStore((s) => s.teammateHealth[label]);
 
   const statusColor = getStatusColor(status, colors);
 
   const StatusIcon = status === 'active' ? CheckCircle : status === 'idle' ? Clock : XCircle;
+
+  // Health dot: green = active recently, yellow = idle >2min, red = unresponsive (>5min with active task)
+  let healthDotColor = colors.success; // green
+  if (healthInfo?.isUnresponsive) {
+    healthDotColor = colors.error; // red
+  } else if (status === 'idle') {
+    healthDotColor = colors.idle; // yellow
+  }
 
   return (
     <div
@@ -195,6 +205,21 @@ export const TeammateNode = React.memo(function TeammateNode({
             style={{ backgroundColor: color }}
           />
         )}
+        {/* Health dot */}
+        <div
+          className="w-2.5 h-2.5 rounded-full ml-auto shrink-0"
+          style={{
+            backgroundColor: healthDotColor,
+            boxShadow: `0 0 6px ${healthDotColor}80`,
+          }}
+          title={
+            healthInfo?.isUnresponsive
+              ? 'Unresponsive (no activity >5min with active task)'
+              : status === 'idle'
+                ? 'Idle'
+                : 'Healthy'
+          }
+        />
       </div>
 
       {/* Status Row */}

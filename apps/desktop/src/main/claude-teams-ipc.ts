@@ -30,6 +30,12 @@ import {
   loadArchivedSession,
   deleteArchivedSession,
 } from './claude-teams-archive';
+import {
+  listTemplates,
+  saveTemplate,
+  deleteTemplate,
+  toggleTemplateFavorite,
+} from './claude-teams-templates';
 
 // -----------------------------------------------------------------------
 // UV Binary Resolution (cached)
@@ -299,6 +305,53 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
   );
 
   // -----------------------------------------------------------------------
+  // Team Templates (config persistence)
+  // -----------------------------------------------------------------------
+
+  ipcMain.handle('claude-teams:list-templates', async () => {
+    try {
+      const templates = await listTemplates();
+      return { ok: true, templates };
+    } catch (err) {
+      return { ok: false, error: String(err), templates: [] };
+    }
+  });
+
+  ipcMain.handle(
+    'claude-teams:save-template',
+    async (_event, template: {
+      name: string;
+      description: string;
+      isFavorite: boolean;
+      config: {
+        teammates: Array<{
+          name: string;
+          prompt: string;
+          model?: string;
+          color?: string;
+          planModeRequired?: boolean;
+        }>;
+      };
+    }) => {
+      return saveTemplate(template);
+    },
+  );
+
+  ipcMain.handle(
+    'claude-teams:delete-template',
+    async (_event, templateId: string) => {
+      return deleteTemplate(templateId);
+    },
+  );
+
+  ipcMain.handle(
+    'claude-teams:toggle-template-favorite',
+    async (_event, templateId: string) => {
+      return toggleTemplateFavorite(templateId);
+    },
+  );
+
+  // -----------------------------------------------------------------------
   // Global TTS Hooks (install/remove TTS hooks in ~/.claude/settings.json)
   // -----------------------------------------------------------------------
 
@@ -349,7 +402,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
           {
             type: 'command',
             command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}"`,
-            timeout: 30000,
+            timeout: 90000,
           },
         ],
       }];
@@ -360,7 +413,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
           {
             type: 'command',
             command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`,
-            timeout: 30000,
+            timeout: 90000,
           },
         ],
       }];
@@ -371,7 +424,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
           {
             type: 'command',
             command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}"`,
-            timeout: 30000,
+            timeout: 90000,
           },
         ],
       }];
@@ -531,6 +584,10 @@ export function cleanupClaudeTeamsIpc(): void {
     'claude-teams:list-archives',
     'claude-teams:load-archive',
     'claude-teams:delete-archive',
+    'claude-teams:list-templates',
+    'claude-teams:save-template',
+    'claude-teams:delete-template',
+    'claude-teams:toggle-template-favorite',
     'global-hooks:install-tts',
     'global-hooks:remove-tts',
     'global-hooks:status',

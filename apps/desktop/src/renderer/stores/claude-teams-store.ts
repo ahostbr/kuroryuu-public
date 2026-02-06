@@ -18,6 +18,8 @@ import type {
   ClaudeTeamsState,
   ClaudeTeamsIpcEvent,
   TeamHistoryEntry,
+  TeamTemplate,
+  TeammateHealthInfo,
 } from '../types/claude-teams';
 
 /**
@@ -180,6 +182,13 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   // History
   history: [],
   isLoadingHistory: false,
+
+  // Templates
+  templates: [],
+  isLoadingTemplates: false,
+
+  // Health
+  teammateHealth: {},
 
   // -- Data Actions --
 
@@ -420,6 +429,154 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
       console.error('[ClaudeTeamsStore] deleteArchive error:', err);
       return false;
     }
+  },
+
+  // -- Template Actions --
+
+  loadTemplates: async () => {
+    try {
+      set({ isLoadingTemplates: true });
+      const result = await window.electronAPI?.teamTemplates?.list?.();
+      if (result?.ok) {
+        set({ templates: (result.templates ?? []) as TeamTemplate[], isLoadingTemplates: false });
+      } else {
+        set({ isLoadingTemplates: false });
+      }
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] loadTemplates error:', err);
+      set({ isLoadingTemplates: false });
+    }
+  },
+
+  saveTemplate: async (template) => {
+    try {
+      const result = await window.electronAPI?.teamTemplates?.save?.(template);
+      if (result?.ok) {
+        // Refresh templates list
+        get().loadTemplates();
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] saveTemplate error:', err);
+      return false;
+    }
+  },
+
+  deleteTemplate: async (templateId) => {
+    try {
+      const result = await window.electronAPI?.teamTemplates?.delete?.(templateId);
+      if (result?.ok) {
+        const { templates } = get();
+        set({ templates: templates.filter((t) => t.id !== templateId) });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] deleteTemplate error:', err);
+      return false;
+    }
+  },
+
+  toggleTemplateFavorite: async (templateId) => {
+    try {
+      const result = await window.electronAPI?.teamTemplates?.toggleFavorite?.(templateId);
+      if (result?.ok) {
+        const { templates } = get();
+        set({
+          templates: templates.map((t) =>
+            t.id === templateId ? { ...t, isFavorite: result.isFavorite ?? !t.isFavorite } : t
+          ),
+        });
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] toggleTemplateFavorite error:', err);
+      return false;
+    }
+  },
+
+  // -- Health Actions --
+
+  checkTeammateHealth: () => {
+    const { selectedTeam } = get();
+    if (!selectedTeam) {
+      set({ teammateHealth: {} });
+      return;
+    }
+
+    const now = Date.now();
+    const UNRESPONSIVE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+    const health: Record<string, TeammateHealthInfo> = {};
+
+    for (const member of selectedTeam.config.members) {
+      // Skip lead
+      if (member.agentId === selectedTeam.config.leadAgentId) continue;
+
+      // Find latest activity from inbox messages
+      const inbox = selectedTeam.inboxes[member.name] ?? [];
+      let lastActivity = member.joinedAt;
+      for (const msg of inbox) {
+        const msgTime = new Date(msg.timestamp).getTime();
+        if (msgTime > lastActivity) lastActivity = msgTime;
+      }
+
+      // Check if teammate has an active task
+      const hasActiveTask = selectedTeam.tasks.some(
+        (t) => t.owner === member.name && t.status === 'in_progress'
+      );
+
+      const timeSinceActivity = now - lastActivity;
+      const isUnresponsive = hasActiveTask && timeSinceActivity > UNRESPONSIVE_THRESHOLD;
+
+      health[member.name] = { lastActivity, isUnresponsive };
+    }
+
+    set({ teammateHealth: health });
+  },
+
+  // -- Bulk Operations --
+
+  shutdownAllTeammates: async (teamName) => {
+    const { selectedTeam, shutdownTeammate } = get();
+    if (!selectedTeam || selectedTeam.config.name !== teamName) return false;
+
+    const nonLeadMembers = selectedTeam.config.members.filter(
+      (m) => m.agentId !== selectedTeam.config.leadAgentId
+    );
+
+    let allOk = true;
+    for (const member of nonLeadMembers) {
+      const ok = await shutdownTeammate({
+        teamName,
+        recipient: member.name,
+        content: 'Shutdown requested via bulk operation',
+      });
+      if (!ok) allOk = false;
+    }
+    return allOk;
+  },
+
+  broadcastToTeammates: async (teamName, content) => {
+    const { selectedTeam, messageTeammate } = get();
+    if (!selectedTeam || selectedTeam.config.name !== teamName) return false;
+
+    const nonLeadMembers = selectedTeam.config.members.filter(
+      (m) => m.agentId !== selectedTeam.config.leadAgentId
+    );
+
+    let allOk = true;
+    for (const member of nonLeadMembers) {
+      const ok = await messageTeammate({
+        teamName,
+        recipient: member.name,
+        content,
+        summary: content.slice(0, 50),
+      });
+      if (!ok) allOk = false;
+    }
+    return allOk;
   },
 }));
 
