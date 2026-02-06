@@ -9,7 +9,7 @@
  * - Add feature dialog
  * - Drag-drop reordering
  */
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Map,
   Plus,
@@ -30,6 +30,8 @@ import {
   Edit,
   GripVertical,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { DRAGON_ASCII } from '../constants/dragon-ascii';
 import { useRoadmapStore } from '../stores/roadmap-store';
 import { useTaskStore } from '../stores/task-store';
 import type { RoadmapFeature, FeatureStatus, FeaturePriority, FeatureComplexity, FeatureImpact } from '../types/roadmap';
@@ -44,96 +46,268 @@ function RoadmapEmptyState({ onGenerate }: { onGenerate: () => void }) {
   const { config, setConfig } = useRoadmapStore();
   const [showConfig, setShowConfig] = useState(false);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsCompact(entry.contentRect.width < 600);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center p-8">
-      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-blue-400/20 to-purple-500/20 flex items-center justify-center mb-8">
-        <Map className="w-12 h-12 text-blue-400" />
-      </div>
-      
-      <h2 className="text-2xl font-semibold text-foreground mb-3">
-        Create Your Roadmap
-      </h2>
-      <p className="text-muted-foreground max-w-md mb-8">
-        Let AI analyze your project and generate a strategic roadmap with features,
-        priorities, and timeline suggestions.
-      </p>
+    <div
+      ref={containerRef}
+      className="h-full flex flex-col items-center relative overflow-hidden select-none"
+      style={{ background: 'radial-gradient(ellipse at center, rgba(50,20,8,0.4) 0%, transparent 70%)' }}
+    >
+      {/* Scanlines */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[1]"
+        style={{
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
+        }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[2]"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)',
+        }}
+      />
 
-      {/* Config Panel */}
-      {showConfig && (
-        <div className="w-full max-w-md mb-6 p-4 bg-card border border-border rounded-xl text-left">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-foreground">Configuration</h3>
-            <button
-              onClick={() => setShowConfig(false)}
-              className="p-1 text-muted-foreground hover:text-foreground"
+      {/* Scrollable content column */}
+      <div className="relative z-[3] flex flex-col items-center gap-2 px-4 py-8 overflow-y-auto max-w-2xl w-full">
+        {/* Kanji */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="font-serif leading-none"
+          style={{
+            fontSize: isCompact ? '2rem' : 'clamp(2rem, 4vw, 3rem)',
+            color: '#c9a962',
+            textShadow: '0 0 30px rgba(201,162,39,0.4), 0 0 60px rgba(201,162,39,0.15)',
+            letterSpacing: '0.15em',
+          }}
+        >
+          黒龍幻霧
+        </motion.div>
+
+        {/* Subtitle */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15, duration: 0.5 }}
+          className="font-mono uppercase tracking-[0.25em]"
+          style={{ fontSize: '10px', color: 'rgba(201,162,39,0.5)' }}
+        >
+          KURORYUU GENMU
+        </motion.div>
+
+        {/* Dragon ASCII */}
+        {!isCompact && (
+          <motion.pre
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            aria-hidden="true"
+            className="leading-[1.15] overflow-hidden text-center mt-2 cursor-default transition-all duration-300"
+            style={{
+              fontSize: 'clamp(0.3rem, 0.85vw, 0.6rem)',
+              color: '#8b2635',
+              animation: 'dragonBreathe 6s ease-in-out infinite',
+              fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
+              fontVariantLigatures: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#a82d3f';
+              e.currentTarget.style.transform = 'scale(1.02)';
+              e.currentTarget.style.textShadow = '0 0 12px rgba(139,38,53,0.6), 0 0 24px rgba(139,38,53,0.6), 0 0 48px rgba(139,38,53,0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#8b2635';
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.textShadow = '';
+            }}
+          >
+            {DRAGON_ASCII}
+          </motion.pre>
+        )}
+
+        {/* Brand */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: isCompact ? 0.3 : 0.6, duration: 0.4 }}
+          className="font-mono tracking-[0.5em] text-xs mt-1"
+          style={{ color: 'rgba(255,255,255,0.7)' }}
+        >
+          K U R O R Y U U
+        </motion.div>
+
+        {/* Separator */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: isCompact ? 0.4 : 0.7, duration: 0.5 }}
+          className="w-48 h-px mt-3 mb-3"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.5), transparent)' }}
+        />
+
+        {/* Title + Description */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: isCompact ? 0.5 : 0.8, duration: 0.4 }}
+          className="text-center space-y-2"
+        >
+          <h2
+            className="text-2xl font-semibold"
+            style={{ color: '#c9a962', textShadow: '0 0 20px rgba(201,162,39,0.3)' }}
+          >
+            Chart Your Course
+          </h2>
+          <p className="text-muted-foreground max-w-md text-sm">
+            Let AI analyze your project and generate a strategic roadmap with features,
+            priorities, and timeline suggestions.
+          </p>
+        </motion.div>
+
+        {/* Terminal-style buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: isCompact ? 0.6 : 0.9, duration: 0.4 }}
+          className="flex items-center gap-4 mt-4"
+        >
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className="font-mono text-sm uppercase px-6 py-3 transition-all duration-[400ms] hover:translate-y-[-2px]"
+            style={{
+              border: '1px solid rgba(122,117,109,0.3)',
+              color: 'rgba(122,117,109,0.8)',
+              letterSpacing: '0.1em',
+              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#c9a962';
+              e.currentTarget.style.borderColor = 'rgba(201,169,98,0.5)';
+              e.currentTarget.style.textShadow = '0 0 10px rgba(201,169,98,0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'rgba(122,117,109,0.8)';
+              e.currentTarget.style.borderColor = 'rgba(122,117,109,0.3)';
+              e.currentTarget.style.textShadow = 'none';
+            }}
+          >
+            <Settings className="w-4 h-4 inline mr-2 -mt-0.5" />
+            &gt; Configure
+          </button>
+          <button
+            onClick={onGenerate}
+            className="font-mono text-sm uppercase px-6 py-3 transition-all duration-[400ms] hover:translate-y-[-2px]"
+            style={{
+              border: '1px solid rgba(201,169,98,0.4)',
+              color: '#c9a962',
+              letterSpacing: '0.1em',
+              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(201,169,98,0.7)';
+              e.currentTarget.style.textShadow = '0 0 15px rgba(201,169,98,0.6)';
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(201,169,98,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(201,169,98,0.4)';
+              e.currentTarget.style.textShadow = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <Map className="w-4 h-4 inline mr-2 -mt-0.5" />
+            &gt; Generate Roadmap
+          </button>
+        </motion.div>
+
+        {/* Config Panel */}
+        <AnimatePresence>
+          {showConfig && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-md mt-4 p-4 rounded-xl text-left overflow-hidden"
+              style={{
+                background: 'rgba(18,16,14,0.95)',
+                border: '1px solid rgba(201,162,39,0.2)',
+                backdropFilter: 'blur(10px)',
+              }}
             >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Product Vision */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Product Vision</label>
-              <textarea
-                value={config.productVision || ''}
-                onChange={(e) => setConfig({ productVision: e.target.value })}
-                placeholder="Describe your product vision..."
-                rows={2}
-                className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            {/* Target Audience */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Target Audience</label>
-              <input
-                type="text"
-                value={config.targetAudience || ''}
-                onChange={(e) => setConfig({ targetAudience: e.target.value })}
-                placeholder="e.g., Developers, Startups, Enterprise"
-                className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-blue-500"
-              />
-            </div>
-
-            {/* Timeframe */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Timeframe</label>
-              <div className="flex gap-2">
-                {(['quarter', 'half-year', 'year'] as const).map(tf => (
-                  <button
-                    key={tf}
-                    onClick={() => setConfig({ timeframe: tf })}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      config.timeframe === tf
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        : 'bg-secondary text-muted-foreground border border-border hover:border-muted-foreground'
-                    }`}
-                  >
-                    {tf === 'quarter' ? 'Quarter' : tf === 'half-year' ? '6 Months' : 'Year'}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-foreground text-sm">Configuration</h3>
+                <button
+                  onClick={() => setShowConfig(false)}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setShowConfig(!showConfig)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-foreground hover:bg-muted transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          Configure
-        </button>
-        <button
-          onClick={onGenerate}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-500 text-white font-medium hover:bg-blue-400 transition-colors"
-        >
-          <Map className="w-4 h-4" />
-          Generate Roadmap
-        </button>
+              <div className="space-y-4">
+                {/* Product Vision */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Product Vision</label>
+                  <textarea
+                    value={config.productVision || ''}
+                    onChange={(e) => setConfig({ productVision: e.target.value })}
+                    placeholder="Describe your product vision..."
+                    rows={2}
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                {/* Target Audience */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Target Audience</label>
+                  <input
+                    type="text"
+                    value={config.targetAudience || ''}
+                    onChange={(e) => setConfig({ targetAudience: e.target.value })}
+                    placeholder="e.g., Developers, Startups, Enterprise"
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                {/* Timeframe */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Timeframe</label>
+                  <div className="flex gap-2">
+                    {(['quarter', 'half-year', 'year'] as const).map(tf => (
+                      <button
+                        key={tf}
+                        onClick={() => setConfig({ timeframe: tf })}
+                        className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          config.timeframe === tf
+                            ? 'bg-primary/20 text-primary border border-primary/30'
+                            : 'bg-secondary text-muted-foreground border border-border hover:border-muted-foreground'
+                        }`}
+                      >
+                        {tf === 'quarter' ? 'Quarter' : tf === 'half-year' ? '6 Months' : 'Year'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

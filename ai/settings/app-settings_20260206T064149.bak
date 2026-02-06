@@ -1,0 +1,38 @@
+{
+	"audio": {
+		"mic": {
+			"silenceThreshold": 0.12,
+			"voiceThreshold": 0.25,
+			"silenceTimeoutMs": 1500,
+			"sttEngine": "whisper"
+		},
+		"tts": {
+			"enabled": false,
+			"voice": "default",
+			"rate": 1,
+			"volume": 1,
+			"backend": "system"
+		}
+	},
+	"agents": {
+		"isSetupComplete": false,
+		"leaderAgent": null,
+		"workerAgents": []
+	},
+	"onboarding": {
+		"completedSteps": [],
+		"currentStep": null,
+		"isComplete": false
+	},
+	"graphiti": {
+		"enabled": false,
+		"serverUrl": "http://localhost:8000",
+		"autoSync": false
+	},
+	"_version": 1,
+	"integrations": {
+		"trayCompanion": {
+			"launchOnStartup": true
+		}
+	}
+}
