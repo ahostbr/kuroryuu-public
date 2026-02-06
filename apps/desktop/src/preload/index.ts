@@ -53,6 +53,28 @@ export interface Task {
   assignee?: string;
   tags?: string[];
   notes?: string;
+  // Sidecar metadata (from ai/task-meta.json)
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  category?: 'feature' | 'bug_fix' | 'refactoring' | 'documentation' | 'security' | 'performance' | 'ui_ux' | 'infrastructure' | 'testing';
+  complexity?: 'sm' | 'md' | 'lg';
+  worklog?: string;
+  checkpoint?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  contextFiles?: string[];
+}
+
+export interface TaskMeta {
+  description?: string;
+  priority?: 'low' | 'medium' | 'high';
+  category?: 'feature' | 'bug_fix' | 'refactoring' | 'documentation' | 'security' | 'performance' | 'ui_ux' | 'infrastructure' | 'testing';
+  complexity?: 'sm' | 'md' | 'lg';
+  worklog?: string;
+  checkpoint?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  contextFiles?: string[];
 }
 
 export interface ClaudeTask {
@@ -240,6 +262,18 @@ const api = {
     /** List Claude tasks with timestamps */
     claudeList: (): Promise<ClaudeTask[]> =>
       ipcRenderer.invoke('tasks:claudeList'),
+
+    /** Get task metadata from sidecar */
+    getMeta: (taskId: string): Promise<TaskMeta | null> =>
+      ipcRenderer.invoke('tasks:getMeta', taskId),
+
+    /** Update task metadata in sidecar */
+    updateMeta: (taskId: string, updates: Partial<TaskMeta>): Promise<OperationResult<TaskMeta>> =>
+      ipcRenderer.invoke('tasks:updateMeta', taskId, updates),
+
+    /** Link worklog to task in sidecar */
+    linkWorklog: (taskId: string, path: string): Promise<OperationResult<TaskMeta>> =>
+      ipcRenderer.invoke('tasks:linkWorklog', taskId, path),
 
     /** Subscribe to task changes */
     watch: (callback: (tasks: Task[]) => void): void => {

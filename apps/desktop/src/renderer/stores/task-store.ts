@@ -92,8 +92,36 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     set({ tasks: updated }); // Optimistic update
 
     try {
-      const result = await window.electronAPI.tasks.update(taskId, updates);
-      if (!result.success) throw new Error(result.error);
+      // Split: todo.md fields vs sidecar fields
+      // Canonical sidecar keys — must match SIDECAR_KEYS in task-service.ts
+      const SIDECAR_KEYS = new Set<string>([
+        'description', 'priority', 'category', 'complexity',
+        'worklog', 'checkpoint', 'createdAt', 'updatedAt', 'contextFiles',
+      ]);
+
+      const todoFields: Partial<Task> = {};
+      const metaFields: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (SIDECAR_KEYS.has(key)) {
+          metaFields[key] = value;
+        } else {
+          (todoFields as Record<string, unknown>)[key] = value;
+        }
+      }
+
+      // Write todo.md fields
+      if (Object.keys(todoFields).length > 0) {
+        const result = await window.electronAPI.tasks.update(taskId, todoFields);
+        if (!result.success) throw new Error(result.error);
+      }
+
+      // Write sidecar fields
+      if (Object.keys(metaFields).length > 0) {
+        const result = await window.electronAPI.tasks.updateMeta(taskId, metaFields);
+        if (!result.success) throw new Error(result.error);
+      }
+
       toast.success(`Task ${taskId} updated`);
     } catch (err) {
       set({ tasks }); // Revert

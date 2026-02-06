@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow } from 'electron';
-import { getTaskService, type TaskStatus, type Task, type ClaudeTask } from '../services/task-service';
+import { getTaskService, type TaskStatus, type Task, type ClaudeTask, type TaskMeta } from '../services/task-service';
 
 // Get the singleton instance
 const taskService = getTaskService();
@@ -161,6 +161,57 @@ export function registerTaskHandlers(): void {
   });
 
   // ============================================================================
+  // Task Metadata (Sidecar)
+  // ============================================================================
+
+  /**
+   * Get task metadata from sidecar
+   * Returns: TaskMeta | null
+   */
+  ipcMain.handle('tasks:getMeta', async (_event, id: string): Promise<TaskMeta | null> => {
+    try {
+      return await taskService.getTaskMeta(id);
+    } catch (error) {
+      console.error(`[task-handlers] Error getting meta for task ${id}:`, error);
+      return null;
+    }
+  });
+
+  /**
+   * Update task metadata in sidecar
+   * Returns: OperationResult<TaskMeta>
+   */
+  ipcMain.handle('tasks:updateMeta', async (_event, id: string, updates: Partial<TaskMeta>): Promise<OperationResult<TaskMeta>> => {
+    try {
+      const meta = await taskService.updateTaskMeta(id, updates);
+      return { success: true, data: meta };
+    } catch (error) {
+      console.error(`[task-handlers] Error updating meta for task ${id}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update task metadata'
+      };
+    }
+  });
+
+  /**
+   * Link worklog to task in sidecar
+   * Returns: OperationResult<TaskMeta>
+   */
+  ipcMain.handle('tasks:linkWorklog', async (_event, id: string, path: string): Promise<OperationResult<TaskMeta>> => {
+    try {
+      const meta = await taskService.linkWorklog(id, path);
+      return { success: true, data: meta };
+    } catch (error) {
+      console.error(`[task-handlers] Error linking worklog for task ${id}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to link worklog'
+      };
+    }
+  });
+
+  // ============================================================================
   // File Watching
   // ============================================================================
 
@@ -292,6 +343,9 @@ export function unregisterTaskHandlers(): void {
     'tasks:setStatus',
     'tasks:assign',
     'tasks:claudeList',
+    'tasks:getMeta',
+    'tasks:updateMeta',
+    'tasks:linkWorklog',
     'tasks:watch',
     'tasks:unwatch'
   ];
