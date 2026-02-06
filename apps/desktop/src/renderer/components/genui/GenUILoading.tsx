@@ -159,34 +159,34 @@ export function GenUILoading({
                       width: '40px',
                       height: '40px',
                       background: isCompleted
-                        ? 'rgba(139,38,53,0.25)'
+                        ? 'color-mix(in srgb, var(--g-crimson) 25%, transparent)'
                         : isCurrent
-                          ? 'rgba(201,169,98,0.08)'
-                          : 'rgba(17,17,19,0.5)',
+                          ? 'color-mix(in srgb, var(--g-accent) 8%, transparent)'
+                          : 'color-mix(in srgb, var(--g-card) 50%, transparent)',
                       border: isCompleted
-                        ? '1px solid rgba(139,38,53,0.4)'
+                        ? '1px solid color-mix(in srgb, var(--g-crimson) 40%, transparent)'
                         : isCurrent
-                          ? '1px solid rgba(201,169,98,0.2)'
-                          : '1px solid rgba(122,117,109,0.1)',
+                          ? '1px solid color-mix(in srgb, var(--g-accent) 20%, transparent)'
+                          : '1px solid color-mix(in srgb, var(--g-muted) 10%, transparent)',
                       boxShadow: isCurrent
-                        ? '0 0 15px rgba(201,169,98,0.1)'
+                        ? '0 0 15px color-mix(in srgb, var(--g-accent) 10%, transparent)'
                         : isCompleted
-                          ? '0 0 10px rgba(139,38,53,0.15)'
+                          ? '0 0 10px color-mix(in srgb, var(--g-crimson) 15%, transparent)'
                           : 'none',
                     }}
                   >
                     {isCompleted ? (
-                      <span style={{ color: 'rgba(201,169,98,0.8)', fontSize: '0.9rem' }}>{'\u2713'}</span>
+                      <span style={{ color: 'color-mix(in srgb, var(--g-accent) 80%, transparent)', fontSize: '0.9rem' }}>{'\u2713'}</span>
                     ) : isCurrent ? (
                       <span style={{
-                        color: 'rgba(201,169,98,0.7)',
+                        color: 'color-mix(in srgb, var(--g-accent) 70%, transparent)',
                         fontSize: '0.8rem',
                         animation: 'genuiGlowPulse 2s ease-in-out infinite',
                       }}>
                         {step.icon}
                       </span>
                     ) : (
-                      <span style={{ color: 'rgba(122,117,109,0.3)', fontSize: '0.8rem' }}>
+                      <span style={{ color: 'color-mix(in srgb, var(--g-muted) 30%, transparent)', fontSize: '0.8rem' }}>
                         {step.icon}
                       </span>
                     )}

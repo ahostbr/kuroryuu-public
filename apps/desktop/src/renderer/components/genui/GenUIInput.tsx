@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useSettingsStore } from '../../stores/settings-store';
 
 interface GenUIInputProps {
   onGenerate: (markdown: string, layoutOverride?: string) => void;
@@ -92,7 +93,7 @@ const LAYOUT_OPTIONS = [
 
 const SAMPLE_BUTTONS = [
   { key: 'tutorial', label: 'Tutorial', icon: '\u2318', color: 'rgba(59,130,246,0.6)' },
-  { key: 'research', label: 'Research Paper', icon: '\u25A0', color: 'rgba(201,169,98,0.6)' },
+  { key: 'research', label: 'Research Paper', icon: '\u25A0', color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)' },
   { key: 'api', label: 'API Docs', icon: '\u25B6', color: 'rgba(34,197,94,0.6)' },
 ] as const;
 
@@ -101,6 +102,8 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
   const [layoutOverride, setLayoutOverride] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const imperialMode = useSettingsStore((s) => s.appSettings.genuiImperialMode);
+  const toggleMode = useSettingsStore((s) => s.setGenUIImperialMode);
 
   const handleGenerate = () => {
     if (!markdown.trim()) return;
@@ -141,7 +144,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
   const wordCount = markdown.trim() ? markdown.trim().split(/\s+/).length : 0;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12" style={{ background: 'rgba(13,13,15,1)' }}>
+    <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12" style={{ background: 'var(--g-bg)' }}>
       {/* Scanline overlay */}
       <div className="genui-scanlines" />
 
@@ -151,17 +154,17 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
         <div className="text-center space-y-3 mb-10">
           {/* Decorative top line */}
           <div className="flex items-center justify-center gap-4 mb-4">
-            <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.4))' }} />
+            <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 40%, transparent))' }} />
             <span style={{
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.6rem',
               letterSpacing: '0.3em',
-              color: 'rgba(201,169,98,0.4)',
+              color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
               textTransform: 'uppercase',
             }}>
               {'\u25C8'} Kuroryuu GenUI Engine {'\u25C8'}
             </span>
-            <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, rgba(201,169,98,0.4), transparent)' }} />
+            <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, color-mix(in srgb, var(--g-accent) 40%, transparent), transparent)' }} />
           </div>
 
           <h1
@@ -169,7 +172,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               fontSize: '2.5rem',
               fontWeight: 700,
               letterSpacing: '0.05em',
-              background: 'linear-gradient(135deg, rgba(201,169,98,0.95) 0%, rgba(255,215,140,0.9) 40%, rgba(201,169,98,0.7) 100%)',
+              background: 'linear-gradient(135deg, color-mix(in srgb, var(--g-accent) 95%, transparent) 0%, color-mix(in srgb, var(--g-accent) 90%, transparent) 40%, color-mix(in srgb, var(--g-accent) 70%, transparent) 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               textShadow: 'none',
@@ -182,11 +185,32 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
             fontSize: '0.75rem',
             letterSpacing: '0.15em',
-            color: 'rgba(201,169,98,0.45)',
+            color: 'color-mix(in srgb, var(--g-accent) 45%, transparent)',
             textTransform: 'uppercase',
           }}>
             Transform Markdown into Imperial Dashboards
           </p>
+
+          {/* Theme toggle button */}
+          <div className="flex justify-center mt-2">
+            <button
+              onClick={() => toggleMode(!imperialMode)}
+              style={{
+                fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                fontSize: '0.55rem',
+                letterSpacing: '0.1em',
+                padding: '3px 10px',
+                borderRadius: '3px',
+                border: '1px solid color-mix(in srgb, var(--g-accent) 20%, transparent)',
+                background: 'color-mix(in srgb, var(--g-accent) 5%, transparent)',
+                color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)',
+                cursor: 'pointer',
+                textTransform: 'uppercase' as const,
+              }}
+            >
+              {imperialMode ? '\u25C8 Imperial' : '\u25C7 Themed'}
+            </button>
+          </div>
         </div>
 
         {/* Textarea — Terminal-Style */}
@@ -194,11 +218,11 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
           className={`relative rounded-md overflow-hidden transition-all duration-300`}
           style={{
             border: isDragging
-              ? '1px solid rgba(201,169,98,0.5)'
-              : '1px solid rgba(201,169,98,0.1)',
+              ? '1px solid color-mix(in srgb, var(--g-accent) 50%, transparent)'
+              : '1px solid color-mix(in srgb, var(--g-accent) 10%, transparent)',
             boxShadow: isDragging
-              ? '0 0 20px rgba(201,169,98,0.1), inset 0 0 30px rgba(201,169,98,0.03)'
-              : 'inset 0 0 30px rgba(0,0,0,0.3)',
+              ? '0 0 20px color-mix(in srgb, var(--g-accent) 10%, transparent), inset 0 0 30px color-mix(in srgb, var(--g-accent) 3%, transparent)'
+              : 'inset 0 0 30px color-mix(in srgb, var(--g-bg) 30%, transparent)',
           }}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
@@ -208,18 +232,18 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
           <div
             className="flex items-center justify-between px-4 py-2"
             style={{
-              background: 'rgba(17,17,19,0.9)',
-              borderBottom: '1px solid rgba(201,169,98,0.08)',
+              background: 'color-mix(in srgb, var(--g-card) 90%, transparent)',
+              borderBottom: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)',
             }}
           >
             <div className="flex items-center gap-2">
-              <span style={{ color: 'rgba(139,38,53,0.6)', fontSize: '0.5rem' }}>{'\u25CF'}</span>
-              <span style={{ color: 'rgba(201,169,98,0.4)', fontSize: '0.5rem' }}>{'\u25CF'}</span>
-              <span style={{ color: 'rgba(122,117,109,0.3)', fontSize: '0.5rem' }}>{'\u25CF'}</span>
+              <span style={{ color: 'color-mix(in srgb, var(--g-crimson) 60%, transparent)', fontSize: '0.5rem' }}>{'\u25CF'}</span>
+              <span style={{ color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)', fontSize: '0.5rem' }}>{'\u25CF'}</span>
+              <span style={{ color: 'color-mix(in srgb, var(--g-muted) 30%, transparent)', fontSize: '0.5rem' }}>{'\u25CF'}</span>
               <span style={{
                 fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                 fontSize: '0.6rem',
-                color: 'rgba(201,169,98,0.35)',
+                color: 'color-mix(in srgb, var(--g-accent) 35%, transparent)',
                 marginLeft: '8px',
                 letterSpacing: '0.1em',
               }}>
@@ -229,7 +253,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
             <div style={{
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.55rem',
-              color: 'rgba(122,117,109,0.4)',
+              color: 'color-mix(in srgb, var(--g-muted) 40%, transparent)',
               letterSpacing: '0.05em',
             }}>
               {wordCount > 0 ? `${wordCount} words \u00B7 ${charCount} chars` : 'empty'}
@@ -248,12 +272,12 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               fontFamily: "ui-monospace, 'Share Tech Mono', 'Cascadia Code', monospace",
               fontSize: '0.8rem',
               lineHeight: '1.6',
-              color: 'rgba(250,250,250,0.8)',
-              background: 'rgba(13,13,15,0.95)',
+              color: 'color-mix(in srgb, var(--g-fg) 80%, transparent)',
+              background: 'color-mix(in srgb, var(--g-bg) 95%, transparent)',
               border: 'none',
               outline: 'none',
               resize: 'none',
-              caretColor: 'rgba(201,169,98,0.8)',
+              caretColor: 'color-mix(in srgb, var(--g-accent) 80%, transparent)',
             }}
           />
 
@@ -261,25 +285,25 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
           {isDragging && (
             <div
               className="absolute inset-0 flex flex-col items-center justify-center gap-3"
-              style={{ background: 'rgba(13,13,15,0.92)' }}
+              style={{ background: 'color-mix(in srgb, var(--g-bg) 92%, transparent)' }}
             >
               <div style={{
                 width: '60px',
                 height: '60px',
                 borderRadius: '50%',
-                border: '2px solid rgba(201,169,98,0.3)',
+                border: '2px solid color-mix(in srgb, var(--g-accent) 30%, transparent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 animation: 'genuiGlowPulse 2s ease-in-out infinite',
               }}>
-                <span style={{ fontSize: '1.5rem', color: 'rgba(201,169,98,0.6)' }}>{'\u2193'}</span>
+                <span style={{ fontSize: '1.5rem', color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)' }}>{'\u2193'}</span>
               </div>
               <span style={{
                 fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                 fontSize: '0.7rem',
                 letterSpacing: '0.2em',
-                color: 'rgba(201,169,98,0.6)',
+                color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)',
                 textTransform: 'uppercase',
               }}>
                 Drop .md file to load
@@ -295,12 +319,12 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.6rem',
               letterSpacing: '0.15em',
-              color: 'rgba(201,169,98,0.4)',
+              color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
               textTransform: 'uppercase',
             }}>
               Templates
             </span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(201,169,98,0.06)' }} />
+            <div style={{ flex: 1, height: '1px', background: 'color-mix(in srgb, var(--g-accent) 6%, transparent)' }} />
           </div>
 
           <div className="flex gap-3">
@@ -310,17 +334,17 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
                 onClick={() => loadSample(SAMPLE_DOCUMENTS[btn.key])}
                 className="group flex items-center gap-2 px-4 py-2.5 rounded transition-all duration-300"
                 style={{
-                  background: 'rgba(17,17,19,0.8)',
-                  border: '1px solid rgba(201,169,98,0.08)',
+                  background: 'color-mix(in srgb, var(--g-card) 80%, transparent)',
+                  border: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)',
                   cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(201,169,98,0.25)';
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(201,169,98,0.04)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--g-accent) 25%, transparent)';
+                  (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--g-accent) 4%, transparent)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(201,169,98,0.08)';
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(17,17,19,0.8)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--g-accent) 8%, transparent)';
+                  (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--g-card) 80%, transparent)';
                 }}
               >
                 <span style={{ color: btn.color, fontSize: '0.7rem' }}>{btn.icon}</span>
@@ -328,7 +352,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
                   fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                   fontSize: '0.65rem',
                   letterSpacing: '0.1em',
-                  color: 'rgba(250,250,250,0.6)',
+                  color: 'color-mix(in srgb, var(--g-fg) 60%, transparent)',
                   textTransform: 'uppercase',
                 }}>
                   {btn.label}
@@ -345,12 +369,12 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.6rem',
               letterSpacing: '0.15em',
-              color: 'rgba(201,169,98,0.4)',
+              color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
               textTransform: 'uppercase',
             }}>
               Layout Override
             </span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(201,169,98,0.06)' }} />
+            <div style={{ flex: 1, height: '1px', background: 'color-mix(in srgb, var(--g-accent) 6%, transparent)' }} />
           </div>
 
           <select
@@ -363,9 +387,9 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.7rem',
               letterSpacing: '0.05em',
-              color: 'rgba(250,250,250,0.7)',
-              background: 'rgba(17,17,19,0.8)',
-              border: '1px solid rgba(201,169,98,0.1)',
+              color: 'color-mix(in srgb, var(--g-fg) 70%, transparent)',
+              background: 'color-mix(in srgb, var(--g-card) 80%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--g-accent) 10%, transparent)',
               borderRadius: '4px',
               outline: 'none',
               cursor: 'pointer',
@@ -391,22 +415,22 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
           style={{
             padding: '14px 24px',
             background: markdown.trim()
-              ? 'linear-gradient(135deg, rgba(139,38,53,0.6) 0%, rgba(139,38,53,0.3) 50%, rgba(201,169,98,0.15) 100%)'
-              : 'rgba(17,17,19,0.6)',
+              ? 'linear-gradient(135deg, color-mix(in srgb, var(--g-crimson) 60%, transparent) 0%, color-mix(in srgb, var(--g-crimson) 30%, transparent) 50%, color-mix(in srgb, var(--g-accent) 15%, transparent) 100%)'
+              : 'color-mix(in srgb, var(--g-card) 60%, transparent)',
             border: markdown.trim()
-              ? '1px solid rgba(201,169,98,0.25)'
-              : '1px solid rgba(122,117,109,0.15)',
+              ? '1px solid color-mix(in srgb, var(--g-accent) 25%, transparent)'
+              : '1px solid color-mix(in srgb, var(--g-muted) 15%, transparent)',
             cursor: markdown.trim() ? 'pointer' : 'not-allowed',
             opacity: markdown.trim() ? 1 : 0.4,
           }}
           onMouseEnter={(e) => {
             if (markdown.trim()) {
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(201,169,98,0.5)';
-              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 30px rgba(139,38,53,0.2), 0 0 60px rgba(201,169,98,0.05)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--g-accent) 50%, transparent)';
+              (e.currentTarget as HTMLElement).style.boxShadow = '0 0 30px color-mix(in srgb, var(--g-crimson) 20%, transparent), 0 0 60px color-mix(in srgb, var(--g-accent) 5%, transparent)';
             }
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = markdown.trim() ? 'rgba(201,169,98,0.25)' : 'rgba(122,117,109,0.15)';
+            (e.currentTarget as HTMLElement).style.borderColor = markdown.trim() ? 'color-mix(in srgb, var(--g-accent) 25%, transparent)' : 'color-mix(in srgb, var(--g-muted) 15%, transparent)';
             (e.currentTarget as HTMLElement).style.boxShadow = 'none';
           }}
         >
@@ -415,7 +439,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
               fontSize: '0.7rem',
               letterSpacing: '0.3em',
-              color: markdown.trim() ? 'rgba(201,169,98,0.85)' : 'rgba(122,117,109,0.4)',
+              color: markdown.trim() ? 'color-mix(in srgb, var(--g-accent) 85%, transparent)' : 'color-mix(in srgb, var(--g-muted) 40%, transparent)',
               textTransform: 'uppercase',
               fontWeight: 600,
             }}>
@@ -432,7 +456,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
                 left: '10%',
                 right: '10%',
                 height: '1px',
-                background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.4), transparent)',
+                background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 40%, transparent), transparent)',
                 animation: 'genuiGlowPulse 3s ease-in-out infinite',
               }}
             />
@@ -441,7 +465,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
 
         {/* Bottom decorative line */}
         <div className="flex items-center justify-center pt-4">
-          <div style={{ width: '120px', height: '1px', background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.15), transparent)' }} />
+          <div style={{ width: '120px', height: '1px', background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 15%, transparent), transparent)' }} />
         </div>
       </div>
     </div>
