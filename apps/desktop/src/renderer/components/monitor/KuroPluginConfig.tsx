@@ -41,6 +41,12 @@ interface ElevenLabsVoice {
   voice_id: string;
   name: string;
   category?: string;
+  description?: string;
+  accent?: string;
+  age?: string;
+  gender?: string;
+  use_case?: string;
+  preview_url?: string;
 }
 
 interface KuroConfig {
@@ -435,6 +441,14 @@ export function KuroPluginConfig() {
       loadLmstudioModels();
     }
   }, [config.tts.summaryProvider, config.tts.smartSummaries]);
+
+  // Re-check ElevenLabs key status when Integrations dialog closes
+  const activeDialog = useSettingsStore((s) => s.activeDialog);
+  useEffect(() => {
+    if (activeDialog === null && config.tts.provider === 'elevenlabs') {
+      checkElevenlabsKeyStatus();
+    }
+  }, [activeDialog]);
 
   // Auto-fetch ElevenLabs voices when provider is elevenlabs and key is configured
   useEffect(() => {
@@ -856,7 +870,7 @@ export function KuroPluginConfig() {
                       <option value="">Loading voices...</option>
                     ) : elevenlabsVoices.length > 0 ? (
                       elevenlabsVoices.map((v) => (
-                        <option key={v.voice_id} value={v.voice_id}>{v.name}{v.category ? ` (${v.category})` : ''}</option>
+                        <option key={v.voice_id} value={v.voice_id}>{v.name}{v.description ? ` - ${v.description}` : ''}</option>
                       ))
                     ) : (
                       STATIC_VOICE_OPTIONS.elevenlabs?.map((v) => (

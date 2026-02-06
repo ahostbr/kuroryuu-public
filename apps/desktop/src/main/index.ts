@@ -2164,11 +2164,25 @@ function setupKuroConfigIpc(): void {
         return { ok: false, error: `ElevenLabs API error: ${response.status}`, voices: [] };
       }
 
-      const data = await response.json() as { voices?: Array<{ voice_id: string; name: string; category?: string }> };
+      const data = await response.json() as {
+        voices?: Array<{
+          voice_id: string;
+          name: string;
+          category?: string;
+          labels?: { description?: string; accent?: string; age?: string; gender?: string; use_case?: string };
+          preview_url?: string;
+        }>
+      };
       const voices = (data.voices || []).map((v) => ({
         voice_id: v.voice_id,
         name: v.name,
         category: v.category || '',
+        description: v.labels?.description || '',
+        accent: v.labels?.accent || '',
+        age: v.labels?.age || '',
+        gender: v.labels?.gender || '',
+        use_case: v.labels?.use_case || '',
+        preview_url: v.preview_url || '',
       }));
 
       console.log(`[KuroConfig] Fetched ${voices.length} ElevenLabs voices`);
