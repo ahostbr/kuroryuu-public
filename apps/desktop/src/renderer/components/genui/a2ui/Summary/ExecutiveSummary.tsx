@@ -31,15 +31,15 @@ export function ExecutiveSummary({
   return (
     <div className="genui-card genui-accent-left rounded-md overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(201,169,98,0.08)' }}>
-        <h3 className="text-sm font-semibold tracking-wide" style={{ color: 'rgba(201,169,98,0.75)' }}>
+      <div className="px-5 py-3" style={{ borderBottom: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)' }}>
+        <h3 className="text-sm font-semibold tracking-wide" style={{ color: 'color-mix(in srgb, var(--g-accent) 75%, transparent)' }}>
           {title}
         </h3>
       </div>
 
       <div className="px-5 py-4 space-y-5">
         {/* Summary text */}
-        <p className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.85)' }}>
+        <p className="text-sm leading-relaxed" style={{ color: 'color-mix(in srgb, var(--g-fg) 85%, transparent)' }}>
           {summary}
         </p>
 
@@ -55,8 +55,8 @@ export function ExecutiveSummary({
                   key={idx}
                   className="p-3 rounded"
                   style={{
-                    background: 'rgba(17,17,19,0.6)',
-                    border: '1px solid rgba(201,169,98,0.08)',
+                    background: 'color-mix(in srgb, var(--g-card) 60%, transparent)',
+                    border: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)',
                   }}
                 >
                   <div className="genui-label mb-1" style={{ fontSize: '0.55rem' }}>{metric.label}</div>
@@ -71,11 +71,11 @@ export function ExecutiveSummary({
                       {metric.value}
                     </span>
                     {metric.unit && (
-                      <span className="text-xs" style={{ color: 'rgba(122,117,109,0.5)' }}>{metric.unit}</span>
+                      <span className="text-xs" style={{ color: 'color-mix(in srgb, var(--g-muted) 50%, transparent)' }}>{metric.unit}</span>
                     )}
                     {metric.trend && (
                       <span style={{
-                        color: metric.trend === 'up' ? '#34d399' : metric.trend === 'down' ? '#f87171' : 'rgba(201,169,98,0.5)',
+                        color: metric.trend === 'up' ? '#34d399' : metric.trend === 'down' ? '#f87171' : 'color-mix(in srgb, var(--g-accent) 50%, transparent)',
                         fontSize: '0.7rem',
                       }}>
                         {metric.trend === 'up' ? '\u25B2' : metric.trend === 'down' ? '\u25BC' : '\u25C6'}
@@ -100,16 +100,16 @@ export function ExecutiveSummary({
                   <span
                     className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-xs font-bold"
                     style={{
-                      background: 'rgba(139,38,53,0.2)',
-                      color: 'rgba(201,169,98,0.7)',
-                      border: '1px solid rgba(139,38,53,0.3)',
+                      background: 'color-mix(in srgb, var(--g-crimson) 20%, transparent)',
+                      color: 'color-mix(in srgb, var(--g-accent) 70%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--g-crimson) 30%, transparent)',
                       fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
                       fontSize: '0.6rem',
                     }}
                   >
                     {idx + 1}
                   </span>
-                  <span className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.75)' }}>
+                  <span className="text-sm leading-relaxed" style={{ color: 'color-mix(in srgb, var(--g-fg) 75%, transparent)' }}>
                     {rec}
                   </span>
                 </div>

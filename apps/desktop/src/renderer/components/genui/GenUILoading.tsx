@@ -386,9 +386,9 @@ export function GenUILoading({
             (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--g-crimson) 8%, transparent)';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.borderColor = 'rgba(139,38,53,0.15)';
-            (e.currentTarget as HTMLElement).style.color = 'rgba(139,38,53,0.6)';
-            (e.currentTarget as HTMLElement).style.background = 'rgba(17,17,19,0.6)';
+            (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--g-crimson) 15%, transparent)';
+            (e.currentTarget as HTMLElement).style.color = 'color-mix(in srgb, var(--g-crimson) 60%, transparent)';
+            (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--g-card) 60%, transparent)';
           }}
         >
           {'\u2716'} Abort Pipeline

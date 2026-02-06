@@ -36,8 +36,8 @@ export function TableOfContents({
   return (
     <div className="genui-card genui-accent-left rounded-md overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(201,169,98,0.08)' }}>
-        <h3 className="text-sm font-semibold tracking-wide" style={{ color: 'rgba(201,169,98,0.75)' }}>
+      <div className="px-5 py-3" style={{ borderBottom: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)' }}>
+        <h3 className="text-sm font-semibold tracking-wide" style={{ color: 'color-mix(in srgb, var(--g-accent) 75%, transparent)' }}>
           {title}
         </h3>
       </div>
@@ -55,16 +55,16 @@ export function TableOfContents({
                 href={getAnchor(item)}
                 className="text-sm flex-1 leading-relaxed transition-all duration-300"
                 style={{
-                  color: 'rgba(201,169,98,0.6)',
+                  color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)',
                   fontFamily: item.level === 0 ? 'inherit' : "ui-monospace, 'Share Tech Mono', monospace",
                   fontSize: item.level === 0 ? '0.875rem' : '0.8rem',
                 }}
                 onMouseEnter={(e) => {
-                  (e.target as HTMLElement).style.color = 'rgba(201,169,98,0.95)';
-                  (e.target as HTMLElement).style.textShadow = '0 0 8px rgba(201,169,98,0.2)';
+                  (e.target as HTMLElement).style.color = 'color-mix(in srgb, var(--g-accent) 95%, transparent)';
+                  (e.target as HTMLElement).style.textShadow = '0 0 8px color-mix(in srgb, var(--g-accent) 20%, transparent)';
                 }}
                 onMouseLeave={(e) => {
-                  (e.target as HTMLElement).style.color = 'rgba(201,169,98,0.6)';
+                  (e.target as HTMLElement).style.color = 'color-mix(in srgb, var(--g-accent) 60%, transparent)';
                   (e.target as HTMLElement).style.textShadow = 'none';
                 }}
               >
