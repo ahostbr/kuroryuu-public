@@ -172,6 +172,7 @@ export type ClaudeTeamsIpcEvent =
   | { type: 'inbox-changed'; teamName: string; agentName: string; messages: InboxMessage[] }
   | { type: 'team-created'; teamName: string; config: TeamConfig }
   | { type: 'team-deleted'; teamName: string }
+  | { type: 'team-stale'; teamName: string; lastActivity: number }
   | { type: 'watcher-error'; error: string };
 
 // ============================================================================

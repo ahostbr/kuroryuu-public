@@ -29,6 +29,7 @@ import {
   XCircle,
   Info,
   AlertCircle,
+  Copy,
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { useSettingsStore } from '../../stores/settings-store';
@@ -427,6 +428,7 @@ export function KuroPluginConfig() {
   const [isLoadingElevenLabsVoices, setIsLoadingElevenLabsVoices] = useState(false);
   const [elevenlabsKeyConfigured, setElevenlabsKeyConfigured] = useState(false);
   const [isPreviewingElevenLabs, setIsPreviewingElevenLabs] = useState(false);
+  const [copiedVoiceId, setCopiedVoiceId] = useState(false);
 
   // Load config, voices, and backups on mount
   useEffect(() => {
@@ -869,13 +871,25 @@ export function KuroPluginConfig() {
                     {isLoadingElevenLabsVoices ? (
                       <option value="">Loading voices...</option>
                     ) : elevenlabsVoices.length > 0 ? (
-                      elevenlabsVoices.map((v) => (
-                        <option key={v.voice_id} value={v.voice_id}>{v.name}{v.description ? ` - ${v.description}` : ''}</option>
-                      ))
+                      <>
+                        {/* Show custom voice ID if not in the fetched list */}
+                        {config.tts.voice && !elevenlabsVoices.some(v => v.voice_id === config.tts.voice) && (
+                          <option value={config.tts.voice}>{config.tts.voice} (Custom ID)</option>
+                        )}
+                        {elevenlabsVoices.map((v) => (
+                          <option key={v.voice_id} value={v.voice_id}>{v.name}{v.description ? ` - ${v.description}` : ''}</option>
+                        ))}
+                      </>
                     ) : (
-                      STATIC_VOICE_OPTIONS.elevenlabs?.map((v) => (
-                        <option key={v.value} value={v.value}>{v.label}</option>
-                      ))
+                      <>
+                        {/* Show custom voice ID if not in the static fallback list */}
+                        {config.tts.voice && !STATIC_VOICE_OPTIONS.elevenlabs?.some(v => v.value === config.tts.voice) && (
+                          <option value={config.tts.voice}>{config.tts.voice} (Custom ID)</option>
+                        )}
+                        {STATIC_VOICE_OPTIONS.elevenlabs?.map((v) => (
+                          <option key={v.value} value={v.value}>{v.label}</option>
+                        ))}
+                      </>
                     )}
                   </select>
                   <button
@@ -899,6 +913,70 @@ export function KuroPluginConfig() {
                     )}
                     Preview
                   </button>
+                </div>
+                {/* Recommendation + Voice ID display + paste input */}
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary/70" />
+                    <span>
+                      Recommended: <button
+                        type="button"
+                        onClick={() => updateConfig('tts', { voice: 'Tky7uUvVMKnBt2u7LNZm' })}
+                        className="text-primary hover:underline cursor-pointer font-mono"
+                      >Kuroryuu_1</button> (Tky7uUvVMKnBt2u7LNZm).
+                      {' '}Browse more at{' '}
+                      <button
+                        type="button"
+                        onClick={() => window.electronAPI?.shell?.openExternal?.('https://elevenlabs.io/app/voice-library')}
+                        className="text-primary hover:underline cursor-pointer"
+                      >ElevenLabs Voice Library</button>.
+                    </span>
+                  </div>
+                  {/* Current Voice ID — click to copy */}
+                  {config.tts.voice && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(config.tts.voice);
+                        setCopiedVoiceId(true);
+                        setTimeout(() => setCopiedVoiceId(false), 2000);
+                      }}
+                      className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+                      title="Click to copy Voice ID"
+                    >
+                      <span className="text-muted-foreground/70">Voice ID:</span>
+                      <span className="font-mono text-foreground/80 group-hover:text-primary transition-colors">{config.tts.voice}</span>
+                      {copiedVoiceId ? (
+                        <Check className="w-3 h-3 text-green-500" />
+                      ) : (
+                        <Copy className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" />
+                      )}
+                      {copiedVoiceId && <span className="text-green-500 text-[10px]">Copied!</span>}
+                    </button>
+                  )}
+                  {/* Paste Voice ID input — auto-applies on paste, Enter as fallback */}
+                  <input
+                    type="text"
+                    placeholder="Paste Voice ID (auto-applies)"
+                    className="w-full px-2 py-1 text-xs font-mono bg-secondary border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
+                    onPaste={(e) => {
+                      const pasted = e.clipboardData.getData('text').trim();
+                      if (pasted) {
+                        e.preventDefault();
+                        updateConfig('tts', { voice: pasted });
+                        (e.target as HTMLInputElement).value = '';
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const val = (e.target as HTMLInputElement).value.trim();
+                        if (val) {
+                          updateConfig('tts', { voice: val });
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }
+                    }}
+                  />
                 </div>
               </FieldRow>
 

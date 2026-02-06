@@ -361,10 +361,14 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
       const result = await window.electronAPI?.claudeTeams?.cleanupTeam?.(params);
       set({ isLoading: false });
 
+      if (result && !result.ok) {
+        console.error('[ClaudeTeamsStore] Cleanup failed:', result.error);
+      }
+
       // Refresh history list after archival
       get().loadHistory();
 
-      return result ?? false;
+      return result?.ok ?? false;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to cleanup team';
       set({ error: msg, isLoading: false });
@@ -637,6 +641,30 @@ export function setupClaudeTeamsIpcListeners(): () => void {
         }
         recentlyArchivedTeams.delete(event.teamName);
         s.removeTeam(event.teamName);
+        break;
+      }
+
+      case 'team-stale': {
+        const staleTeam = useClaudeTeamsStore
+          .getState()
+          .teams.find((t) => t.config.name === event.teamName);
+        if (staleTeam) {
+          console.log('[ClaudeTeamsStore] Stale team detected, auto-cleaning:', event.teamName);
+          recentlyArchivedTeams.add(event.teamName);
+          window.electronAPI?.teamHistory
+            ?.archiveSession?.({
+              teamName: event.teamName,
+              config: staleTeam.config,
+              tasks: staleTeam.tasks,
+              inboxes: staleTeam.inboxes,
+            })
+            .then(() => window.electronAPI?.claudeTeams?.cleanupTeam?.({ teamName: event.teamName }))
+            .then(() => useClaudeTeamsStore.getState().loadHistory())
+            .catch((err: unknown) => {
+              console.error('[ClaudeTeamsStore] Stale team cleanup failed:', err);
+              recentlyArchivedTeams.delete(event.teamName);
+            });
+        }
         break;
       }
 

@@ -4,7 +4,7 @@
  * Displays past team sessions that were auto-archived before cleanup.
  * Each entry shows team name, duration, stats, and allows loading full details.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   Clock,
@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { ArchiveReplayPanel } from './ArchiveReplayPanel';
-import type { TeamHistoryEntry, ArchivedTeamSession } from '../../types/claude-teams';
+import type { TeamHistoryEntry, ArchivedTeamSession, InboxMessage } from '../../types/claude-teams';
+import { parseSystemMessage } from '../../types/claude-teams';
 
 /** Format duration from ms to human-readable string */
 function formatDuration(ms: number): string {
@@ -46,6 +47,172 @@ function formatDate(isoOrMs: string | number): string {
 function completionRate(entry: TeamHistoryEntry): number {
   if (entry.stats.taskCount === 0) return 0;
   return Math.round((entry.stats.completedTasks / entry.stats.taskCount) * 100);
+}
+
+// ---------------------------------------------------------------------------
+// Archive message & task sub-components
+// ---------------------------------------------------------------------------
+
+function ArchiveSystemBadge({ msg, timestamp }: { msg: { type: string; from?: string; taskId?: string; subject?: string }; timestamp: string }) {
+  const styles: Record<string, { bg: string; text: string; label: string }> = {
+    idle_notification: { bg: 'bg-gray-500/15', text: 'text-gray-400', label: 'IDLE' },
+    shutdown_approved: { bg: 'bg-red-500/15', text: 'text-red-400', label: 'SHUTDOWN' },
+    shutdown_request: { bg: 'bg-orange-500/15', text: 'text-orange-400', label: 'SHUTDOWN REQ' },
+    task_completed: { bg: 'bg-green-500/15', text: 'text-green-400', label: 'TASK DONE' },
+  };
+  const s = styles[msg.type] || { bg: 'bg-gray-500/15', text: 'text-gray-400', label: msg.type.toUpperCase() };
+  return (
+    <div className="flex items-center gap-2 px-2 py-1 bg-secondary/20 rounded border border-border/30 text-[10px]">
+      <span className={`px-1.5 py-0 rounded font-medium ${s.bg} ${s.text}`}>{s.label}</span>
+      {msg.from && <span className="text-muted-foreground">{msg.from}</span>}
+      {'taskId' in msg && msg.taskId && <span className="text-foreground/70">#{msg.taskId}</span>}
+      {'subject' in msg && msg.subject && <span className="text-foreground/70 truncate">{msg.subject}</span>}
+      <span className="text-muted-foreground/50 ml-auto flex-shrink-0">{timestamp}</span>
+    </div>
+  );
+}
+
+function ArchiveMessageItem({ msg, agentName, memberColor }: { msg: InboxMessage; agentName: string; memberColor?: string }) {
+  const systemMsg = parseSystemMessage(msg.text);
+  const timestamp = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const colorDot = msg.color || memberColor || '#888';
+
+  if (systemMsg) {
+    return <ArchiveSystemBadge msg={systemMsg} timestamp={timestamp} />;
+  }
+
+  return (
+    <div className="flex flex-col gap-0.5">
+      <div className="flex items-center gap-1.5 text-[10px]">
+        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: colorDot }} />
+        <span className="font-medium text-foreground">{msg.from}</span>
+        <span className="text-muted-foreground/60">{timestamp}</span>
+        <span className="text-muted-foreground/40">in {agentName}</span>
+      </div>
+      <div className="ml-3 bg-secondary/40 rounded px-2.5 py-1.5 border border-border/40">
+        <p className="text-[11px] text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
+          {msg.text.length > 500 ? msg.text.slice(0, 500) + '...' : msg.text}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ArchiveMessages({ inboxes, members }: { inboxes: Record<string, InboxMessage[]>; members: { name: string; color?: string; agentType: string }[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const [viewMode, setViewMode] = useState<'timeline' | 'by-agent'>('timeline');
+
+  const memberColors = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const m of members) {
+      map[m.name] = m.color || (m.agentType === 'team-lead' ? '#a78bfa' : '#60a5fa');
+    }
+    return map;
+  }, [members]);
+
+  const chronological = useMemo(() => {
+    return Object.entries(inboxes)
+      .flatMap(([agentName, msgs]) => msgs.map((m) => ({ ...m, _agentName: agentName })))
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  }, [inboxes]);
+
+  const totalCount = chronological.length;
+  if (totalCount === 0) return null;
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-1"
+      >
+        {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        Messages ({totalCount})
+      </button>
+
+      {expanded && (
+        <div>
+          <div className="flex gap-1 mb-2">
+            <button
+              onClick={() => setViewMode('timeline')}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                viewMode === 'timeline' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Timeline
+            </button>
+            <button
+              onClick={() => setViewMode('by-agent')}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                viewMode === 'by-agent' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              By Agent
+            </button>
+          </div>
+
+          <div className="max-h-60 overflow-y-auto space-y-1.5">
+            {viewMode === 'timeline' ? (
+              chronological.map((msg, idx) => (
+                <ArchiveMessageItem
+                  key={idx}
+                  msg={msg}
+                  agentName={msg._agentName}
+                  memberColor={memberColors[msg.from]}
+                />
+              ))
+            ) : (
+              Object.entries(inboxes).map(([agentName, msgs]) => (
+                <div key={agentName} className="mb-2">
+                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground mb-1">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: memberColors[agentName] || '#888' }} />
+                    {agentName} ({msgs.length})
+                  </div>
+                  <div className="space-y-1 ml-2">
+                    {msgs.map((msg, idx) => (
+                      <ArchiveMessageItem key={idx} msg={msg} agentName={agentName} memberColor={memberColors[msg.from]} />
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExpandableTask({ task }: { task: { id: string; subject: string; status: string; owner?: string; description?: string } }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasDesc = task.description && task.description.length > 0;
+
+  return (
+    <div>
+      <div
+        role={hasDesc ? 'button' : undefined}
+        tabIndex={hasDesc ? 0 : undefined}
+        onClick={() => hasDesc && setExpanded((v) => !v)}
+        onKeyDown={(e) => {
+          if (hasDesc && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setExpanded((v) => !v); }
+        }}
+        className={`flex items-center gap-2 text-xs py-0.5 ${hasDesc ? 'cursor-pointer hover:bg-secondary/30 rounded px-1 -mx-1' : ''}`}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+          task.status === 'completed' ? 'bg-green-400' : task.status === 'in_progress' ? 'bg-yellow-400' : 'bg-gray-400'
+        }`} />
+        {hasDesc && (expanded ? <ChevronDown className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" />)}
+        <span className="text-foreground truncate flex-1">{task.subject}</span>
+        {task.owner && <span className="text-muted-foreground">@{task.owner}</span>}
+      </div>
+      {expanded && hasDesc && (
+        <div className="ml-5 mt-1 mb-1 bg-secondary/30 rounded px-2.5 py-1.5 border border-border/30">
+          <p className="text-[10px] text-foreground/80 leading-relaxed whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+            {task.description}
+          </p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -134,55 +301,21 @@ function ArchiveDetail({ archiveId, onClose }: { archiveId: string; onClose?: ()
           {tasks.length > 0 && (
             <div>
               <h4 className="text-xs font-medium text-muted-foreground mb-1">
-                Tasks ({tasks.length})
+                Tasks ({tasks.filter((t) => t.status !== 'deleted').length})
               </h4>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {tasks
                   .filter((t) => t.status !== 'deleted')
                   .map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-2 text-xs py-0.5"
-                    >
-                      <span
-                        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                          task.status === 'completed'
-                            ? 'bg-green-400'
-                            : task.status === 'in_progress'
-                              ? 'bg-yellow-400'
-                              : 'bg-gray-400'
-                        }`}
-                      />
-                      <span className="text-foreground truncate flex-1">
-                        {task.subject}
-                      </span>
-                      {task.owner && (
-                        <span className="text-muted-foreground">@{task.owner}</span>
-                      )}
-                    </div>
+                    <ExpandableTask key={task.id} task={task} />
                   ))}
               </div>
             </div>
           )}
 
-          {/* Message summary */}
+          {/* Messages */}
           {Object.keys(archive.inboxes).length > 0 && (
-            <div>
-              <h4 className="text-xs font-medium text-muted-foreground mb-1">
-                Messages ({archive.stats.messageCount})
-              </h4>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(archive.inboxes).map(([agent, msgs]) => (
-                  <span
-                    key={agent}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-secondary/60"
-                  >
-                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                    {agent}: {msgs.length}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <ArchiveMessages inboxes={archive.inboxes} members={config.members} />
           )}
         </>
       )}
