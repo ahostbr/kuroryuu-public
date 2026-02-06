@@ -162,7 +162,7 @@ Quizzing Summary:
 - Assumptions validated: Y
 
 To execute:
-/max-parallel Docs/Plans/<filename>.md
+/max-subagents-parallel Docs/Plans/<filename>.md
 ```
 
 ## Self-Validation

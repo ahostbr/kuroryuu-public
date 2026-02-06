@@ -1,6 +1,6 @@
 ---
 name: mp-builder
-description: Max-Parallel builder that executes ONE task with self-validation. Focused context window for code writing, file creation, implementation work. Use with /max-parallel workflows.
+description: Max-Parallel builder that executes ONE task with self-validation. Focused context window for code writing, file creation, implementation work. Use with /max-subagents-parallel workflows.
 model: sonnet
 color: cyan
 hooks:
@@ -28,7 +28,7 @@ hooks:
 
 ## Purpose
 
-Focused engineering agent for `/max-parallel` workflows. Executes **ONE task at a time** with self-validation via PostToolUse hooks.
+Focused engineering agent for `/max-subagents-parallel` workflows. Executes **ONE task at a time** with self-validation via PostToolUse hooks.
 
 ## Core Principle
 

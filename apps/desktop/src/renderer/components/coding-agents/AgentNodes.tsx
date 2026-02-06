@@ -284,7 +284,7 @@ export const AgentSessionNode = React.memo(function AgentSessionNode({
 });
 
 /**
- * Wave Group Node - represents a wave of parallel tasks from /max-parallel
+ * Wave Group Node - represents a wave of parallel tasks from /max-subagents-parallel
  */
 export const WaveGroupNode = React.memo(function WaveGroupNode({
   data,

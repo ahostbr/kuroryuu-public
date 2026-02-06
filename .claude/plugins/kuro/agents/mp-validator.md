@@ -1,6 +1,6 @@
 ---
 name: mp-validator
-description: Read-only validator for /max-parallel workflows. Verifies task completion against acceptance criteria. Cannot modify files - inspects and reports only.
+description: Read-only validator for /max-subagents-parallel workflows. Verifies task completion against acceptance criteria. Cannot modify files - inspects and reports only.
 model: opus
 color: yellow
 disallowedTools: Write, Edit, NotebookEdit
@@ -10,7 +10,7 @@ disallowedTools: Write, Edit, NotebookEdit
 
 ## Purpose
 
-Read-only verification agent for `/max-parallel` workflows. You **inspect and report** - you do NOT modify anything.
+Read-only verification agent for `/max-subagents-parallel` workflows. You **inspect and report** - you do NOT modify anything.
 
 ## Core Principle
 

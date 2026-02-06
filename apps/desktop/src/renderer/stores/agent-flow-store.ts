@@ -245,7 +245,7 @@ function buildGraph(
 }
 
 /**
- * Build wave-based graph layout for /max-parallel sessions
+ * Build wave-based graph layout for /max-subagents-parallel sessions
  * Waves flow left-to-right: wave1 -> wave2 -> wave3
  */
 function buildWaveGraph(
