@@ -13,15 +13,18 @@ import { PtyDaemonClient } from './pty/daemon-client';
 import { fileWatcher } from './watcher';
 import type { CreatePtyOptions } from './pty/types';
 import { detectTool, configureTools, type ToolConfig, type CLITool } from './cli/cli-tool-manager';
-import { 
-  isEncryptionAvailable, 
-  getAllProviderStatuses, 
+import {
+  isEncryptionAvailable,
+  getAllProviderStatuses,
   disconnectProvider,
+  saveApiKey as tokenSaveApiKey,
+  getApiKey as tokenGetApiKey,
+  deleteApiKey as tokenDeleteApiKey,
   saveOAuthAppCredentials,
   getOAuthAppCredentials,
   deleteOAuthAppCredentials,
   hasOAuthAppCredentials,
-  type OAuthProvider 
+  type OAuthProvider
 } from './integrations/token-store';
 import { AnthropicService } from './integrations/providers/anthropic';
 import { OpenAIService } from './integrations/providers/openai';
@@ -62,6 +65,7 @@ const WINDOW_HEIGHT = 900;
 
 let mainWindow: BrowserWindow | null = null;
 let codeEditorWindow: BrowserWindow | null = null;
+let genUIWindow: BrowserWindow | null = null;
 let ptyManager: PtyManager | null = null;
 let ptyBridge: PtyBridge | null = null;
 let ttsModule: TTSModule | null = null;
@@ -1566,6 +1570,35 @@ function setupClaudeMemoryIpc(): void {
  * Setup IPC handlers for Kuro Plugin Configuration
  * Reads/writes .claude/settings.json for TTS, validators, hooks config
  */
+/**
+ * Sync ElevenLabs API key from token-store to .claude/settings.json
+ * so smart_tts.py can read it (Python hook reads from settings.json)
+ */
+async function syncElevenlabsKeyToSettings(apiKey: string): Promise<void> {
+  const { resolve } = require('path');
+  const projectRoot = process.env.KURORYUU_PROJECT_ROOT ||
+                      process.env.KURORYUU_ROOT ||
+                      resolve(__dirname, '../../../..');
+  const settingsPath = join(projectRoot, '.claude', 'settings.json');
+
+  try {
+    let settings: Record<string, any> = {};
+    try {
+      const content = await readFile(settingsPath, 'utf-8');
+      settings = JSON.parse(content);
+    } catch { /* file doesn't exist */ }
+
+    if (!settings.kuroPlugin) settings.kuroPlugin = {};
+    if (!settings.kuroPlugin.tts) settings.kuroPlugin.tts = {};
+    settings.kuroPlugin.tts.elevenlabsApiKey = apiKey;
+
+    await writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
+    console.log('[ElevenLabs] Synced API key to settings.json');
+  } catch (error) {
+    console.error('[ElevenLabs] Failed to sync key to settings.json:', error);
+  }
+}
+
 function setupKuroConfigIpc(): void {
   const { resolve, isAbsolute } = require('path');
   const PROJECT_ROOT = process.env.KURORYUU_PROJECT_ROOT ||
@@ -1585,8 +1618,7 @@ function setupKuroConfigIpc(): void {
 
       // If we have complete persisted state (version >= 1), use it directly
       if (kuroPlugin.version && kuroPlugin.version >= 1) {
-        const config = {
-          tts: kuroPlugin.tts || {
+        const ttsDefaults = {
             provider: 'edge_tts',
             voice: 'en-GB-SoniaNeural',
             smartSummaries: false,
@@ -1598,7 +1630,17 @@ function setupKuroConfigIpc(): void {
               subagentStop: 'Task finished',
               notification: 'Your attention is needed',
             },
-          },
+            elevenlabsApiKey: '',
+            elevenlabsModelId: 'eleven_turbo_v2_5',
+            elevenlabsStability: 0.5,
+            elevenlabsSimilarity: 0.75,
+            ...(kuroPlugin.tts || {}),
+        };
+        // Never send actual API key to renderer — managed by token-store
+        ttsDefaults.elevenlabsApiKey = '';
+        const config = {
+          tts: ttsDefaults,
+          elevenlabsKeyConfigured: tokenGetApiKey('elevenlabs') !== null,
           validators: kuroPlugin.validators || {
             ruff: false,
             ty: false,
@@ -1633,7 +1675,12 @@ function setupKuroConfigIpc(): void {
             subagentStop: 'Task finished',
             notification: 'Your attention is needed',
           },
+          elevenlabsApiKey: '',
+          elevenlabsModelId: 'eleven_turbo_v2_5' as const,
+          elevenlabsStability: 0.5,
+          elevenlabsSimilarity: 0.75,
         },
+        elevenlabsKeyConfigured: tokenGetApiKey('elevenlabs') !== null,
         validators: {
           ruff: false,
           ty: false,
@@ -1753,6 +1800,10 @@ function setupKuroConfigIpc(): void {
       summaryModel: string;
       userName: string;
       messages: { stop: string; subagentStop: string; notification: string };
+      elevenlabsApiKey: string;
+      elevenlabsModelId: string;
+      elevenlabsStability: number;
+      elevenlabsSimilarity: number;
     };
     validators: { ruff: boolean; ty: boolean; timeout: number };
     hooks: {
@@ -1778,9 +1829,14 @@ function setupKuroConfigIpc(): void {
       const hooks = settings.hooks as Record<string, unknown[]>;
 
       // Save complete kuroPlugin state (version 1 format)
+      // Inject ElevenLabs API key from token-store (source of truth) for smart_tts.py compat
+      const ttsToSave = { ...config.tts };
+      const storedElKey = tokenGetApiKey('elevenlabs');
+      ttsToSave.elevenlabsApiKey = storedElKey || '';
+
       settings.kuroPlugin = {
         version: 1,
-        tts: config.tts,
+        tts: ttsToSave,
         validators: config.validators,
         hooks: config.hooks,
         features: config.features,
@@ -1796,6 +1852,9 @@ function setupKuroConfigIpc(): void {
       const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
       const voice = config.tts.voice || 'en-GB-SoniaNeural';
       const useSmartTts = config.tts.smartSummaries;
+      // ElevenLabs always uses smart_tts.py (it reads provider from config and routes)
+      const isElevenLabs = config.tts.provider === 'elevenlabs';
+      const ttsTimeout = isElevenLabs ? 90000 : 30000;
 
       // Update Stop hooks - always keep session log + transcript export, only toggle TTS
       {
@@ -1804,10 +1863,10 @@ function setupKuroConfigIpc(): void {
           { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
         ];
         if (config.hooks.ttsOnStop) {
-          const ttsCommand = useSmartTts
+          const ttsCommand = (useSmartTts || isElevenLabs)
             ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
             : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
-          stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: 30000 });
+          stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
         }
         hooks.Stop = [{ hooks: stopHookEntries }];
       }
@@ -1815,12 +1874,12 @@ function setupKuroConfigIpc(): void {
       // Update SubagentStop hooks
       if (config.hooks.ttsOnSubagentStop) {
         // Smart TTS uses --task to pass task description for AI summary
-        const ttsCommand = useSmartTts
+        const ttsCommand = (useSmartTts || isElevenLabs)
           ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
           : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
         hooks.SubagentStop = [{
           hooks: [
-            { type: 'command', command: ttsCommand, timeout: 30000 },
+            { type: 'command', command: ttsCommand, timeout: ttsTimeout },
           ],
         }];
       } else {
@@ -1829,12 +1888,12 @@ function setupKuroConfigIpc(): void {
 
       // Update Notification hooks
       if (config.hooks.ttsOnNotification) {
-        const ttsCommand = useSmartTts
+        const ttsCommand = (useSmartTts || isElevenLabs)
           ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
           : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
         hooks.Notification = [{
           hooks: [
-            { type: 'command', command: ttsCommand, timeout: 30000 },
+            { type: 'command', command: ttsCommand, timeout: ttsTimeout },
           ],
         }];
       } else {
@@ -1922,17 +1981,27 @@ function setupKuroConfigIpc(): void {
         (process.platform === 'win32'
           ? join(os.homedir(), '.local', 'bin', 'uv.exe')
           : 'uv');
-      const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
       const voice = ttsConfig.voice || 'en-GB-SoniaNeural';
       const testMessage = 'Hello, this is a test.';
 
-      console.log(`[KuroConfig] Testing TTS with voice: ${voice}`);
+      console.log(`[KuroConfig] Testing TTS with provider: ${ttsConfig.provider}, voice: ${voice}`);
 
       const { execSync } = require('child_process');
-      execSync(
-        `"${uvPath}" run "${ttsScript}" "${testMessage}" --voice "${voice}"`,
-        { encoding: 'utf-8', timeout: 30000, cwd: PROJECT_ROOT }
-      );
+
+      if (ttsConfig.provider === 'elevenlabs') {
+        // Use smart_tts.py which reads provider + API key from saved config
+        const smartTtsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/smart_tts.py');
+        execSync(
+          `"${uvPath}" run "${smartTtsScript}" "${testMessage}" --type stop --voice "${voice}"`,
+          { encoding: 'utf-8', timeout: 90000, cwd: PROJECT_ROOT }
+        );
+      } else {
+        const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
+        execSync(
+          `"${uvPath}" run "${ttsScript}" "${testMessage}" --voice "${voice}"`,
+          { encoding: 'utf-8', timeout: 30000, cwd: PROJECT_ROOT }
+        );
+      }
 
       return { ok: true };
     } catch (error) {
@@ -2071,6 +2140,116 @@ function setupKuroConfigIpc(): void {
       return { ok: true };
     } catch (error) {
       console.error('[KuroConfig] Voice preview failed:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Fetch available ElevenLabs voices using token-store API key
+  ipcMain.handle('kuro-config:elevenlabs-voices', async () => {
+    try {
+      // Read API key from encrypted token-store (source of truth)
+      const apiKey = tokenGetApiKey('elevenlabs');
+
+      if (!apiKey) {
+        return { ok: false, error: 'No ElevenLabs API key configured. Set it in Integrations.', voices: [] };
+      }
+
+      console.log('[KuroConfig] Fetching ElevenLabs voices...');
+
+      const response = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': apiKey },
+      });
+
+      if (!response.ok) {
+        return { ok: false, error: `ElevenLabs API error: ${response.status}`, voices: [] };
+      }
+
+      const data = await response.json() as { voices?: Array<{ voice_id: string; name: string; category?: string }> };
+      const voices = (data.voices || []).map((v) => ({
+        voice_id: v.voice_id,
+        name: v.name,
+        category: v.category || '',
+      }));
+
+      console.log(`[KuroConfig] Fetched ${voices.length} ElevenLabs voices`);
+      return { ok: true, voices };
+    } catch (error) {
+      console.error('[KuroConfig] Failed to fetch ElevenLabs voices:', error);
+      return { ok: false, error: String(error), voices: [] };
+    }
+  });
+
+  // Preview an ElevenLabs voice
+  ipcMain.handle('kuro-config:preview-elevenlabs-voice', async (_event, voiceId: string) => {
+    try {
+      // Read API key from encrypted token-store (source of truth)
+      const apiKey = tokenGetApiKey('elevenlabs');
+      if (!apiKey) {
+        return { ok: false, error: 'No ElevenLabs API key configured. Set it in Integrations.' };
+      }
+
+      // Read voice settings from saved config (not secrets, just preferences)
+      const content = await readFile(SETTINGS_PATH, 'utf-8');
+      const settings = JSON.parse(content);
+      const ttsConfig = settings.kuroPlugin?.tts || {};
+
+      console.log(`[KuroConfig] Previewing ElevenLabs voice: ${voiceId}`);
+
+      // Call ElevenLabs REST API to generate audio
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          text: 'Hello, this is a voice preview from Kuroryuu.',
+          model_id: ttsConfig.elevenlabsModelId || 'eleven_turbo_v2_5',
+          voice_settings: {
+            stability: ttsConfig.elevenlabsStability ?? 0.5,
+            similarity_boost: ttsConfig.elevenlabsSimilarity ?? 0.75,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { ok: false, error: `ElevenLabs API error: ${response.status} - ${errorText.slice(0, 200)}` };
+      }
+
+      // Write audio to temp file
+      const arrayBuffer = await response.arrayBuffer();
+      const tmpPath = join(os.tmpdir(), `elevenlabs_preview_${Date.now()}.mp3`);
+      const { writeFileSync, unlinkSync } = require('fs');
+      writeFileSync(tmpPath, Buffer.from(arrayBuffer));
+
+      // Play using PowerShell MediaPlayer
+      const { execFileSync } = require('child_process');
+      const escapedPath = tmpPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
+      const psCmd = `
+Add-Type -AssemblyName PresentationCore
+$player = New-Object System.Windows.Media.MediaPlayer
+$player.Open([System.Uri]::new('${escapedPath}'))
+Start-Sleep -Milliseconds 500
+$player.Play()
+while ($player.NaturalDuration.HasTimeSpan -eq $false) { Start-Sleep -Milliseconds 100 }
+$duration = $player.NaturalDuration.TimeSpan.TotalMilliseconds
+Start-Sleep -Milliseconds $duration
+$player.Close()
+`;
+      execFileSync('powershell.exe', ['-NoProfile', '-Command', psCmd], {
+        encoding: 'utf-8',
+        timeout: 60000,
+        windowsHide: true,
+      });
+
+      // Cleanup
+      try { unlinkSync(tmpPath); } catch { /* ignore */ }
+
+      return { ok: true };
+    } catch (error) {
+      console.error('[KuroConfig] ElevenLabs voice preview failed:', error);
       return { ok: false, error: String(error) };
     }
   });
@@ -3021,6 +3200,41 @@ function setupAuthIpc(): void {
   });
 
   // =============================================
+  // ElevenLabs API Key (unified across all TTS consumers)
+  // =============================================
+  ipcMain.handle('auth:elevenlabs:setKey', async (_, apiKey: string) => {
+    tokenSaveApiKey('elevenlabs', apiKey);
+    // Sync to .claude/settings.json for smart_tts.py hook compatibility
+    await syncElevenlabsKeyToSettings(apiKey);
+    return { ok: true };
+  });
+
+  ipcMain.handle('auth:elevenlabs:verify', async (_, apiKey?: string) => {
+    const key = apiKey || tokenGetApiKey('elevenlabs');
+    if (!key) return { valid: false, error: 'No API key provided' };
+    try {
+      const resp = await fetch('https://api.elevenlabs.io/v1/voices', {
+        headers: { 'xi-api-key': key },
+      });
+      return resp.ok
+        ? { valid: true }
+        : { valid: false, error: `ElevenLabs API error: ${resp.status}` };
+    } catch (error) {
+      return { valid: false, error: String(error) };
+    }
+  });
+
+  ipcMain.handle('auth:elevenlabs:hasKey', () => {
+    return tokenGetApiKey('elevenlabs') !== null;
+  });
+
+  ipcMain.handle('auth:elevenlabs:removeKey', async () => {
+    tokenDeleteApiKey('elevenlabs');
+    await syncElevenlabsKeyToSettings('');
+    return { ok: true };
+  });
+
+  // =============================================
   // GitHub OAuth
   // =============================================
   ipcMain.handle('auth:github:configure', (_, clientId: string, clientSecret?: string) => {
@@ -3352,6 +3566,63 @@ function createCodeEditorWindow(): void {
   }
 
   console.log('[Main] CodeEditor window created');
+}
+
+/**
+ * Create a separate GenUI window for Generative UI dashboards.
+ * Uses hash routing (#/genui) to display the GenUI panel.
+ */
+function createGenUIWindow(): void {
+  if (genUIWindow && !genUIWindow.isDestroyed()) {
+    genUIWindow.focus();
+    return;
+  }
+
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+
+  const iconPath = process.platform === 'win32'
+    ? join(__dirname, '../../resources/Kuroryuu_ico.ico')
+    : join(__dirname, '../../resources/Kuroryuu_png.png');
+
+  genUIWindow = new BrowserWindow({
+    width: Math.min(1400, screenWidth - 100),
+    height: Math.min(900, screenHeight - 100),
+    minWidth: 800,
+    minHeight: 600,
+    show: false,
+    autoHideMenuBar: true,
+    title: 'Kuroryuu Generative UI',
+    icon: iconPath,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  genUIWindow.setMenu(null);
+
+  genUIWindow.on('ready-to-show', () => {
+    genUIWindow?.show();
+    if (isDev) {
+      genUIWindow?.webContents.openDevTools();
+    }
+  });
+
+  genUIWindow.on('closed', () => {
+    genUIWindow = null;
+  });
+
+  if (isDev && process.env['ELECTRON_RENDERER_URL']) {
+    genUIWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/genui`);
+  } else {
+    genUIWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/genui'
+    });
+  }
+
+  console.log('[Main] GenUI window created');
 }
 
 /**
@@ -3735,6 +4006,12 @@ app.whenReady().then(async () => {
   // === CodeEditor Window IPC ===
   ipcMain.handle('code-editor:open', () => {
     createCodeEditorWindow();
+    return { ok: true };
+  });
+
+  // === GenUI Window IPC ===
+  ipcMain.handle('genui:open', () => {
+    createGenUIWindow();
     return { ok: true };
   });
 

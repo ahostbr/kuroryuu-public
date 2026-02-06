@@ -52,7 +52,7 @@ function completionRate(entry: TeamHistoryEntry): number {
 // Expanded archive detail view
 // ---------------------------------------------------------------------------
 
-function ArchiveDetail({ archiveId }: { archiveId: string }) {
+function ArchiveDetail({ archiveId, onClose }: { archiveId: string; onClose?: () => void }) {
   const [archive, setArchive] = useState<ArchivedTeamSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
@@ -93,7 +93,7 @@ function ArchiveDetail({ archiveId }: { archiveId: string }) {
   return (
     <div className="px-3 pb-3 space-y-3">
       {/* Graph replay */}
-      <ArchiveReplayPanel archiveId={archiveId} />
+      <ArchiveReplayPanel archiveId={archiveId} onClose={onClose} />
 
       {/* Toggle for text details */}
       <button
@@ -208,9 +208,12 @@ function HistoryRow({
   return (
     <div className="border border-border/60 rounded-lg overflow-hidden">
       {/* Header row */}
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded((v) => !v)}
-        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/30 transition-colors text-left"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((v) => !v); } }}
+        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/30 transition-colors text-left cursor-pointer"
       >
         {expanded ? (
           <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
@@ -273,10 +276,10 @@ function HistoryRow({
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
-      </button>
+      </div>
 
       {/* Expanded detail */}
-      {expanded && <ArchiveDetail archiveId={entry.id} />}
+      {expanded && <ArchiveDetail archiveId={entry.id} onClose={() => setExpanded(false)} />}
     </div>
   );
 }

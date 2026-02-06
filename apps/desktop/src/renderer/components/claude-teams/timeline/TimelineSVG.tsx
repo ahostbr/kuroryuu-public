@@ -19,6 +19,7 @@ import {
   isDramaticTheme,
   getThemeColors,
   mapToFlowTheme,
+  formatDuration,
 } from './timeline-utils';
 
 // ---------------------------------------------------------------------------
@@ -220,6 +221,8 @@ export function TimelineSVG({
                 fill={color}
                 stroke="var(--background, #111)"
                 strokeWidth={2}
+                style={{ cursor: 'pointer' }}
+                whileHover={{ scale: 1.5, transition: { duration: 0.15 } }}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{
@@ -256,12 +259,14 @@ export function TimelineSVG({
                   height={cardHeight}
                   style={{ overflow: 'visible' }}
                 >
-                  <TimelineTaskCard
-                    node={node}
-                    color={color}
-                    isExpanded={isExpanded}
-                    onClick={() => onNodeClick?.(node.id)}
-                  />
+                  <div title={`#${node.taskId} ${node.subject}\n${node.owner ?? 'Unassigned'} | ${formatDuration(node.duration)}\n${node.description?.slice(0, 100) ?? ''}`}>
+                    <TimelineTaskCard
+                      node={node}
+                      color={color}
+                      isExpanded={isExpanded}
+                      onClick={() => onNodeClick?.(node.id)}
+                    />
+                  </div>
                 </foreignObject>
               </motion.g>
             </motion.g>

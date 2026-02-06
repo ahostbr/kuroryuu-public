@@ -438,7 +438,19 @@ const api = {
       isConnected: (): Promise<boolean> =>
         ipcRenderer.invoke('auth:openai:isConnected'),
     },
-    
+
+    /** ElevenLabs API Key (unified TTS key) */
+    elevenlabs: {
+      setKey: (apiKey: string): Promise<{ ok: boolean }> =>
+        ipcRenderer.invoke('auth:elevenlabs:setKey', apiKey),
+      verify: (apiKey?: string): Promise<{ valid: boolean; error?: string }> =>
+        ipcRenderer.invoke('auth:elevenlabs:verify', apiKey),
+      hasKey: (): Promise<boolean> =>
+        ipcRenderer.invoke('auth:elevenlabs:hasKey'),
+      removeKey: (): Promise<{ ok: boolean }> =>
+        ipcRenderer.invoke('auth:elevenlabs:removeKey'),
+    },
+
     /** GitHub OAuth */
     github: {
       configure: (clientId: string, clientSecret?: string): Promise<{ ok: boolean }> =>
@@ -1016,8 +1028,13 @@ const api = {
           voice: string;
           smartSummaries: boolean;
           summaryProvider: string;
+          summaryModel: string;
           userName: string;
           messages: { stop: string; subagentStop: string; notification: string };
+          elevenlabsApiKey: string;
+          elevenlabsModelId: string;
+          elevenlabsStability: number;
+          elevenlabsSimilarity: number;
         };
         validators: { ruff: boolean; ty: boolean; timeout: number };
         hooks: {
@@ -1039,8 +1056,13 @@ const api = {
         voice: string;
         smartSummaries: boolean;
         summaryProvider: string;
+        summaryModel: string;
         userName: string;
         messages: { stop: string; subagentStop: string; notification: string };
+        elevenlabsApiKey: string;
+        elevenlabsModelId: string;
+        elevenlabsStability: number;
+        elevenlabsSimilarity: number;
       };
       validators: { ruff: boolean; ty: boolean; timeout: number };
       hooks: {
@@ -1071,6 +1093,17 @@ const api = {
     /** Preview a voice with sample text */
     previewVoice: (voiceName: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('kuro-config:preview-voice', voiceName),
+
+    /** Fetch available ElevenLabs voices using stored API key */
+    getElevenlabsVoices: (): Promise<{
+      ok: boolean;
+      voices?: Array<{ voice_id: string; name: string; category?: string }>;
+      error?: string;
+    }> => ipcRenderer.invoke('kuro-config:elevenlabs-voices'),
+
+    /** Preview an ElevenLabs voice */
+    previewElevenlabsVoice: (voiceId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('kuro-config:preview-elevenlabs-voice', voiceId),
 
     /** List all available config backups */
     listBackups: (): Promise<{
@@ -1105,8 +1138,13 @@ const api = {
           voice: string;
           smartSummaries: boolean;
           summaryProvider: string;
+          summaryModel: string;
           userName: string;
           messages: { stop: string; subagentStop: string; notification: string };
+          elevenlabsApiKey: string;
+          elevenlabsModelId: string;
+          elevenlabsStability: number;
+          elevenlabsSimilarity: number;
         };
         validators: { ruff: boolean; ty: boolean; timeout: number };
         hooks: {
@@ -1626,6 +1664,16 @@ const api = {
     /** Open the CodeEditor window (creates or focuses existing) */
     open: (): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('code-editor:open'),
+  },
+
+  /**
+   * GenUI Window API
+   * Opens a separate Generative UI window for dashboard generation
+   */
+  genui: {
+    /** Open the GenUI window (creates or focuses existing) */
+    open: (): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('genui:open'),
   },
 
   /**

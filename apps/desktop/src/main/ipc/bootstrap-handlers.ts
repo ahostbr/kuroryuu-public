@@ -6,6 +6,7 @@ import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn, exec } from 'child_process';
+import { getApiKey as tokenGetApiKey } from '../integrations/token-store';
 
 // From out/main -> go up to apps/desktop, then up to Kuroryuu root
 // out/main -> out -> desktop -> apps -> Kuroryuu (4 levels, not 5)
@@ -60,6 +61,12 @@ export async function launchTrayCompanion(options?: { debug?: boolean }): Promis
     delete childEnv.ELECTRON_RENDERER_URL;
     childEnv.KURORYUU_ROOT = PROJECT_ROOT;
     childEnv.ELECTRON_IS_DEV = target.type === 'dev' ? '1' : '0';
+
+    // Pass ElevenLabs API key from unified token-store for shared TTS
+    const elKey = tokenGetApiKey('elevenlabs');
+    if (elKey) {
+      childEnv.ELEVENLABS_API_KEY = elKey;
+    }
 
     // Windows hidden launch: Use exec() with Start-Process (proven pattern from service-manager.ts)
     // NOTE: spawn() with detached:true + windowsHide:true is a known Node.js bug since 2018

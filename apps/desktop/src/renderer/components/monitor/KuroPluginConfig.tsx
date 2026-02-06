@@ -28,13 +28,21 @@ import {
   CheckCircle2,
   XCircle,
   Info,
+  AlertCircle,
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
+import { useSettingsStore } from '../../stores/settings-store';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
 // Types
 // ============================================================================
+interface ElevenLabsVoice {
+  voice_id: string;
+  name: string;
+  category?: string;
+}
+
 interface KuroConfig {
   tts: {
     provider: 'edge_tts' | 'pyttsx3' | 'elevenlabs' | 'openai';
@@ -48,6 +56,10 @@ interface KuroConfig {
       subagentStop: string;
       notification: string;
     };
+    elevenlabsApiKey: string;
+    elevenlabsModelId: 'eleven_turbo_v2_5' | 'eleven_multilingual_v2';
+    elevenlabsStability: number;
+    elevenlabsSimilarity: number;
   };
   validators: {
     ruff: boolean;
@@ -80,6 +92,10 @@ const DEFAULT_CONFIG: KuroConfig = {
       subagentStop: 'Task finished',
       notification: 'Your attention is needed',
     },
+    elevenlabsApiKey: '',
+    elevenlabsModelId: 'eleven_turbo_v2_5',
+    elevenlabsStability: 0.5,
+    elevenlabsSimilarity: 0.75,
   },
   validators: {
     ruff: true,
@@ -105,9 +121,12 @@ const STATIC_VOICE_OPTIONS: Record<string, { value: string; label: string }[]> =
     { value: 'default', label: 'System Default' },
   ],
   elevenlabs: [
-    { value: 'rachel', label: 'Rachel' },
-    { value: 'bella', label: 'Bella' },
-    { value: 'antoni', label: 'Antoni' },
+    { value: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel' },
+    { value: 'EXAVITQu4vr4xnSDxMaL', label: 'Sarah' },
+    { value: 'ErXwobaYiN019PkySvjV', label: 'Antoni' },
+    { value: 'TxGEqnHWrfWFTfGW9XjX', label: 'Josh' },
+    { value: 'pNInz6obpgDQGcFmaJgB', label: 'Adam' },
+    { value: 'yoZ06aMxZJJ28mfd3POQ', label: 'Sam' },
   ],
   openai: [
     { value: 'alloy', label: 'Alloy' },
@@ -397,6 +416,12 @@ export function KuroPluginConfig() {
   const [backupName, setBackupName] = useState('');
   const [expandedBackup, setExpandedBackup] = useState<string | null>(null);
 
+  // ElevenLabs state
+  const [elevenlabsVoices, setElevenlabsVoices] = useState<ElevenLabsVoice[]>([]);
+  const [isLoadingElevenLabsVoices, setIsLoadingElevenLabsVoices] = useState(false);
+  const [elevenlabsKeyConfigured, setElevenlabsKeyConfigured] = useState(false);
+  const [isPreviewingElevenLabs, setIsPreviewingElevenLabs] = useState(false);
+
   // Load config, voices, and backups on mount
   useEffect(() => {
     loadConfig();
@@ -410,6 +435,50 @@ export function KuroPluginConfig() {
       loadLmstudioModels();
     }
   }, [config.tts.summaryProvider, config.tts.smartSummaries]);
+
+  // Auto-fetch ElevenLabs voices when provider is elevenlabs and key is configured
+  useEffect(() => {
+    if (config.tts.provider === 'elevenlabs' && elevenlabsKeyConfigured) {
+      fetchElevenlabsVoices();
+    }
+  }, [config.tts.provider, elevenlabsKeyConfigured]);
+
+  const fetchElevenlabsVoices = async () => {
+    setIsLoadingElevenLabsVoices(true);
+    try {
+      const result = await window.electronAPI.kuroConfig.getElevenlabsVoices();
+      if (result.ok && result.voices) {
+        setElevenlabsVoices(result.voices);
+      }
+    } catch (err) {
+      console.error('Failed to fetch ElevenLabs voices:', err);
+    } finally {
+      setIsLoadingElevenLabsVoices(false);
+    }
+  };
+
+  // ElevenLabs API key is managed in Integrations dialog (token-store)
+  // Check key status from main process
+  const checkElevenlabsKeyStatus = async () => {
+    try {
+      const hasKey = await window.electronAPI.auth.elevenlabs.hasKey();
+      setElevenlabsKeyConfigured(hasKey);
+    } catch {
+      setElevenlabsKeyConfigured(false);
+    }
+  };
+
+  const previewElevenlabsVoice = async () => {
+    if (isPreviewingElevenLabs) return;
+    setIsPreviewingElevenLabs(true);
+    try {
+      await window.electronAPI.kuroConfig.previewElevenlabsVoice(config.tts.voice);
+    } catch (err) {
+      console.error('Failed to preview ElevenLabs voice:', err);
+    } finally {
+      setIsPreviewingElevenLabs(false);
+    }
+  };
 
   const loadLmstudioModels = async () => {
     setIsLoadingModels(true);
@@ -497,11 +566,17 @@ export function KuroPluginConfig() {
     try {
       const result = await window.electronAPI.kuroConfig.load();
       if (result.ok && result.config) {
-        setConfig(result.config as KuroConfig);
+        const { elevenlabsKeyConfigured: keyConfigured, ...configData } = result.config as KuroConfig & { elevenlabsKeyConfigured?: boolean };
+        setConfig(configData as KuroConfig);
+        if (keyConfigured !== undefined) {
+          setElevenlabsKeyConfigured(keyConfigured);
+        }
       } else {
         console.error('Failed to load config:', result.error);
         setConfig(DEFAULT_CONFIG);
       }
+      // Also check key status directly (in case load response doesn't have it)
+      await checkElevenlabsKeyStatus();
     } catch (err) {
       console.error('Failed to load config:', err);
       setConfig(DEFAULT_CONFIG);
@@ -530,6 +605,11 @@ export function KuroPluginConfig() {
     if (isTesting) return; // Prevent double execution
     setIsTesting(true);
     try {
+      // Save config first so smart_tts.py can read updated settings
+      if (hasChanges) {
+        await window.electronAPI.kuroConfig.save(config);
+        setHasChanges(false);
+      }
       const result = await window.electronAPI.kuroConfig.testTTS({
         provider: config.tts.provider,
         voice: config.tts.voice,
@@ -594,6 +674,10 @@ export function KuroPluginConfig() {
               subagentStop: restored.tts?.messages?.subagentStop || DEFAULT_CONFIG.tts.messages.subagentStop,
               notification: restored.tts?.messages?.notification || DEFAULT_CONFIG.tts.messages.notification,
             },
+            elevenlabsApiKey: restored.tts?.elevenlabsApiKey ?? DEFAULT_CONFIG.tts.elevenlabsApiKey,
+            elevenlabsModelId: (restored.tts?.elevenlabsModelId as KuroConfig['tts']['elevenlabsModelId']) || DEFAULT_CONFIG.tts.elevenlabsModelId,
+            elevenlabsStability: restored.tts?.elevenlabsStability ?? DEFAULT_CONFIG.tts.elevenlabsStability,
+            elevenlabsSimilarity: restored.tts?.elevenlabsSimilarity ?? DEFAULT_CONFIG.tts.elevenlabsSimilarity,
           },
           validators: {
             ruff: restored.validators?.ruff ?? DEFAULT_CONFIG.validators.ruff,
@@ -685,44 +769,154 @@ export function KuroPluginConfig() {
             </select>
           </FieldRow>
 
-          <FieldRow label="Voice" description="Voice for speech synthesis">
-            <div className="flex items-center gap-2">
-              <select
-                value={config.tts.voice}
-                onChange={(e) => updateConfig('tts', { voice: e.target.value })}
-                className="px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-w-48"
-                disabled={config.tts.provider === 'edge_tts' && isLoadingVoices}
-              >
-                {config.tts.provider === 'edge_tts' ? (
-                  // Dynamic Edge TTS voices (sorted alphabetically)
-                  isLoadingVoices ? (
-                    <option value="">Loading voices...</option>
-                  ) : sortedEdgeVoices.length > 0 ? (
-                    sortedEdgeVoices.map((v) => (
+          {config.tts.provider !== 'elevenlabs' && (
+            <FieldRow label="Voice" description="Voice for speech synthesis">
+              <div className="flex items-center gap-2">
+                <select
+                  value={config.tts.voice}
+                  onChange={(e) => updateConfig('tts', { voice: e.target.value })}
+                  className="px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-w-48"
+                  disabled={config.tts.provider === 'edge_tts' && isLoadingVoices}
+                >
+                  {config.tts.provider === 'edge_tts' ? (
+                    // Dynamic Edge TTS voices (sorted alphabetically)
+                    isLoadingVoices ? (
+                      <option value="">Loading voices...</option>
+                    ) : sortedEdgeVoices.length > 0 ? (
+                      sortedEdgeVoices.map((v) => (
+                        <option key={v.value} value={v.value}>{v.label}</option>
+                      ))
+                    ) : (
+                      <option value="en-GB-SoniaNeural">Sonia (en-GB, Female)</option>
+                    )
+                  ) : (
+                    // Static voices for other providers
+                    STATIC_VOICE_OPTIONS[config.tts.provider]?.map((v) => (
                       <option key={v.value} value={v.value}>{v.label}</option>
                     ))
-                  ) : (
-                    <option value="en-GB-SoniaNeural">Sonia (en-GB, Female)</option>
-                  )
-                ) : (
-                  // Static voices for other providers
-                  STATIC_VOICE_OPTIONS[config.tts.provider]?.map((v) => (
-                    <option key={v.value} value={v.value}>{v.label}</option>
-                  ))
+                  )}
+                </select>
+                {config.tts.provider === 'edge_tts' && (
+                  <button
+                    onClick={loadEdgeVoices}
+                    disabled={isLoadingVoices}
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
+                    title="Refresh voices"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoadingVoices ? 'animate-spin' : ''}`} />
+                  </button>
                 )}
-              </select>
-              {config.tts.provider === 'edge_tts' && (
-                <button
-                  onClick={loadEdgeVoices}
-                  disabled={isLoadingVoices}
-                  className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors"
-                  title="Refresh voices"
+              </div>
+            </FieldRow>
+          )}
+
+          {/* ElevenLabs Configuration Panel */}
+          {config.tts.provider === 'elevenlabs' && (
+            <>
+              <FieldRow label="API Key" description="Managed in Integrations">
+                <div className="flex items-center gap-2">
+                  {elevenlabsKeyConfigured ? (
+                    <span className="text-xs text-green-400 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Configured
+                    </span>
+                  ) : (
+                    <span className="text-xs text-yellow-400 flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" /> Not configured
+                    </span>
+                  )}
+                  <button
+                    onClick={() => useSettingsStore.getState().openDialog('integrations')}
+                    className="px-2 py-1 text-xs text-primary border border-primary/30 hover:bg-primary/10 rounded transition-colors"
+                  >
+                    Open Integrations
+                  </button>
+                </div>
+              </FieldRow>
+
+              <FieldRow label="Model" description="ElevenLabs synthesis model">
+                <select
+                  value={config.tts.elevenlabsModelId}
+                  onChange={(e) => updateConfig('tts', { elevenlabsModelId: e.target.value as KuroConfig['tts']['elevenlabsModelId'] })}
+                  className="px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <RefreshCw className={`w-4 h-4 ${isLoadingVoices ? 'animate-spin' : ''}`} />
-                </button>
-              )}
-            </div>
-          </FieldRow>
+                  <option value="eleven_turbo_v2_5">Turbo v2.5 (Fast, English)</option>
+                  <option value="eleven_multilingual_v2">Multilingual v2 (28 languages)</option>
+                </select>
+              </FieldRow>
+
+              <FieldRow label="Voice" description={isLoadingElevenLabsVoices ? 'Loading voices...' : `${elevenlabsVoices.length || 'No'} voices available`}>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={config.tts.voice}
+                    onChange={(e) => updateConfig('tts', { voice: e.target.value })}
+                    className="px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary min-w-48"
+                    disabled={isLoadingElevenLabsVoices}
+                  >
+                    {isLoadingElevenLabsVoices ? (
+                      <option value="">Loading voices...</option>
+                    ) : elevenlabsVoices.length > 0 ? (
+                      elevenlabsVoices.map((v) => (
+                        <option key={v.voice_id} value={v.voice_id}>{v.name}{v.category ? ` (${v.category})` : ''}</option>
+                      ))
+                    ) : (
+                      STATIC_VOICE_OPTIONS.elevenlabs?.map((v) => (
+                        <option key={v.value} value={v.value}>{v.label}</option>
+                      ))
+                    )}
+                  </select>
+                  <button
+                    onClick={fetchElevenlabsVoices}
+                    disabled={isLoadingElevenLabsVoices || !elevenlabsKeyConfigured}
+                    className="p-1.5 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
+                    title="Refresh voices from ElevenLabs"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isLoadingElevenLabsVoices ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={previewElevenlabsVoice}
+                    disabled={isPreviewingElevenLabs || !elevenlabsKeyConfigured || !config.tts.voice}
+                    className="flex items-center gap-1 px-2 py-1.5 text-xs bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50"
+                    title="Preview selected voice"
+                  >
+                    {isPreviewingElevenLabs ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Play className="w-3.5 h-3.5" />
+                    )}
+                    Preview
+                  </button>
+                </div>
+              </FieldRow>
+
+              <FieldRow label="Stability" description={`${Math.round(config.tts.elevenlabsStability * 100)}% — Variable ↔ Stable`}>
+                <div className="flex items-center gap-3 w-48">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(config.tts.elevenlabsStability * 100)}
+                    onChange={(e) => updateConfig('tts', { elevenlabsStability: parseInt(e.target.value) / 100 })}
+                    className="flex-1 accent-primary"
+                  />
+                </div>
+              </FieldRow>
+
+              <FieldRow label="Clarity + Similarity" description={`${Math.round(config.tts.elevenlabsSimilarity * 100)}% — Low ↔ High`}>
+                <div className="flex items-center gap-3 w-48">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={Math.round(config.tts.elevenlabsSimilarity * 100)}
+                    onChange={(e) => updateConfig('tts', { elevenlabsSimilarity: parseInt(e.target.value) / 100 })}
+                    className="flex-1 accent-primary"
+                  />
+                </div>
+              </FieldRow>
+            </>
+          )}
 
           <FieldRow label="Smart Summaries" description="Use AI to generate contextual task announcements">
             <Toggle

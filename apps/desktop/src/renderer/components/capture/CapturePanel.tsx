@@ -22,20 +22,29 @@ import {
   Eye,
   Play,
   StopCircle,
-  Info,
   AlertCircle,
-  Radio,
   Download,
   ExternalLink,
+  Crosshair,
+  AppWindow,
+  Scan,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from '../ui/toast';
 import { useCaptureStore } from '@/stores/capture-store';
+import { DRAGON_ASCII } from '@/constants/dragon-ascii';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
 // ═══════════════════════════════════════════════════════════════════════════════
 
 type CaptureMode = 'desktop' | 'monitor' | 'window';
+
+const MODE_META: Record<CaptureMode, { icon: React.ReactNode; label: string }> = {
+  desktop: { icon: <Monitor size={13} />, label: 'Desktop' },
+  monitor: { icon: <Scan size={13} />, label: 'Monitor' },
+  window: { icon: <AppWindow size={13} />, label: 'Window' },
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MCP Tool Helper
@@ -88,6 +97,7 @@ export const CapturePanel: React.FC = () => {
   const [recordingDuration, setRecordingDuration] = useState<number>(0);
   const [latestImage, setLatestImage] = useState<string | null>(null);
   const [ffmpegAvailable, setFfmpegAvailable] = useState<boolean | null>(null); // null = checking
+  const [showInfo, setShowInfo] = useState(false);
 
   // Duration timer - uses global store state
   useEffect(() => {
@@ -340,202 +350,407 @@ export const CapturePanel: React.FC = () => {
   // ─────────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className={`h-full flex flex-col bg-background relative ${
-      isRecording ? 'ring-2 ring-red-500/50 ring-inset' : ''
-    }`}>
-      {/* Recording Alert Banner - Fixed at top */}
-      {isRecording && (
-        <div className="bg-red-600 text-white px-4 py-2 flex items-center justify-center gap-3 animate-pulse">
-          <Radio className="w-4 h-4 animate-ping" />
-          <span className="font-bold text-sm uppercase tracking-wider">Recording Active</span>
-          <span className="font-mono text-sm bg-red-700/50 px-2 py-0.5 rounded">{formatDuration(recordingDuration)}</span>
-          <Radio className="w-4 h-4 animate-ping" />
-        </div>
-      )}
+    <div
+      className="h-full flex flex-col relative overflow-hidden"
+      style={{
+        background: isRecording
+          ? 'radial-gradient(ellipse at center, rgba(139,38,53,0.15) 0%, transparent 70%)'
+          : 'radial-gradient(ellipse at center, rgba(50,20,8,0.3) 0%, transparent 70%)',
+      }}
+    >
+      {/* Scanlines */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[1]"
+        style={{
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
+        }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[2]"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)',
+        }}
+      />
+      {/* Subtle dragon ghost */}
+      <pre
+        aria-hidden="true"
+        className="absolute pointer-events-none select-none leading-[1.1] z-[1]"
+        style={{
+          fontSize: 'clamp(0.18rem, 0.35vw, 0.3rem)',
+          color: isRecording ? 'rgba(139,38,53,0.06)' : 'rgba(140,30,30,0.06)',
+          fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          whiteSpace: 'pre',
+        }}
+      >
+        {DRAGON_ASCII}
+      </pre>
 
-      {/* Header */}
-      <div className={`flex items-center justify-between px-6 py-4 border-b ${
-        isRecording ? 'border-red-500/30 bg-red-500/5' : 'border-border'
-      }`}>
-        <div className="flex items-center gap-3">
-          <Camera className={`w-5 h-5 ${isRecording ? 'text-red-500' : 'text-primary'}`} />
-          <h1 className="text-lg font-semibold text-foreground">Capture</h1>
-          {isRecording && (
-            <div className="flex items-center gap-2 px-2 py-1 bg-red-500/20 rounded-full border border-red-500/30">
-              <Circle size={10} fill="currentColor" className="text-red-500 animate-pulse" />
-              <span className="text-red-400 text-xs font-medium">REC</span>
-            </div>
-          )}
-        </div>
-        <button
-          onClick={checkStatus}
-          disabled={loading}
-          className="p-2 rounded-lg hover:bg-secondary transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
+      {/* ── Content layer ── */}
+      <div className="relative z-[3] h-full flex flex-col">
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {/* FFmpeg Missing Warning */}
-        {ffmpegAvailable === false && (
-          <div className="p-4 rounded-xl border border-amber-500/50 bg-amber-500/10">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="font-medium text-amber-400">FFmpeg Not Found</p>
-                <p className="text-xs text-amber-300/70 mt-1">
-                  Screen recording requires FFmpeg. Run <code className="bg-amber-500/20 px-1 rounded">setup-project.ps1</code> to install automatically, or download manually:
-                </p>
-                <button
-                  onClick={handleDownloadFfmpeg}
-                  className="mt-2 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors text-sm"
-                >
-                  <Download size={14} />
-                  Download FFmpeg
-                  <ExternalLink size={12} />
-                </button>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Extract to: <code className="bg-secondary px-1 rounded">ffmpeg/win64/bin/</code>
-                </p>
-              </div>
-            </div>
+        {/* Recording alert strip */}
+        {isRecording && (
+          <div
+            className="flex items-center justify-center gap-3 px-4 py-2"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(139,38,53,0.35), transparent)',
+              borderBottom: '1px solid rgba(139,38,53,0.4)',
+            }}
+          >
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{
+                background: '#e74c5e',
+                boxShadow: '0 0 6px rgba(231,76,94,0.6)',
+                animation: 'capturePulse 1.5s ease-in-out infinite',
+              }}
+            />
+            <span
+              className="font-mono text-[11px] uppercase tracking-[0.2em]"
+              style={{ color: '#e74c5e' }}
+            >
+              Recording Active
+            </span>
+            <span
+              className="font-mono text-[11px] px-2 py-0.5"
+              style={{
+                color: '#e74c5e',
+                background: 'rgba(139,38,53,0.2)',
+                border: '1px solid rgba(139,38,53,0.3)',
+              }}
+            >
+              {formatDuration(recordingDuration)}
+            </span>
+            <div
+              className="w-2 h-2 rounded-full"
+              style={{
+                background: '#e74c5e',
+                boxShadow: '0 0 6px rgba(231,76,94,0.6)',
+                animation: 'capturePulse 1.5s ease-in-out infinite 0.75s',
+              }}
+            />
           </div>
         )}
 
-        {/* Status Banner */}
-        <div className={`p-4 rounded-xl border transition-all duration-300 ${
-          isRecording
-            ? 'bg-red-500/15 border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]'
-            : isDigestActive
-            ? 'bg-green-500/10 border-green-500/30'
-            : 'bg-secondary border-border'
-        }`}>
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-5 py-3"
+          style={{
+            borderBottom: isRecording
+              ? '1px solid rgba(139,38,53,0.25)'
+              : '1px solid rgba(201,169,98,0.08)',
+          }}
+        >
           <div className="flex items-center gap-3">
-            {isRecording ? (
-              <>
-                <div className="relative">
-                  <Circle className="w-6 h-6 text-red-500" fill="currentColor" />
-                  <Circle className="w-6 h-6 text-red-500 absolute inset-0 animate-ping opacity-50" fill="currentColor" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-red-400">⚠ RECORDING IN PROGRESS</p>
-                    <AlertCircle className="w-4 h-4 text-red-400" />
-                  </div>
-                  <p className="text-xs text-red-300/70">Screen is being captured • VisualDigest updating latest.jpg every 10s</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-lg text-red-400">{formatDuration(recordingDuration)}</p>
-                  <p className="text-xs text-muted-foreground">elapsed</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <Info className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium text-foreground">Ready to Capture</p>
-                  <p className="text-xs text-muted-foreground">Start recording to enable agent vision</p>
-                </div>
-              </>
+            <Crosshair
+              className="w-4 h-4"
+              style={{ color: isRecording ? '#8b2635' : 'rgba(201,169,98,0.6)' }}
+            />
+            <span
+              className="font-mono text-sm uppercase tracking-[0.15em]"
+              style={{ color: isRecording ? 'rgba(231,76,94,0.8)' : 'rgba(201,169,98,0.6)' }}
+            >
+              龍眼 Capture
+            </span>
+            {isRecording && (
+              <span
+                className="font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5"
+                style={{
+                  color: '#e74c5e',
+                  border: '1px solid rgba(139,38,53,0.5)',
+                  animation: 'capturePulse 2s ease-in-out infinite',
+                }}
+              >
+                REC
+              </span>
             )}
           </div>
-        </div>
-
-        {/* Capture Mode */}
-        <div>
-          <label className="text-sm text-muted-foreground mb-2 block">Capture Mode</label>
-          <div className="grid grid-cols-3 gap-2">
-            {(['desktop', 'monitor', 'window'] as CaptureMode[]).map((mode) => (
-              <button
-                key={mode}
-                onClick={() => setSelectedMode(mode)}
-                disabled={isRecording}
-                className={`
-                  flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm transition-colors
-                  ${selectedMode === mode
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-secondary text-foreground border border-border hover:border-primary/30'}
-                  ${isRecording ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-              >
-                <Monitor size={16} />
-                <span className="capitalize">{mode}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          {/* Screenshot */}
           <button
-            onClick={handleScreenshot}
+            onClick={checkStatus}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-green-600 text-white font-medium hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="cp-term-btn p-1.5"
           >
-            <Camera size={18} />
-            Take Screenshot
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           </button>
+        </div>
 
-          {/* Record / Stop */}
-          {!isRecording ? (
-            <button
-              onClick={handleStartRecording}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-red-600 text-white font-medium hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+
+          {/* FFmpeg warning */}
+          {ffmpegAvailable === false && (
+            <div
+              className="p-4"
+              style={{
+                border: '1px solid rgba(201,169,98,0.25)',
+                background: 'rgba(201,169,98,0.04)',
+              }}
             >
-              <Play size={18} />
-              Start Recording + VisualDigest
-            </button>
-          ) : (
-            <button
-              onClick={handleStopRecording}
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-xl bg-red-600/20 text-red-400 font-bold hover:bg-red-600/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors border-2 border-red-500/50 animate-pulse"
-            >
-              <StopCircle size={20} />
-              STOP RECORDING
-            </button>
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: '#c9a962' }} />
+                <div className="flex-1">
+                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: '#c9a962' }}>
+                    FFmpeg Not Found
+                  </p>
+                  <p className="text-xs mt-1.5" style={{ color: 'rgba(201,169,98,0.6)' }}>
+                    Screen recording requires FFmpeg. Run{' '}
+                    <code className="font-mono px-1" style={{ color: 'rgba(201,169,98,0.8)', background: 'rgba(201,169,98,0.1)' }}>
+                      setup-project.ps1
+                    </code>{' '}
+                    to install automatically, or download manually:
+                  </p>
+                  <button
+                    onClick={handleDownloadFfmpeg}
+                    className="cp-term-btn--gold mt-2.5 flex items-center gap-2 px-3 py-1.5 font-mono text-xs uppercase tracking-wider"
+                    style={{
+                      border: '1px solid rgba(201,169,98,0.3)',
+                      color: 'rgba(201,169,98,0.7)',
+                      transition: 'all 300ms ease',
+                    }}
+                  >
+                    <Download size={12} />
+                    &gt; Download FFmpeg
+                    <ExternalLink size={10} />
+                  </button>
+                  <p className="text-[10px] mt-2 font-mono" style={{ color: 'rgba(122,117,109,0.4)' }}>
+                    Extract to: ffmpeg/win64/bin/
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Get Latest */}
-          <button
-            onClick={handleGetLatest}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-secondary text-foreground font-medium hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed transition-colors border border-border"
-          >
-            <Eye size={18} />
-            View Latest Image
-          </button>
-        </div>
+          {/* Status panel */}
+          {isRecording ? (
+            <div
+              className="p-4"
+              style={{
+                border: '1px solid rgba(139,38,53,0.4)',
+                background: 'rgba(139,38,53,0.08)',
+                animation: 'captureGlow 3s ease-in-out infinite',
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div className="relative flex-shrink-0">
+                  <Circle className="w-5 h-5" fill="currentColor" style={{ color: '#e74c5e' }} />
+                  <Circle
+                    className="w-5 h-5 absolute inset-0 opacity-40"
+                    fill="currentColor"
+                    style={{ color: '#e74c5e', animation: 'capturePulse 1.5s ease-in-out infinite' }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: '#e74c5e' }}>
+                    Recording In Progress
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'rgba(231,76,94,0.5)' }}>
+                    Screen capture active &middot; VisualDigest updating every 10s
+                  </p>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <p className="font-mono text-lg tabular-nums" style={{ color: '#e74c5e' }}>
+                    {formatDuration(recordingDuration)}
+                  </p>
+                  <p className="font-mono text-[10px] uppercase" style={{ color: 'rgba(231,76,94,0.4)' }}>
+                    elapsed
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="p-4"
+              style={{
+                border: '1px solid rgba(201,169,98,0.1)',
+                background: 'rgba(201,169,98,0.02)',
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <Crosshair className="w-4 h-4" style={{ color: 'rgba(201,169,98,0.4)' }} />
+                <div>
+                  <p className="font-mono text-xs uppercase tracking-wider" style={{ color: 'rgba(201,169,98,0.6)' }}>
+                    Standby
+                  </p>
+                  <p className="text-[11px] mt-0.5" style={{ color: 'rgba(122,117,109,0.4)' }}>
+                    Start recording to enable agent vision
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
-        {/* Latest Image Preview */}
-        {latestImage && (
-          <div className="space-y-2">
-            <label className="text-sm text-muted-foreground">Latest Capture</label>
-            <div className="relative rounded-xl overflow-hidden border border-border bg-secondary">
-              <img
-                src={latestImage}
-                alt="Latest capture"
-                className="w-full h-auto"
-              />
+          {/* Mode selector */}
+          <div>
+            <span
+              className="font-mono text-[10px] uppercase tracking-[0.2em] mb-2.5 block"
+              style={{ color: 'rgba(201,169,98,0.4)' }}
+            >
+              Capture Mode
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              {(['desktop', 'monitor', 'window'] as CaptureMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSelectedMode(mode)}
+                  disabled={isRecording}
+                  className={`cp-mode-btn flex items-center justify-center gap-2 py-2.5 ${
+                    selectedMode === mode ? 'cp-mode-btn--active' : ''
+                  }`}
+                >
+                  {MODE_META[mode].icon}
+                  <span>&gt; {MODE_META[mode].label}</span>
+                </button>
+              ))}
             </div>
           </div>
-        )}
 
-        {/* Info Box */}
-        <div className="p-4 bg-secondary/50 rounded-xl border border-border">
-          <h3 className="text-sm font-medium text-foreground mb-2">How Capture Works</h3>
-          <ul className="text-xs text-muted-foreground space-y-1">
-            <li>- Human controls capture (agents never start recording)</li>
-            <li>- Screenshots use <code className="text-primary">k_capture(action="screenshot")</code></li>
-            <li>- Recording uses <code className="text-primary">k_capture(action="start/stop")</code></li>
-            <li>- VisualDigest writes to latest.jpg every 10 seconds</li>
-            <li>- Agents check via <code className="text-primary">k_capture(action="get_latest")</code></li>
-            <li>- Screenshots saved to apps/mcp_core/ai/captures/</li>
-          </ul>
+          {/* Gold separator */}
+          <div
+            className="h-px"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.15) 30%, rgba(201,169,98,0.15) 70%, transparent)',
+            }}
+          />
+
+          {/* Action buttons */}
+          <div className="space-y-2.5">
+            {/* Screenshot */}
+            <button
+              onClick={handleScreenshot}
+              disabled={loading}
+              className="cp-term-btn cp-term-btn--gold w-full flex items-center justify-center gap-2 py-3"
+            >
+              <Camera size={14} />
+              &gt; Capture Screenshot
+            </button>
+
+            {/* Record / Stop */}
+            {!isRecording ? (
+              <button
+                onClick={handleStartRecording}
+                disabled={loading}
+                className="cp-term-btn cp-term-btn--crimson w-full flex items-center justify-center gap-2 py-3"
+              >
+                <Play size={14} />
+                &gt; Begin Recording + VisualDigest
+              </button>
+            ) : (
+              <button
+                onClick={handleStopRecording}
+                disabled={loading}
+                className="cp-term-btn cp-term-btn--stop w-full flex items-center justify-center gap-2 py-4"
+              >
+                <StopCircle size={15} />
+                &gt; Terminate Recording
+              </button>
+            )}
+
+            {/* View Latest */}
+            <button
+              onClick={handleGetLatest}
+              disabled={loading}
+              className="cp-term-btn w-full flex items-center justify-center gap-2 py-3"
+            >
+              <Eye size={14} />
+              &gt; View Latest Frame
+            </button>
+          </div>
+
+          {/* Image preview — surveillance frame */}
+          {latestImage && (
+            <div className="space-y-2">
+              <span
+                className="font-mono text-[10px] uppercase tracking-[0.2em] block"
+                style={{ color: 'rgba(201,169,98,0.4)' }}
+              >
+                Latest Frame
+              </span>
+              <div className="relative p-0.5" style={{ border: '1px solid rgba(201,169,98,0.12)' }}>
+                {/* Corner brackets */}
+                <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: '2px solid rgba(201,169,98,0.45)', borderLeft: '2px solid rgba(201,169,98,0.45)' }} />
+                <div className="absolute top-0 right-0 w-4 h-4" style={{ borderTop: '2px solid rgba(201,169,98,0.45)', borderRight: '2px solid rgba(201,169,98,0.45)' }} />
+                <div className="absolute bottom-0 left-0 w-4 h-4" style={{ borderBottom: '2px solid rgba(201,169,98,0.45)', borderLeft: '2px solid rgba(201,169,98,0.45)' }} />
+                <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: '2px solid rgba(201,169,98,0.45)', borderRight: '2px solid rgba(201,169,98,0.45)' }} />
+
+                {/* Image scanlines */}
+                <div
+                  className="absolute inset-0 pointer-events-none z-10"
+                  style={{
+                    background: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.04) 3px, rgba(0,0,0,0.04) 6px)',
+                  }}
+                />
+
+                <img src={latestImage} alt="Latest capture" className="w-full h-auto relative z-0" />
+
+                {/* Frame label */}
+                <div
+                  className="absolute bottom-1.5 right-1.5 font-mono text-[10px] px-1.5 py-0.5 z-20"
+                  style={{
+                    color: 'rgba(201,169,98,0.7)',
+                    background: 'rgba(0,0,0,0.7)',
+                    border: '1px solid rgba(201,169,98,0.2)',
+                  }}
+                >
+                  LATEST FRAME
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Info panel — collapsible terminal */}
+          <div style={{ borderTop: '1px solid rgba(201,169,98,0.06)' }}>
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className="w-full flex items-center gap-2 py-2.5 group"
+            >
+              <ChevronDown
+                size={12}
+                style={{
+                  color: 'rgba(122,117,109,0.4)',
+                  transform: showInfo ? 'rotate(0deg)' : 'rotate(-90deg)',
+                  transition: 'transform 300ms ease',
+                }}
+              />
+              <span
+                className="font-mono text-[10px] uppercase tracking-[0.2em]"
+                style={{ color: 'rgba(122,117,109,0.4)' }}
+              >
+                System.Info
+              </span>
+              <div className="flex-1 h-px" style={{ background: 'rgba(122,117,109,0.1)' }} />
+            </button>
+
+            {showInfo && (
+              <div className="pb-3 space-y-1.5 pl-5">
+                {[
+                  { text: 'Human controls capture (agents never start recording)' },
+                  { text: 'Screenshots use ', code: 'k_capture(action="screenshot")' },
+                  { text: 'Recording uses ', code: 'k_capture(action="start/stop")' },
+                  { text: 'VisualDigest writes to latest.jpg every 10 seconds' },
+                  { text: 'Agents check via ', code: 'k_capture(action="get_latest")' },
+                  { text: 'Screenshots saved to apps/mcp_core/ai/captures/' },
+                ].map((line, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 font-mono text-[11px]"
+                    style={{ color: 'rgba(122,117,109,0.45)' }}
+                  >
+                    <span style={{ color: 'rgba(201,169,98,0.35)' }}>$</span>
+                    <span>
+                      {line.text}
+                      {line.code && (
+                        <code style={{ color: 'rgba(201,169,98,0.6)' }}>{line.code}</code>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

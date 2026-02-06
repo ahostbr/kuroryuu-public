@@ -211,6 +211,7 @@ const TimelineFlowNode = React.memo(function TimelineFlowNode({
   return (
     <div
       className="rounded-lg backdrop-blur-sm select-none cursor-pointer"
+      title={`#${node.taskId} ${node.subject}\n${STATUS_LABELS[node.status] ?? node.status} | ${node.owner ?? 'Unassigned'} | ${formatDuration(node.duration)}\n${node.description?.slice(0, 100) ?? ''}`}
       style={{
         width: NODE_WIDTH,
         minHeight: isExpanded ? NODE_HEIGHT_EXPANDED : NODE_HEIGHT_COLLAPSED,

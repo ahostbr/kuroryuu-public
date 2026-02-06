@@ -307,6 +307,129 @@ def _speak_internal(text: str, voice: str = "en-GB-SoniaNeural"):
         return False
 
 
+def speak_elevenlabs(text: str, voice_id: str, api_key: str,
+                     model_id: str = "eleven_turbo_v2_5",
+                     stability: float = 0.5, similarity_boost: float = 0.75):
+    """Generate and play TTS audio using ElevenLabs REST API."""
+    # Import TTS queue for serialization
+    try:
+        queue_path = Path(__file__).parent / 'utils' / 'tts' / 'tts_queue.py'
+        if queue_path.exists():
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("tts_queue", queue_path)
+            tts_queue = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(tts_queue)
+            use_queue = True
+        else:
+            use_queue = False
+    except Exception:
+        use_queue = False
+
+    agent_id = f"elevenlabs_tts_{os.getpid()}"
+
+    if use_queue:
+        if not tts_queue.acquire_tts_lock(agent_id, timeout=25):
+            print("[SmartTTS/ElevenLabs] Queue busy after 25s - skipping TTS", file=sys.stderr)
+            return False
+
+    try:
+        return _speak_elevenlabs_internal(text, voice_id, api_key, model_id, stability, similarity_boost)
+    finally:
+        if use_queue:
+            tts_queue.release_tts_lock(agent_id)
+
+
+def _speak_elevenlabs_internal(text: str, voice_id: str, api_key: str,
+                               model_id: str, stability: float, similarity_boost: float):
+    """Internal ElevenLabs TTS implementation using REST API + PowerShell playback."""
+    import requests
+
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+            tmp_path = tmp.name
+
+        try:
+            # Call ElevenLabs text-to-speech API
+            url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+            headers = {
+                "Accept": "audio/mpeg",
+                "Content-Type": "application/json",
+                "xi-api-key": api_key,
+            }
+            payload = {
+                "text": text,
+                "model_id": model_id,
+                "voice_settings": {
+                    "stability": stability,
+                    "similarity_boost": similarity_boost,
+                }
+            }
+
+            response = requests.post(url, json=payload, headers=headers, timeout=30)
+
+            if response.status_code != 200:
+                print(f"[SmartTTS/ElevenLabs] API error {response.status_code}: {response.text[:200]}", file=sys.stderr)
+                return False
+
+            # Write audio to temp file
+            with open(tmp_path, 'wb') as f:
+                f.write(response.content)
+
+            # Play using PowerShell MediaPlayer (same pattern as edge_tts)
+            ps_cmd = f'''
+            Add-Type -AssemblyName presentationCore
+            $player = New-Object System.Windows.Media.MediaPlayer
+            $player.Open("{tmp_path}")
+            Start-Sleep -Milliseconds 800
+            $player.Play()
+            $duration = $player.NaturalDuration
+            if (-not $duration.HasTimeSpan) {{
+                Start-Sleep -Milliseconds 500
+                $duration = $player.NaturalDuration
+            }}
+            if ($duration.HasTimeSpan) {{
+                $ms = $duration.TimeSpan.TotalMilliseconds + 500
+                Start-Sleep -Milliseconds $ms
+            }} else {{
+                $lastPos = -1
+                $staleCount = 0
+                $maxPolls = 120
+                $polls = 0
+                Start-Sleep -Milliseconds 500
+                while ($staleCount -lt 3 -and $polls -lt $maxPolls) {{
+                    Start-Sleep -Milliseconds 500
+                    $curPos = $player.Position.TotalMilliseconds
+                    if ($curPos -le $lastPos) {{
+                        $staleCount++
+                    }} else {{
+                        $staleCount = 0
+                    }}
+                    $lastPos = $curPos
+                    $polls++
+                }}
+            }}
+            $player.Close()
+            '''
+            subprocess.run(
+                ["powershell.exe", "-NoProfile", "-Command", ps_cmd],
+                capture_output=True,
+                timeout=60
+            )
+
+            print(f"[SmartTTS/ElevenLabs] Announced: {text}")
+            return True
+
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except:
+                pass
+
+    except Exception as e:
+        print(f"[SmartTTS/ElevenLabs] Error: {e}", file=sys.stderr)
+        return False
+
+
 def read_stdin_context():
     """Read hook context from stdin (Claude Code passes JSON)."""
     try:
@@ -454,8 +577,22 @@ def main():
         else:
             message = fallback
 
-    # Speak the message
-    speak(message, voice)
+    # Route to the correct TTS provider
+    tts_provider = tts_config.get("provider", "edge_tts")
+
+    if tts_provider == "elevenlabs":
+        el_api_key = tts_config.get("elevenlabsApiKey", "")
+        if not el_api_key:
+            print("[SmartTTS] No ElevenLabs API key configured, falling back to edge_tts", file=sys.stderr)
+            speak(message, voice)
+        else:
+            el_model = tts_config.get("elevenlabsModelId", "eleven_turbo_v2_5")
+            el_stability = tts_config.get("elevenlabsStability", 0.5)
+            el_similarity = tts_config.get("elevenlabsSimilarity", 0.75)
+            speak_elevenlabs(message, voice, el_api_key, el_model, el_stability, el_similarity)
+    else:
+        # Default: edge_tts (also handles pyttsx3, openai fallback)
+        speak(message, voice)
 
 
 if __name__ == "__main__":

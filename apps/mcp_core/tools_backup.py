@@ -76,9 +76,11 @@ def _action_status(**kwargs: Any) -> Dict[str, Any]:
 
     return {
         "ok": True,
-        "binary": {
+        "restic": {
             "installed": binary_installed,
             "version": binary_version,
+            "path": None,
+            "downloaded": False,
         },
         "repository": {
             "path": str(repo_path),
@@ -92,6 +94,22 @@ def _action_status(**kwargs: Any) -> Dict[str, Any]:
         },
         "is_ready": binary_installed and repo_initialized and source_configured,
     }
+
+
+def _action_ensure(**kwargs: Any) -> Dict[str, Any]:
+    """Ensure restic binary is installed, download if needed."""
+    result = ensure_restic()
+    if result.get("ok"):
+        return {
+            "ok": True,
+            "restic": {
+                "installed": True,
+                "path": result.get("path"),
+                "version": result.get("version"),
+                "downloaded": result.get("downloaded", False),
+            },
+        }
+    return {"ok": False, "restic": {"installed": False, "path": None, "version": None, "downloaded": False}, "error": result.get("error")}
 
 
 def _action_init(
@@ -464,6 +482,7 @@ def _action_config(
 ACTION_HANDLERS = {
     "help": _action_help,
     "status": _action_status,
+    "ensure": _action_ensure,
     "init": _action_init,
     "backup": _action_backup,
     "list": _action_list,

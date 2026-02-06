@@ -60,7 +60,8 @@ export type View =
   | 'capture'
   | 'claude-tasks'
   | 'claude-teams'
-  | 'kuroryuu-agents';
+  | 'kuroryuu-agents'
+  | 'genui';
 
 interface SidebarProps {
   activeView: View;
@@ -103,6 +104,7 @@ const navGroups: NavGroup[] = [
       { id: 'insights', label: 'ChatBot', icon: Brain, shortcut: 'N' },
       { id: 'claude-teams', label: 'Claude Teams', icon: Users, shortcut: 'A' },
       { id: 'kuroryuu-agents', label: 'Kuroryuu Agents', icon: Bot, shortcut: 'U' },
+      { id: 'genui', label: 'Generative UI', icon: Sparkles, shortcut: 'G' },
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
     ],
   },
@@ -183,7 +185,13 @@ function SidebarGroup({
           {group.items.map((item) => (
             <button
               key={item.id}
-              onClick={() => onSelectView(item.id)}
+              onClick={() => {
+                if (item.id === 'genui') {
+                  window.electronAPI?.genui?.open();
+                  return;
+                }
+                onSelectView(item.id);
+              }}
               className={`
                 group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150
                 ${
