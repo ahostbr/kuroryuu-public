@@ -356,7 +356,7 @@ export function ClaudeTeams() {
               <div className="bg-secondary/50 rounded-lg p-3 w-full">
                 <p className="text-xs text-muted-foreground mb-2">Quick start in Claude Code CLI:</p>
                 <code className="text-xs text-primary font-mono">
-                  Use the Teammate tool with operation: "spawnTeam"
+                  /k-spawnteam
                 </code>
               </div>
               {history.length > 0 && (
@@ -373,7 +373,7 @@ export function ClaudeTeams() {
                   className={`w-2 h-2 rounded-full ${isWatching ? 'bg-green-400' : 'bg-red-400'}`}
                 />
                 {isWatching
-                  ? 'Watching ~/.claude/teams/ for changes...'
+                  ? 'Watching ~/.claude/teams/ (global home dir) for changes...'
                   : 'File watcher not active'}
               </div>
             </div>

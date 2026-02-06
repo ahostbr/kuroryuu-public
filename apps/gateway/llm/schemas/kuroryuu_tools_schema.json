@@ -234,13 +234,13 @@
       "type": "function",
       "function": {
         "name": "k_checkpoint",
-        "description": "Session/thread persistence. Actions: help, save, list, load",
+        "description": "Session/thread persistence. Actions: help, save, append, list, load",
         "parameters": {
           "type": "object",
           "properties": {
             "action": {
               "type": "string",
-              "enum": ["help", "save", "list", "load"],
+              "enum": ["help", "save", "append", "list", "load"],
               "description": "Action to perform"
             },
             "name": {
@@ -267,6 +267,11 @@
             "id": {
               "type": "string",
               "description": "Checkpoint ID (for load, use 'latest' for most recent)"
+            },
+            "worklog": {
+              "type": "boolean",
+              "default": false,
+              "description": "Auto-generate worklog file alongside checkpoint (for save)"
             }
           },
           "required": ["action"]
