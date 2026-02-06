@@ -40,13 +40,16 @@ export function StatCard({
 
   return (
     <div
-      className={`genui-metric rounded-md p-4 group cursor-default ${highlight ? 'ring-1 ring-[rgba(201,169,98,0.3)]' : ''}`}
-      style={{ minHeight: '100px' }}
+      className="genui-metric rounded-md p-4 group cursor-default"
+      style={{
+        minHeight: '100px',
+        ...(highlight ? { boxShadow: '0 0 0 1px color-mix(in srgb, var(--g-accent) 30%, transparent)' } : {}),
+      }}
     >
       {/* Label */}
       <div
         className="genui-label mb-3"
-        style={{ color: 'rgba(201,169,98,0.5)', fontSize: '0.6rem' }}
+        style={{ color: 'color-mix(in srgb, var(--g-accent) 50%, transparent)', fontSize: '0.6rem' }}
       >
         {displayLabel}
       </div>
@@ -58,13 +61,13 @@ export function StatCard({
           style={{
             color: 'var(--foreground)',
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
-            textShadow: highlight ? '0 0 20px rgba(201,169,98,0.15)' : 'none',
+            textShadow: highlight ? '0 0 20px color-mix(in srgb, var(--g-accent) 15%, transparent)' : 'none',
           }}
         >
           {value}
         </span>
         {unit && (
-          <span className="text-sm" style={{ color: 'rgba(122,117,109,0.5)' }}>
+          <span className="text-sm" style={{ color: 'color-mix(in srgb, var(--g-muted) 50%, transparent)' }}>
             {unit}
           </span>
         )}
@@ -75,7 +78,7 @@ export function StatCard({
         <div className="flex items-center gap-1.5 mt-2">
           <span
             style={{
-              color: isUp ? '#34d399' : isDown ? '#f87171' : 'rgba(201,169,98,0.5)',
+              color: isUp ? '#34d399' : isDown ? '#f87171' : 'color-mix(in srgb, var(--g-accent) 50%, transparent)',
               fontSize: '0.75rem',
               fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
             }}
@@ -89,7 +92,7 @@ export function StatCard({
       {/* Hover glow line at bottom */}
       <div
         className="absolute bottom-0 left-0 right-0 h-[2px] transition-opacity duration-300 opacity-0 group-hover:opacity-100"
-        style={{ background: 'linear-gradient(90deg, transparent, rgba(201,169,98,0.4), transparent)' }}
+        style={{ background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 40%, transparent), transparent)' }}
       />
     </div>
   );

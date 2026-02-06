@@ -12,13 +12,13 @@ export interface CalloutCardProps {
 }
 
 const TYPE_STYLES: Record<string, { border: string; iconBg: string; titleColor: string; icon: string }> = {
-  tip:     { border: 'rgba(201,169,98,0.4)', iconBg: 'rgba(201,169,98,0.1)', titleColor: 'rgba(201,169,98,0.85)', icon: '\u25C8' },
+  tip:     { border: 'color-mix(in srgb, var(--g-accent) 40%, transparent)', iconBg: 'color-mix(in srgb, var(--g-accent) 10%, transparent)', titleColor: 'color-mix(in srgb, var(--g-accent) 85%, transparent)', icon: '\u25C8' },
   warning: { border: 'rgba(245,158,11,0.4)', iconBg: 'rgba(245,158,11,0.1)', titleColor: 'rgba(251,191,36,0.85)', icon: '\u25B3' },
   info:    { border: 'rgba(59,130,246,0.4)',  iconBg: 'rgba(59,130,246,0.1)',  titleColor: 'rgba(96,165,250,0.85)',  icon: '\u25CF' },
-  danger:  { border: 'rgba(139,38,53,0.5)',   iconBg: 'rgba(139,38,53,0.15)', titleColor: 'rgba(231,76,94,0.85)',  icon: '\u2716' },
+  danger:  { border: 'color-mix(in srgb, var(--g-crimson) 50%, transparent)',   iconBg: 'color-mix(in srgb, var(--g-crimson) 15%, transparent)', titleColor: 'rgba(231,76,94,0.85)',  icon: '\u2716' },
   success: { border: 'rgba(34,197,94,0.4)',   iconBg: 'rgba(34,197,94,0.1)',  titleColor: 'rgba(74,222,128,0.85)', icon: '\u2713' },
-  error:   { border: 'rgba(139,38,53,0.5)',   iconBg: 'rgba(139,38,53,0.15)', titleColor: 'rgba(231,76,94,0.85)',  icon: '\u2716' },
-  note:    { border: 'rgba(122,117,109,0.3)', iconBg: 'rgba(122,117,109,0.08)', titleColor: 'rgba(168,168,179,0.85)', icon: '\u25A0' },
+  error:   { border: 'color-mix(in srgb, var(--g-crimson) 50%, transparent)',   iconBg: 'color-mix(in srgb, var(--g-crimson) 15%, transparent)', titleColor: 'rgba(231,76,94,0.85)',  icon: '\u2716' },
+  note:    { border: 'color-mix(in srgb, var(--g-muted) 30%, transparent)', iconBg: 'color-mix(in srgb, var(--g-muted) 8%, transparent)', titleColor: 'rgba(168,168,179,0.85)', icon: '\u25A0' },
 };
 
 export function CalloutCard({ type, title, content, icon }: CalloutCardProps): React.ReactElement {
@@ -45,7 +45,7 @@ export function CalloutCard({ type, title, content, icon }: CalloutCardProps): R
             >
               {title}
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.75)' }}>
+            <p className="text-sm leading-relaxed" style={{ color: 'color-mix(in srgb, var(--g-fg) 75%, transparent)' }}>
               {content}
             </p>
           </div>

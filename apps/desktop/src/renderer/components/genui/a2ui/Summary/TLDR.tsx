@@ -18,15 +18,15 @@ export function TLDR({ content, summary, key_points, icon }: TLDRProps): React.R
   return (
     <div className="genui-hero rounded-md overflow-hidden">
       {/* Header strip */}
-      <div className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: '1px solid rgba(201,169,98,0.1)' }}>
+      <div className="flex items-center gap-3 px-5 py-3" style={{ borderBottom: '1px solid color-mix(in srgb, var(--g-accent) 10%, transparent)' }}>
         <span
           className="px-2.5 py-1 rounded text-xs font-bold tracking-widest uppercase"
           style={{
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
-            background: 'rgba(139,38,53,0.2)',
-            color: 'rgba(201,169,98,0.8)',
-            border: '1px solid rgba(201,169,98,0.2)',
-            textShadow: '0 0 10px rgba(201,169,98,0.2)',
+            background: 'color-mix(in srgb, var(--g-crimson) 20%, transparent)',
+            color: 'color-mix(in srgb, var(--g-accent) 80%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--g-accent) 20%, transparent)',
+            textShadow: '0 0 10px color-mix(in srgb, var(--g-accent) 20%, transparent)',
           }}
         >
           TL;DR
@@ -44,7 +44,7 @@ export function TLDR({ content, summary, key_points, icon }: TLDRProps): React.R
             {key_points.map((point: string, idx: number) => (
               <li key={idx} className="flex items-start gap-2.5 text-sm">
                 <span className="genui-check mt-0.5">{'\u25C8'}</span>
-                <span style={{ color: 'rgba(250,250,250,0.75)' }}>{point}</span>
+                <span style={{ color: 'color-mix(in srgb, var(--g-fg) 75%, transparent)' }}>{point}</span>
               </li>
             ))}
           </ul>
