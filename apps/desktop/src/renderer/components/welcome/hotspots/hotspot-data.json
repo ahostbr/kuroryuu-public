@@ -121,7 +121,7 @@
     {
       "id": "architecture",
       "imageSrc": "placeholder:System Architecture",
-      "title": "Command Center",
+      "title": "Server Status",
       "hotspots": [
         {
           "id": "agents",

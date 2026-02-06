@@ -1,22 +1,18 @@
 /**
  * Tools Tab
  *
- * Card-based tool browser with MCPOverview visual style.
- * Displays servers in card row, tools in grid, and executor panel.
+ * Card-based tool browser with real-time server health data.
+ * Displays servers in compact grid, tools in list, and executor panel.
  */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Wrench,
   Search,
   Server,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
   Loader2,
   RefreshCw,
   Database,
   Inbox,
-  FolderGit2,
   FileCheck,
   Brain,
   Terminal,
@@ -26,61 +22,175 @@ import {
   Camera,
   Users,
   Lock,
+  Activity,
+  Clock,
+  RotateCcw,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 import { useToolExecution } from '../../../hooks/useCommandCenter';
-import { useMCPOverviewStore } from '../../../stores/mcp-overview-store';
+import { useCommandCenterStore } from '../../../stores/command-center-store';
 import { ToolExecutor } from '../tools/ToolExecutor';
 import { cn } from '../../../lib/utils';
-import type { ToolSchema, ToolCategory } from '../../../types/command-center';
+import type { ToolSchema, ToolCategory, ServerHealth } from '../../../types/command-center';
+
+// Auto-refresh interval (30 seconds)
+const SERVER_REFRESH_INTERVAL = 30000;
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// Server Card Component (from MCPOverview)
+// Server Card Component (compact, real data)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-interface ServerInfo {
-  id: string;
-  name: string;
-  url: string;
-  status: 'connected' | 'connecting' | 'disconnected' | 'error';
-  toolCount: number;
-  error?: string;
+function formatLastPing(lastPing?: string): string {
+  if (!lastPing) return 'Never';
+  const diffMs = Date.now() - new Date(lastPing).getTime();
+  if (diffMs < 60000) return `${Math.floor(diffMs / 1000)}s ago`;
+  if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`;
+  return new Date(lastPing).toLocaleTimeString();
 }
 
-function ServerCard({ server }: { server: ServerInfo }) {
-  const statusConfig = {
-    connected: { icon: CheckCircle2, color: 'text-green-400', bg: 'bg-green-400/10', border: 'border-green-500/30' },
-    connecting: { icon: Loader2, color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-500/30' },
-    disconnected: { icon: XCircle, color: 'text-muted-foreground', bg: 'bg-muted-foreground/10', border: 'border-border' },
-    error: { icon: AlertTriangle, color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-500/30' },
+function getMetricIcon(serverId: string): React.ReactNode {
+  const cls = 'w-3 h-3';
+  switch (serverId) {
+    case 'mcp-core': return <Wrench className={cls} />;
+    case 'gateway': return <Users className={cls} />;
+    case 'pty-daemon': return <Terminal className={cls} />;
+    case 'cliproxy': return <Sparkles className={cls} />;
+    default: return <Wrench className={cls} />;
+  }
+}
+
+interface CompactServerCardProps {
+  server: ServerHealth;
+  onPing: () => void;
+  onRestart: () => Promise<{ ok: boolean; error?: string }>;
+}
+
+function CompactServerCard({ server, onPing, onRestart }: CompactServerCardProps) {
+  const [isRestarting, setIsRestarting] = useState(false);
+  const { id, name, url, status, lastPing, responseTimeMs, error } = server;
+  const isConnecting = status === 'connecting';
+
+  const handleRestart = async () => {
+    setIsRestarting(true);
+    try { await onRestart(); } finally { setIsRestarting(false); }
   };
 
-  const config = statusConfig[server.status];
-  const StatusIcon = config.icon;
+  const borderColor = status === 'connected'
+    ? 'border-green-500/30'
+    : status === 'error'
+      ? 'border-red-500/30'
+      : 'border-border';
+
+  const bgColor = status === 'connected'
+    ? 'bg-green-400/5'
+    : status === 'error'
+      ? 'bg-red-400/5'
+      : 'bg-card/40';
+
+  const dotColor = status === 'connected'
+    ? 'bg-green-400'
+    : status === 'connecting'
+      ? 'bg-amber-400 animate-pulse'
+      : status === 'error'
+        ? 'bg-red-400'
+        : 'bg-muted-foreground/50';
+
+  const statusLabel = status === 'connected' ? 'Connected'
+    : status === 'connecting' ? 'Connecting...'
+    : status === 'error' ? 'Error'
+    : 'Disconnected';
 
   return (
-    <div
-      className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors',
-        config.bg,
-        config.border
-      )}
-      title={server.error || server.url}
-    >
-      <div className={cn('w-9 h-9 rounded-lg flex items-center justify-center', config.bg)}>
-        <Server className={cn('w-4.5 h-4.5', config.color)} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-foreground truncate">{server.name}</span>
-          <StatusIcon
-            className={cn(
-              'w-3.5 h-3.5 flex-shrink-0',
-              config.color,
-              server.status === 'connecting' && 'animate-spin'
-            )}
-          />
+    <div className={cn('rounded-xl border p-4 transition-all', borderColor, bgColor)}>
+      {/* Header: icon + name + status */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <div className={cn(
+            'p-1.5 rounded-lg',
+            status === 'connected' ? 'bg-green-400/15 text-green-400'
+              : status === 'error' ? 'bg-red-400/15 text-red-400'
+              : 'bg-secondary text-muted-foreground'
+          )}>
+            <Server className="w-4 h-4" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-foreground leading-tight">{name}</h4>
+            <p className="text-[10px] text-muted-foreground font-mono">{url}</p>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground truncate">{server.toolCount} tools</p>
+        <div className="flex items-center gap-1.5">
+          <div className={cn('w-2 h-2 rounded-full', dotColor)} />
+          <span className="text-[11px] text-muted-foreground">{statusLabel}</span>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-4 mb-3">
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Activity className="w-3 h-3" />
+          <span className="text-xs">Latency</span>
+          <span className="text-xs font-semibold text-foreground ml-0.5">
+            {responseTimeMs !== undefined ? `${responseTimeMs}ms` : '--'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Clock className="w-3 h-3" />
+          <span className="text-xs">Ping</span>
+          <span className="text-xs font-semibold text-foreground ml-0.5">
+            {formatLastPing(lastPing)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          {getMetricIcon(id)}
+          <span className="text-xs">{server.metricLabel || 'Tools'}</span>
+          <span className="text-xs font-semibold text-foreground ml-0.5">
+            {(server.metricValue ?? server.toolCount) !== undefined
+              ? (server.metricValue ?? server.toolCount)
+              : '--'}
+          </span>
+        </div>
+      </div>
+
+      {/* Error banner */}
+      {error && (
+        <div className="flex items-center gap-1.5 p-2 mb-3 bg-red-400/10 border border-red-500/20 rounded-lg">
+          <AlertCircle className="w-3 h-3 text-red-400 flex-shrink-0" />
+          <p className="text-[11px] text-red-400 truncate">{error}</p>
+        </div>
+      )}
+
+      {/* Action buttons */}
+      <div className="flex gap-2">
+        <button
+          onClick={onPing}
+          disabled={isConnecting || isRestarting}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
+            isConnecting || isRestarting
+              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+              : 'bg-secondary hover:bg-secondary/80 text-foreground'
+          )}
+        >
+          <RefreshCw className={cn('w-3 h-3', isConnecting && 'animate-spin')} />
+          Ping
+        </button>
+        <button
+          onClick={handleRestart}
+          disabled={isConnecting || isRestarting}
+          className={cn(
+            'flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
+            isConnecting || isRestarting
+              ? 'bg-muted text-muted-foreground cursor-not-allowed'
+              : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30'
+          )}
+        >
+          {isRestarting ? (
+            <><Loader2 className="w-3 h-3 animate-spin" />Restarting</>
+          ) : (
+            <><RotateCcw className="w-3 h-3" />Restart</>
+          )}
+        </button>
       </div>
     </div>
   );
@@ -245,16 +355,36 @@ function CategoryPills({ categories, selected, onSelect, counts }: CategoryPills
 
 export function ToolsTab() {
   const { tools, selectedToolName, selectTool, isLoading: toolsLoading } = useToolExecution();
-  const { servers, isLoading: serversLoading, refresh, isInitialized, initialize } = useMCPOverviewStore();
+  const servers = useCommandCenterStore((s) => s.servers);
+  const pingServer = useCommandCenterStore((s) => s.pingServer);
+  const pingAllServers = useCommandCenterStore((s) => s.pingAllServers);
+  const restartServer = useCommandCenterStore((s) => s.restartServer);
+  const storeInitialized = useCommandCenterStore((s) => s.isInitialized);
+  const storeInitialize = useCommandCenterStore((s) => s.initialize);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Initialize MCP store on mount
+  // Initialize command center store on mount
   useEffect(() => {
-    if (!isInitialized) {
-      initialize();
+    if (!storeInitialized) {
+      storeInitialize();
     }
-  }, [isInitialized, initialize]);
+  }, [storeInitialized, storeInitialize]);
+
+  // Auto-refresh servers every 30s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      pingAllServers();
+    }, SERVER_REFRESH_INTERVAL);
+    return () => clearInterval(interval);
+  }, [pingAllServers]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await pingAllServers();
+    setRefreshing(false);
+  }, [pingAllServers]);
 
   const selectedTool = tools.find((t) => t.name === selectedToolName);
 
@@ -290,11 +420,11 @@ export function ToolsTab() {
     });
   }, [tools, selectedCategory, searchQuery]);
 
-  const isLoading = toolsLoading || serversLoading;
+  const isLoading = toolsLoading;
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Server Cards Row */}
+      {/* Server Cards Grid */}
       <div className="px-6 py-4 border-b border-border bg-card/30">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -305,17 +435,22 @@ export function ToolsTab() {
             </span>
           </div>
           <button
-            onClick={refresh}
-            disabled={isLoading}
+            onClick={handleRefresh}
+            disabled={refreshing}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-secondary hover:bg-muted transition-colors"
           >
-            <RefreshCw className={cn('w-3.5 h-3.5', isLoading && 'animate-spin')} />
-            Refresh
+            <RefreshCw className={cn('w-3.5 h-3.5', refreshing && 'animate-spin')} />
+            Ping All
           </button>
         </div>
-        <div className="flex gap-3 overflow-x-auto pb-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {servers.map((server) => (
-            <ServerCard key={server.id} server={server} />
+            <CompactServerCard
+              key={server.id}
+              server={server}
+              onPing={() => pingServer(server.id)}
+              onRestart={() => restartServer(server.id)}
+            />
           ))}
         </div>
       </div>

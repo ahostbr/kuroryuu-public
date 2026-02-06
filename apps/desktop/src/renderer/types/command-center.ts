@@ -99,7 +99,7 @@ export interface ServerHealth {
 
 // ================== STORE TYPES ==================
 
-export type TabId = 'agents' | 'tools' | 'servers' | 'graphiti';
+export type TabId = 'tools' | 'servers' | 'graphiti';
 
 export interface CommandCenterState {
   // Connection

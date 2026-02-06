@@ -1496,10 +1496,27 @@ function setupFsIpc(): void {
  */
 function setupClaudeMemoryIpc(): void {
   const homeDir = os.homedir();
-  // Project path hash: replace path separators with dashes, strip leading dash, strip colon
-  const projectPath = require('path').resolve(__dirname, '..', '..', '..', '..');
-  const hash = projectPath.replace(/[\\/]/g, '-').replace(/^-/, '').replace(/:/, '');
-  const memDir = require('path').join(homeDir, '.claude', 'projects', hash, 'memory');
+  const projectPath = process.env.KURORYUU_PROJECT_ROOT || join(__dirname, '..', '..', '..', '..');
+
+  // Claude Code hashes project paths: replace \, /, : with dashes, strip leading dash
+  const computedHash = projectPath.replace(/[\\/:]/g, '-').replace(/^-/, '');
+
+  // Resolve memory dir: try computed hash first, then scan ~/.claude/projects/ for a match
+  const projectsDir = join(homeDir, '.claude', 'projects');
+  let memDir = join(projectsDir, computedHash, 'memory');
+
+  // If computed hash doesn't exist, scan for matching directory (handles path variations)
+  if (!fs.existsSync(memDir) && fs.existsSync(projectsDir)) {
+    try {
+      const dirs = fs.readdirSync(projectsDir);
+      // Look for a directory whose name ends with the project folder name
+      const projectName = require('path').basename(projectPath);
+      const match = dirs.find(d => d.endsWith(projectName) && fs.existsSync(join(projectsDir, d, 'memory')));
+      if (match) {
+        memDir = join(projectsDir, match, 'memory');
+      }
+    } catch { /* ignore scan errors */ }
+  }
 
   ipcMain.handle('claude-memory:list', async () => {
     try {
