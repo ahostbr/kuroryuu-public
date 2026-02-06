@@ -119,9 +119,17 @@ ai/.internal_secret
 Docs/CaseStudies/OLLM_CLI_CaseStudy.md
 /assets/videos/frames
 assets/videos/Timeline 1.mp4
+# Personal hook state (session-scoped, not committed)
 ai/hooks/task_id_map.json
-ai/hooks/task_id_map.json
+
+# Personal task tracking (not committed — use ai/todo.md.template for clean slate)
+ai/todo.md
+ai/task-meta.json
+
 /apps/kuroryuu_cli_v3
 /ai/reviews
 /Docs/CaseStudies
-/Docs/CaseStudies
+
+# Personal Claude Code settings (not committed — use .claude/settings.template.json for clean slate)
+.claude/settings.json
+.claude/settings.default.json

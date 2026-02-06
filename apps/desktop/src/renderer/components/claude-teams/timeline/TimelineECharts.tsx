@@ -9,8 +9,9 @@
  * Dramatic themes (kuroryuu, matrix, retro, neo, grunge) get bounceOut
  * easing and longer animation durations.
  */
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import ReactECharts from 'echarts-for-react';
+import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import type { EChartsOption } from 'echarts';
 import type { TimelineRendererProps } from './timeline-types';
 import {
@@ -78,6 +79,7 @@ export function TimelineECharts({
   className,
 }: TimelineRendererProps) {
   const chartRef = useRef<ReactECharts>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   // ── Pre-computed values ──────────────────────────────────────────────
   const colors = useMemo(
@@ -189,63 +191,18 @@ export function TimelineECharts({
 
       tooltip: {
         trigger: 'item',
-        backgroundColor: 'rgba(15, 15, 25, 0.95)',
-        borderColor: 'rgba(100, 100, 120, 0.4)',
+        confine: true,
+        backgroundColor: 'rgba(15, 15, 25, 0.92)',
+        borderColor: 'rgba(100, 100, 120, 0.3)',
         borderWidth: 1,
-        textStyle: {
-          color: '#e5e5e5',
-          fontSize: 12,
-        },
-        extraCssText: 'border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);',
+        textStyle: { color: '#ccc', fontSize: 11 },
+        extraCssText: 'border-radius: 6px; padding: 4px 8px; pointer-events: none;',
         formatter: (params: any) => {
-          // Only show tooltip for scatter series
           if (params.seriesType !== 'scatter') return '';
           const idx = params.dataIndex;
           if (idx === undefined || idx >= data.nodes.length) return '';
-
           const node = data.nodes[idx];
-          const color = colors[idx];
-          const statusLabel =
-            node.status === 'in_progress'
-              ? 'In Progress'
-              : node.status.charAt(0).toUpperCase() + node.status.slice(1);
-          const ownerStr = node.owner ?? 'Unassigned';
-          const durationStr = formatDuration(node.duration);
-          const timeStr = formatTime(node.timestamp);
-          const descSnippet = node.description
-            ? escapeHtml(node.description.slice(0, 150)) +
-              (node.description.length > 150 ? '...' : '')
-            : '';
-
-          return `
-            <div style="padding: 8px; max-width: 280px;">
-              <div style="font-weight: bold; color: ${color}; font-size: 14px;">
-                #${escapeHtml(node.taskId)} ${escapeHtml(node.subject)}
-              </div>
-              <div style="font-size: 12px; color: #aaa; margin-top: 6px;">
-                Status: <span style="color: ${color};">${statusLabel}</span>
-                &nbsp;|&nbsp; Owner: ${escapeHtml(ownerStr)}
-              </div>
-              <div style="font-size: 12px; color: #aaa;">
-                Duration: ${durationStr} &nbsp;|&nbsp; Created: ${timeStr}
-              </div>
-              ${
-                node.blocks.length > 0
-                  ? `<div style="font-size: 11px; color: #888; margin-top: 4px;">Blocks: ${node.blocks.map((b) => '#' + b).join(', ')}</div>`
-                  : ''
-              }
-              ${
-                node.blockedBy.length > 0
-                  ? `<div style="font-size: 11px; color: #888;">Blocked by: ${node.blockedBy.map((b) => '#' + b).join(', ')}</div>`
-                  : ''
-              }
-              ${
-                descSnippet
-                  ? `<div style="font-size: 11px; color: #777; margin-top: 4px; line-height: 1.4;">${descSnippet}</div>`
-                  : ''
-              }
-            </div>
-          `;
+          return `<span style="color:${colors[idx]};font-weight:bold">#${escapeHtml(node.taskId)}</span> ${escapeHtml(node.subject.length > 30 ? node.subject.slice(0, 28) + '...' : node.subject)}`;
         },
       },
 
@@ -386,6 +343,17 @@ export function TimelineECharts({
     );
   }
 
+  // ── Expanded node lookup ─────────────────────────────────────────────
+  const expandedNode = expandedNodeId
+    ? data.nodes.find((n) => n.id === expandedNodeId)
+    : null;
+  const expandedColor = expandedNode
+    ? colors[data.nodes.indexOf(expandedNode)]
+    : '#888';
+
+  const statusLabel = (s: string) =>
+    s === 'in_progress' ? 'In Progress' : s.charAt(0).toUpperCase() + s.slice(1);
+
   // ── Render ───────────────────────────────────────────────────────────
   return (
     <div className={`absolute inset-0 ${className ?? ''}`}>
@@ -397,6 +365,106 @@ export function TimelineECharts({
         opts={{ renderer: 'canvas' }}
         notMerge={true}
       />
+
+      {/* ── Collapsible info card (click a dot to open) ────────────── */}
+      {expandedNode && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 40,
+            left: 12,
+            right: 12,
+            zIndex: 50,
+            maxWidth: 420,
+          }}
+        >
+          <div
+            style={{
+              background: 'rgba(12, 12, 22, 0.96)',
+              border: `1px solid ${expandedColor}50`,
+              borderRadius: 10,
+              padding: '10px 14px',
+              boxShadow: `0 4px 24px rgba(0,0,0,0.5), 0 0 12px ${expandedColor}20`,
+            }}
+          >
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ color: expandedColor, fontWeight: 'bold', fontSize: 13 }}>
+                  #{expandedNode.taskId} {expandedNode.subject}
+                </div>
+                <div style={{ color: '#aaa', fontSize: 11, marginTop: 3 }}>
+                  {statusLabel(expandedNode.status)} | {expandedNode.owner ?? 'Unassigned'} | {formatDuration(expandedNode.duration)} | {formatTime(expandedNode.timestamp)}
+                </div>
+              </div>
+              <button
+                onClick={() => { setShowDetails(false); onNodeClick?.(expandedNode.id); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#666',
+                  cursor: 'pointer',
+                  padding: 2,
+                  flexShrink: 0,
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Blocks / BlockedBy */}
+            {(expandedNode.blocks.length > 0 || expandedNode.blockedBy.length > 0) && (
+              <div style={{ fontSize: 11, color: '#777', marginTop: 4 }}>
+                {expandedNode.blocks.length > 0 && (
+                  <span>Blocks: {expandedNode.blocks.map((b) => '#' + b).join(', ')} </span>
+                )}
+                {expandedNode.blockedBy.length > 0 && (
+                  <span>Blocked by: {expandedNode.blockedBy.map((b) => '#' + b).join(', ')}</span>
+                )}
+              </div>
+            )}
+
+            {/* Collapsible description */}
+            {expandedNode.description && (
+              <div style={{ marginTop: 6 }}>
+                <button
+                  onClick={() => setShowDetails((v) => !v)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#888',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontSize: 11,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  {showDetails ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  Description
+                </button>
+                {showDetails && (
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: '#777',
+                      marginTop: 4,
+                      lineHeight: 1.5,
+                      maxHeight: 120,
+                      overflowY: 'auto',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {expandedNode.description}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

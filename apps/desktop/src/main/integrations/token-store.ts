@@ -14,14 +14,15 @@ import Store from 'electron-store';
 /**
  * Supported OAuth/API providers
  */
-export type OAuthProvider = 
+export type OAuthProvider =
   | 'anthropic'
   | 'openai'
   | 'google'
   | 'azure'
   | 'github'
   | 'gitlab'
-  | 'bitbucket';
+  | 'bitbucket'
+  | 'elevenlabs';
 
 /**
  * Token data structure
@@ -382,7 +383,7 @@ export function getProviderStatus(provider: OAuthProvider): ProviderStatus {
 export function getAllProviderStatuses(): Record<OAuthProvider, ProviderStatus> {
   const providers: OAuthProvider[] = [
     'anthropic', 'openai', 'google', 'azure',
-    'github', 'gitlab', 'bitbucket'
+    'github', 'gitlab', 'bitbucket', 'elevenlabs'
   ];
   
   const statuses: Record<string, ProviderStatus> = {};

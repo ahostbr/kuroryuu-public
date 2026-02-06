@@ -17,7 +17,15 @@ import {
   rainbowArcPoints,
   quadraticBezierPoint,
   isDramaticTheme,
+  formatDuration,
 } from './timeline-utils';
+
+const STATUS_LABELS: Record<string, string> = {
+  completed: 'Completed',
+  in_progress: 'In Progress',
+  pending: 'Pending',
+  deleted: 'Deleted',
+};
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -349,6 +357,36 @@ export function TimelineCanvas({
         onMouseLeave={handleMouseLeave}
         onClick={handleClick}
       />
+
+      {/* Hover tooltip */}
+      {hoveredIdx !== null && hoveredIdx < data.nodes.length && expandedNodeId !== data.nodes[hoveredIdx].id && (() => {
+        const node = data.nodes[hoveredIdx];
+        const color = colors[hoveredIdx];
+        const pos = markerPositions.current[hoveredIdx];
+        if (!pos) return null;
+
+        const tooltipWidth = 240;
+        let left = pos.x - tooltipWidth / 2;
+        left = Math.max(8, Math.min(left, size.width - tooltipWidth - 8));
+        const above = pos.y > size.height / 2;
+        const top = above ? pos.y - layout.nodeSize - 80 : pos.y + layout.nodeSize + 12;
+
+        return (
+          <div style={{ position: 'absolute', left, top, zIndex: 40, pointerEvents: 'none', width: tooltipWidth }}>
+            <div style={{ background: 'rgba(15,15,25,0.95)', border: `1px solid ${color}40`, borderRadius: 8, padding: '8px 10px', boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+              <div style={{ color, fontWeight: 'bold', fontSize: 13 }}>#{node.taskId} {node.subject}</div>
+              <div style={{ color: '#aaa', fontSize: 11, marginTop: 4 }}>
+                {STATUS_LABELS[node.status] ?? node.status} | {node.owner ?? 'Unassigned'} | {formatDuration(node.duration)}
+              </div>
+              {node.description && (
+                <div style={{ color: '#777', fontSize: 11, marginTop: 4, lineHeight: 1.4 }}>
+                  {node.description.length > 120 ? node.description.slice(0, 118) + '...' : node.description}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Expanded card overlay */}
       {expandedNodeId &&

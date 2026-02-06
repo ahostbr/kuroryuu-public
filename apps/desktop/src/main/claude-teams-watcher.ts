@@ -140,6 +140,20 @@ class ClaudeTeamsWatcher {
     this.teamsWatcher.on('add', (filePath: string) => this.handleTeamsFileChange(filePath));
     this.teamsWatcher.on('change', (filePath: string) => this.handleTeamsFileChange(filePath));
     this.teamsWatcher.on('unlink', (filePath: string) => this.handleTeamsFileDelete(filePath));
+    this.teamsWatcher.on('unlinkDir', (dirPath: string) => {
+      // On Windows, recursive directory deletion may only fire unlinkDir
+      // (not individual unlink events for files inside). Detect top-level
+      // team directory removal and fire team-deleted.
+      const normalized = dirPath.replace(/\\/g, '/');
+      const teamsNorm = TEAMS_DIR.replace(/\\/g, '/');
+      if (!normalized.startsWith(teamsNorm + '/')) return;
+      const relative = normalized.replace(teamsNorm + '/', '');
+      // Only trigger for top-level team dirs (no slashes = direct child)
+      if (relative && !relative.includes('/')) {
+        console.log('[ClaudeTeamsWatcher] Team directory removed:', relative);
+        this.send('claude-teams:team-deleted', { teamName: relative });
+      }
+    });
     this.teamsWatcher.on('error', (err: unknown) => {
       console.error('[ClaudeTeamsWatcher] Teams watcher error:', err);
       this.send('claude-teams:watcher-error', { error: String(err) });

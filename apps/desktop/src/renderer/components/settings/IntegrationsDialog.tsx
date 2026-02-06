@@ -543,6 +543,15 @@ export function IntegrationsDialog() {
     return window.electronAPI.auth.openai.verify(key);
   };
 
+  const handleSetElevenlabsKey = async (key: string) => {
+    await window.electronAPI.auth.elevenlabs.setKey(key);
+    await loadStatuses();
+  };
+
+  const handleVerifyElevenlabsKey = async (key: string) => {
+    return window.electronAPI.auth.elevenlabs.verify(key);
+  };
+
   // Disconnect handlers
   const handleDisconnect = async (provider: string) => {
     await window.electronAPI.auth.disconnect(provider);
@@ -629,6 +638,19 @@ export function IntegrationsDialog() {
                   <ExternalLink className="w-2.5 h-2.5" />
                   CLI Credentials Reference (advanced)
                 </button>
+
+                <ApiKeyInput
+                  provider="elevenlabs"
+                  label="ElevenLabs"
+                  docsUrl="https://elevenlabs.io/app/settings/api-keys"
+                  isConnected={statuses.elevenlabs?.connected ?? false}
+                  onSetKey={handleSetElevenlabsKey}
+                  onDisconnect={() => handleDisconnect('elevenlabs')}
+                  verifyKey={handleVerifyElevenlabsKey}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1 px-1">
+                  TTS across Claude Plugin, Desktop Assistant, and Tray Companion.
+                </p>
               </div>
 
               {/* Source Control Column */}

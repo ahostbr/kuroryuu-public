@@ -93,8 +93,8 @@ export function DragonBackdrop({ children, subtitle }: DragonBackdropProps) {
         className="absolute pointer-events-none select-none leading-[1.1] overflow-hidden z-[1]"
         style={{
           fontSize: 'clamp(0.2rem, 0.38vw, 0.33rem)',
-          color: 'rgba(140,30,30,0.18)',
-          textShadow: '0 0 12px rgba(180,40,40,0.08)',
+          color: 'rgba(160,35,35,0.45)',
+          textShadow: '0 0 14px rgba(200,50,50,0.25)',
           fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
           top: '50%',
           left: '50%',
@@ -113,8 +113,8 @@ export function DragonBackdrop({ children, subtitle }: DragonBackdropProps) {
           left: '50%',
           transform: 'translateX(-50%)',
           fontSize: '2.5rem',
-          color: 'rgba(201,162,39,0.08)',
-          textShadow: '0 0 30px rgba(201,162,39,0.04)',
+          color: 'rgba(201,162,39,0.22)',
+          textShadow: '0 0 30px rgba(201,162,39,0.12)',
           letterSpacing: '0.15em',
           fontFamily: 'serif',
         }}
@@ -131,7 +131,7 @@ export function DragonBackdrop({ children, subtitle }: DragonBackdropProps) {
             left: '50%',
             transform: 'translateX(-50%)',
             fontSize: '9px',
-            color: 'rgba(201,162,39,0.12)',
+            color: 'rgba(201,162,39,0.28)',
           }}
         >
           {subtitle}

@@ -16,7 +16,7 @@ import {
   type Edge,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Network, GitBranch, Clock, Loader2, Archive } from 'lucide-react';
+import { Network, GitBranch, Clock, Loader2, Archive, X } from 'lucide-react';
 import {
   useTeamFlowStore,
   buildHubSpokesGraph,
@@ -58,7 +58,7 @@ const edgeMarker = {
   color: '#888',
 };
 
-export function ArchiveReplayPanel({ archiveId }: { archiveId: string }) {
+export function ArchiveReplayPanel({ archiveId, onClose }: { archiveId: string; onClose?: () => void }) {
   const [archive, setArchive] = useState<ArchivedTeamSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<FlowViewMode>('hub-spokes');
@@ -123,7 +123,7 @@ export function ArchiveReplayPanel({ archiveId }: { archiveId: string }) {
 
   if (loading) {
     return (
-      <div className="h-[350px] flex items-center justify-center bg-black/50 rounded-lg">
+      <div className="h-[calc(100vh-280px)] min-h-[300px] flex items-center justify-center bg-black/50 rounded-lg">
         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -131,7 +131,7 @@ export function ArchiveReplayPanel({ archiveId }: { archiveId: string }) {
 
   if (!archive) {
     return (
-      <div className="h-[350px] flex items-center justify-center text-red-400 text-sm bg-black/50 rounded-lg">
+      <div className="h-[calc(100vh-280px)] min-h-[300px] flex items-center justify-center text-red-400 text-sm bg-black/50 rounded-lg">
         Failed to load archive data.
       </div>
     );
@@ -139,7 +139,7 @@ export function ArchiveReplayPanel({ archiveId }: { archiveId: string }) {
 
   return (
     <div
-      className="h-[350px] flex flex-col rounded-lg overflow-hidden border border-border/40"
+      className="h-[calc(100vh-280px)] min-h-[300px] flex flex-col rounded-lg overflow-hidden border border-border/40"
       data-team-theme={theme}
     >
       {/* View tabs + archive badge */}
@@ -161,14 +161,25 @@ export function ArchiveReplayPanel({ archiveId }: { archiveId: string }) {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-[10px] text-amber-400/90 font-medium">
-          <Archive className="w-3 h-3" />
-          ARCHIVED
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-[10px] text-amber-400/90 font-medium">
+            <Archive className="w-3 h-3" />
+            ARCHIVED
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              title="Close replay"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Graph / Timeline canvas */}
-      <div className="flex-1 bg-black">
+      <div className="flex-1 bg-black relative">
         {viewMode === 'timeline' ? (
           <TimelineView team={archive ? archiveToSnapshot(archive) : null} readOnly />
         ) : (

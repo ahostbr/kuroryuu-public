@@ -14,6 +14,11 @@ import {
   TTSConfig,
 } from './types';
 import { EdgeTTSBackend } from './edge-tts-backend';
+import { getApiKey as tokenGetApiKey } from '../../integrations/token-store';
+import { readFileSync, writeFileSync, unlinkSync } from 'fs';
+import { join } from 'path';
+import * as os from 'os';
+import { execFileSync } from 'child_process';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -154,9 +159,14 @@ export class TTSEngine {
     };
     
     if (this.useSimulated) {
+      // Check if ElevenLabs is the configured provider and key exists
+      const provider = this.getConfiguredProvider();
+      if (provider === 'elevenlabs' && tokenGetApiKey('elevenlabs')) {
+        return this.speakElevenLabs(utterance, onStart, onEnd, onError);
+      }
       return this.speakSimulated(utterance, onStart, onEnd, onError);
     }
-    
+
     return this.speakNative(utterance, { rate, pitch, volume, voice }, onStart, onEnd, onError);
   }
   
@@ -260,6 +270,127 @@ export class TTSEngine {
     }
   }
   
+  /**
+   * Read configured TTS provider from .claude/settings.json
+   */
+  private getConfiguredProvider(): string {
+    try {
+      const projectRoot = process.env.KURORYUU_PROJECT_ROOT ||
+                          process.env.KURORYUU_ROOT ||
+                          join(__dirname, '../../../../..');
+      const settingsPath = join(projectRoot, '.claude', 'settings.json');
+      const content = readFileSync(settingsPath, 'utf-8');
+      const settings = JSON.parse(content);
+      return settings.kuroPlugin?.tts?.provider || 'edge_tts';
+    } catch {
+      return 'edge_tts';
+    }
+  }
+
+  /**
+   * Read ElevenLabs voice settings from .claude/settings.json
+   */
+  private getElevenLabsSettings(): { voiceId: string; modelId: string; stability: number; similarity: number } {
+    try {
+      const projectRoot = process.env.KURORYUU_PROJECT_ROOT ||
+                          process.env.KURORYUU_ROOT ||
+                          join(__dirname, '../../../../..');
+      const settingsPath = join(projectRoot, '.claude', 'settings.json');
+      const content = readFileSync(settingsPath, 'utf-8');
+      const settings = JSON.parse(content);
+      const tts = settings.kuroPlugin?.tts || {};
+      return {
+        voiceId: tts.voice || '21m00Tcm4TlvDq8ikWAM',
+        modelId: tts.elevenlabsModelId || 'eleven_turbo_v2_5',
+        stability: tts.elevenlabsStability ?? 0.5,
+        similarity: tts.elevenlabsSimilarity ?? 0.75,
+      };
+    } catch {
+      return { voiceId: '21m00Tcm4TlvDq8ikWAM', modelId: 'eleven_turbo_v2_5', stability: 0.5, similarity: 0.75 };
+    }
+  }
+
+  /**
+   * Speak using ElevenLabs REST API + PowerShell playback
+   */
+  private async speakElevenLabs(
+    utterance: SpeechUtterance,
+    onStart?: () => void,
+    onEnd?: () => void,
+    onError?: (error: Error) => void
+  ): Promise<SpeechUtterance> {
+    const apiKey = tokenGetApiKey('elevenlabs');
+    if (!apiKey) {
+      // Fallback to EdgeTTS
+      return this.speakSimulated(utterance, onStart, onEnd, onError);
+    }
+
+    const { voiceId, modelId, stability, similarity } = this.getElevenLabsSettings();
+    console.log(`[TTSEngine] ElevenLabs speak: "${utterance.text.substring(0, 50)}..." voice=${voiceId}`);
+
+    this.isSpeaking = true;
+    utterance.state = 'speaking';
+    onStart?.();
+
+    try {
+      const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': apiKey,
+        },
+        body: JSON.stringify({
+          text: utterance.text,
+          model_id: modelId,
+          voice_settings: { stability, similarity_boost: similarity },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`ElevenLabs API error: ${response.status}`);
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const tmpPath = join(os.tmpdir(), `elevenlabs_tts_${Date.now()}.mp3`);
+      writeFileSync(tmpPath, Buffer.from(arrayBuffer));
+
+      // Play via PowerShell MediaPlayer
+      const escapedPath = tmpPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
+      const psCmd = `
+Add-Type -AssemblyName PresentationCore
+$player = New-Object System.Windows.Media.MediaPlayer
+$player.Open([System.Uri]::new('${escapedPath}'))
+Start-Sleep -Milliseconds 500
+$player.Play()
+while ($player.NaturalDuration.HasTimeSpan -eq $false) { Start-Sleep -Milliseconds 100 }
+$duration = $player.NaturalDuration.TimeSpan.TotalMilliseconds
+Start-Sleep -Milliseconds $duration
+$player.Close()`;
+
+      execFileSync('powershell.exe', ['-NoProfile', '-Command', psCmd], {
+        encoding: 'utf-8',
+        timeout: 90000,
+        windowsHide: true,
+      });
+
+      // Cleanup
+      try { unlinkSync(tmpPath); } catch { /* ignore */ }
+
+      this.isSpeaking = false;
+      utterance.state = 'completed';
+      onEnd?.();
+      return utterance;
+    } catch (error) {
+      this.isSpeaking = false;
+      utterance.state = 'cancelled';
+      const err = error instanceof Error ? error : new Error('ElevenLabs TTS error');
+      console.error('[TTSEngine] ElevenLabs error, falling back to EdgeTTS:', err.message);
+      onError?.(err);
+      return utterance;
+    }
+  }
+
   /**
    * Stop current speech
    * Requirements: 3.2

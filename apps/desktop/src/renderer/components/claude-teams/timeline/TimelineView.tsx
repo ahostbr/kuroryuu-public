@@ -42,7 +42,7 @@ export function TimelineView({ team, readOnly = false }: TimelineViewProps) {
 
   if (!team || !data) {
     return (
-      <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+      <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
         No team selected
       </div>
     );
@@ -50,7 +50,7 @@ export function TimelineView({ team, readOnly = false }: TimelineViewProps) {
 
   if (data.nodes.length === 0) {
     return (
-      <div className="flex-1 flex flex-col">
+      <div className="absolute inset-0 flex flex-col">
         <TimelineToolbar />
         <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
           No tasks to display
@@ -83,7 +83,7 @@ export function TimelineView({ team, readOnly = false }: TimelineViewProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
+    <div className="absolute inset-0 flex flex-col overflow-hidden">
       <TimelineToolbar />
       <div className="flex-1 overflow-hidden relative">
         {renderTimeline()}

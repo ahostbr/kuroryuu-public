@@ -308,12 +308,12 @@ export class BackupService {
    */
   async ensureRestic(): Promise<ResticBinaryStatus> {
     try {
-      const result = (await callBackupTool('status')) as BackupApiResponse<{
-        restic: ResticBinaryStatus;
-      }>;
+      // Python returns {ok, restic: {...}} at top level (not under data)
+      const result = (await callBackupTool('ensure')) as Record<string, unknown>;
 
-      if (result.ok && result.data?.restic) {
-        return result.data.restic;
+      const restic = result.restic as ResticBinaryStatus | undefined;
+      if (result.ok && restic) {
+        return restic;
       }
 
       return {
