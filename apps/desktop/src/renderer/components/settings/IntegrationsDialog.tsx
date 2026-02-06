@@ -588,7 +588,7 @@ export function IntegrationsDialog() {
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
+        <Dialog.Content aria-describedby={undefined} className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50">
           <ThemedFrame
             variant={isKuroryuu ? 'dragon' : 'grunge-square'}
             size="lg"
