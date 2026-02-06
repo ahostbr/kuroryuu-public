@@ -41,7 +41,7 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
 Write-Host ""
 
 $stepNum = 1
-$totalSteps = 9
+$totalSteps = 10
 
 # ============================================================================
 # Step 1: Set persistent environment variable
@@ -154,7 +154,33 @@ if (-not (Test-Path $templatePath)) {
 }
 
 # ============================================================================
-# Step 4: Create Python virtual environment
+# Step 4: Generate personal config files from templates
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Generating personal config files from templates..." -ForegroundColor Yellow
+$stepNum++
+
+$templateCopies = @(
+    @{ Template = ".claude\settings.template.json"; Target = ".claude\settings.json"; Name = "Claude Code settings" },
+    @{ Template = "ai\todo.md.template"; Target = "ai\todo.md"; Name = "Task tracking (todo.md)" }
+)
+
+foreach ($item in $templateCopies) {
+    $templateFile = Join-Path $ProjectRoot $item.Template
+    $targetFile = Join-Path $ProjectRoot $item.Target
+
+    if (-not (Test-Path $templateFile)) {
+        Write-Host "  WARNING: Template not found: $($item.Template)" -ForegroundColor DarkYellow
+    } elseif ((Test-Path $targetFile) -and -not $Force) {
+        Write-Host "  $($item.Name) already exists (use -Force to overwrite)" -ForegroundColor DarkGray
+    } else {
+        Copy-Item $templateFile $targetFile -Force
+        Write-Host "  Created: $($item.Target)" -ForegroundColor Green
+    }
+}
+
+# ============================================================================
+# Step 5: Create Python virtual environment
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Setting up Python 3.12 virtual environment..." -ForegroundColor Yellow

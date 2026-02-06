@@ -20,6 +20,11 @@ import {
   MessageCircle,
   HelpCircle,
   Lock,
+  Monitor,
+  Cog,
+  Network,
+  SearchCode,
+  HardDrive,
 } from 'lucide-react';
 import type { ToolSchema, ToolCategory } from '../../../types/command-center';
 import { CATEGORY_LABELS } from '../../../types/command-center';
@@ -45,6 +50,13 @@ const CATEGORY_ICONS: Record<ToolCategory, React.ElementType> = {
   interact: MessageSquare,
   collective: Users,
   thinker: MessageCircle,
+  help: HelpCircle,
+  shell: Terminal,
+  pccontrol: Monitor,
+  process: Cog,
+  graphiti: Network,
+  toolsearch: SearchCode,
+  backup: HardDrive,
   other: HelpCircle,
 };
 

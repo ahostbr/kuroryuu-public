@@ -369,6 +369,7 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
             tasks: teamSnapshot.tasks,
             inboxes: teamSnapshot.inboxes,
           });
+          recentlyArchivedTeams.add(params.teamName);
           console.log('[ClaudeTeamsStore] Archived team before cleanup:', params.teamName);
         } catch (archiveErr) {
           console.error('[ClaudeTeamsStore] Archive failed (proceeding with cleanup):', archiveErr);
@@ -581,6 +582,12 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
 }));
 
 /**
+ * Track teams that were already archived via UI cleanup to prevent
+ * double-archiving when the watcher fires team-deleted.
+ */
+const recentlyArchivedTeams = new Set<string>();
+
+/**
  * Set up IPC event listeners for file watcher updates from main process.
  * Call this once on mount (e.g., in ClaudeTeams component useEffect).
  */
@@ -616,9 +623,40 @@ export function setupClaudeTeamsIpcListeners(): () => void {
         });
         break;
 
-      case 'team-deleted':
+      case 'team-deleted': {
+        // Auto-archive team data before removing from state
+        // (skip if already archived via UI cleanupTeam flow)
+        if (!recentlyArchivedTeams.has(event.teamName)) {
+          const teamSnapshot = useClaudeTeamsStore
+            .getState()
+            .teams.find((t) => t.config.name === event.teamName);
+          if (teamSnapshot) {
+            window.electronAPI?.teamHistory
+              ?.archiveSession?.({
+                teamName: event.teamName,
+                config: teamSnapshot.config,
+                tasks: teamSnapshot.tasks,
+                inboxes: teamSnapshot.inboxes,
+              })
+              .then(() => {
+                console.log(
+                  '[ClaudeTeamsStore] Auto-archived team on external deletion:',
+                  event.teamName,
+                );
+                useClaudeTeamsStore.getState().loadHistory();
+              })
+              .catch((err: unknown) => {
+                console.error(
+                  '[ClaudeTeamsStore] Auto-archive on deletion failed:',
+                  err,
+                );
+              });
+          }
+        }
+        recentlyArchivedTeams.delete(event.teamName);
         s.removeTeam(event.teamName);
         break;
+      }
 
       case 'watcher-error':
         s.setError(event.error);

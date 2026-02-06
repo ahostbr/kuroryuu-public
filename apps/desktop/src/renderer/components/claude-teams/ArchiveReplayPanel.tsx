@@ -25,6 +25,7 @@ import {
   THEME_COLORS,
 } from '../../stores/team-flow-store';
 import { teamNodeTypes } from './TeamNodes';
+import { TimelineView } from './timeline';
 import type {
   ArchivedTeamSession,
   TeamSnapshot,
@@ -166,35 +167,39 @@ export function ArchiveReplayPanel({ archiveId }: { archiveId: string }) {
         </div>
       </div>
 
-      {/* ReactFlow canvas */}
+      {/* Graph / Timeline canvas */}
       <div className="flex-1 bg-black">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          nodeTypes={teamNodeTypes}
-          fitView
-          minZoom={0.2}
-          maxZoom={2}
-          nodesDraggable={false}
-          nodesConnectable={false}
-          elementsSelectable={false}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background color="#333" gap={20} size={1} />
-          <Controls
-            showZoom
-            showFitView
-            showInteractive={false}
-            className="claude-teams-controls"
-          />
-          <MiniMap
-            nodeColor={() => '#666'}
-            maskColor="rgba(0, 0, 0, 0.8)"
-            className="claude-teams-minimap"
-          />
-        </ReactFlow>
+        {viewMode === 'timeline' ? (
+          <TimelineView team={archive ? archiveToSnapshot(archive) : null} readOnly />
+        ) : (
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            nodeTypes={teamNodeTypes}
+            fitView
+            minZoom={0.2}
+            maxZoom={2}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable={false}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background color="#333" gap={20} size={1} />
+            <Controls
+              showZoom
+              showFitView
+              showInteractive={false}
+              className="claude-teams-controls"
+            />
+            <MiniMap
+              nodeColor={() => '#666'}
+              maskColor="rgba(0, 0, 0, 0.8)"
+              className="claude-teams-minimap"
+            />
+          </ReactFlow>
+        )}
       </div>
     </div>
   );

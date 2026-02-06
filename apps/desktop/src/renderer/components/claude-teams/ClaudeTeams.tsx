@@ -29,6 +29,7 @@ import { TeamFlowPanel } from './TeamFlowPanel';
 import { TeammateDetailPanel } from './TeammateDetailPanel';
 import { TaskListPanel } from './TaskListPanel';
 import { TeamHistoryPanel } from './TeamHistoryPanel';
+import { TimelineView } from './timeline';
 import type { FlowViewMode } from '../../types/claude-teams';
 
 const VIEW_TABS: { id: FlowViewMode; label: string; icon: React.ElementType; ready: boolean }[] = [
@@ -382,7 +383,11 @@ export function ClaudeTeams() {
           <>
             {/* Graph + Detail Panel */}
             <div className="flex-1 overflow-hidden relative">
-              <TeamFlowPanel />
+              {activeView === 'timeline' ? (
+                <TimelineView team={selectedTeam} />
+              ) : (
+                <TeamFlowPanel />
+              )}
               <TeammateDetailPanel />
             </div>
 

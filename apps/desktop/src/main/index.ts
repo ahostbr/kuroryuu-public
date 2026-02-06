@@ -1948,7 +1948,10 @@ function setupKuroConfigIpc(): void {
     messages: { stop: string };
   }) => {
     try {
-      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const uvPath = process.env.UV_PATH ||
+        (process.platform === 'win32'
+          ? join(os.homedir(), '.local', 'bin', 'uv.exe')
+          : 'uv');
       const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
       const testMessage = ttsConfig.messages.stop || 'Test complete';
 
@@ -1990,7 +1993,10 @@ function setupKuroConfigIpc(): void {
   // Get available Edge TTS voices (English only)
   ipcMain.handle('kuro-config:get-voices', async () => {
     try {
-      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const uvPath = process.env.UV_PATH ||
+        (process.platform === 'win32'
+          ? join(os.homedir(), '.local', 'bin', 'uv.exe')
+          : 'uv');
       const { execSync } = require('child_process');
 
       // Run edge-tts --list-voices and parse output
@@ -2048,7 +2054,10 @@ function setupKuroConfigIpc(): void {
   // Preview a voice with sample text
   ipcMain.handle('kuro-config:preview-voice', async (_event, voiceName: string) => {
     try {
-      const uvPath = 'C:\\Users\\Ryan\\.local\\bin\\uv.exe';
+      const uvPath = process.env.UV_PATH ||
+        (process.platform === 'win32'
+          ? join(os.homedir(), '.local', 'bin', 'uv.exe')
+          : 'uv');
       const ttsScript = join(PROJECT_ROOT, '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py');
 
       console.log(`[KuroConfig] Previewing voice: ${voiceName}`);
