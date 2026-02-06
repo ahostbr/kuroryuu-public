@@ -55,6 +55,7 @@ function completionRate(entry: TeamHistoryEntry): number {
 function ArchiveDetail({ archiveId }: { archiveId: string }) {
   const [archive, setArchive] = useState<ArchivedTeamSession | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,79 +92,99 @@ function ArchiveDetail({ archiveId }: { archiveId: string }) {
 
   return (
     <div className="px-3 pb-3 space-y-3">
-      {/* Members */}
-      <div>
-        <h4 className="text-xs font-medium text-muted-foreground mb-1">Members</h4>
-        <div className="flex flex-wrap gap-1.5">
-          {config.members.map((m) => (
-            <span
-              key={m.agentId}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-secondary/80"
-            >
-              <span
-                className="w-2 h-2 rounded-full"
-                style={{ backgroundColor: m.color || (m.agentType === 'team-lead' ? '#a78bfa' : '#60a5fa') }}
-              />
-              {m.name}
-              <span className="text-muted-foreground">({m.model?.split('-').slice(-1)[0] || 'unknown'})</span>
-            </span>
-          ))}
-        </div>
-      </div>
+      {/* Graph replay */}
+      <ArchiveReplayPanel archiveId={archiveId} />
 
-      {/* Tasks */}
-      {tasks.length > 0 && (
-        <div>
-          <h4 className="text-xs font-medium text-muted-foreground mb-1">
-            Tasks ({tasks.length})
-          </h4>
-          <div className="space-y-1 max-h-40 overflow-y-auto">
-            {tasks
-              .filter((t) => t.status !== 'deleted')
-              .map((task) => (
-                <div
-                  key={task.id}
-                  className="flex items-center gap-2 text-xs py-0.5"
+      {/* Toggle for text details */}
+      <button
+        onClick={() => setShowDetails((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        {showDetails ? (
+          <ChevronDown className="w-3 h-3" />
+        ) : (
+          <ChevronRight className="w-3 h-3" />
+        )}
+        Details
+      </button>
+
+      {showDetails && (
+        <>
+          {/* Members */}
+          <div>
+            <h4 className="text-xs font-medium text-muted-foreground mb-1">Members</h4>
+            <div className="flex flex-wrap gap-1.5">
+              {config.members.map((m) => (
+                <span
+                  key={m.agentId}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-secondary/80"
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                      task.status === 'completed'
-                        ? 'bg-green-400'
-                        : task.status === 'in_progress'
-                          ? 'bg-yellow-400'
-                          : 'bg-gray-400'
-                    }`}
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: m.color || (m.agentType === 'team-lead' ? '#a78bfa' : '#60a5fa') }}
                   />
-                  <span className="text-foreground truncate flex-1">
-                    {task.subject}
-                  </span>
-                  {task.owner && (
-                    <span className="text-muted-foreground">@{task.owner}</span>
-                  )}
-                </div>
+                  {m.name}
+                  <span className="text-muted-foreground">({m.model?.split('-').slice(-1)[0] || 'unknown'})</span>
+                </span>
               ))}
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Message summary */}
-      {Object.keys(archive.inboxes).length > 0 && (
-        <div>
-          <h4 className="text-xs font-medium text-muted-foreground mb-1">
-            Messages ({archive.stats.messageCount})
-          </h4>
-          <div className="flex flex-wrap gap-1.5">
-            {Object.entries(archive.inboxes).map(([agent, msgs]) => (
-              <span
-                key={agent}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-secondary/60"
-              >
-                <MessageSquare className="w-3 h-3 text-muted-foreground" />
-                {agent}: {msgs.length}
-              </span>
-            ))}
-          </div>
-        </div>
+          {/* Tasks */}
+          {tasks.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-muted-foreground mb-1">
+                Tasks ({tasks.length})
+              </h4>
+              <div className="space-y-1 max-h-40 overflow-y-auto">
+                {tasks
+                  .filter((t) => t.status !== 'deleted')
+                  .map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-2 text-xs py-0.5"
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                          task.status === 'completed'
+                            ? 'bg-green-400'
+                            : task.status === 'in_progress'
+                              ? 'bg-yellow-400'
+                              : 'bg-gray-400'
+                        }`}
+                      />
+                      <span className="text-foreground truncate flex-1">
+                        {task.subject}
+                      </span>
+                      {task.owner && (
+                        <span className="text-muted-foreground">@{task.owner}</span>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Message summary */}
+          {Object.keys(archive.inboxes).length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-muted-foreground mb-1">
+                Messages ({archive.stats.messageCount})
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(archive.inboxes).map(([agent, msgs]) => (
+                  <span
+                    key={agent}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-secondary/60"
+                  >
+                    <MessageSquare className="w-3 h-3 text-muted-foreground" />
+                    {agent}: {msgs.length}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

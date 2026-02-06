@@ -194,7 +194,7 @@ export function PluginSection({ className }: PluginSectionProps) {
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-1">Parallelism</div>
             <div className="flex flex-wrap gap-1">
-              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/max-parallel</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/max-subagents-parallel</code>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Activates wave-based parallel task decomposition and agent spawning.
@@ -282,7 +282,7 @@ export function PluginSection({ className }: PluginSectionProps) {
           </div>
           <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
             <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-foreground">max-parallel</span>
+              <span className="font-medium text-foreground">max-subagents-parallel</span>
             </div>
             <p className="text-xs text-muted-foreground">
               Maximum parallelism patterns for task decomposition.

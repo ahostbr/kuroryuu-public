@@ -1,5 +1,5 @@
 ---
-description: Creates a team orchestration plan for /max-parallel execution with builder/validator pairs. Generates a structured plan file that can be executed.
+description: Creates a team orchestration plan for /max-subagents-parallel execution with builder/validator pairs. Generates a structured plan file that can be executed.
 argument-hint: "[user request]" "[orchestration guidance - optional]"
 model: opus
 disallowed-tools: Task, EnterPlanMode
@@ -23,7 +23,7 @@ hooks:
 
 # K-Parallel Plan Generator
 
-Create a detailed implementation plan with team orchestration for `/max-parallel` execution. This is a **template metaprompt** - a prompt that generates a structured plan document.
+Create a detailed implementation plan with team orchestration for `/max-subagents-parallel` execution. This is a **template metaprompt** - a prompt that generates a structured plan document.
 
 ## Variables
 
@@ -215,7 +215,7 @@ Team:
 Tasks: <count> tasks in <count> waves
 
 To execute:
-/max-parallel Docs/Plans/<filename>.md
+/max-subagents-parallel Docs/Plans/<filename>.md
 ```
 
 ## Self-Validation

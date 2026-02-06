@@ -78,7 +78,7 @@ def _emit_bash_output(
 
     Args:
         is_heartbeat: If True, this is a keep-alive signal (no output data).
-        wave_id: Wave identifier for /max-parallel grouping in Desktop UI.
+        wave_id: Wave identifier for /max-subagents-parallel grouping in Desktop UI.
         dependency_ids: Session IDs this task depends on (for wave visualization).
     """
     event = {
@@ -92,7 +92,7 @@ def _emit_bash_output(
         "exit_code": exit_code,
         "command_preview": command[:80] if command else None,
         "cli_type": "k_bash",
-        # Wave metadata for /max-parallel Desktop integration
+        # Wave metadata for /max-subagents-parallel Desktop integration
         "wave_id": wave_id,
         "dependency_ids": dependency_ids or [],
     }
@@ -217,7 +217,7 @@ def _run_background(
         "exit_code": None,
         "process": None,
         "pty_proc": None,
-        # Wave metadata for /max-parallel Desktop integration
+        # Wave metadata for /max-subagents-parallel Desktop integration
         "wave_id": wave_id,
         "dependency_ids": dependency_ids or [],
     }
@@ -421,7 +421,7 @@ def k_bash(
         pty: Allocate pseudo-terminal (REQUIRED for interactive CLIs!)
         background: Run in background, return sessionId immediately
         timeout: Timeout in seconds (default: 300 = 5 minutes)
-        wave_id: Wave identifier for /max-parallel grouping in Desktop UI
+        wave_id: Wave identifier for /max-subagents-parallel grouping in Desktop UI
         dependency_ids: Session IDs this task depends on (for wave visualization)
 
     Returns:
@@ -475,7 +475,7 @@ def register_bash_tools(registry: ToolRegistry) -> None:
             "Simple shell execution with PTY and background support. "
             "Use pty=true for interactive CLIs (codex, claude, pi). "
             "Use background=true for long-running tasks, returns sessionId for monitoring via k_process. "
-            "Use wave_id for /max-parallel Desktop grouping."
+            "Use wave_id for /max-subagents-parallel Desktop grouping."
         ),
         input_schema={
             "type": "object",
@@ -505,7 +505,7 @@ def register_bash_tools(registry: ToolRegistry) -> None:
                 },
                 "wave_id": {
                     "type": "string",
-                    "description": "Wave identifier for /max-parallel grouping in Desktop UI (e.g., 'wave1', 'wave2')",
+                    "description": "Wave identifier for /max-subagents-parallel grouping in Desktop UI (e.g., 'wave1', 'wave2')",
                 },
                 "dependency_ids": {
                     "type": "array",
