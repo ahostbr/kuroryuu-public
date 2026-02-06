@@ -11,6 +11,7 @@ import { SessionCard } from './SessionCard';
 import { SessionLogViewer } from './SessionLogViewer';
 import { AgentFlowPanel } from './AgentFlowPanel';
 import { FindingsToTasksModal } from './FindingsToTasksModal';
+import { AgentsEmptyState } from './AgentsEmptyState';
 import { AgentsTab } from '../command-center/tabs/AgentsTab';
 
 type ViewTab = 'sessions' | 'flow' | 'terminal-agents';
@@ -299,12 +300,7 @@ export function KuroryuuAgents() {
                 </pre>
               </div>
             ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Bot className="w-16 h-16 text-muted-foreground/20 mx-auto mb-4" />
-                  <p className="text-muted-foreground">Select a session to view logs</p>
-                </div>
-              </div>
+              <AgentsEmptyState />
             )}
           </div>
         </div>

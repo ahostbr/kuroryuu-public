@@ -70,8 +70,8 @@ export function TaskOverview({ task, onDescriptionChange }: TaskOverviewProps) {
                 </button>
               </div>
             </div>
-          ) : task.description ? (
-            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{task.description}</p>
+          ) : description ? (
+            <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{description}</p>
           ) : (
             <span className="text-sm text-muted-foreground italic">No description provided. Click Edit to add one.</span>
           )}

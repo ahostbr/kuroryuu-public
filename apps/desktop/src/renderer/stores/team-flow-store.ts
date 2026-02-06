@@ -4,6 +4,8 @@
  */
 import { create } from 'zustand';
 import type { TeamSnapshot, TeamTask, TeammateStatus, TeamNodeData, TaskEdgeData, FlowViewMode } from '../types/claude-teams';
+import type { TimelineStyle, TimelineColorMode } from '../components/claude-teams/timeline/timeline-types';
+import { TIMELINE_STYLES, TIMELINE_COLOR_MODES } from '../components/claude-teams/timeline/timeline-types';
 
 export type TeamFlowTheme = 'cyberpunk' | 'kuroryuu' | 'retro' | 'default';
 
@@ -33,6 +35,10 @@ interface TeamFlowState {
   isPaused: boolean;
   selectedTeammateId: string | null;
 
+  // Timeline bake-off state
+  timelineStyle: TimelineStyle;
+  timelineColorMode: TimelineColorMode;
+
   // Actions
   buildGraphFromTeam: (team: TeamSnapshot) => void;
   setTheme: (theme: TeamFlowTheme) => void;
@@ -40,6 +46,12 @@ interface TeamFlowState {
   togglePause: () => void;
   selectTeammate: (id: string | null) => void;
   clearGraph: () => void;
+
+  // Timeline actions
+  cycleTimelineStyle: () => void;
+  cycleTimelineColorMode: () => void;
+  setTimelineStyle: (style: TimelineStyle) => void;
+  setTimelineColorMode: (mode: TimelineColorMode) => void;
 }
 
 // Color palette for different themes
@@ -600,6 +612,8 @@ export const useTeamFlowStore = create<TeamFlowState>((set, get) => ({
   viewMode: 'hub-spokes',
   isPaused: false,
   selectedTeammateId: null,
+  timelineStyle: 'svg-spine' as TimelineStyle,
+  timelineColorMode: 'status' as TimelineColorMode,
 
   buildGraphFromTeam: (team) => {
     if (get().isPaused) return;
@@ -632,6 +646,22 @@ export const useTeamFlowStore = create<TeamFlowState>((set, get) => ({
   selectTeammate: (id) => set({ selectedTeammateId: id }),
 
   clearGraph: () => set({ nodes: [], edges: [], selectedTeammateId: null }),
+
+  // Timeline bake-off actions
+  cycleTimelineStyle: () =>
+    set((state) => {
+      const idx = TIMELINE_STYLES.indexOf(state.timelineStyle);
+      return { timelineStyle: TIMELINE_STYLES[(idx + 1) % TIMELINE_STYLES.length] };
+    }),
+
+  cycleTimelineColorMode: () =>
+    set((state) => {
+      const idx = TIMELINE_COLOR_MODES.indexOf(state.timelineColorMode);
+      return { timelineColorMode: TIMELINE_COLOR_MODES[(idx + 1) % TIMELINE_COLOR_MODES.length] };
+    }),
+
+  setTimelineStyle: (style) => set({ timelineStyle: style }),
+  setTimelineColorMode: (mode) => set({ timelineColorMode: mode }),
 }));
 
 export { THEME_COLORS };

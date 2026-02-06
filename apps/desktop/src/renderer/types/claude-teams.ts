@@ -361,3 +361,9 @@ export interface TaskEdgeData {
   subject: string;
   status: TeamTaskStatus;
 }
+
+// ============================================================================
+// TIMELINE VISUALIZATION (re-exported from timeline module)
+// ============================================================================
+
+export type { TimelineStyle, TimelineColorMode } from '../components/claude-teams/timeline/timeline-types';

@@ -145,10 +145,6 @@ export function TrafficFlowPanel() {
 
       {/* Left Panel - Graph (always shown) */}
       <div className={`relative ${viewMode === 'split' ? 'w-1/2' : 'w-full'} h-full transition-all duration-300`}>
-        {/* Background effects - conditionally rendered based on theme */}
-        <MatrixParticles />
-        <ScanlineOverlay />
-
         {/* Main ReactFlow canvas */}
         <ReactFlow
           nodes={reactFlowNodes}
@@ -179,6 +175,10 @@ export function TrafficFlowPanel() {
           />
         </ReactFlow>
 
+        {/* Background effects — AFTER ReactFlow so they render on top of the canvas background */}
+        <MatrixParticles />
+        <ScanlineOverlay />
+
         {/* Control panel (top left) */}
         <div className="absolute top-4 left-4 z-10">
           <TrafficFlowControls />
@@ -189,14 +189,114 @@ export function TrafficFlowPanel() {
           <TrafficStatsPanel stats={stats} />
         </div>
 
-        {/* Empty state message */}
+        {/* Empty state — dragon ASCII with traffic messaging */}
         {reactFlowNodes.length === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-            <div className="text-center">
-              <div className="text-cyan-400 text-2xl font-bold mb-2 tracking-wider">
-                AWAITING TRAFFIC
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none select-none">
+            {/* Vignette */}
+            <div
+              className="absolute inset-0"
+              style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.45) 100%)' }}
+            />
+            <div className="relative z-10 flex flex-col items-center gap-1.5 px-4">
+              {/* Kanji */}
+              <div
+                className="font-serif leading-none"
+                style={{
+                  fontSize: '2.2rem',
+                  color: '#c9a227',
+                  textShadow: '0 0 25px rgba(201,162,39,0.35), 0 0 50px rgba(201,162,39,0.12)',
+                  letterSpacing: '0.15em',
+                }}
+              >
+                黒龍幻霧
               </div>
-              <div className="text-cyan-400/60 text-sm">
+              {/* Subtitle */}
+              <div
+                className="font-mono uppercase tracking-[0.25em]"
+                style={{ fontSize: '9px', color: 'rgba(201,162,39,0.45)' }}
+              >
+                KURORYUU GENMU
+              </div>
+              {/* ASCII Dragon */}
+              <pre
+                aria-hidden="true"
+                className="leading-[1.1] overflow-hidden text-center mt-1"
+                style={{
+                  fontSize: 'clamp(0.2rem, 0.4vw, 0.35rem)',
+                  color: 'rgba(160,35,35,0.65)',
+                  textShadow: '0 0 8px rgba(180,40,40,0.25)',
+                  userSelect: 'none',
+                  fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
+                }}
+              >{`                                ==++++++++++=
+                            ====    -==+++++++==========
+                        #+=+                     ====++++++++
+                     ### %%                           ++******%%%
+                  +**     %%        **                   #***#%%%%%
+               +*+         %%        ##                      %%%%%%%%%
+             +              %%%%     %%#%                  *** %%%%%%%%%
+                             %%%      %%%                  *  #  #%%#%%%%%
+                              %%%      %%%                ++* #    ###%%%%%%
+                               %%%     %%%                  +##     #***##*#%
+                        *%%     %%%% %% %%%% %%            **         +++*+*%%#
+                           %%%% ##%%%%%% %%%%%%           *            ++*#%%***
+                          ###%%####*#%%%%% %%%%%         #              *########*
+              ++=++     #%%  *##%##%%%%%%%%%%%%%% #      %              **####**#+=
+               ++         ##%%%%%%%#%%%%%##%%%%%%%###    %             =+**#####**##
+                =     **%%%%%%%%%%%##%%%%%%%%%########*  #               +**#######*+
+               ***#%#*+***#%%%%%%%%%###%%%%%%%##******## +*    =        ++**###%%%#%#
+             *#**%%%%*+#%%%%%%%%%%%#####%%%%%###***#**#   ##             **++*#%%%%%##
+             **##%%%%%%%#%%#%%%%%%%#%%#%%%%%%%%##**###%%%%%##          ++**=-*##%%##%*
+               **%%%%%%%%%%%%%%%%%%%%%%%%%####%#****##%%%%%%%#         ++++-=+*#%%%%%#
+      +**++   +#*#*#%%%%%%%%%%%%%####*#%%#%%%####**    ##%%%#*       == +**++*###%%%%%*
+        +****++*** *%%%%%%%##%%#####*   #%%%  ##%#**#    ###       ==== ****#####%%%%%#
+          ####**   +*#%%%%%%##**###             #%%%%%##           ==+ +***####%####%%%
+       ######*++    ==#%%%%###***+ %       *  *   %%%%%%*           ++++***##%%%###*#%%
+       ## %%%++    ===+#%%%%%###                 %%%%%%%      +     *****#####%%%%##%%%
+       ## #** *#*   ==+*###****==           %##%%%%%%%%   *    *  ++*#####%%##%%#%%%%%%
+          %%% +**   ==***##**+=+====                     ***#*==+***#####%#######%%#%%%
+             +**    =+++*****#+==+*****                 =+****###***########%%%%%%%%%%%
++             ==     +++=-+*+++=+####*+*                 ==++**#####%%##%###########%%%
++               ++    =*#++*+=+*#%%%%###%               ++*+++++#%%##%%%%%%#%%%%##%%%##
+                      +*##**+######%%#           #      %%%*++%%%%%%%%%%%##*#**#%#%%%##
+                       #########%%%%%%%#+=    *%%*##%%%%%%%%%%%%%%%%%%%%%%%%#**#%%%%%#
+  #%                    #%%%%%%%%%%%%%%%#*#%%%%%%%#%%%%#*%%%%%%%%%%%%%%%%%%%%%##+*#%%#
+++         *             *###%%%%%%%%%%%%#####%%%%%####**%%%%%%%%%%%%%%%%%%%%%%%##%%%%
+*+* ++         *       == ####*##%%%%%%%##*+*#%%%%%*+##%%%%%%%#%%%%%%%%%%%%%%%%%%%%%#+
+   *++  #   *    ++     ==+++#*##%%%%%###**+++*###*+*+%#%%%%%%#%%%%%%%%%%%%%%%%%%%%#*=
+      ==  * **%%% %%     ==   ###%%%%####***+++++++######%%%%##%%%%%%%%%%%%%%%%%%%%#
+    *+ +****** %%##%%%#     #++ %%%%%#######**+++*#####%%%%%%%%##%%%%%%%%%%%%%%%%%##*
+            =   %%%%%%%%#            %########***++#####%%%%%%%%%**#%%%%%%%%%%**#####
+               %%%%%%%%%%%#               *##*+++**####%%%%%%%%%#++**#%%%%%%%%##++=
+                *%%%%%%%%%%  =                  %%%  %%%%%% %%%##=++*%%%%%%%%%#*+
+                 %%%%%%%%%%                    %%%%%%%%%%%  %%   +-*%%%%%%%%%#**=
+                   %%%%%%%%                      %%%%%%%%%        #%%%%%%%%%%**+
+                   #%#%%%%%#              *      %%% %% %%       %%%%%%%%%%#*+=
+                        %###*             +       #  %%   #   *%%%%%%%%%%#++==
+                           #####                            %%%%%%%%%%%#%##+
+                             ######*%#                *+   %%###%%%%%%%%%#====
+                               #####%###%%     #%%%#* *##+*#%%%*++#***#%%
+                                  =*#%%%%%%%%%%%%%%%%%%#####%%%#`}</pre>
+              {/* Brand */}
+              <div
+                className="font-mono tracking-[0.5em] text-xs mt-1"
+                style={{ color: 'rgba(255,255,255,0.6)' }}
+              >
+                K U R O R Y U U
+              </div>
+              {/* Separator */}
+              <div
+                className="w-28 h-px mt-2 mb-1.5"
+                style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.25), transparent)' }}
+              />
+              {/* Traffic message */}
+              <div className="text-sm text-muted-foreground">
+                Awaiting traffic
+              </div>
+              <div
+                className="font-mono tracking-wider"
+                style={{ fontSize: '10px', color: 'rgba(201,162,39,0.3)' }}
+              >
                 Make API requests to visualize network flow
               </div>
             </div>

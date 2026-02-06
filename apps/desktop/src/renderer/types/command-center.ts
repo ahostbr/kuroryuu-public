@@ -42,6 +42,13 @@ export type ToolCategory =
   | 'interact'
   | 'collective'
   | 'thinker'
+  | 'help'
+  | 'shell'
+  | 'pccontrol'
+  | 'process'
+  | 'graphiti'
+  | 'toolsearch'
+  | 'backup'
   | 'other';
 
 export interface ParameterSchema {
@@ -185,6 +192,14 @@ export const TOOL_CATEGORY_MAP: Record<string, ToolCategory> = {
   k_interact: 'interact',
   k_collective: 'collective',
   k_thinker_channel: 'thinker',
+  k_help: 'help',
+  k_bash: 'shell',
+  k_pccontrol: 'pccontrol',
+  k_process: 'process',
+  k_graphiti_migrate: 'graphiti',
+  k_MCPTOOLSEARCH: 'toolsearch',
+  k_backup: 'backup',
+  k_askuserquestion: 'interact',
 };
 
 export const LEADER_ONLY_TOOLS = new Set(['k_pty', 'k_interact']);
@@ -245,5 +260,12 @@ export const CATEGORY_LABELS: Record<ToolCategory | 'all', string> = {
   interact: 'Interact',
   collective: 'Collective',
   thinker: 'Thinker',
+  help: 'Help',
+  shell: 'Shell',
+  pccontrol: 'PC Control',
+  process: 'Process',
+  graphiti: 'Graphiti',
+  toolsearch: 'Tool Search',
+  backup: 'Backup',
   other: 'Other',
 };
