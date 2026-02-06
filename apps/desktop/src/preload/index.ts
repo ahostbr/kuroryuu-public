@@ -1076,6 +1076,10 @@ const api = {
     }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('kuro-config:save', config),
 
+    /** Toggle team TTS override — only modifies TTS hook entries, not user preference flags */
+    setTeamTtsOverride: (active: boolean): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('kuro-config:setTeamTtsOverride', active),
+
     /** Test TTS with current settings */
     testTTS: (ttsConfig: {
       provider: string;

@@ -11,6 +11,7 @@ import { desktopPtyPersistence, type TerminalSessionState } from './pty/persiste
 import { ensureDaemonRunning, checkDaemonHealth } from './pty/daemon-spawner';
 import { PtyDaemonClient } from './pty/daemon-client';
 import { fileWatcher } from './watcher';
+import { getSettingsWriter } from './services/settings-writer';
 import type { CreatePtyOptions } from './pty/types';
 import { detectTool, configureTools, type ToolConfig, type CLITool } from './cli/cli-tool-manager';
 import {
@@ -1581,22 +1582,16 @@ async function syncElevenlabsKeyToSettings(apiKey: string): Promise<void> {
                       resolve(__dirname, '../../../..');
   const settingsPath = join(projectRoot, '.claude', 'settings.json');
 
-  try {
-    let settings: Record<string, any> = {};
-    try {
-      const content = await readFile(settingsPath, 'utf-8');
-      settings = JSON.parse(content);
-    } catch { /* file doesn't exist */ }
-
-    if (!settings.kuroPlugin) settings.kuroPlugin = {};
-    if (!settings.kuroPlugin.tts) settings.kuroPlugin.tts = {};
-    settings.kuroPlugin.tts.elevenlabsApiKey = apiKey;
-
-    await writeFile(settingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-    console.log('[ElevenLabs] Synced API key to settings.json');
-  } catch (error) {
-    console.error('[ElevenLabs] Failed to sync key to settings.json:', error);
-  }
+  const writer = getSettingsWriter();
+  await writer.write(settingsPath, {
+    label: 'syncElevenlabsKey',
+    mutate: (settings) => {
+      if (!settings.kuroPlugin) settings.kuroPlugin = {};
+      const kp = settings.kuroPlugin as Record<string, unknown>;
+      if (!kp.tts) kp.tts = {};
+      (kp.tts as Record<string, unknown>).elevenlabsApiKey = apiKey;
+    },
+  });
 }
 
 function setupKuroConfigIpc(): void {
@@ -1815,159 +1810,225 @@ function setupKuroConfigIpc(): void {
     };
     features: { ragInteractive: boolean; questionMode: boolean };
   }) => {
-    try {
-      // Read existing settings
-      let settings: Record<string, unknown> = {};
-      try {
-        const content = await readFile(SETTINGS_PATH, 'utf-8');
-        settings = JSON.parse(content);
-      } catch {
-        // File doesn't exist, start fresh
-      }
+    const writer = getSettingsWriter();
+    return writer.write(SETTINGS_PATH, {
+      label: 'kuro-config:save',
+      mutate: (settings) => {
+        if (!settings.hooks) settings.hooks = {};
+        const hooks = settings.hooks as Record<string, unknown[]>;
 
-      if (!settings.hooks) settings.hooks = {};
-      const hooks = settings.hooks as Record<string, unknown[]>;
+        // Save complete kuroPlugin state (version 1 format)
+        // Inject ElevenLabs API key from token-store (source of truth) for smart_tts.py compat
+        const ttsToSave = { ...config.tts };
+        const storedElKey = tokenGetApiKey('elevenlabs');
+        ttsToSave.elevenlabsApiKey = storedElKey || '';
 
-      // Save complete kuroPlugin state (version 1 format)
-      // Inject ElevenLabs API key from token-store (source of truth) for smart_tts.py compat
-      const ttsToSave = { ...config.tts };
-      const storedElKey = tokenGetApiKey('elevenlabs');
-      ttsToSave.elevenlabsApiKey = storedElKey || '';
+        // Preserve _teamTtsActive flag (set by setTeamTtsOverride, not by UI save)
+        const prevTeamTtsActive = (settings.kuroPlugin as Record<string, unknown>)?._teamTtsActive === true;
 
-      settings.kuroPlugin = {
-        version: 1,
-        tts: ttsToSave,
-        validators: config.validators,
-        hooks: config.hooks,
-        features: config.features,
-      };
+        settings.kuroPlugin = {
+          version: 1,
+          tts: ttsToSave,
+          validators: config.validators,
+          hooks: config.hooks,
+          features: config.features,
+          _teamTtsActive: prevTeamTtsActive,
+        };
 
-      // Dynamic UV path resolution - check env var first, then use platform-appropriate default
-      const uvPath = process.env.UV_PATH
-        ? process.env.UV_PATH.replace(/\\/g, '\\\\')
-        : (process.platform === 'win32'
-            ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
-            : 'uv');
-      const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
-      const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
-      const voice = config.tts.voice || 'en-GB-SoniaNeural';
-      const useSmartTts = config.tts.smartSummaries;
-      // ElevenLabs always uses smart_tts.py (it reads provider from config and routes)
-      const isElevenLabs = config.tts.provider === 'elevenlabs';
-      const ttsTimeout = isElevenLabs ? 90000 : 30000;
+        // Dynamic UV path resolution - check env var first, then use platform-appropriate default
+        const uvPath = process.env.UV_PATH
+          ? process.env.UV_PATH.replace(/\\/g, '\\\\')
+          : (process.platform === 'win32'
+              ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
+              : 'uv');
+        const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
+        const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
+        const voice = config.tts.voice || 'en-GB-SoniaNeural';
+        const useSmartTts = config.tts.smartSummaries;
+        // ElevenLabs always uses smart_tts.py (it reads provider from config and routes)
+        const isElevenLabs = config.tts.provider === 'elevenlabs';
+        const ttsTimeout = isElevenLabs ? 90000 : 30000;
 
-      // Update Stop hooks - always keep session log + transcript export, only toggle TTS
-      {
-        const stopHookEntries: Array<{ type: string; command: string; timeout: number }> = [
-          { type: 'command', command: `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`, timeout: 10 },
-          { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
-        ];
-        if (config.hooks.ttsOnStop) {
+        // When teams are active, TTS comes from global hooks — don't write TTS to project hooks
+        // User preference flags (ttsOnStop etc.) are preserved regardless
+        const skipProjectTts = prevTeamTtsActive;
+
+        // Update Stop hooks - always keep session log + transcript export, only toggle TTS
+        {
+          const stopHookEntries: Array<{ type: string; command: string; timeout: number }> = [
+            { type: 'command', command: `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`, timeout: 10 },
+            { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
+          ];
+          if (config.hooks.ttsOnStop && !skipProjectTts) {
+            const ttsCommand = (useSmartTts || isElevenLabs)
+              ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
+              : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
+            stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+          }
+          hooks.Stop = [{ hooks: stopHookEntries }];
+        }
+
+        // Update SubagentStop hooks
+        if (config.hooks.ttsOnSubagentStop && !skipProjectTts) {
+          // Smart TTS uses --task to pass task description for AI summary
           const ttsCommand = (useSmartTts || isElevenLabs)
-            ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
-            : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
-          stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+            ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
+            : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
+          hooks.SubagentStop = [{
+            hooks: [
+              { type: 'command', command: ttsCommand, timeout: ttsTimeout },
+            ],
+          }];
+        } else if (!config.hooks.ttsOnSubagentStop) {
+          // Only delete if user actually disabled it (not just team override)
+          delete hooks.SubagentStop;
         }
-        hooks.Stop = [{ hooks: stopHookEntries }];
-      }
 
-      // Update SubagentStop hooks
-      if (config.hooks.ttsOnSubagentStop) {
-        // Smart TTS uses --task to pass task description for AI summary
-        const ttsCommand = (useSmartTts || isElevenLabs)
-          ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
-          : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
-        hooks.SubagentStop = [{
-          hooks: [
-            { type: 'command', command: ttsCommand, timeout: ttsTimeout },
-          ],
-        }];
-      } else {
-        delete hooks.SubagentStop;
-      }
-
-      // Update Notification hooks
-      if (config.hooks.ttsOnNotification) {
-        const ttsCommand = (useSmartTts || isElevenLabs)
-          ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
-          : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
-        hooks.Notification = [{
-          hooks: [
-            { type: 'command', command: ttsCommand, timeout: ttsTimeout },
-          ],
-        }];
-      } else {
-        delete hooks.Notification;
-      }
-
-      // Update PostToolUse hooks (validators and task sync)
-      const postHooks: Array<{ matcher: string; hooks: Array<{ type: string; command: string; timeout: number }> }> = [];
-
-      // Write/Edit hooks for logging
-      postHooks.push({ matcher: 'Write', hooks: [{ type: 'command', command: 'cmd /c echo WRITE >> ai/hooks/hook_fired.txt', timeout: 5 }] });
-      postHooks.push({ matcher: 'Edit', hooks: [{ type: 'command', command: 'cmd /c echo EDIT >> ai/hooks/hook_fired.txt', timeout: 5 }] });
-
-      // Task sync hooks
-      if (config.hooks.taskSync) {
-        const syncCmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/sync-claude-task.ps1"';
-        postHooks.push({ matcher: 'TaskCreate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
-        postHooks.push({ matcher: 'TaskUpdate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
-      }
-
-      // Validator hooks
-      if (config.validators.ruff || config.validators.ty) {
-        const validatorHooks: Array<{ type: string; command: string; timeout: number }> = [];
-        if (config.validators.ruff) {
-          validatorHooks.push({
-            type: 'command',
-            command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}"`,
-            timeout: config.validators.timeout,
-          });
+        // Update Notification hooks
+        if (config.hooks.ttsOnNotification && !skipProjectTts) {
+          const ttsCommand = (useSmartTts || isElevenLabs)
+            ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
+            : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
+          hooks.Notification = [{
+            hooks: [
+              { type: 'command', command: ttsCommand, timeout: ttsTimeout },
+            ],
+          }];
+        } else if (!config.hooks.ttsOnNotification) {
+          delete hooks.Notification;
         }
-        if (config.validators.ty) {
-          validatorHooks.push({
-            type: 'command',
-            command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ty_validator.py $f}"`,
-            timeout: config.validators.timeout,
-          });
+
+        // Update PostToolUse hooks (validators and task sync)
+        const postHooks: Array<{ matcher: string; hooks: Array<{ type: string; command: string; timeout: number }> }> = [];
+
+        // Write/Edit hooks for logging
+        postHooks.push({ matcher: 'Write', hooks: [{ type: 'command', command: 'cmd /c echo WRITE >> ai/hooks/hook_fired.txt', timeout: 5 }] });
+        postHooks.push({ matcher: 'Edit', hooks: [{ type: 'command', command: 'cmd /c echo EDIT >> ai/hooks/hook_fired.txt', timeout: 5 }] });
+
+        // Task sync hooks
+        if (config.hooks.taskSync) {
+          const syncCmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/sync-claude-task.ps1"';
+          postHooks.push({ matcher: 'TaskCreate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
+          postHooks.push({ matcher: 'TaskUpdate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
         }
-        postHooks.push({ matcher: 'Write|Edit', hooks: validatorHooks });
-      }
 
-      hooks.PostToolUse = postHooks;
+        // Validator hooks
+        if (config.validators.ruff || config.validators.ty) {
+          const validatorHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          if (config.validators.ruff) {
+            validatorHooks.push({
+              type: 'command',
+              command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}"`,
+              timeout: config.validators.timeout,
+            });
+          }
+          if (config.validators.ty) {
+            validatorHooks.push({
+              type: 'command',
+              command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ty_validator.py $f}"`,
+              timeout: config.validators.timeout,
+            });
+          }
+          postHooks.push({ matcher: 'Write|Edit', hooks: validatorHooks });
+        }
 
-      // Update UserPromptSubmit hooks
-      if (config.hooks.transcriptExport) {
-        hooks.UserPromptSubmit = [{
-          hooks: [
-            { type: 'command', command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"', timeout: 5 },
-          ],
-        }];
-      } else {
-        delete hooks.UserPromptSubmit;
-      }
+        hooks.PostToolUse = postHooks;
 
-      // Update PreToolUse hooks (RAG interactive)
-      if (config.features.ragInteractive) {
-        hooks.PreToolUse = [{
-          matcher: 'mcp__kuroryuu__k_rag',
-          hooks: [
-            { type: 'command', command: 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/rag-interactive-gate.ps1"', timeout: 5000 },
-          ],
-        }];
-      } else {
-        delete hooks.PreToolUse;
-      }
+        // Update UserPromptSubmit hooks
+        if (config.hooks.transcriptExport) {
+          hooks.UserPromptSubmit = [{
+            hooks: [
+              { type: 'command', command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"', timeout: 5 },
+            ],
+          }];
+        } else {
+          delete hooks.UserPromptSubmit;
+        }
 
-      // Write back
-      const jsonContent = JSON.stringify(settings, null, 2);
-      await writeFile(SETTINGS_PATH, jsonContent, 'utf-8');
+        // Update PreToolUse hooks (RAG interactive)
+        if (config.features.ragInteractive) {
+          hooks.PreToolUse = [{
+            matcher: 'mcp__kuroryuu__k_rag',
+            hooks: [
+              { type: 'command', command: 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/rag-interactive-gate.ps1"', timeout: 5000 },
+            ],
+          }];
+        } else {
+          delete hooks.PreToolUse;
+        }
+      },
+    });
+  });
 
-      return { ok: true };
-    } catch (error) {
-      console.error('[KuroConfig] Failed to save:', error);
-      return { ok: false, error: String(error) };
-    }
+  // Toggle team TTS override — only manipulates TTS hook entries + _teamTtsActive flag
+  // Does NOT touch kuroPlugin.hooks flags (user preference) or non-TTS hooks
+  ipcMain.handle('kuro-config:setTeamTtsOverride', async (_, active: boolean) => {
+    const writer = getSettingsWriter();
+    return writer.write(SETTINGS_PATH, {
+      label: 'kuro-config:setTeamTtsOverride',
+      mutate: (settings) => {
+        if (!settings.hooks) settings.hooks = {};
+        const hooks = settings.hooks as Record<string, unknown[]>;
+        const kuroPlugin = settings.kuroPlugin as Record<string, unknown> || {};
+
+        // Set the override flag
+        kuroPlugin._teamTtsActive = active;
+        settings.kuroPlugin = kuroPlugin;
+
+        if (active) {
+          // Teams active: remove TTS from project hooks (global hooks handle it)
+          // Stop: strip TTS entries (keep session log + transcript export)
+          const stopArr = hooks.Stop as Array<{ hooks: Array<{ command: string }> }> | undefined;
+          if (stopArr?.[0]?.hooks) {
+            stopArr[0].hooks = stopArr[0].hooks.filter(
+              (h) => !h.command.includes('smart_tts.py') && !h.command.includes('edge_tts.py')
+            );
+          }
+          delete hooks.SubagentStop;
+          delete hooks.Notification;
+        } else {
+          // No teams: rebuild TTS entries from user preference flags
+          const ttsHooks = (kuroPlugin.hooks as Record<string, boolean>) || {};
+          const tts = (kuroPlugin.tts as Record<string, unknown>) || {};
+          const voice = (tts.voice as string) || 'en-GB-SoniaNeural';
+          const useSmartTts = tts.smartSummaries as boolean;
+          const isElevenLabs = tts.provider === 'elevenlabs';
+          const ttsTimeout = isElevenLabs ? 90000 : 30000;
+          const messages = (tts.messages as Record<string, string>) || {};
+
+          const uvPath = process.env.UV_PATH
+            ? process.env.UV_PATH.replace(/\\/g, '\\\\')
+            : (process.platform === 'win32'
+                ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
+                : 'uv');
+          const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
+          const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
+
+          const makeTtsCmd = (msg: string, type: string, extraArgs = '') => {
+            return (useSmartTts || isElevenLabs)
+              ? `${uvPath} run ${smartTtsScript} "${msg}" --type ${type}${extraArgs} --voice "${voice}"`
+              : `${uvPath} run ${simpleTtsScript} "${msg}" --voice "${voice}"`;
+          };
+
+          if (ttsHooks.ttsOnStop) {
+            const stopArr = hooks.Stop as Array<{ hooks: Array<{ type: string; command: string; timeout: number }> }> | undefined;
+            if (stopArr?.[0]?.hooks) {
+              stopArr[0].hooks.push({ type: 'command', command: makeTtsCmd(messages.stop || 'Work complete', 'stop'), timeout: ttsTimeout });
+            }
+          }
+          if (ttsHooks.ttsOnSubagentStop) {
+            hooks.SubagentStop = [{
+              hooks: [{ type: 'command', command: makeTtsCmd(messages.subagentStop || 'Task finished', 'subagent', ' --task "$CLAUDE_TASK_DESCRIPTION"'), timeout: ttsTimeout }],
+            }];
+          }
+          if (ttsHooks.ttsOnNotification) {
+            hooks.Notification = [{
+              hooks: [{ type: 'command', command: makeTtsCmd(messages.notification || 'Your attention is needed', 'notification'), timeout: ttsTimeout }],
+            }];
+          }
+        }
+      },
+    });
   });
 
   // Test TTS with current settings
@@ -2375,22 +2436,18 @@ $player.Close()
       const backup = JSON.parse(content);
       const restoredConfig = backup.config;
 
-      // Read current settings
-      let settings: Record<string, unknown> = {};
-      try {
-        const settingsContent = await readFile(SETTINGS_PATH, 'utf-8');
-        settings = JSON.parse(settingsContent);
-      } catch {
-        // Start fresh if file doesn't exist
+      const writer = getSettingsWriter();
+      const result = await writer.write(SETTINGS_PATH, {
+        label: 'kuro-config:restore-backup',
+        mutate: (settings) => {
+          settings.kuroPlugin = restoredConfig;
+        },
+      });
+
+      if (result.ok) {
+        return { ok: true, config: restoredConfig };
       }
-
-      // Update kuroPlugin section
-      settings.kuroPlugin = restoredConfig;
-
-      // Write back to settings.json
-      await writeFile(SETTINGS_PATH, JSON.stringify(settings, null, 2), 'utf-8');
-
-      return { ok: true, config: restoredConfig };
+      return { ok: false, error: result.error };
     } catch (error) {
       console.error('[KuroConfig] Restore backup failed:', error);
       return { ok: false, error: String(error) };

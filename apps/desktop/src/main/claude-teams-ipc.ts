@@ -36,6 +36,7 @@ import {
   deleteTemplate,
   toggleTemplateFavorite,
 } from './claude-teams-templates';
+import { getSettingsWriter } from './services/settings-writer';
 
 // -----------------------------------------------------------------------
 // UV Binary Resolution (cached)
@@ -373,80 +374,68 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
 
       const globalSettingsPath = path.join(os.homedir(), '.claude', 'settings.json');
 
-      // Read existing global settings
-      let settings: Record<string, unknown> = {};
-      try {
-        const content = await readFile(globalSettingsPath, 'utf-8');
-        settings = JSON.parse(content);
-      } catch {
-        // File may not exist yet
-      }
-
-      if (!settings.hooks) settings.hooks = {};
-      const hooks = settings.hooks as Record<string, unknown>;
-
       // Use dynamically resolved paths
       const uvPath = escapePath(validation.uvPath!);
       const smartTtsAbsolute = escapePath(validation.scriptPath!);
-
       const voice = ttsConfig.voice || 'en-GB-SoniaNeural';
 
-      // Global hook commands set KURORYUU_TTS_SOURCE=global so smart_tts.py
-      // can detect it's running from global hooks (for double-fire prevention).
-      // Claude Code runs hooks through bash (even on Windows), so use POSIX syntax.
-      const envPrefix = 'KURORYUU_TTS_SOURCE=global';
+      // Use --source global CLI arg for double-fire prevention (works on all platforms)
+      const sourceArg = '--source global';
 
-      // Install Stop hook
-      hooks.Stop = [{
-        hooks: [
-          {
-            type: 'command',
-            command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}"`,
-            timeout: 90000,
-          },
-        ],
-      }];
+      const writer = getSettingsWriter();
+      return writer.write(globalSettingsPath, {
+        label: 'global-hooks:install-tts',
+        mutate: (settings) => {
+          if (!settings.hooks) settings.hooks = {};
+          const hooks = settings.hooks as Record<string, unknown>;
 
-      // Install SubagentStop hook
-      hooks.SubagentStop = [{
-        hooks: [
-          {
-            type: 'command',
-            command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`,
-            timeout: 90000,
-          },
-        ],
-      }];
+          // Install Stop hook
+          hooks.Stop = [{
+            hooks: [
+              {
+                type: 'command',
+                command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}" ${sourceArg}`,
+                timeout: 90000,
+              },
+            ],
+          }];
 
-      // Install Notification hook
-      hooks.Notification = [{
-        hooks: [
-          {
-            type: 'command',
-            command: `${envPrefix} ${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}"`,
-            timeout: 90000,
-          },
-        ],
-      }];
+          // Install SubagentStop hook
+          hooks.SubagentStop = [{
+            hooks: [
+              {
+                type: 'command',
+                command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}" ${sourceArg}`,
+                timeout: 90000,
+              },
+            ],
+          }];
 
-      // Mirror kuroPlugin config to global (so smart_tts.py can find settings via global fallback)
-      settings.kuroPlugin = {
-        tts: {
-          provider: 'edge_tts',
-          voice: ttsConfig.voice || 'en-GB-SoniaNeural',
-          smartSummaries: ttsConfig.smartSummaries || false,
-          summaryProvider: ttsConfig.summaryProvider || 'gateway-auto',
-          summaryModel: ttsConfig.summaryModel || '',
-          userName: ttsConfig.userName || 'Kuroryuu Says',
-          messages: ttsConfig.messages,
+          // Install Notification hook
+          hooks.Notification = [{
+            hooks: [
+              {
+                type: 'command',
+                command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}" ${sourceArg}`,
+                timeout: 90000,
+              },
+            ],
+          }];
+
+          // Mirror kuroPlugin config to global (so smart_tts.py can find settings via global fallback)
+          settings.kuroPlugin = {
+            tts: {
+              provider: 'edge_tts',
+              voice: ttsConfig.voice || 'en-GB-SoniaNeural',
+              smartSummaries: ttsConfig.smartSummaries || false,
+              summaryProvider: ttsConfig.summaryProvider || 'gateway-auto',
+              summaryModel: ttsConfig.summaryModel || '',
+              userName: ttsConfig.userName || 'Kuroryuu Says',
+              messages: ttsConfig.messages,
+            },
+          };
         },
-      };
-
-      // Write back
-      await writeFileAsync(globalSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-
-      console.log('[GlobalHooks] Installed TTS hooks in global settings');
-      return { ok: true };
+      });
     } catch (err) {
       console.error('[GlobalHooks] Failed to install TTS hooks:', err);
       return { ok: false, error: String(err) };
@@ -457,34 +446,26 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
     try {
       const globalSettingsPath = path.join(os.homedir(), '.claude', 'settings.json');
 
-      let settings: Record<string, unknown> = {};
-      try {
-        const content = await readFile(globalSettingsPath, 'utf-8');
-        settings = JSON.parse(content);
-      } catch {
-        return { ok: true }; // Nothing to remove
-      }
+      const writer = getSettingsWriter();
+      return writer.write(globalSettingsPath, {
+        label: 'global-hooks:remove-tts',
+        mutate: (settings) => {
+          // Remove TTS hooks
+          if (settings.hooks && typeof settings.hooks === 'object') {
+            const hooks = settings.hooks as Record<string, unknown>;
+            delete hooks.Stop;
+            delete hooks.SubagentStop;
+            delete hooks.Notification;
+            // Clean up empty hooks object
+            if (Object.keys(hooks).length === 0) {
+              delete settings.hooks;
+            }
+          }
 
-      // Remove TTS hooks
-      if (settings.hooks && typeof settings.hooks === 'object') {
-        const hooks = settings.hooks as Record<string, unknown>;
-        delete hooks.Stop;
-        delete hooks.SubagentStop;
-        delete hooks.Notification;
-        // Clean up empty hooks object
-        if (Object.keys(hooks).length === 0) {
-          delete settings.hooks;
-        }
-      }
-
-      // Remove mirrored kuroPlugin config
-      delete settings.kuroPlugin;
-
-      const { writeFile: writeFileAsync } = await import('fs/promises');
-      await writeFileAsync(globalSettingsPath, JSON.stringify(settings, null, 2), 'utf-8');
-
-      console.log('[GlobalHooks] Removed TTS hooks from global settings');
-      return { ok: true };
+          // Remove mirrored kuroPlugin config
+          delete settings.kuroPlugin;
+        },
+      });
     } catch (err) {
       console.error('[GlobalHooks] Failed to remove TTS hooks:', err);
       return { ok: false, error: String(err) };

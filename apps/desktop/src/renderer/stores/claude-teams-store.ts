@@ -111,12 +111,12 @@ async function syncTtsHooks(teams: TeamSnapshot[]): Promise<void> {
   const hasActiveTeams = teams.length > 0;
 
   try {
-    const configResult = await window.electronAPI?.kuroConfig?.load?.();
-    if (!configResult?.ok || !configResult.config) return;
-
-    const config = configResult.config;
-
     if (hasActiveTeams) {
+      // Load config to get TTS settings for global hooks
+      const configResult = await window.electronAPI?.kuroConfig?.load?.();
+      if (!configResult?.ok || !configResult.config) return;
+      const config = configResult.config;
+
       // Install global TTS hooks with current TTS settings
       const tts = config.tts as Record<string, unknown> | undefined;
       await window.electronAPI?.globalHooks?.installTts?.({
@@ -132,34 +132,16 @@ async function syncTtsHooks(teams: TeamSnapshot[]): Promise<void> {
         userName: tts?.userName as string | undefined,
       });
 
-      // Disable local TTS hooks (only TTS - keep taskSync, transcriptExport, validators)
-      if (config.hooks?.ttsOnStop || config.hooks?.ttsOnSubagentStop || config.hooks?.ttsOnNotification) {
-        await window.electronAPI?.kuroConfig?.save?.({
-          ...config,
-          hooks: {
-            ...config.hooks,
-            ttsOnStop: false,
-            ttsOnSubagentStop: false,
-            ttsOnNotification: false,
-          },
-        });
-        console.log('[ClaudeTeamsStore] Teams active - global TTS enabled, local TTS disabled');
-      }
+      // Remove TTS from project hooks (targeted — does NOT touch user preference flags)
+      await window.electronAPI?.kuroConfig?.setTeamTtsOverride?.(true);
+      console.log('[ClaudeTeamsStore] Teams active - global TTS enabled, project TTS disabled');
     } else {
       // Remove global hooks
       await window.electronAPI?.globalHooks?.removeTts?.();
 
-      // Re-enable local TTS hooks
-      await window.electronAPI?.kuroConfig?.save?.({
-        ...config,
-        hooks: {
-          ...config.hooks,
-          ttsOnStop: true,
-          ttsOnSubagentStop: true,
-          ttsOnNotification: true,
-        },
-      });
-      console.log('[ClaudeTeamsStore] No teams - global TTS removed, local TTS restored');
+      // Restore TTS to project hooks (targeted — reads user preference flags to rebuild)
+      await window.electronAPI?.kuroConfig?.setTeamTtsOverride?.(false);
+      console.log('[ClaudeTeamsStore] No teams - global TTS removed, project TTS restored');
     }
   } catch (err) {
     console.error('[ClaudeTeamsStore] syncTtsHooks error:', err);

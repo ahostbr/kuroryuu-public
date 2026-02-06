@@ -103,8 +103,19 @@ export const useGenUIStore = create<GenUIState>((set, get) => ({
             const eventType = event.type;
 
             if (eventType === 'STATE_SNAPSHOT') {
-              const { type, timestamp, ...snapshot } = event;
-              get().applySnapshot(snapshot);
+              // AG-UI wraps snapshot in event.snapshot; Gateway sends snake_case keys
+              const raw = event.snapshot || event;
+              const mapped: Record<string, any> = {};
+              if (raw.status !== undefined) mapped.status = raw.status;
+              if (raw.progress !== undefined) mapped.progress = raw.progress;
+              if (raw.current_step !== undefined) mapped.currentStep = raw.current_step;
+              if (raw.document_title !== undefined) mapped.documentTitle = raw.document_title;
+              if (raw.document_type !== undefined) mapped.documentType = raw.document_type;
+              if (raw.layout_type !== undefined) mapped.layoutType = raw.layout_type;
+              if (raw.content_analysis !== undefined) mapped.contentAnalysis = raw.content_analysis;
+              if (raw.error_message !== undefined) mapped.errorMessage = raw.error_message;
+              if (raw.components !== undefined) mapped.components = raw.components;
+              get().applySnapshot(mapped);
             } else if (eventType === 'STATE_DELTA') {
               const patches = event.delta as JsonPatch[];
               if (patches) get().applyDelta(patches);
@@ -126,6 +137,12 @@ export const useGenUIStore = create<GenUIState>((set, get) => ({
                   message: `Finished: ${event.stepName}`,
                 }],
               }));
+            } else if (eventType === 'RUN_FINISHED') {
+              // Fallback: ensure status is 'complete' even if final STATE_SNAPSHOT missed
+              const current = get();
+              if (current.status !== 'complete' && current.status !== 'error') {
+                set({ status: 'complete', progress: 100 });
+              }
             }
           } catch {
             // Ignore malformed SSE lines

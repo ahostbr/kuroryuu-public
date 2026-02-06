@@ -1,10 +1,8 @@
 /**
- * ExecutiveSummary Component
- * Displays a comprehensive summary with optional title, overview text, metrics, and recommendations.
+ * ExecutiveSummary Component — Imperial briefing panel
+ * Comprehensive summary with metrics grid and recommendations.
  */
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card';
-import { Badge } from '../../../ui/badge';
 
 export interface SummaryMetric {
   label: string;
@@ -18,6 +16,7 @@ export interface ExecutiveSummaryProps {
   summary: string;
   metrics?: SummaryMetric[];
   recommendations?: string[];
+  key_metrics?: SummaryMetric[];
 }
 
 export function ExecutiveSummary({
@@ -25,57 +24,101 @@ export function ExecutiveSummary({
   summary,
   metrics,
   recommendations,
+  key_metrics,
 }: ExecutiveSummaryProps): React.ReactElement {
-  const getTrendIcon = (trend?: 'up' | 'down' | 'neutral') => {
-    switch (trend) {
-      case 'up': return <span className="text-emerald-400">{'\u2191'}</span>;
-      case 'down': return <span className="text-red-400">{'\u2193'}</span>;
-      case 'neutral': return <span className="text-yellow-400">{'\u2192'}</span>;
-      default: return null;
-    }
-  };
+  const displayMetrics = metrics || key_metrics;
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader>
-        <CardTitle className="text-primary">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <p className="text-sm text-foreground">{summary}</p>
-        {metrics && metrics.length > 0 && (
+    <div className="genui-card genui-accent-left rounded-md overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-3" style={{ borderBottom: '1px solid rgba(201,169,98,0.08)' }}>
+        <h3 className="text-sm font-semibold tracking-wide" style={{ color: 'rgba(201,169,98,0.75)' }}>
+          {title}
+        </h3>
+      </div>
+
+      <div className="px-5 py-4 space-y-5">
+        {/* Summary text */}
+        <p className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.85)' }}>
+          {summary}
+        </p>
+
+        {/* Metrics grid */}
+        {displayMetrics && displayMetrics.length > 0 && (
           <div>
-            <h4 className="font-semibold text-sm mb-3 text-primary">Key Metrics</h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {metrics.map((metric, idx) => (
-                <div key={idx} className="p-3 rounded-lg bg-secondary border border-border space-y-1">
-                  <div className="text-xs text-muted-foreground">{metric.label}</div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-lg font-bold text-foreground">{metric.value}</span>
-                    {metric.unit && <span className="text-sm text-muted-foreground">{metric.unit}</span>}
-                    {metric.trend && getTrendIcon(metric.trend)}
+            <div className="genui-zone-header mb-3">
+              <span className="genui-label">Key Metrics</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {displayMetrics.map((metric, idx) => (
+                <div
+                  key={idx}
+                  className="p-3 rounded"
+                  style={{
+                    background: 'rgba(17,17,19,0.6)',
+                    border: '1px solid rgba(201,169,98,0.08)',
+                  }}
+                >
+                  <div className="genui-label mb-1" style={{ fontSize: '0.55rem' }}>{metric.label}</div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span
+                      className="text-lg font-bold"
+                      style={{
+                        color: 'var(--foreground)',
+                        fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                      }}
+                    >
+                      {metric.value}
+                    </span>
+                    {metric.unit && (
+                      <span className="text-xs" style={{ color: 'rgba(122,117,109,0.5)' }}>{metric.unit}</span>
+                    )}
+                    {metric.trend && (
+                      <span style={{
+                        color: metric.trend === 'up' ? '#34d399' : metric.trend === 'down' ? '#f87171' : 'rgba(201,169,98,0.5)',
+                        fontSize: '0.7rem',
+                      }}>
+                        {metric.trend === 'up' ? '\u25B2' : metric.trend === 'down' ? '\u25BC' : '\u25C6'}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Recommendations */}
         {recommendations && recommendations.length > 0 && (
           <div>
-            <h4 className="font-semibold text-sm mb-2 text-primary">Recommendations</h4>
-            <ul className="space-y-2">
+            <div className="genui-zone-header mb-3">
+              <span className="genui-label">Recommendations</span>
+            </div>
+            <div className="space-y-2">
               {recommendations.map((rec, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <Badge variant="outline" className="shrink-0 mt-0.5 border-primary/30 text-primary bg-primary/10">
+                <div key={idx} className="flex items-start gap-3">
+                  <span
+                    className="shrink-0 w-5 h-5 flex items-center justify-center rounded text-xs font-bold"
+                    style={{
+                      background: 'rgba(139,38,53,0.2)',
+                      color: 'rgba(201,169,98,0.7)',
+                      border: '1px solid rgba(139,38,53,0.3)',
+                      fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                      fontSize: '0.6rem',
+                    }}
+                  >
                     {idx + 1}
-                  </Badge>
-                  <span className="text-sm text-foreground/80">{rec}</span>
-                </li>
+                  </span>
+                  <span className="text-sm leading-relaxed" style={{ color: 'rgba(250,250,250,0.75)' }}>
+                    {rec}
+                  </span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

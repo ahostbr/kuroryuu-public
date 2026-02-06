@@ -64,14 +64,14 @@ def get_settings():
     return {}
 
 
-def should_skip_global():
+def should_skip_global(source_arg=""):
     """Check if a local project instance will handle TTS (avoid double-fire).
 
-    When running from global hooks (KURORYUU_TTS_SOURCE=global),
+    When running from global hooks (--source global or KURORYUU_TTS_SOURCE=global),
     check if CWD is in a project with local TTS hooks enabled.
     If so, skip - the local hooks will handle it.
     """
-    source = os.environ.get("KURORYUU_TTS_SOURCE", "")
+    source = source_arg or os.environ.get("KURORYUU_TTS_SOURCE", "")
     if source != "global":
         return False  # Not running from global hooks
 
@@ -517,10 +517,11 @@ def main():
     parser.add_argument("--voice", "-v", default=None, help="TTS voice override")
     parser.add_argument("--provider", "-p", default=None, help="Summary provider override")
     parser.add_argument("--model", "-m", default=None, help="LLM model override (for LMStudio)")
+    parser.add_argument("--source", default="", help="Hook source (global/project) for double-fire prevention")
     args = parser.parse_args()
 
     # Guard: skip if running from global hooks and local hooks are enabled
-    if should_skip_global():
+    if should_skip_global(args.source):
         print("[SmartTTS] Skipping - local project hooks will handle TTS", file=sys.stderr)
         sys.exit(0)
 
