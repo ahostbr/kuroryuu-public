@@ -11,7 +11,9 @@
  * - Session management (save/load)
  * - Formula workflows (TOML-based reusable workflows)
  */
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { DRAGON_ASCII } from '../../constants/dragon-ascii';
 import {
   Lightbulb,
   Shield,
@@ -64,98 +66,272 @@ function IdeationEmptyState({ onGenerate }: { onGenerate: () => void }) {
     setConfig({ types });
   };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setIsCompact(entry.contentRect.width < 600);
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center p-8">
-      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-yellow-400/20 to-orange-500/20 flex items-center justify-center mb-8">
-        <Lightbulb className="w-12 h-12 text-primary" />
-      </div>
-      
-      <h2 className="text-2xl font-semibold text-foreground mb-3">
-        Generate Ideas
-      </h2>
-      <p className="text-muted-foreground max-w-md mb-8">
-        Let AI analyze your codebase and suggest improvements, identify potential
-        vulnerabilities, performance optimizations, and more.
-      </p>
+    <div
+      ref={containerRef}
+      className="h-full flex flex-col items-center relative overflow-hidden select-none"
+      style={{ background: 'radial-gradient(ellipse at center, rgba(50,20,8,0.4) 0%, transparent 70%)' }}
+    >
+      {/* Scanlines */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[1]"
+        style={{
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
+        }}
+      />
+      {/* Vignette */}
+      <div
+        className="absolute inset-0 pointer-events-none z-[2]"
+        style={{
+          background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.5) 100%)',
+        }}
+      />
 
-      {/* Config Panel */}
-      {showConfig && (
-        <div className="w-full max-w-md mb-6 p-4 bg-card border border-border rounded-xl text-left">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-medium text-foreground">Configuration</h3>
-            <button
-              onClick={() => setShowConfig(false)}
-              className="p-1 text-muted-foreground hover:text-foreground"
+      {/* Scrollable content column */}
+      <div className="relative z-[3] flex flex-col items-center gap-2 px-4 py-8 overflow-y-auto max-w-2xl w-full">
+        {/* Kanji */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="font-serif leading-none"
+          style={{
+            fontSize: isCompact ? '2rem' : 'clamp(2rem, 4vw, 3rem)',
+            color: '#c9a962',
+            textShadow: '0 0 30px rgba(201,162,39,0.4), 0 0 60px rgba(201,162,39,0.15)',
+            letterSpacing: '0.15em',
+          }}
+        >
+          黒龍幻霧
+        </motion.div>
+
+        {/* Subtitle */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.15, duration: 0.5 }}
+          className="font-mono uppercase tracking-[0.25em]"
+          style={{ fontSize: '10px', color: 'rgba(201,162,39,0.5)' }}
+        >
+          KURORYUU GENMU
+        </motion.div>
+
+        {/* Dragon ASCII */}
+        {!isCompact && (
+          <motion.pre
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.8 }}
+            aria-hidden="true"
+            className="leading-[1.15] overflow-hidden text-center mt-2 cursor-default transition-all duration-300"
+            style={{
+              fontSize: 'clamp(0.3rem, 0.85vw, 0.6rem)',
+              color: '#8b2635',
+              animation: 'dragonBreathe 6s ease-in-out infinite',
+              fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
+              fontVariantLigatures: 'none',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#a82d3f';
+              e.currentTarget.style.transform = 'scale(1.02)';
+              e.currentTarget.style.textShadow = '0 0 12px rgba(139,38,53,0.6), 0 0 24px rgba(139,38,53,0.6), 0 0 48px rgba(139,38,53,0.3)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#8b2635';
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.textShadow = '';
+            }}
+          >
+            {DRAGON_ASCII}
+          </motion.pre>
+        )}
+
+        {/* Brand */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: isCompact ? 0.3 : 0.6, duration: 0.4 }}
+          className="font-mono tracking-[0.5em] text-xs mt-1"
+          style={{ color: 'rgba(255,255,255,0.7)' }}
+        >
+          K U R O R Y U U
+        </motion.div>
+
+        {/* Separator */}
+        <motion.div
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: isCompact ? 0.4 : 0.7, duration: 0.5 }}
+          className="w-48 h-px mt-3 mb-3"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(201,162,39,0.5), transparent)' }}
+        />
+
+        {/* Title + Description */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: isCompact ? 0.5 : 0.8, duration: 0.4 }}
+          className="text-center space-y-2"
+        >
+          <h2
+            className="text-2xl font-semibold"
+            style={{ color: '#c9a962', textShadow: '0 0 20px rgba(201,162,39,0.3)' }}
+          >
+            Forge Your Vision
+          </h2>
+          <p className="text-muted-foreground max-w-md text-sm">
+            Let AI analyze your codebase and suggest improvements, identify potential
+            vulnerabilities, performance optimizations, and more.
+          </p>
+        </motion.div>
+
+        {/* Terminal-style buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: isCompact ? 0.6 : 0.9, duration: 0.4 }}
+          className="flex items-center gap-4 mt-4"
+        >
+          <button
+            onClick={() => setShowConfig(!showConfig)}
+            className="font-mono text-sm uppercase px-6 py-3 transition-all duration-[400ms] hover:translate-y-[-2px]"
+            style={{
+              border: '1px solid rgba(122,117,109,0.3)',
+              color: 'rgba(122,117,109,0.8)',
+              letterSpacing: '0.1em',
+              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#c9a962';
+              e.currentTarget.style.borderColor = 'rgba(201,169,98,0.5)';
+              e.currentTarget.style.textShadow = '0 0 10px rgba(201,169,98,0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'rgba(122,117,109,0.8)';
+              e.currentTarget.style.borderColor = 'rgba(122,117,109,0.3)';
+              e.currentTarget.style.textShadow = 'none';
+            }}
+          >
+            <Settings className="w-4 h-4 inline mr-2 -mt-0.5" />
+            &gt; Configure
+          </button>
+          <button
+            onClick={onGenerate}
+            disabled={config.types.length === 0}
+            className="font-mono text-sm uppercase px-6 py-3 transition-all duration-[400ms] hover:translate-y-[-2px] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            style={{
+              border: '1px solid rgba(201,169,98,0.4)',
+              color: '#c9a962',
+              letterSpacing: '0.1em',
+              transitionTimingFunction: 'cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+            onMouseEnter={(e) => {
+              if (!e.currentTarget.disabled) {
+                e.currentTarget.style.borderColor = 'rgba(201,169,98,0.7)';
+                e.currentTarget.style.textShadow = '0 0 15px rgba(201,169,98,0.6)';
+                e.currentTarget.style.boxShadow = '0 0 20px rgba(201,169,98,0.15)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(201,169,98,0.4)';
+              e.currentTarget.style.textShadow = 'none';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <Lightbulb className="w-4 h-4 inline mr-2 -mt-0.5" />
+            &gt; Generate Ideas
+          </button>
+        </motion.div>
+
+        {/* Config Panel */}
+        <AnimatePresence>
+          {showConfig && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="w-full max-w-md mt-4 p-4 rounded-xl text-left overflow-hidden"
+              style={{
+                background: 'rgba(18,16,14,0.95)',
+                border: '1px solid rgba(201,162,39,0.2)',
+                backdropFilter: 'blur(10px)',
+              }}
             >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {/* Idea Types */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Idea Types</label>
-              <div className="flex flex-wrap gap-2">
-                {(Object.keys(IDEA_TYPE_CONFIG) as IdeaType[]).map(type => (
-                  <button
-                    key={type}
-                    onClick={() => toggleType(type)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                      config.types.includes(type)
-                        ? IDEA_TYPE_COLORS[type]
-                        : 'bg-secondary text-muted-foreground border-border'
-                    }`}
-                  >
-                    <IdeaTypeIcon type={type} className="w-3.5 h-3.5" />
-                    {IDEA_TYPE_CONFIG[type].label}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-foreground text-sm">Configuration</h3>
+                <button
+                  onClick={() => setShowConfig(false)}
+                  className="p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-            </div>
 
-            {/* Max Ideas */}
-            <div>
-              <label className="text-sm text-muted-foreground mb-2 block">Max Ideas: {config.maxIdeas}</label>
-              <input
-                type="range"
-                min={5}
-                max={50}
-                value={config.maxIdeas}
-                onChange={(e) => setConfig({ maxIdeas: Number(e.target.value) })}
-                className="w-full accent-yellow-500"
-              />
-            </div>
+              <div className="space-y-4">
+                {/* Idea Types */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Idea Types</label>
+                  <div className="flex flex-wrap gap-2">
+                    {(Object.keys(IDEA_TYPE_CONFIG) as IdeaType[]).map(type => (
+                      <button
+                        key={type}
+                        onClick={() => toggleType(type)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm border transition-colors ${
+                          config.types.includes(type)
+                            ? IDEA_TYPE_COLORS[type]
+                            : 'bg-secondary text-muted-foreground border-border'
+                        }`}
+                      >
+                        <IdeaTypeIcon type={type} className="w-3.5 h-3.5" />
+                        {IDEA_TYPE_CONFIG[type].label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Include Files */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={config.includeFiles}
-                onChange={(e) => setConfig({ includeFiles: e.target.checked })}
-                className="rounded border-border bg-secondary text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-foreground">Include file references</span>
-            </label>
-          </div>
-        </div>
-      )}
+                {/* Max Ideas */}
+                <div>
+                  <label className="text-sm text-muted-foreground mb-2 block">Max Ideas: {config.maxIdeas}</label>
+                  <input
+                    type="range"
+                    min={5}
+                    max={50}
+                    value={config.maxIdeas}
+                    onChange={(e) => setConfig({ maxIdeas: Number(e.target.value) })}
+                    className="w-full accent-yellow-500"
+                  />
+                </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => setShowConfig(!showConfig)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-foreground hover:bg-muted transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          Configure
-        </button>
-        <button
-          onClick={onGenerate}
-          disabled={config.types.length === 0}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary text-background font-medium hover:bg-primary disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
-        >
-          <Lightbulb className="w-4 h-4" />
-          Generate Ideas
-        </button>
+                {/* Include Files */}
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={config.includeFiles}
+                    onChange={(e) => setConfig({ includeFiles: e.target.checked })}
+                    className="rounded border-border bg-secondary text-primary focus:ring-primary"
+                  />
+                  <span className="text-sm text-foreground">Include file references</span>
+                </label>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

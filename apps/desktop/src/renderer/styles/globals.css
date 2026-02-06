@@ -203,6 +203,15 @@ button, a, input, textarea, select {
   animation: typing 2s steps(40, end), blink 1s infinite;
 }
 
+@keyframes dragonBreathe {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(139,38,53,0.6), 0 0 16px rgba(139,38,53,0.6);
+  }
+  50% {
+    text-shadow: 0 0 15px rgba(139,38,53,0.6), 0 0 30px rgba(139,38,53,0.6), 0 0 45px rgba(201,169,98,0.15);
+  }
+}
+
 /* ===========================================
    KURORYUU THEME SYSTEM
    6 color themes + dark/light modes

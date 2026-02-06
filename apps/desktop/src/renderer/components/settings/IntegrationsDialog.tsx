@@ -20,6 +20,7 @@ import {
   Bot,
   Play,
   Square,
+  Archive,
 } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings-store';
 import { CLIBootstrapInstall } from '../CLIBootstrapInstall';
@@ -29,7 +30,7 @@ import { useSettings, type GraphitiSettings } from '../../hooks/useSettings';
 import { toast } from '../ui/toast';
 import { ThemedFrame } from '../ui/ThemedFrame';
 import { useIsThemedStyle } from '../../hooks/useTheme';
-import { BackupRestorePanel } from './BackupRestorePanel';
+import { BackupManagerPage } from '../backup/BackupManagerPage';
 
 type ProviderStatus = {
   connected: boolean;
@@ -432,6 +433,7 @@ export function IntegrationsDialog() {
   const [githubUser, setGithubUser] = useState<{ name: string; avatar: string } | null>(null);
   
   // GitHub OAuth App configuration state
+  const [showBackupManager, setShowBackupManager] = useState(false);
   const [showGitHubConfig, setShowGitHubConfig] = useState(false);
   const [githubClientId, setGithubClientId] = useState('');
   const [githubClientSecret, setGithubClientSecret] = useState('');
@@ -777,13 +779,53 @@ export function IntegrationsDialog() {
               </div>
             </div>
 
-            {/* Row 4: Backups (full width) */}
+            {/* Row 4: Restic Backups */}
             <div className="bg-card/30 rounded-lg p-3 border border-border/50">
               <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Backups
+                Restic Backups
               </h2>
-              <BackupRestorePanel />
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="p-1.5 bg-secondary rounded">
+                    <Archive className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-foreground">Backup Manager</h3>
+                    <p className="text-[10px] text-muted-foreground">Configure and manage Restic backups</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowBackupManager(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded hover:bg-primary/30 transition-colors text-xs font-medium"
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                  Open
+                </button>
+              </div>
             </div>
+
+            {/* Restic Backup Manager Dialog */}
+            {showBackupManager && (
+              <Dialog.Root open={showBackupManager} onOpenChange={setShowBackupManager}>
+                <Dialog.Portal>
+                  <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60]" />
+                  <Dialog.Content className="fixed inset-4 z-[60] flex items-center justify-center">
+                    <div className="w-full max-w-4xl max-h-[90vh] overflow-auto bg-card border border-border rounded-lg shadow-2xl">
+                      <div className="flex items-center justify-between p-3 border-b border-border">
+                        <h2 className="text-sm font-semibold text-foreground">Restic Backup Manager</h2>
+                        <button
+                          onClick={() => setShowBackupManager(false)}
+                          className="p-1.5 hover:bg-secondary rounded transition-colors"
+                        >
+                          <X className="w-4 h-4 text-muted-foreground" />
+                        </button>
+                      </div>
+                      <BackupManagerPage />
+                    </div>
+                  </Dialog.Content>
+                </Dialog.Portal>
+              </Dialog.Root>
+            )}
           </div>
 
           {/* Footer */}

@@ -4,6 +4,7 @@
  */
 
 import { Clock, User, CheckCircle2, Circle, Loader2, XCircle, AlertTriangle } from 'lucide-react';
+import { DragonBackdrop } from '../shared/DragonBackdrop';
 import { OrchestrationTask, Subtask, statusColors } from './types';
 
 interface TaskDetailPaneProps {
@@ -37,16 +38,9 @@ function SubtaskIcon({ status }: { status: string }) {
 export function TaskDetailPane({ task }: TaskDetailPaneProps) {
   if (!task) {
     return (
-      <div className="h-full flex items-center justify-center text-muted-foreground">
-        <div className="text-center">
-          <div className="text-4xl mb-3 opacity-20">
-            <svg className="w-16 h-16 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          </div>
-          <p className="text-sm">Select a task to view details</p>
-        </div>
-      </div>
+      <DragonBackdrop subtitle="Select a task">
+        <p className="text-sm text-muted-foreground">Select a task to view details</p>
+      </DragonBackdrop>
     );
   }
 

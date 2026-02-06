@@ -29,7 +29,7 @@ import { Transcripts } from './components/transcripts';  // Archived conversatio
 import { ClaudeTaskMonitor } from './components/monitor';  // Claude Code task monitoring
 import { ClaudeTeams } from './components/claude-teams';  // Claude Code Agent Teams orchestration
 import { KuroryuuAgents } from './components/kuroryuu-agents';  // Kuroryuu Agents (rebranded coding-agents)
-// BackupManagerPage removed - backups now in IntegrationsDialog
+// BackupManagerPage opened as dialog from IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
   AppSettingsDialog,
