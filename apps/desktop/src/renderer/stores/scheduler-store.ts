@@ -7,10 +7,13 @@
 import { create } from 'zustand';
 import type {
     ScheduledJob,
+    ScheduledEvent,
     JobRun,
     SchedulerSettings,
     CreateJobParams,
     UpdateJobParams,
+    CreateEventParams,
+    UpdateEventParams,
     JobHistoryQuery,
 } from '../types/scheduler';
 import { toast } from '../components/ui/toast';
@@ -22,6 +25,7 @@ import { toast } from '../components/ui/toast';
 interface SchedulerStore {
     // State
     jobs: ScheduledJob[];
+    events: ScheduledEvent[];
     history: JobRun[];
     settings: SchedulerSettings | null;
     isLoading: boolean;
@@ -35,6 +39,12 @@ interface SchedulerStore {
     createJob: (params: CreateJobParams) => Promise<ScheduledJob | null>;
     updateJob: (params: UpdateJobParams) => Promise<ScheduledJob | null>;
     deleteJob: (id: string) => Promise<boolean>;
+
+    // Event CRUD Actions
+    loadEvents: () => Promise<void>;
+    createEvent: (params: CreateEventParams) => Promise<ScheduledEvent | null>;
+    updateEvent: (params: UpdateEventParams) => Promise<ScheduledEvent | null>;
+    deleteEvent: (id: string) => Promise<boolean>;
 
     // Job Control Actions
     runJobNow: (id: string) => Promise<boolean>;
@@ -62,6 +72,7 @@ interface SchedulerStore {
 export const useSchedulerStore = create<SchedulerStore>((set, get) => ({
     // Initial state
     jobs: [],
+    events: [],
     history: [],
     settings: null,
     isLoading: false,
@@ -167,6 +178,101 @@ export const useSchedulerStore = create<SchedulerStore>((set, get) => ({
             set({ jobs }); // Revert
             const errorMsg = err instanceof Error ? err.message : String(err);
             toast.error(`Failed to delete job: ${errorMsg}`);
+            return false;
+        }
+    },
+
+    loadEvents: async () => {
+        set({ isLoading: true, error: null });
+        try {
+            const events = await window.electronAPI.scheduler.listEvents();
+            set({ events: events as ScheduledEvent[], isLoading: false });
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            set({ error: errorMsg, isLoading: false });
+            toast.error(`Failed to load events: ${errorMsg}`);
+        }
+    },
+
+    createEvent: async (params) => {
+        try {
+            const result = await window.electronAPI.scheduler.createEvent(params);
+            if (!result.ok) {
+                toast.error(`Failed to create event: ${result.error}`);
+                return null;
+            }
+            const event = result.event as ScheduledEvent;
+            set((state) => ({ events: [...state.events, event] }));
+            toast.success(`Created event "${params.title}"`);
+            return event;
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to create event: ${errorMsg}`);
+            return null;
+        }
+    },
+
+    updateEvent: async (params) => {
+        const { events } = get();
+        const original = events.find((e) => e.id === params.id);
+        if (!original) {
+            toast.error(`Event not found: ${params.id}`);
+            return null;
+        }
+
+        const optimistic = { ...original, ...params, updatedAt: Date.now() };
+        set((state) => ({
+            events: state.events.map((e) => (e.id === params.id ? optimistic : e)),
+        }));
+
+        try {
+            const result = await window.electronAPI.scheduler.updateEvent(params);
+            if (!result.ok) {
+                set((state) => ({
+                    events: state.events.map((e) => (e.id === params.id ? original : e)),
+                }));
+                toast.error(`Failed to update event: ${result.error}`);
+                return null;
+            }
+            const event = result.event as ScheduledEvent;
+            set((state) => ({
+                events: state.events.map((e) => (e.id === params.id ? event : e)),
+            }));
+            toast.success(`Updated event "${event.title}"`);
+            return event;
+        } catch (err) {
+            set((state) => ({
+                events: state.events.map((e) => (e.id === params.id ? original : e)),
+            }));
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to update event: ${errorMsg}`);
+            return null;
+        }
+    },
+
+    deleteEvent: async (id) => {
+        const { events } = get();
+        const event = events.find((e) => e.id === id);
+        if (!event) {
+            toast.error(`Event not found: ${id}`);
+            return false;
+        }
+
+        set((state) => ({ events: state.events.filter((e) => e.id !== id) }));
+
+        try {
+            const result = await window.electronAPI.scheduler.deleteEvent(id);
+            if (!result.ok) {
+                set({ events });
+                toast.error(`Failed to delete event: ${result.error}`);
+                return false;
+            }
+            toast.success(`Deleted event "${event.title}"`);
+            return true;
+        } catch (err) {
+            set({ events });
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to delete event: ${errorMsg}`);
             return false;
         }
     },
@@ -317,8 +423,8 @@ export const useSchedulerStore = create<SchedulerStore>((set, get) => ({
     closeEditor: () => set({ isEditorOpen: false, editingJob: null }),
 
     refresh: async () => {
-        const { loadJobs, loadSettings } = get();
-        await Promise.all([loadJobs(), loadSettings()]);
+        const { loadJobs, loadEvents, loadSettings } = get();
+        await Promise.all([loadJobs(), loadEvents(), loadSettings()]);
     },
 }));
 

@@ -8,8 +8,11 @@ import { ipcMain } from 'electron';
 import { createSchedulerModule, SchedulerFeature } from '../features/scheduler';
 import {
     ScheduledJob,
+    ScheduledEvent,
     CreateJobParams,
     UpdateJobParams,
+    CreateEventParams,
+    UpdateEventParams,
     JobHistoryQuery,
     JobRun,
     SchedulerSettings,
@@ -74,6 +77,46 @@ export async function setupSchedulerIpc(): Promise<void> {
     ipcMain.handle('scheduler:delete', async (_event, id: string): Promise<{ ok: boolean; error?: string }> => {
         if (!scheduler) return { ok: false, error: 'Scheduler not initialized' };
         const result = await scheduler.deleteJob(id);
+        return { ok: isSuccess(result) && result.result === true, error: !isSuccess(result) ? result.error : undefined };
+    });
+
+    // ---------------------------------------------------------------------------
+    // Event CRUD
+    // ---------------------------------------------------------------------------
+
+    ipcMain.handle('scheduler:listEvents', async (): Promise<ScheduledEvent[]> => {
+        if (!scheduler) return [];
+        const result = await scheduler.listEvents();
+        return isSuccess(result) ? (result.result ?? []) : [];
+    });
+
+    ipcMain.handle('scheduler:getEvent', async (_event, id: string): Promise<ScheduledEvent | null> => {
+        if (!scheduler) return null;
+        const result = await scheduler.getEvent(id);
+        return isSuccess(result) ? (result.result ?? null) : null;
+    });
+
+    ipcMain.handle('scheduler:createEvent', async (_event, params: CreateEventParams): Promise<{ ok: boolean; event?: ScheduledEvent; error?: string }> => {
+        if (!scheduler) return { ok: false, error: 'Scheduler not initialized' };
+        const result = await scheduler.createEvent(params);
+        if (isSuccess(result) && result.result) {
+            return { ok: true, event: result.result };
+        }
+        return { ok: false, error: !isSuccess(result) ? result.error : 'Unknown error' };
+    });
+
+    ipcMain.handle('scheduler:updateEvent', async (_event, params: UpdateEventParams): Promise<{ ok: boolean; event?: ScheduledEvent; error?: string }> => {
+        if (!scheduler) return { ok: false, error: 'Scheduler not initialized' };
+        const result = await scheduler.updateEvent(params);
+        if (isSuccess(result) && result.result) {
+            return { ok: true, event: result.result };
+        }
+        return { ok: false, error: !isSuccess(result) ? result.error : 'Unknown error' };
+    });
+
+    ipcMain.handle('scheduler:deleteEvent', async (_event, id: string): Promise<{ ok: boolean; error?: string }> => {
+        if (!scheduler) return { ok: false, error: 'Scheduler not initialized' };
+        const result = await scheduler.deleteEvent(id);
         return { ok: isSuccess(result) && result.result === true, error: !isSuccess(result) ? result.error : undefined };
     });
 
@@ -153,6 +196,11 @@ export async function cleanupSchedulerIpc(): Promise<void> {
         'scheduler:create',
         'scheduler:update',
         'scheduler:delete',
+        'scheduler:listEvents',
+        'scheduler:getEvent',
+        'scheduler:createEvent',
+        'scheduler:updateEvent',
+        'scheduler:deleteEvent',
         'scheduler:runNow',
         'scheduler:pause',
         'scheduler:resume',

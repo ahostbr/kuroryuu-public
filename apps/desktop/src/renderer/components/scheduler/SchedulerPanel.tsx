@@ -14,11 +14,12 @@ import {
     ChevronRight,
     History,
     List,
-    LayoutGrid,
+    MapPin,
 } from 'lucide-react';
 import { useSchedulerStore } from '../../stores/scheduler-store';
-import type { ScheduledJob, Schedule, JobAction } from '../../types/scheduler';
+import type { ScheduledJob, ScheduledEvent, Schedule, JobAction } from '../../types/scheduler';
 import { JobEditor } from './JobEditor';
+import { EventEditor } from './EventEditor';
 import { JobHistoryPanel } from './JobHistoryPanel';
 import { CalendarView } from './CalendarView';
 import { DayModal } from './DayModal';
@@ -207,6 +208,85 @@ function JobCard({ job, onEdit, onRunNow, onPause, onResume, onDelete, onViewHis
     );
 }
 
+interface EventCardProps {
+    event: ScheduledEvent;
+    onEdit: (event: ScheduledEvent) => void;
+    onDelete: (id: string) => void;
+}
+
+function EventCard({ event, onEdit, onDelete }: EventCardProps) {
+    return (
+        <div
+            className={`
+                bg-card border rounded-lg p-4 transition-all duration-200
+                hover:border-emerald-400/50 hover:shadow-md
+                ${!event.enabled ? 'opacity-60' : ''}
+            `}
+        >
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-emerald-300" />
+                    <h3 className="font-semibold text-foreground">{event.title}</h3>
+                </div>
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => onEdit(event)}
+                        className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                        title="Edit"
+                    >
+                        <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => onDelete(event.id)}
+                        className="p-1.5 rounded hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-colors"
+                        title="Delete"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {event.description && (
+                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                    {event.description}
+                </p>
+            )}
+
+            <div className="space-y-2 mb-3">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>{formatSchedule(event.schedule)}</span>
+                </div>
+                {event.location && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span className="truncate">{event.location}</span>
+                    </div>
+                )}
+                {event.nextRun && (
+                    <div className="flex items-center gap-2 text-xs">
+                        <Clock className="w-3.5 h-3.5 text-emerald-300" />
+                        <span className="text-emerald-300">{formatNextRun(event.nextRun)}</span>
+                    </div>
+                )}
+            </div>
+
+            {event.tags && event.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-3">
+                    {event.tags.map((tag) => (
+                        <span
+                            key={tag}
+                            className="px-2 py-0.5 rounded-full bg-secondary text-xs text-muted-foreground"
+                        >
+                            {tag}
+                        </span>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // Main Panel
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -214,16 +294,19 @@ function JobCard({ job, onEdit, onRunNow, onPause, onResume, onDelete, onViewHis
 export function SchedulerPanel() {
     const {
         jobs,
+        events,
         isLoading,
         error,
         isEditorOpen,
         editingJob,
         loadJobs,
+        loadEvents,
         loadSettings,
         runJobNow,
         pauseJob,
         resumeJob,
         deleteJob,
+        deleteEvent,
         openEditor,
         closeEditor,
         refresh,
@@ -232,11 +315,15 @@ export function SchedulerPanel() {
     // Compute derived values with useMemo to avoid creating new array refs
     const runningCount = useMemo(() => jobs.filter((j) => j.status === 'running').length, [jobs]);
     const pausedCount = useMemo(() => jobs.filter((j) => j.status === 'paused').length, [jobs]);
+    const eventCount = useMemo(() => events.length, [events]);
 
     const [historyJobId, setHistoryJobId] = useState<string | null>(null);
     const [showSettings, setShowSettings] = useState(false);
     const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+    const [isEventEditorOpen, setIsEventEditorOpen] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<ScheduledEvent | null>(null);
+    const [eventSeedDate, setEventSeedDate] = useState<Date | null>(null);
 
     // Day navigation handler for DayModal
     const handleNavigateDay = useCallback((direction: 'prev' | 'next') => {
@@ -249,6 +336,7 @@ export function SchedulerPanel() {
     // Load data on mount
     useEffect(() => {
         loadJobs();
+        loadEvents();
         loadSettings();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Zustand store functions are stable, no deps needed
@@ -260,6 +348,31 @@ export function SchedulerPanel() {
         }
     };
 
+    const handleDeleteEvent = async (id: string) => {
+        const event = events.find((e) => e.id === id);
+        if (event && confirm(`Delete event "${event.title}"?`)) {
+            await deleteEvent(id);
+        }
+    };
+
+    const openNewEvent = (seedDate?: Date) => {
+        setEditingEvent(null);
+        setEventSeedDate(seedDate ?? null);
+        setIsEventEditorOpen(true);
+    };
+
+    const openExistingEvent = (event: ScheduledEvent) => {
+        setEditingEvent(event);
+        setEventSeedDate(null);
+        setIsEventEditorOpen(true);
+    };
+
+    const closeEventEditor = () => {
+        setIsEventEditorOpen(false);
+        setEditingEvent(null);
+        setEventSeedDate(null);
+    };
+
     return (
         <div className="h-full flex flex-col bg-background">
             {/* Header */}
@@ -269,7 +382,7 @@ export function SchedulerPanel() {
                     <div>
                         <h1 className="text-xl font-bold text-foreground">Scheduler</h1>
                         <p className="text-sm text-muted-foreground">
-                            Manage automated jobs and schedules
+                            Manage automated jobs and regular calendar events
                         </p>
                     </div>
                 </div>
@@ -287,6 +400,12 @@ export function SchedulerPanel() {
                             <span className="flex items-center gap-1.5 text-yellow-400">
                                 <Pause className="w-4 h-4" />
                                 {pausedCount} paused
+                            </span>
+                        )}
+                        {eventCount > 0 && (
+                            <span className="flex items-center gap-1.5 text-emerald-300">
+                                <Calendar className="w-4 h-4" />
+                                {eventCount} event{eventCount === 1 ? '' : 's'}
                             </span>
                         )}
                     </div>
@@ -331,6 +450,13 @@ export function SchedulerPanel() {
                         <Plus className="w-4 h-4" />
                         New Job
                     </button>
+                    <button
+                        onClick={() => openNewEvent()}
+                        className="flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        New Event
+                    </button>
                 </div>
             </div>
 
@@ -344,49 +470,88 @@ export function SchedulerPanel() {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden">
-                {isLoading && jobs.length === 0 ? (
+                {isLoading && jobs.length === 0 && events.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
                         <RefreshCw className="w-8 h-8 text-primary animate-spin" />
                     </div>
-                ) : jobs.length === 0 ? (
+                ) : jobs.length === 0 && events.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center p-6">
                         <Calendar className="w-16 h-16 text-muted-foreground/50 mb-4" />
                         <h2 className="text-xl font-semibold text-foreground mb-2">
-                            No scheduled jobs
+                            No scheduled items
                         </h2>
                         <p className="text-muted-foreground mb-6 max-w-md">
-                            Create automated jobs to run Claude prompts, teams, or scripts on a schedule.
+                            Create automated jobs or regular calendar events.
                         </p>
-                        <button
-                            onClick={() => openEditor(null)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Create Your First Job
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => openEditor(null)}
+                                className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Create Job
+                            </button>
+                            <button
+                                onClick={() => openNewEvent()}
+                                className="flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 transition-colors"
+                            >
+                                <Plus className="w-4 h-4" />
+                                Create Event
+                            </button>
+                        </div>
                     </div>
                 ) : viewMode === 'calendar' ? (
                     <CalendarView
                         jobs={jobs}
+                        events={events}
                         onDayClick={(date) => setSelectedDay(date)}
                         onJobClick={(job) => openEditor(job)}
+                        onEventClick={(event) => openExistingEvent(event)}
                         onCreateJob={(date) => setSelectedDay(date)}
+                        onCreateEvent={(date) => openNewEvent(date)}
                     />
                 ) : (
                     <div className="h-full overflow-y-auto p-6">
-                        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                            {jobs.map((job) => (
-                                <JobCard
-                                    key={job.id}
-                                    job={job}
-                                    onEdit={openEditor}
-                                    onRunNow={runJobNow}
-                                    onPause={pauseJob}
-                                    onResume={resumeJob}
-                                    onDelete={handleDelete}
-                                    onViewHistory={setHistoryJobId}
-                                />
-                            ))}
+                        <div className="space-y-6">
+                            {jobs.length > 0 && (
+                                <div>
+                                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                                        Jobs
+                                    </h2>
+                                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                        {jobs.map((job) => (
+                                            <JobCard
+                                                key={job.id}
+                                                job={job}
+                                                onEdit={openEditor}
+                                                onRunNow={runJobNow}
+                                                onPause={pauseJob}
+                                                onResume={resumeJob}
+                                                onDelete={handleDelete}
+                                                onViewHistory={setHistoryJobId}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {events.length > 0 && (
+                                <div>
+                                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                                        Events
+                                    </h2>
+                                    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                        {events.map((event) => (
+                                            <EventCard
+                                                key={event.id}
+                                                event={event}
+                                                onEdit={openExistingEvent}
+                                                onDelete={handleDeleteEvent}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -397,6 +562,15 @@ export function SchedulerPanel() {
                 <JobEditor
                     job={editingJob}
                     onClose={closeEditor}
+                />
+            )}
+
+            {/* Event Editor Modal */}
+            {isEventEditorOpen && (
+                <EventEditor
+                    event={editingEvent}
+                    seedDate={eventSeedDate}
+                    onClose={closeEventEditor}
                 />
             )}
 

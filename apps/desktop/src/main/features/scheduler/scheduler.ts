@@ -13,8 +13,11 @@ import {
 } from '../base';
 import {
     ScheduledJob,
+    ScheduledEvent,
     CreateJobParams,
     UpdateJobParams,
+    CreateEventParams,
+    UpdateEventParams,
     JobHistoryQuery,
     JobRun,
     SchedulerSettings,
@@ -35,6 +38,11 @@ const SCHEDULER_ACTIONS = [
     'createJob',
     'updateJob',
     'deleteJob',
+    'listEvents',
+    'getEvent',
+    'createEvent',
+    'updateEvent',
+    'deleteEvent',
     'runJobNow',
     'pauseJob',
     'resumeJob',
@@ -135,6 +143,16 @@ export class SchedulerFeature implements IFeatureModule {
                 return this.updateJob(params as unknown as UpdateJobParams) as Promise<FeatureResponse<T>>;
             case 'deleteJob':
                 return this.deleteJob(params.id as string) as Promise<FeatureResponse<T>>;
+            case 'listEvents':
+                return this.listEvents() as Promise<FeatureResponse<T>>;
+            case 'getEvent':
+                return this.getEvent(params.id as string) as Promise<FeatureResponse<T>>;
+            case 'createEvent':
+                return this.createEvent(params as unknown as CreateEventParams) as Promise<FeatureResponse<T>>;
+            case 'updateEvent':
+                return this.updateEvent(params as unknown as UpdateEventParams) as Promise<FeatureResponse<T>>;
+            case 'deleteEvent':
+                return this.deleteEvent(params.id as string) as Promise<FeatureResponse<T>>;
             case 'runJobNow':
                 return this.runJobNow(params.id as string) as Promise<FeatureResponse<T>>;
             case 'pauseJob':
@@ -252,12 +270,120 @@ export class SchedulerFeature implements IFeatureModule {
 
     async deleteJob(id: string): Promise<FeatureResponse<boolean>> {
         try {
+            // Kill any running background process first
+            await this.killBackgroundJob(id);
+            
             const deleted = await this.storage.deleteJob(id);
             return { ok: true, result: deleted };
         } catch (err) {
             return {
                 ok: false,
                 error: err instanceof Error ? err.message : 'Failed to delete job',
+                errorCode: FeatureErrorCode.UNKNOWN_ERROR,
+            };
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Event CRUD
+    // ---------------------------------------------------------------------------
+
+    async listEvents(): Promise<FeatureResponse<ScheduledEvent[]>> {
+        try {
+            const events = this.storage.getEvents();
+            return { ok: true, result: events };
+        } catch (err) {
+            return {
+                ok: false,
+                error: err instanceof Error ? err.message : 'Failed to list events',
+                errorCode: FeatureErrorCode.UNKNOWN_ERROR,
+            };
+        }
+    }
+
+    async getEvent(id: string): Promise<FeatureResponse<ScheduledEvent | null>> {
+        try {
+            const event = this.storage.getEvent(id);
+            return { ok: true, result: event ?? null };
+        } catch (err) {
+            return {
+                ok: false,
+                error: err instanceof Error ? err.message : 'Failed to get event',
+                errorCode: FeatureErrorCode.UNKNOWN_ERROR,
+            };
+        }
+    }
+
+    async createEvent(params: CreateEventParams): Promise<FeatureResponse<ScheduledEvent>> {
+        try {
+            const now = Date.now();
+            const nextRun = calculateNextRun(params.schedule);
+
+            const event: ScheduledEvent = {
+                id: uuidv4(),
+                title: params.title,
+                description: params.description,
+                enabled: params.enabled ?? true,
+                schedule: params.schedule,
+                nextRun: nextRun ?? undefined,
+                location: params.location,
+                allDay: params.allDay,
+                tags: params.tags,
+                notify: params.notify ?? true,
+                color: params.color,
+                createdAt: now,
+                updatedAt: now,
+            };
+
+            await this.storage.addEvent(event);
+            return { ok: true, result: event };
+        } catch (err) {
+            return {
+                ok: false,
+                error: err instanceof Error ? err.message : 'Failed to create event',
+                errorCode: FeatureErrorCode.UNKNOWN_ERROR,
+            };
+        }
+    }
+
+    async updateEvent(params: UpdateEventParams): Promise<FeatureResponse<ScheduledEvent | null>> {
+        try {
+            const updates: Partial<ScheduledEvent> = {};
+
+            if (params.title !== undefined) updates.title = params.title;
+            if (params.description !== undefined) updates.description = params.description;
+            if (params.enabled !== undefined) updates.enabled = params.enabled;
+            if (params.location !== undefined) updates.location = params.location;
+            if (params.allDay !== undefined) updates.allDay = params.allDay;
+            if (params.tags !== undefined) updates.tags = params.tags;
+            if (params.notify !== undefined) updates.notify = params.notify;
+            if (params.color !== undefined) updates.color = params.color;
+
+            if (params.schedule !== undefined) {
+                updates.schedule = params.schedule;
+                const nextRun = calculateNextRun(params.schedule);
+                updates.nextRun = nextRun ?? undefined;
+            }
+
+            const event = await this.storage.updateEvent(params.id, updates);
+            return { ok: true, result: event ?? null };
+        } catch (err) {
+            return {
+                ok: false,
+                error: err instanceof Error ? err.message : 'Failed to update event',
+                errorCode: FeatureErrorCode.UNKNOWN_ERROR,
+            };
+        }
+    }
+
+    async deleteEvent(id: string): Promise<FeatureResponse<boolean>> {
+        try {
+            const deleted = await this.storage.deleteEvent(id);
+            return { ok: true, result: deleted };
+        } catch (err) {
+            return {
+                ok: false,
+                error: err instanceof Error ? err.message : 'Failed to delete event',
                 errorCode: FeatureErrorCode.UNKNOWN_ERROR,
             };
         }
@@ -282,6 +408,9 @@ export class SchedulerFeature implements IFeatureModule {
 
     async pauseJob(id: string): Promise<FeatureResponse<boolean>> {
         try {
+            // Kill any running background process first
+            await this.killBackgroundJob(id);
+            
             const job = await this.storage.updateJob(id, { status: 'paused' });
             return { ok: true, result: !!job };
         } catch (err) {
@@ -391,6 +520,74 @@ export class SchedulerFeature implements IFeatureModule {
     // Job Execution Implementation
     // ---------------------------------------------------------------------------
 
+    /**
+     * Kill a background job process if it's currently running
+     */
+    private async killBackgroundJob(jobId: string): Promise<void> {
+        const os = await import('os');
+        const fs = await import('fs/promises');
+        const path = await import('path');
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+
+        const pidDir = path.join(os.homedir(), '.claude', 'kuroryuu', 'pids');
+        const pidFile = path.join(pidDir, `job_${jobId}.pid`);
+
+        try {
+            // Check if PID file exists
+            const pidStr = await fs.readFile(pidFile, 'utf-8');
+            const pid = parseInt(pidStr.trim(), 10);
+
+            if (isNaN(pid)) {
+                console.log(`[Scheduler] Invalid PID in file for job ${jobId}`);
+                await fs.unlink(pidFile).catch(() => {});
+                return;
+            }
+
+            console.log(`[Scheduler] Attempting to kill background job ${jobId} with PID ${pid}`);
+
+            const isWindows = os.platform() === 'win32';
+
+            if (isWindows) {
+                // Windows: Use taskkill to terminate process tree
+                try {
+                    await execAsync(`taskkill /F /T /PID ${pid}`);
+                    console.log(`[Scheduler] Successfully killed job ${jobId} (PID ${pid})`);
+                } catch (killErr) {
+                    // Process might already be dead
+                    console.log(`[Scheduler] Process ${pid} may already be terminated`);
+                }
+            } else {
+                // Unix: Try to kill the process
+                try {
+                    process.kill(pid, 'SIGTERM');
+                    console.log(`[Scheduler] Sent SIGTERM to job ${jobId} (PID ${pid})`);
+                    
+                    // Wait a bit, then force kill if still alive
+                    setTimeout(() => {
+                        try {
+                            process.kill(pid, 'SIGKILL');
+                            console.log(`[Scheduler] Sent SIGKILL to job ${jobId} (PID ${pid})`);
+                        } catch {
+                            // Process already dead
+                        }
+                    }, 2000);
+                } catch (killErr) {
+                    console.log(`[Scheduler] Process ${pid} may already be terminated`);
+                }
+            }
+
+            // Clean up PID file
+            await fs.unlink(pidFile).catch(() => {});
+        } catch (err) {
+            // PID file doesn't exist or can't be read - job not running
+            if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
+                console.error(`[Scheduler] Error killing background job ${jobId}:`, err);
+            }
+        }
+    }
+
     private async executeJobAction(job: ScheduledJob): Promise<void> {
         const action = job.action;
 
@@ -409,65 +606,174 @@ export class SchedulerFeature implements IFeatureModule {
         }
     }
 
-    private async executePromptAction(job: ScheduledJob, action: { type: 'prompt'; prompt: string; workdir?: string; model?: string }): Promise<void> {
+    private async executePromptAction(job: ScheduledJob, action: { type: 'prompt'; prompt: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive' }): Promise<void> {
         console.log(`[Scheduler] Executing prompt for job ${job.id}: "${action.prompt.substring(0, 50)}..."`);
 
-        const { spawn } = await import('child_process');
+        const { exec, spawn } = await import('child_process');
         const os = await import('os');
+        const fs = await import('fs/promises');
+        const path = await import('path');
 
-        // Determine the Claude CLI command
+        const workdir = action.workdir || os.homedir();
         const isWindows = os.platform() === 'win32';
-        const claudeCmd = isWindows ? 'claude.cmd' : 'claude';
+        const executionMode = action.executionMode || 'background';
 
-        // Build arguments
-        const args: string[] = ['--print']; // Non-interactive mode
-        if (action.model) {
-            args.push('--model', action.model);
-        }
-        args.push(action.prompt);
+        // PID file location
+        const pidDir = path.join(os.homedir(), '.claude', 'kuroryuu', 'pids');
+        const pidFile = path.join(pidDir, `job_${job.id}.pid`);
 
-        // Run the Claude CLI
-        return new Promise<void>((resolve, reject) => {
-            const proc = spawn(claudeCmd, args, {
-                cwd: action.workdir || os.homedir(),
-                shell: true,
-                env: { ...process.env },
-                stdio: ['ignore', 'pipe', 'pipe'],
-            });
+        // Ensure PID directory exists
+        await fs.mkdir(pidDir, { recursive: true });
 
-            let stdout = '';
-            let stderr = '';
+        if (isWindows) {
+            if (executionMode === 'interactive') {
+                // INTERACTIVE MODE: Visible PowerShell window, stays alive after completion
+                // Proper PowerShell escaping for special characters
+                const escapePowerShell = (str: string): string => {
+                    return str
+                        .replace(/'/g, "''")
+                        .replace(/`/g, "``")
+                        .replace(/\$/g, "`$")
+                        .replace(/\r?\n/g, "`n");
+                };
 
-            proc.stdout?.on('data', (data) => {
-                stdout += data.toString();
-            });
+                const escapedPrompt = escapePowerShell(action.prompt);
+                const escapedWorkdir = escapePowerShell(workdir);
+                const escapedJobName = escapePowerShell(job.name);
+                const modelCmd = action.model ? `--model ${action.model} ` : '';
 
-            proc.stderr?.on('data', (data) => {
-                stderr += data.toString();
-            });
+                const cmd = `cmd /c start powershell -NoExit -Command "cd '${escapedWorkdir}'; Write-Host '=== Kuroryuu Scheduler ===' -ForegroundColor Cyan; Write-Host 'Job: ${escapedJobName}' -ForegroundColor Yellow; Write-Host 'Mode: Interactive' -ForegroundColor Gray; Start-Sleep -Seconds 1; claude '${escapedPrompt}' ${modelCmd}--dangerously-skip-permissions; Write-Host ''; Write-Host '=== Job Complete ===' -ForegroundColor Green; Write-Host 'CLI is still active - you can continue working' -ForegroundColor Gray"`;
 
-            proc.on('close', (code) => {
-                if (code === 0) {
-                    console.log(`[Scheduler] Job ${job.id} completed successfully`);
-                    resolve();
-                } else {
-                    console.error(`[Scheduler] Job ${job.id} failed with code ${code}: ${stderr}`);
-                    reject(new Error(`Claude CLI exited with code ${code}: ${stderr.substring(0, 200)}`));
+                console.log(`[Scheduler] Running INTERACTIVE mode for job ${job.id}`);
+
+                return new Promise<void>((resolve, reject) => {
+                    exec(cmd, { cwd: workdir }, (error) => {
+                        if (error) {
+                            console.error(`[Scheduler] exec error:`, error);
+                            reject(error);
+                            return;
+                        }
+                        console.log(`[Scheduler] Interactive PowerShell spawned for job ${job.id}`);
+                        resolve();
+                    });
+                });
+            } else {
+                // BACKGROUND MODE: Spawn Claude properly
+                // On Windows, claude.ps1 needs to be called via PowerShell
+                // Build argument array properly
+                const promptArgs = [action.prompt, '--dangerously-skip-permissions'];
+                if (action.model) {
+                    promptArgs.push('--model', action.model);
                 }
-            });
 
-            proc.on('error', (err) => {
-                console.error(`[Scheduler] Job ${job.id} spawn error:`, err);
-                reject(err);
-            });
+                console.log(`[Scheduler] Running BACKGROUND mode for job ${job.id}`);
+                console.log(`[Scheduler] Args:`, promptArgs);
 
-            // Timeout after 30 minutes (configurable later)
-            setTimeout(() => {
-                proc.kill();
-                reject(new Error('Job execution timed out after 30 minutes'));
-            }, 30 * 60 * 1000);
-        });
+                return new Promise<void>((resolve, reject) => {
+                    // Spawn via PowerShell to properly execute .ps1 scripts
+                    // Use -Command with & to invoke the script
+                    const psArgs = ['-NoProfile', '-Command', '&', 'claude', ...promptArgs];
+                    
+                    const proc = spawn('powershell.exe', psArgs, {
+                        cwd: workdir,
+                        detached: true,
+                        stdio: 'ignore',
+                        windowsHide: true,
+                    });
+
+                    const pid = proc.pid;
+                    if (pid) {
+                        // Write PID file for tracking and later termination
+                        fs.writeFile(pidFile, pid.toString(), 'utf-8').then(() => {
+                            console.log(`[Scheduler] Background job ${job.id} started with PID: ${pid}`);
+                        }).catch(err => {
+                            console.error(`[Scheduler] Failed to write PID file:`, err);
+                        });
+                    }
+
+                    proc.unref();
+
+                    // Clean up PID file when process exits
+                    proc.on('exit', (code) => {
+                        console.log(`[Scheduler] Background job ${job.id} exited with code: ${code}`);
+                        fs.unlink(pidFile).catch(() => { });
+                    });
+
+                    proc.on('error', (err) => {
+                        console.error(`[Scheduler] Failed to spawn background job:`, err);
+                        fs.unlink(pidFile).catch(() => { });
+                        reject(err);
+                    });
+
+                    // Resolve immediately after spawn (don't wait for completion)
+                    resolve();
+                });
+            }
+        } else {
+            // Unix: run in background or foreground based on mode
+            if (executionMode === 'interactive') {
+                // Open new terminal window (try common terminals)
+                const args = [action.prompt, '--dangerously-skip-permissions'];
+                if (action.model) {
+                    args.push('--model', action.model);
+                }
+                
+                // Escape for shell
+                const escapedArgs = args.map(arg => `'${arg.replace(/'/g, "'\\''")}''`).join(' ');
+                const terminalCmd = `gnome-terminal -- bash -c "claude ${escapedArgs}; exec bash" || xterm -e "claude ${escapedArgs}; exec bash" || open -a Terminal.app "claude ${escapedArgs}"`;
+
+                return new Promise<void>((resolve, reject) => {
+                    exec(terminalCmd, { cwd: workdir }, (error) => {
+                        if (error) {
+                            console.error(`[Scheduler] exec error:`, error);
+                            reject(error);
+                            return;
+                        }
+                        resolve();
+                    });
+                });
+            } else {
+                // Background mode - direct spawn
+                const args = [action.prompt, '--dangerously-skip-permissions'];
+                if (action.model) {
+                    args.push('--model', action.model);
+                }
+
+                return new Promise<void>((resolve, reject) => {
+                    const proc = spawn('claude', args, {
+                        cwd: workdir,
+                        detached: true,
+                        stdio: 'ignore',
+                    });
+
+                    const pid = proc.pid;
+                    if (pid) {
+                        // Write PID file
+                        fs.writeFile(pidFile, String(pid), 'utf-8').then(() => {
+                            console.log(`[Scheduler] Background job ${job.id} started with PID: ${pid}`);
+                        }).catch(() => { });
+                    }
+
+                    proc.unref();
+
+                    proc.on('exit', async () => {
+                        await fs.unlink(pidFile).catch(() => { });
+                    });
+
+                    proc.on('error', (err) => {
+                        fs.unlink(pidFile).catch(() => { });
+                        reject(err);
+                    });
+
+                    resolve();
+                });
+            }
+        }
     }
+
+
+
+
 
     private async executeTeamAction(job: ScheduledJob, action: { type: 'team'; teamId: string; taskIds?: string[] }): Promise<void> {
         console.log(`[Scheduler] Executing team ${action.teamId} for job ${job.id}`);
@@ -484,7 +790,7 @@ export class SchedulerFeature implements IFeatureModule {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    private async executeScriptAction(job: ScheduledJob, action: { type: 'script'; scriptPath: string; args?: string[] }): Promise<void> {
+    private async executeScriptAction(job: ScheduledJob, action: { type: 'script'; scriptPath: string; args?: string[]; timeoutMinutes?: number }): Promise<void> {
         console.log(`[Scheduler] Executing script ${action.scriptPath} for job ${job.id}`);
 
         const { spawn } = await import('child_process');
@@ -522,7 +828,23 @@ export class SchedulerFeature implements IFeatureModule {
             args = action.args ?? [];
         }
 
+        const timeoutMinutes = action.timeoutMinutes ?? 60;
+        const timeoutMs = timeoutMinutes > 0 ? timeoutMinutes * 60 * 1000 : 0;
+
         return new Promise<void>((resolve, reject) => {
+            let completed = false;
+            let timeoutHandle: NodeJS.Timeout | null = null;
+
+            const finish = (fn: () => void) => {
+                if (completed) return;
+                completed = true;
+                if (timeoutHandle) {
+                    clearTimeout(timeoutHandle);
+                    timeoutHandle = null;
+                }
+                fn();
+            };
+
             const proc = spawn(cmd, args, {
                 cwd: path.dirname(action.scriptPath),
                 shell: true,
@@ -539,22 +861,24 @@ export class SchedulerFeature implements IFeatureModule {
             proc.on('close', (code) => {
                 if (code === 0) {
                     console.log(`[Scheduler] Script job ${job.id} completed successfully`);
-                    resolve();
+                    finish(resolve);
                 } else {
                     console.error(`[Scheduler] Script job ${job.id} failed with code ${code}`);
-                    reject(new Error(`Script exited with code ${code}: ${stderr.substring(0, 200)}`));
+                    finish(() => reject(new Error(`Script exited with code ${code}: ${stderr.substring(0, 200)}`)));
                 }
             });
 
             proc.on('error', (err) => {
-                reject(err);
+                finish(() => reject(err));
             });
 
-            // Timeout after 1 hour for scripts
-            setTimeout(() => {
-                proc.kill();
-                reject(new Error('Script execution timed out after 1 hour'));
-            }, 60 * 60 * 1000);
+            // Per-job timeout; 0 disables timeout.
+            if (timeoutMs > 0) {
+                timeoutHandle = setTimeout(() => {
+                    proc.kill();
+                    finish(() => reject(new Error(`Script execution timed out after ${timeoutMinutes} minute(s)`)));
+                }, timeoutMs);
+            }
         });
     }
 
