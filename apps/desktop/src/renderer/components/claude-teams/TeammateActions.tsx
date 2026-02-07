@@ -73,7 +73,7 @@ export function TeammateActions({ teamName, memberName, isLead, planModeRequired
       {!showMessageForm ? (
         <button
           onClick={() => setShowMessageForm(true)}
-          disabled={isLead}
+          disabled={false}
           className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded
             bg-gray-800 border border-gray-700 text-gray-300
             hover:bg-gray-700 hover:border-gray-600 hover:text-white
@@ -197,7 +197,7 @@ export function TeammateActions({ teamName, memberName, isLead, planModeRequired
 
       {isLead && (
         <p className="text-[10px] text-gray-600 italic">
-          Cannot send messages or shutdown the team lead.
+          Cannot shutdown the team lead. Messages are allowed.
         </p>
       )}
     </div>

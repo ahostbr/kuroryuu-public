@@ -231,30 +231,76 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
   );
 
   // -----------------------------------------------------------------------
-  // CLI execution (fire-and-forget)
+  // Direct CLI handlers (with error capture, replaces fire-and-forget)
   // -----------------------------------------------------------------------
 
+  /**
+   * Helper: spawn claude CLI and capture stdout/stderr, returning { ok, error? }
+   */
+  const execClaudeCmd = (args: string[]): Promise<{ ok: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      try {
+        const child = spawn('claude', args, {
+          shell: true,
+          stdio: ['ignore', 'pipe', 'pipe'],
+          detached: false,
+          env: { ...process.env, CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1' },
+        });
+
+        let stderr = '';
+        child.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
+        child.on('error', (err) => {
+          console.error('[ClaudeTeamsIPC] CLI spawn error:', err);
+          resolve({ ok: false, error: String(err) });
+        });
+        child.on('close', (code) => {
+          if (code === 0) {
+            console.log('[ClaudeTeamsIPC] CLI success:', 'claude', args.join(' '));
+            resolve({ ok: true });
+          } else {
+            console.error('[ClaudeTeamsIPC] CLI failed (code', code, '):', stderr.trim());
+            resolve({ ok: false, error: stderr.trim() || `Exit code ${code}` });
+          }
+        });
+
+        // Timeout after 30s
+        setTimeout(() => {
+          try { child.kill(); } catch { /* ignore */ }
+          resolve({ ok: false, error: 'Command timed out after 30s' });
+        }, 30_000);
+      } catch (err) {
+        console.error('[ClaudeTeamsIPC] CLI exec failed:', err);
+        resolve({ ok: false, error: String(err) });
+      }
+    });
+  };
+
+  // General-purpose CLI bridge (now with error capture instead of fire-and-forget)
   ipcMain.handle(
     'claude-teams:exec-cli',
     async (_event, args: string[]) => {
-      try {
-        // Spawn claude CLI as fire-and-forget
-        // Using shell: true for Windows compatibility
-        const child = spawn('claude', args, {
-          shell: true,
-          stdio: 'ignore',
-          detached: false,
-        });
+      return execClaudeCmd(args);
+    },
+  );
 
-        // Don't wait for completion - fire and forget
-        child.unref();
+  ipcMain.handle(
+    'claude-teams:create-team',
+    async (_event, params: { name: string; description?: string }) => {
+      return execClaudeCmd(['--team', 'create', params.name]);
+    },
+  );
 
-        console.log('[ClaudeTeamsIPC] Spawned CLI:', 'claude', args.join(' '));
-        return { ok: true };
-      } catch (err) {
-        console.error('[ClaudeTeamsIPC] CLI exec failed:', err);
-        return { ok: false, error: String(err) };
-      }
+  ipcMain.handle(
+    'claude-teams:message-teammate',
+    async (_event, params: { recipient: string; content: string }) => {
+      return execClaudeCmd(['--team', 'message', params.recipient, params.content]);
+    },
+  );
+
+  ipcMain.handle(
+    'claude-teams:shutdown-teammate',
+    async (_event, params: { recipient: string }) => {
+      return execClaudeCmd(['--team', 'shutdown', params.recipient]);
     },
   );
 
@@ -577,6 +623,9 @@ export function cleanupClaudeTeamsIpc(): void {
     'claude-teams:get-tasks',
     'claude-teams:get-messages',
     'claude-teams:exec-cli',
+    'claude-teams:create-team',
+    'claude-teams:message-teammate',
+    'claude-teams:shutdown-teammate',
     'claude-teams:cleanup-team',
     'claude-teams:archive-session',
     'claude-teams:list-archives',

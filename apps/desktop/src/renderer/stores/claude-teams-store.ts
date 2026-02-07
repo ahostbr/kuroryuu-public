@@ -307,7 +307,10 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
       set({ isLoading: true, error: null });
       const result = await window.electronAPI?.claudeTeams?.createTeam?.(params);
       set({ isLoading: false });
-      return result ?? false;
+      if (result && !result.ok) {
+        console.error('[ClaudeTeamsStore] createTeam failed:', result.error);
+      }
+      return result?.ok ?? false;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create team';
       set({ error: msg, isLoading: false });
@@ -319,7 +322,10 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   messageTeammate: async (params) => {
     try {
       const result = await window.electronAPI?.claudeTeams?.messageTeammate?.(params);
-      return result ?? false;
+      if (result && !result.ok) {
+        console.error('[ClaudeTeamsStore] messageTeammate failed:', result.error);
+      }
+      return result?.ok ?? false;
     } catch (err) {
       console.error('[ClaudeTeamsStore] messageTeammate error:', err);
       return false;
@@ -329,7 +335,10 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   shutdownTeammate: async (params) => {
     try {
       const result = await window.electronAPI?.claudeTeams?.shutdownTeammate?.(params);
-      return result ?? false;
+      if (result && !result.ok) {
+        console.error('[ClaudeTeamsStore] shutdownTeammate failed:', result.error);
+      }
+      return result?.ok ?? false;
     } catch (err) {
       console.error('[ClaudeTeamsStore] shutdownTeammate error:', err);
       return false;

@@ -51,6 +51,21 @@ export interface TeamAction {
     type: 'team';
     teamId: string;
     taskIds?: string[]; // Specific tasks to run, or all if empty
+    /**
+     * Team execution strategy:
+     * - 'direct': Use IPC handlers to create team + message teammates directly
+     * - 'prompt': Spawn claude CLI with /k-spawnteam in the prompt (simpler, more flexible)
+     * Default: 'prompt'
+     */
+    executionStrategy?: 'direct' | 'prompt';
+    /** Prompt to send to claude when using 'prompt' strategy. Defaults to /k-spawnteam {teamId} */
+    prompt?: string;
+    /** Working directory for prompt strategy */
+    workdir?: string;
+    /** Model override */
+    model?: string;
+    /** Execution mode for prompt strategy */
+    executionMode?: ExecutionMode;
 }
 
 export interface ScriptAction {
