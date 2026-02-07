@@ -47,6 +47,7 @@ import { registerSpeechHandlers } from './ipc/speech-handlers';
 import { registerCLIProxyHandlers } from './ipc/cliproxy-handlers';
 import { getCLIProxyNativeManager } from './services/cliproxy-native';
 import { registerTaskHandlers } from './ipc/task-handlers';
+import { setupSchedulerIpc, cleanupSchedulerIpc } from './ipc/scheduler-handlers';
 import { registerBackupHandlers } from './ipc/backup-handlers';
 import { getTaskService } from './services/task-service';
 import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow, initializeState as initPCControlState } from './integrations/pccontrol-service';
@@ -1302,8 +1303,8 @@ function setupFsIpc(): void {
   const { resolve, isAbsolute } = require('path');
   // Resolve project root: env var > dirname-based > cwd
   const PROJECT_ROOT = process.env.KURORYUU_PROJECT_ROOT ||
-                       process.env.KURORYUU_ROOT ||
-                       resolve(__dirname, '../../../..');
+    process.env.KURORYUU_ROOT ||
+    resolve(__dirname, '../../../..');
 
   console.log('[FS-IPC] __dirname:', __dirname);
   console.log('[FS-IPC] PROJECT_ROOT:', PROJECT_ROOT);
@@ -1404,7 +1405,7 @@ function setupFsIpc(): void {
 
     async function buildTree(dirPath: string, depth: number): Promise<TreeNode[]> {
       if (depth > maxDepth) return [];
-      
+
       try {
         const entries = await readdir(dirPath, { withFileTypes: true });
         const nodes: TreeNode[] = [];
@@ -1578,8 +1579,8 @@ function setupClaudeMemoryIpc(): void {
 async function syncElevenlabsKeyToSettings(apiKey: string): Promise<void> {
   const { resolve } = require('path');
   const projectRoot = process.env.KURORYUU_PROJECT_ROOT ||
-                      process.env.KURORYUU_ROOT ||
-                      resolve(__dirname, '../../../..');
+    process.env.KURORYUU_ROOT ||
+    resolve(__dirname, '../../../..');
   const settingsPath = join(projectRoot, '.claude', 'settings.json');
 
   const writer = getSettingsWriter();
@@ -1597,8 +1598,8 @@ async function syncElevenlabsKeyToSettings(apiKey: string): Promise<void> {
 function setupKuroConfigIpc(): void {
   const { resolve, isAbsolute } = require('path');
   const PROJECT_ROOT = process.env.KURORYUU_PROJECT_ROOT ||
-                       process.env.KURORYUU_ROOT ||
-                       resolve(__dirname, '../../../..');
+    process.env.KURORYUU_ROOT ||
+    resolve(__dirname, '../../../..');
   const SETTINGS_PATH = join(PROJECT_ROOT, '.claude', 'settings.json');
 
   // Load kuro config from settings.json
@@ -1614,22 +1615,22 @@ function setupKuroConfigIpc(): void {
       // If we have complete persisted state (version >= 1), use it directly
       if (kuroPlugin.version && kuroPlugin.version >= 1) {
         const ttsDefaults = {
-            provider: 'edge_tts',
-            voice: 'en-GB-SoniaNeural',
-            smartSummaries: false,
-            summaryProvider: 'gateway-auto',
-            summaryModel: '',
-            userName: 'Ryan',
-            messages: {
-              stop: 'Work complete',
-              subagentStop: 'Task finished',
-              notification: 'Your attention is needed',
-            },
-            elevenlabsApiKey: '',
-            elevenlabsModelId: 'eleven_turbo_v2_5',
-            elevenlabsStability: 0.5,
-            elevenlabsSimilarity: 0.75,
-            ...(kuroPlugin.tts || {}),
+          provider: 'edge_tts',
+          voice: 'en-GB-SoniaNeural',
+          smartSummaries: false,
+          summaryProvider: 'gateway-auto',
+          summaryModel: '',
+          userName: 'Ryan',
+          messages: {
+            stop: 'Work complete',
+            subagentStop: 'Task finished',
+            notification: 'Your attention is needed',
+          },
+          elevenlabsApiKey: '',
+          elevenlabsModelId: 'eleven_turbo_v2_5',
+          elevenlabsStability: 0.5,
+          elevenlabsSimilarity: 0.75,
+          ...(kuroPlugin.tts || {}),
         };
         // Never send actual API key to renderer — managed by token-store
         ttsDefaults.elevenlabsApiKey = '';
@@ -1839,8 +1840,8 @@ function setupKuroConfigIpc(): void {
         const uvPath = process.env.UV_PATH
           ? process.env.UV_PATH.replace(/\\/g, '\\\\')
           : (process.platform === 'win32'
-              ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
-              : 'uv');
+            ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
+            : 'uv');
         const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
         const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
         const voice = config.tts.voice || 'en-GB-SoniaNeural';
@@ -1999,8 +2000,8 @@ function setupKuroConfigIpc(): void {
           const uvPath = process.env.UV_PATH
             ? process.env.UV_PATH.replace(/\\/g, '\\\\')
             : (process.platform === 'win32'
-                ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
-                : 'uv');
+              ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
+              : 'uv');
           const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
           const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
 
@@ -2663,7 +2664,7 @@ function setupGatewayIpc(): void {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      
+
       // For non-streaming response, return directly
       if (!res.body) {
         return await res.json();
@@ -2673,11 +2674,11 @@ function setupGatewayIpc(): void {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       const chunks: string[] = [];
-      
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         const text = decoder.decode(value);
         for (const line of text.split('\n')) {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
@@ -3378,10 +3379,10 @@ function setupAuthIpc(): void {
   ipcMain.handle('auth:oauthApp:get', (_, provider: OAuthProvider) => {
     const creds = getOAuthAppCredentials(provider);
     // Return clientId but mask the secret for security
-    return creds ? { 
-      clientId: creds.clientId, 
+    return creds ? {
+      clientId: creds.clientId,
       hasSecret: !!creds.clientSecret,
-      createdAt: creds.createdAt 
+      createdAt: creds.createdAt
     } : null;
   });
 
@@ -3423,16 +3424,16 @@ function registerOAuthProtocol(): void {
  */
 async function handleOAuthCallback(url: string): Promise<void> {
   console.log('[OAuth] Received callback URL:', url);
-  
+
   // Parse the URL to determine provider
   // Expected format: kuroryuu://oauth/callback/github?code=xxx&state=yyy
   try {
     const parsed = new URL(url);
     const pathParts = parsed.pathname.split('/').filter(Boolean);
-    
+
     if (pathParts[0] === 'oauth' && pathParts[1] === 'callback') {
       const provider = pathParts[2];
-      
+
       if (provider === 'github' && githubService) {
         await githubService.handleCallback(url);
         // Notify renderer of successful auth
@@ -3469,7 +3470,7 @@ if (!gotTheLock) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
-    
+
     // Look for OAuth callback URL in command line args
     const url = commandLine.find(arg => arg.startsWith('kuroryuu://'));
     if (url) {
@@ -4088,6 +4089,9 @@ app.whenReady().then(async () => {
 
   // Register task handlers
   registerTaskHandlers();
+
+  // Initialize scheduler feature module
+  setupSchedulerIpc().catch(err => console.error('[Main] Scheduler init failed:', err));
 
   // Initialize task service with project root
   const taskServiceProjectRoot = process.env.KURORYUU_ROOT || join(__dirname, '../../../..');

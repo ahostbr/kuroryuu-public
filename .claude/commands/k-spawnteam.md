@@ -1,6 +1,6 @@
 ---
 description: Spawn a Claude Agent Team to collaboratively work on a task
-argument-hint: [task description] or [--template code-review|feature-dev|research|debug]
+argument-hint: [task description] or [--template code-review|feature-dev|research|debug|prd-workflow|thinker-debate|security-audit|quality-review]
 allowed-tools: Teammate, Task, TaskCreate, TaskUpdate, TaskList, SendMessage, Read, Glob, Grep, Bash, AskUserQuestion
 ---
 
@@ -21,6 +21,7 @@ Parse `$ARGUMENTS` for:
 | `--model <model>` | Default model for teammates (sonnet, opus, haiku) |
 | `--plan-mode` | Require plan approval for all teammates |
 | `--dry-run` | Show plan without executing |
+| `--pairing <a>+<b>` | Thinker pairing for thinker-debate (e.g., `red_team+blue_team`) |
 | Plain text | Task description to decompose |
 
 **Examples:**
@@ -28,6 +29,11 @@ Parse `$ARGUMENTS` for:
 - `/k-spawnteam --template code-review review the recent PRs`
 - `/k-spawnteam --count 4 build a comprehensive test suite`
 - `/k-spawnteam --template feature-dev --dry-run add dark mode`
+- `/k-spawnteam --template prd-workflow implement user authentication`
+- `/k-spawnteam --template thinker-debate should we use PostgreSQL or MongoDB`
+- `/k-spawnteam --template thinker-debate --pairing red_team+blue_team review auth security`
+- `/k-spawnteam --template security-audit review the auth module`
+- `/k-spawnteam --template quality-review audit the API layer`
 
 ## Step 0: Environment Check
 
@@ -162,28 +168,77 @@ TaskUpdate({ taskId: "<id>", owner: "<teammate-name>" })
 Remain active as team lead. Monitor teammate messages (auto-delivered),
 reassign tasks as needed, coordinate between teammates.
 
+## Prompt Pack Loading
+
+For templates that reference prompt pack files (`prd-workflow`, `thinker-debate`, `security-audit`, `quality-review`, and enriched `code-review`/`feature-dev`), load prompts BEFORE spawning:
+
+1. **Read** the prompt pack file(s) using the Read tool
+2. **Strip YAML frontmatter** — everything between the first pair of `---` lines is metadata, not instructions
+3. **For thinkers:** concatenate base + persona + adapter (see Thinker Communication Adapter below)
+4. **Use the resulting text** as the teammate's `prompt` parameter in the Task() spawn call
+
+**Example for thinker-debate:**
+1. Read `ai/prompt_packs/thinkers/_base_thinker.md` → base_content
+2. Read `ai/prompt_packs/thinkers/visionary.md` → persona_content
+3. Compose: base_content + "\n\n" + persona_content + "\n\n" + teams_adapter
+4. Pass composed text as `prompt` to Task() spawn call
+
+**Example for specialist:**
+1. Read `ai/prompt_packs/specialists/security_auditor.md` → content
+2. Strip frontmatter
+3. Pass content as `prompt` to Task() spawn call
+
+## Thinker Communication Adapter
+
+When composing thinker prompts for team templates (`thinker-debate`, `security-audit`), **append this block** after the base + persona content:
+
+```
+## Communication (Claude Teams Mode)
+
+You are running as a Claude Teams teammate, NOT in a Kuroryuu PTY session.
+
+**Instead of k_pty/k_inbox/k_thinker_channel, use:**
+- `SendMessage(type: "message", recipient: "<other-thinker-name>")` to send debate rounds
+- `SendMessage(type: "message", recipient: "team-lead")` to report synthesis
+- Messages are delivered automatically — no polling needed
+
+**The debate protocol remains the same:**
+- Round structure: [ACKNOWLEDGE] → [POSITION] → [REASONING] → [FORWARD]
+- Convergence signals: "We're converging on..."
+- Graceful yielding when genuinely persuaded
+- Maximum 3 rounds, then attempt synthesis
+
+**The team lead acts as observer/arbiter.** They will inject the debate topic as your first task.
+```
+
+Replace `<other-thinker-name>` with the actual teammate name (e.g., if this is thinker-a, use "thinker-b").
+
 ## Templates
 
-Built-in team configurations (matching Desktop's TeamTemplates):
+Built-in team configurations. Templates marked with **[prompt-pack]** load rich prompts from `ai/prompt_packs/`.
 
-### `code-review`
+### `code-review` **[prompt-pack enriched]**
 3 teammates, all Sonnet:
 
-| Name | Prompt | Color |
-|------|--------|-------|
-| security-reviewer | You are a security-focused code reviewer. Analyze code for security vulnerabilities, unsafe patterns, input validation issues, authentication/authorization flaws, and potential exploits. Provide actionable security recommendations. | red |
+| Name | Prompt Source | Color |
+|------|-------------|-------|
+| security-reviewer | Read from `ai/prompt_packs/specialists/security_auditor.md`. Fallback: "You are a security-focused code reviewer. Analyze code for security vulnerabilities, unsafe patterns, input validation issues, authentication/authorization flaws, and potential exploits. Provide actionable security recommendations." | red |
 | performance-reviewer | You are a performance-focused code reviewer. Analyze code for performance bottlenecks, inefficient algorithms, memory leaks, unnecessary computations, and optimization opportunities. Suggest performance improvements with measurable impact. | orange |
 | test-reviewer | You are a testing-focused code reviewer. Analyze code for test coverage gaps, edge cases, missing assertions, brittle tests, and testing best practices. Recommend test improvements and new test cases. | green |
 
-### `feature-dev`
+**Loading:** Before spawning, read `ai/prompt_packs/specialists/security_auditor.md`. If the file exists and is non-empty, use its content (minus frontmatter) as security-reviewer's prompt. If it doesn't exist, use the fallback text.
+
+### `feature-dev` **[prompt-pack enriched]**
 4 teammates (1 Opus + 3 Sonnet):
 
-| Name | Model | Prompt | Color |
-|------|-------|--------|-------|
+| Name | Model | Prompt Source | Color |
+|------|-------|-------------|-------|
 | architect | Opus (plan-mode) | You are the feature architect. Design high-level architecture, define interfaces, plan data models, identify technical risks, and create implementation roadmaps. Always work in plan mode before implementation. | purple |
-| implementer-1 | Sonnet | You are a backend implementer. Focus on server-side logic, API endpoints, database operations, business logic, and backend services. Write clean, maintainable, well-tested code. | blue |
+| implementer-1 | Sonnet | Read from `ai/prompt_packs/workflow_specialists/prd_executor.md` for rich context, then append: "Focus on server-side logic, API endpoints, database operations, business logic, and backend services." Fallback: "You are a backend implementer. Focus on server-side logic, API endpoints, database operations, business logic, and backend services. Write clean, maintainable, well-tested code." | blue |
 | implementer-2 | Sonnet | You are a frontend implementer. Focus on UI components, state management, user interactions, accessibility, and frontend integration. Write clean, maintainable, well-tested code. | cyan |
 | reviewer | Sonnet | You are the code reviewer. Review all implementations for correctness, consistency, best practices, edge cases, and integration issues. Ensure code quality and alignment with architecture. | green |
+
+**Loading:** Before spawning, read `ai/prompt_packs/workflow_specialists/prd_executor.md`. If it exists, use its content (minus frontmatter) as base for implementer-1's prompt, appending the backend focus instruction. If it doesn't exist, use the fallback text.
 
 ### `research`
 3 teammates, all Sonnet:
@@ -202,6 +257,90 @@ Built-in team configurations (matching Desktop's TeamTemplates):
 | investigator-data | You are a data-focused debugger. Analyze logs, traces, error messages, stack traces, and runtime data. Form hypotheses based on observable evidence. Propose targeted experiments to test your theories. | orange |
 | investigator-code | You are a code-focused debugger. Analyze code paths, control flow, state mutations, and function interactions. Identify suspicious patterns and potential logic errors. Propose code-level hypotheses and verification steps. | blue |
 | investigator-system | You are a system-focused debugger. Consider environment, dependencies, configuration, timing, concurrency, and external factors. Identify system-level issues and integration problems. Propose environmental hypotheses. | purple |
+
+### `prd-workflow` **[prompt-pack]**
+4 teammates, sequential pipeline (primer → executor → reviewer → validator):
+
+| Name | Model | Prompt Source | Color | Dependencies |
+|------|-------|-------------|-------|-------------|
+| primer | Haiku | `ai/prompt_packs/workflow_specialists/prd_primer.md` | blue | none |
+| executor | Sonnet | `ai/prompt_packs/workflow_specialists/prd_executor.md` | green | primer |
+| reviewer | Sonnet | `ai/prompt_packs/workflow_specialists/prd_reviewer.md` | orange | executor |
+| validator | Sonnet | `ai/prompt_packs/workflow_specialists/prd_validator.md` | red | reviewer |
+
+**Loading:** Read all 4 prompt pack files before spawning. Strip YAML frontmatter from each. Use the content as each teammate's prompt.
+
+**Task dependencies:** Create tasks with `addBlockedBy` to enforce the pipeline:
+- primer's task: no blockers
+- executor's task: blocked by primer's task
+- reviewer's task: blocked by executor's task
+- validator's task: blocked by reviewer's task
+
+### `thinker-debate` **[prompt-pack]**
+2 teammates, structured debate format:
+
+| Name | Model | Prompt Source | Color |
+|------|-------|-------------|-------|
+| thinker-a | Sonnet | `_base_thinker.md` + persona-a `.md` + teams adapter | purple |
+| thinker-b | Sonnet | `_base_thinker.md` + persona-b `.md` + teams adapter | red |
+
+**Default pairing:** visionary + skeptic (innovation refinement)
+
+**Custom pairing via `--pairing`:** Parse `--pairing <a>+<b>` from arguments. Valid persona names (from `ai/prompt_packs/thinkers/`):
+- `visionary`, `skeptic`, `pragmatist`, `red_team`, `blue_team`
+- `first_principles`, `systems_thinker`, `devils_advocate`, `user_advocate`, `synthesizer`
+
+**Recommended pairings:**
+- `visionary+skeptic` — innovation refinement (default)
+- `visionary+pragmatist` — vision to execution
+- `red_team+blue_team` — security review
+- `first_principles+systems_thinker` — deep analysis
+- `devils_advocate+visionary` — stress testing
+- `user_advocate+pragmatist` — feature design
+- `skeptic+synthesizer` — conflict resolution
+
+**Loading:**
+1. Read `ai/prompt_packs/thinkers/_base_thinker.md` → base
+2. Read `ai/prompt_packs/thinkers/{persona_a}.md` → persona_a_content
+3. Read `ai/prompt_packs/thinkers/{persona_b}.md` → persona_b_content
+4. Compose thinker-a prompt: base + "\n\n" + persona_a_content + "\n\n" + teams_adapter (with recipient "thinker-b")
+5. Compose thinker-b prompt: base + "\n\n" + persona_b_content + "\n\n" + teams_adapter (with recipient "thinker-a")
+6. Strip YAML frontmatter from each file before concatenating
+
+**Task setup:** Create a single shared debate task assigned to both thinkers. The task description should contain the debate topic from the user's input.
+
+### `security-audit` **[prompt-pack]**
+3 teammates for security review:
+
+| Name | Model | Prompt Source | Color |
+|------|-------|-------------|-------|
+| red-team | Sonnet | `_base_thinker.md` + `red_team.md` + teams adapter | red |
+| blue-team | Sonnet | `_base_thinker.md` + `blue_team.md` + teams adapter | blue |
+| security-auditor | Sonnet | `ai/prompt_packs/specialists/security_auditor.md` | orange |
+
+**Loading:**
+1. Read `ai/prompt_packs/thinkers/_base_thinker.md` → base
+2. Read `ai/prompt_packs/thinkers/red_team.md` → red_content
+3. Read `ai/prompt_packs/thinkers/blue_team.md` → blue_content
+4. Read `ai/prompt_packs/specialists/security_auditor.md` → auditor_content
+5. Compose red-team prompt: base + "\n\n" + red_content + "\n\n" + teams_adapter (with recipient "blue-team")
+6. Compose blue-team prompt: base + "\n\n" + blue_content + "\n\n" + teams_adapter (with recipient "red-team")
+7. Use auditor_content (minus frontmatter) as security-auditor's prompt
+
+**Task setup:** Create 3 tasks — red-team attack surface analysis, blue-team defense review, security-auditor comprehensive audit. The auditor task should be blocked by both red-team and blue-team tasks.
+
+### `quality-review` **[prompt-pack]**
+3 teammates from specialists:
+
+| Name | Model | Prompt Source | Color |
+|------|-------|-------------|-------|
+| security-auditor | Sonnet | `ai/prompt_packs/specialists/security_auditor.md` | red |
+| perf-optimizer | Sonnet | `ai/prompt_packs/specialists/performance_optimizer.md` | orange |
+| test-generator | Sonnet | `ai/prompt_packs/specialists/test_generator.md` | green |
+
+**Loading:** Read all 3 specialist files. Strip YAML frontmatter. Use content as each teammate's prompt.
+
+**Task setup:** Create 3 parallel tasks (no dependencies) — one for each specialist focused on their domain.
 
 ## Model Reference
 

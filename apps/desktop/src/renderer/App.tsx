@@ -29,6 +29,7 @@ import { Transcripts } from './components/transcripts';  // Archived conversatio
 import { ClaudeTaskMonitor } from './components/monitor';  // Claude Code task monitoring
 import { ClaudeTeams } from './components/claude-teams';  // Claude Code Agent Teams orchestration
 import { KuroryuuAgents } from './components/kuroryuu-agents';  // Kuroryuu Agents (rebranded coding-agents)
+import { SchedulerPanel } from './components/scheduler';  // Job scheduler
 // BackupManagerPage opened as dialog from IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
@@ -101,7 +102,7 @@ export function App() {
   const [activeView, setActiveView] = useState<View>('welcome');
   const [terminalMounted, setTerminalMounted] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
-  
+
 
   // Leader death detection - blocks UI and requires app restart
   const [leaderDead, setLeaderDead] = useState(false);
@@ -292,141 +293,144 @@ export function App() {
   return (
     <ErrorBoundary>
       <KuroryuuDialogProvider>
-      {/* Matrix digital rain effect - only shows when Matrix theme is active */}
-      <MatrixRain />
+        {/* Matrix digital rain effect - only shows when Matrix theme is active */}
+        <MatrixRain />
 
-      {/* Themed background texture overlay */}
-      <ThemedBackgroundOverlay />
+        {/* Themed background texture overlay */}
+        <ThemedBackgroundOverlay />
 
-      <div className="h-screen w-screen flex bg-background text-foreground font-sans overflow-hidden">
+        <div className="h-screen w-screen flex bg-background text-foreground font-sans overflow-hidden">
 
-        {/* Sidebar Navigation */}
-        <Sidebar activeView={activeView} onSelectView={setActiveView} />
+          {/* Sidebar Navigation */}
+          <Sidebar activeView={activeView} onSelectView={setActiveView} />
 
-        {/* Main Content Area */}
-        <div
-          className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative transition-all duration-300"
-        >
-          
-          {/* View Content */}
-          <main className="flex-1 overflow-hidden relative bg-background">
-            <ErrorBoundary>
-              
-              {/* Welcome Screen */}
-              {activeView === 'welcome' && <WelcomeScreen />}
+          {/* Main Content Area */}
+          <div
+            className="flex-1 min-w-0 flex flex-col h-full overflow-hidden relative transition-all duration-300"
+          >
 
-              {/* Kanban Board */}
-              <div className={`absolute inset-0 ${activeView === 'kanban' ? '' : 'hidden pointer-events-none'}`}>
-                 <KanbanBoard
-                   todoPath={todoPath}
-                   onNewTaskRequest={() => setWizardOpen(true)}
-                   onTaskSelect={handleTaskSelect}
-                 />
-              </div>
+            {/* View Content */}
+            <main className="flex-1 overflow-hidden relative bg-background">
+              <ErrorBoundary>
 
-              {/* Terminal Grid (Keep mounted for session persistence) */}
-              {terminalMounted && (
-                <div className={`absolute inset-0 ${activeView === 'terminals' ? '' : 'hidden pointer-events-none'}`}>
-                  <TerminalGrid maxTerminals={12} projectRoot={projectRoot} />
+                {/* Welcome Screen */}
+                {activeView === 'welcome' && <WelcomeScreen />}
+
+                {/* Kanban Board */}
+                <div className={`absolute inset-0 ${activeView === 'kanban' ? '' : 'hidden pointer-events-none'}`}>
+                  <KanbanBoard
+                    todoPath={todoPath}
+                    onNewTaskRequest={() => setWizardOpen(true)}
+                    onTaskSelect={handleTaskSelect}
+                  />
                 </div>
-              )}
+
+                {/* Terminal Grid (Keep mounted for session persistence) */}
+                {terminalMounted && (
+                  <div className={`absolute inset-0 ${activeView === 'terminals' ? '' : 'hidden pointer-events-none'}`}>
+                    <TerminalGrid maxTerminals={12} projectRoot={projectRoot} />
+                  </div>
+                )}
 
 
-              {/* Other Views (Placeholders) */}
-              {activeView === 'insights' && <KuroryuuDesktopAssistantPanel mode="fullscreen" />}
-              {activeView === 'ideation' && <Ideation />}
-              {activeView === 'changelog' && <Changelog />}
-              {activeView === 'context' && <Context />}
-              {activeView === 'memory' && <MemoryPanel />}
-              {activeView === 'command-center' && <CommandCenter />}
-              {activeView === 'worktrees' && <Worktrees />}
-              {activeView === 'traffic-flow' && <TrafficFlowPanel />}
-              {activeView === 'pty-traffic' && <PTYTrafficPanel />}
-              {activeView === 'capture' && <CapturePanel />}
+                {/* Other Views (Placeholders) */}
+                {activeView === 'insights' && <KuroryuuDesktopAssistantPanel mode="fullscreen" />}
+                {activeView === 'ideation' && <Ideation />}
+                {activeView === 'changelog' && <Changelog />}
+                {activeView === 'context' && <Context />}
+                {activeView === 'memory' && <MemoryPanel />}
+                {activeView === 'command-center' && <CommandCenter />}
+                {activeView === 'worktrees' && <Worktrees />}
+                {activeView === 'traffic-flow' && <TrafficFlowPanel />}
+                {activeView === 'pty-traffic' && <PTYTrafficPanel />}
+                {activeView === 'capture' && <CapturePanel />}
 
-              {/* Dojo - Feature Planning Workspace */}
-              {activeView === 'dojo' && <Dojo />}
+                {/* Dojo - Feature Planning Workspace */}
+                {activeView === 'dojo' && <Dojo />}
 
-              {/* Transcripts - Browse archived conversations */}
-              {activeView === 'transcripts' && <Transcripts />}
+                {/* Transcripts - Browse archived conversations */}
+                {activeView === 'transcripts' && <Transcripts />}
 
-              {/* Claude Task Monitor - Real-time Claude Code task tracking */}
-              {activeView === 'claude-tasks' && <ClaudeTaskMonitor />}
+                {/* Claude Task Monitor - Real-time Claude Code task tracking */}
+                {activeView === 'claude-tasks' && <ClaudeTaskMonitor />}
 
-              {/* Claude Teams - Agent Teams orchestration */}
-              {activeView === 'claude-teams' && <ClaudeTeams />}
+                {/* Claude Teams - Agent Teams orchestration */}
+                {activeView === 'claude-teams' && <ClaudeTeams />}
 
-              {/* Kuroryuu Agents - Background agent session management */}
-              {activeView === 'kuroryuu-agents' && <KuroryuuAgents />}
+                {/* Kuroryuu Agents - Background agent session management */}
+                {activeView === 'kuroryuu-agents' && <KuroryuuAgents />}
 
-            </ErrorBoundary>
-          </main>
-        </div>
+                {/* Scheduler - Automated job scheduling */}
+                {activeView === 'scheduler' && <SchedulerPanel />}
 
-        {/* Inspector Panel (Optional / Togglable) */}
-        {showInspector && (
-          <div className="w-80 border-l border-zinc-800 bg-zinc-900 flex-shrink-0">
-             <Inspector
-               projectRoot={projectRoot}
-               selectedTaskId={selectedTask?.id}
-             />
+              </ErrorBoundary>
+            </main>
           </div>
-        )}
 
-        {/* Task Detail Modal */}
-        <TaskDetailModal
-          task={selectedTask}
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-          projectRoot={projectRoot}
-        />
-        
-        {/* Task Creation Wizard */}
-        <TaskWizard 
-          open={wizardOpen} 
-          onOpenChange={setWizardOpen} 
-        />
+          {/* Inspector Panel (Optional / Togglable) */}
+          {showInspector && (
+            <div className="w-80 border-l border-zinc-800 bg-zinc-900 flex-shrink-0">
+              <Inspector
+                projectRoot={projectRoot}
+                selectedTaskId={selectedTask?.id}
+              />
+            </div>
+          )}
 
-        {/* Settings Dialogs */}
-        <AppSettingsDialog />
-        <ProjectSettingsDialog />
-        <ClaudeProfilesDialog />
-        <ModelConfigDialog />
-        <DomainConfigDialog />
-        <IntegrationsDialog />
+          {/* Task Detail Modal */}
+          <TaskDetailModal
+            task={selectedTask}
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+            projectRoot={projectRoot}
+          />
 
-        {/* Project Initialization Dialog */}
-        <InitializeProjectDialog />
+          {/* Task Creation Wizard */}
+          <TaskWizard
+            open={wizardOpen}
+            onOpenChange={setWizardOpen}
+          />
 
-        {/* EditDoc Modal - Global markdown editor */}
-        <EditDocModal />
+          {/* Settings Dialogs */}
+          <AppSettingsDialog />
+          <ProjectSettingsDialog />
+          <ClaudeProfilesDialog />
+          <ModelConfigDialog />
+          <DomainConfigDialog />
+          <IntegrationsDialog />
+
+          {/* Project Initialization Dialog */}
+          <InitializeProjectDialog />
+
+          {/* EditDoc Modal - Global markdown editor */}
+          <EditDocModal />
 
 
-        {/* Global Recording Indicator - visible on all pages except terminals (has header indicator) */}
-        <GlobalRecordingIndicator onNavigateToCapture={handleNavigateToCapture} activeView={activeView} />
+          {/* Global Recording Indicator - visible on all pages except terminals (has header indicator) */}
+          <GlobalRecordingIndicator onNavigateToCapture={handleNavigateToCapture} activeView={activeView} />
 
-        {/* Rich tool visualization popups (terminal tool outputs when enabled) */}
-        <RichVizPopupLayer />
+          {/* Rich tool visualization popups (terminal tool outputs when enabled) */}
+          <RichVizPopupLayer />
 
-        {/* Toast notifications */}
-        <ToastContainer />
+          {/* Toast notifications */}
+          <ToastContainer />
 
-        {/* Auto-update notifications */}
-        <UpdateNotification />
+          {/* Auto-update notifications */}
+          <UpdateNotification />
 
-        {/* Leader death warning - blocks all UI, requires restart */}
-        <LeaderDeathWarning isOpen={leaderDead} />
+          {/* Leader death warning - blocks all UI, requires restart */}
+          <LeaderDeathWarning isOpen={leaderDead} />
 
-        {/* Security alert - blocks UI when external connection detected */}
-        <SecurityAlert
-          alert={securityAlert}
-          onDismiss={handleDismissSecurityAlert}
-          onViewInTraffic={handleViewInTraffic}
-        />
+          {/* Security alert - blocks UI when external connection detected */}
+          <SecurityAlert
+            alert={securityAlert}
+            onDismiss={handleDismissSecurityAlert}
+            onViewInTraffic={handleViewInTraffic}
+          />
 
-        {/* Shutdown progress modal - shows cleanup progress when app is closing */}
-        <ShutdownProgressModal />
-      </div>
+          {/* Shutdown progress modal - shows cleanup progress when app is closing */}
+          <ShutdownProgressModal />
+        </div>
       </KuroryuuDialogProvider>
     </ErrorBoundary>
   );

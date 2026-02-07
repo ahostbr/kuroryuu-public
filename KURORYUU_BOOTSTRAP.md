@@ -74,6 +74,10 @@ k_rag(action="query", query="pattern")    # Search
 ```
 k_repo_intel(action="status")             # Fresh? If not: k_repo_intel(action="run")
 k_repo_intel(action="get", report="routes|hooks|symbol_map|todos")
+
+Dependency's mapping :
+\Docs\reviews\kuroryuu-dep-map-2026-02-07.md
+
 ```
 
 ### "I'm the first agent"
