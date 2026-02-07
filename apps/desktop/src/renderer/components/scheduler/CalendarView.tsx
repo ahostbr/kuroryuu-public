@@ -149,7 +149,34 @@ export function CalendarView({
     onCreateJob,
     onCreateEvent,
 }: CalendarViewProps) {
-    const [currentDate, setCurrentDate] = useState(() => new Date());
+    const minDate = useMemo(() => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }, []);
+    const maxDate = useMemo(() => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setFullYear(date.getFullYear() + 10);
+        return date;
+    }, []);
+
+    const minMonthStart = useMemo(
+        () => new Date(minDate.getFullYear(), minDate.getMonth(), 1),
+        [minDate]
+    );
+    const maxMonthStart = useMemo(
+        () => new Date(maxDate.getFullYear(), maxDate.getMonth(), 1),
+        [maxDate]
+    );
+
+    const clampToBounds = (date: Date) => {
+        if (date < minMonthStart) return new Date(minMonthStart);
+        if (date > maxMonthStart) return new Date(maxMonthStart);
+        return date;
+    };
+
+    const [currentDate, setCurrentDate] = useState(() => new Date(minMonthStart));
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     const year = currentDate.getFullYear();
@@ -160,19 +187,51 @@ export function CalendarView({
         [year, month, jobs, events]
     );
 
+    const minYear = minMonthStart.getFullYear();
+    const maxYear = maxMonthStart.getFullYear();
+    const isAtMinMonth = year === minMonthStart.getFullYear() && month === minMonthStart.getMonth();
+    const isAtMaxMonth = year === maxMonthStart.getFullYear() && month === maxMonthStart.getMonth();
+
+    const yearOptions = useMemo(
+        () => Array.from({ length: maxYear - minYear + 1 }, (_, idx) => minYear + idx),
+        [maxYear, minYear]
+    );
+
+    const monthOptions = useMemo(() => {
+        return MONTH_NAMES.map((name, index) => ({ name, index })).filter(({ index }) => {
+            if (year === minYear && index < minMonthStart.getMonth()) return false;
+            if (year === maxYear && index > maxMonthStart.getMonth()) return false;
+            return true;
+        });
+    }, [maxMonthStart, maxYear, minMonthStart, minYear, year]);
+
+    const isOutOfRangeDate = (date: Date) =>
+        date.getTime() < minDate.getTime() || date.getTime() > maxDate.getTime();
+
     const goToPrevMonth = () => {
-        setCurrentDate(new Date(year, month - 1, 1));
+        if (isAtMinMonth) return;
+        setCurrentDate((prev) => clampToBounds(new Date(prev.getFullYear(), prev.getMonth() - 1, 1)));
     };
 
     const goToNextMonth = () => {
-        setCurrentDate(new Date(year, month + 1, 1));
+        if (isAtMaxMonth) return;
+        setCurrentDate((prev) => clampToBounds(new Date(prev.getFullYear(), prev.getMonth() + 1, 1)));
     };
 
     const goToToday = () => {
-        setCurrentDate(new Date());
+        setCurrentDate(new Date(minMonthStart));
+    };
+
+    const handleYearChange = (nextYear: number) => {
+        setCurrentDate(clampToBounds(new Date(nextYear, month, 1)));
+    };
+
+    const handleMonthChange = (nextMonth: number) => {
+        setCurrentDate(clampToBounds(new Date(year, nextMonth, 1)));
     };
 
     const handleDayClick = (day: CalendarDay) => {
+        if (isOutOfRangeDate(day.date)) return;
         setSelectedDate(day.date);
         onDayClick?.(day.date);
     };
@@ -183,27 +242,51 @@ export function CalendarView({
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
                 <div className="flex items-center gap-2">
                     <CalendarIcon className="w-5 h-5 text-primary" />
-                    <h2 className="text-lg font-semibold text-foreground">
-                        {MONTH_NAMES[month]} {year}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={month}
+                            onChange={(e) => handleMonthChange(parseInt(e.target.value, 10))}
+                            className="px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                            {monthOptions.map(({ name, index }) => (
+                                <option key={name} value={index}>
+                                    {name}
+                                </option>
+                            ))}
+                        </select>
+                        <select
+                            value={year}
+                            onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
+                            className="px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                            {yearOptions.map((value) => (
+                                <option key={value} value={value}>
+                                    {value}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                     <button
                         onClick={goToToday}
+                        disabled={isAtMinMonth}
                         className="px-3 py-1.5 text-sm rounded-md border border-border hover:bg-secondary transition-colors"
                     >
                         Today
                     </button>
                     <button
                         onClick={goToPrevMonth}
-                        className="p-1.5 rounded-md hover:bg-secondary transition-colors"
+                        disabled={isAtMinMonth}
+                        className="p-1.5 rounded-md hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button
                         onClick={goToNextMonth}
-                        className="p-1.5 rounded-md hover:bg-secondary transition-colors"
+                        disabled={isAtMaxMonth}
+                        className="p-1.5 rounded-md hover:bg-secondary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
@@ -227,14 +310,16 @@ export function CalendarView({
                 {calendarDays.map((day, idx) => {
                     const isSelected = selectedDate &&
                         day.date.getTime() === selectedDate.getTime();
+                    const isOutOfRange = isOutOfRangeDate(day.date);
 
                     return (
                         <div
                             key={idx}
                             onClick={() => handleDayClick(day)}
                             className={`
-                                relative border-b border-r border-border p-1 min-h-[80px] cursor-pointer
-                                transition-colors hover:bg-secondary/50
+                                relative border-b border-r border-border p-1 min-h-[80px]
+                                transition-colors
+                                ${isOutOfRange ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:bg-secondary/50'}
                                 ${!day.isCurrentMonth ? 'bg-secondary/30' : ''}
                                 ${day.isToday ? 'bg-primary/10' : ''}
                                 ${isSelected ? 'ring-2 ring-primary ring-inset' : ''}
@@ -302,7 +387,7 @@ export function CalendarView({
                             </div>
 
                             {/* Add event button (shown on hover for current month) */}
-                            {day.isCurrentMonth && (onCreateEvent || onCreateJob) && (
+                            {!isOutOfRange && day.isCurrentMonth && (onCreateEvent || onCreateJob) && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();

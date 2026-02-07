@@ -23,6 +23,7 @@ import { EventEditor } from './EventEditor';
 import { JobHistoryPanel } from './JobHistoryPanel';
 import { CalendarView } from './CalendarView';
 import { DayModal } from './DayModal';
+import { SchedulerSettingsModal } from './SchedulerSettingsModal';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Helpers
@@ -580,6 +581,13 @@ export function SchedulerPanel() {
                     date={selectedDay}
                     onClose={() => setSelectedDay(null)}
                     onNavigateDay={handleNavigateDay}
+                />
+            )}
+
+            {/* Settings Modal */}
+            {showSettings && (
+                <SchedulerSettingsModal
+                    onClose={() => setShowSettings(false)}
                 />
             )}
 
