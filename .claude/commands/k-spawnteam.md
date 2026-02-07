@@ -174,44 +174,19 @@ For templates that reference prompt pack files (`prd-workflow`, `thinker-debate`
 
 1. **Read** the prompt pack file(s) using the Read tool
 2. **Strip YAML frontmatter** — everything between the first pair of `---` lines is metadata, not instructions
-3. **For thinkers:** concatenate base + persona + adapter (see Thinker Communication Adapter below)
+3. **For thinkers:** concatenate base + persona (thinker prompts use k_pty/k_inbox natively — do NOT modify those references)
 4. **Use the resulting text** as the teammate's `prompt` parameter in the Task() spawn call
 
 **Example for thinker-debate:**
 1. Read `ai/prompt_packs/thinkers/_base_thinker.md` → base_content
 2. Read `ai/prompt_packs/thinkers/visionary.md` → persona_content
-3. Compose: base_content + "\n\n" + persona_content + "\n\n" + teams_adapter
+3. Compose: base_content + "\n\n" + persona_content
 4. Pass composed text as `prompt` to Task() spawn call
 
 **Example for specialist:**
 1. Read `ai/prompt_packs/specialists/security_auditor.md` → content
 2. Strip frontmatter
 3. Pass content as `prompt` to Task() spawn call
-
-## Thinker Communication Adapter
-
-When composing thinker prompts for team templates (`thinker-debate`, `security-audit`), **append this block** after the base + persona content:
-
-```
-## Communication (Claude Teams Mode)
-
-You are running as a Claude Teams teammate, NOT in a Kuroryuu PTY session.
-
-**Instead of k_pty/k_inbox/k_thinker_channel, use:**
-- `SendMessage(type: "message", recipient: "<other-thinker-name>")` to send debate rounds
-- `SendMessage(type: "message", recipient: "team-lead")` to report synthesis
-- Messages are delivered automatically — no polling needed
-
-**The debate protocol remains the same:**
-- Round structure: [ACKNOWLEDGE] → [POSITION] → [REASONING] → [FORWARD]
-- Convergence signals: "We're converging on..."
-- Graceful yielding when genuinely persuaded
-- Maximum 3 rounds, then attempt synthesis
-
-**The team lead acts as observer/arbiter.** They will inject the debate topic as your first task.
-```
-
-Replace `<other-thinker-name>` with the actual teammate name (e.g., if this is thinker-a, use "thinker-b").
 
 ## Templates
 
@@ -281,8 +256,8 @@ Built-in team configurations. Templates marked with **[prompt-pack]** load rich 
 
 | Name | Model | Prompt Source | Color |
 |------|-------|-------------|-------|
-| thinker-a | Sonnet | `_base_thinker.md` + persona-a `.md` + teams adapter | purple |
-| thinker-b | Sonnet | `_base_thinker.md` + persona-b `.md` + teams adapter | red |
+| thinker-a | Sonnet | `_base_thinker.md` + persona-a `.md` | purple |
+| thinker-b | Sonnet | `_base_thinker.md` + persona-b `.md` | red |
 
 **Default pairing:** visionary + skeptic (innovation refinement)
 
@@ -303,8 +278,8 @@ Built-in team configurations. Templates marked with **[prompt-pack]** load rich 
 1. Read `ai/prompt_packs/thinkers/_base_thinker.md` → base
 2. Read `ai/prompt_packs/thinkers/{persona_a}.md` → persona_a_content
 3. Read `ai/prompt_packs/thinkers/{persona_b}.md` → persona_b_content
-4. Compose thinker-a prompt: base + "\n\n" + persona_a_content + "\n\n" + teams_adapter (with recipient "thinker-b")
-5. Compose thinker-b prompt: base + "\n\n" + persona_b_content + "\n\n" + teams_adapter (with recipient "thinker-a")
+4. Compose thinker-a prompt: base + "\n\n" + persona_a_content
+5. Compose thinker-b prompt: base + "\n\n" + persona_b_content
 6. Strip YAML frontmatter from each file before concatenating
 
 **Task setup:** Create a single shared debate task assigned to both thinkers. The task description should contain the debate topic from the user's input.
@@ -314,8 +289,8 @@ Built-in team configurations. Templates marked with **[prompt-pack]** load rich 
 
 | Name | Model | Prompt Source | Color |
 |------|-------|-------------|-------|
-| red-team | Sonnet | `_base_thinker.md` + `red_team.md` + teams adapter | red |
-| blue-team | Sonnet | `_base_thinker.md` + `blue_team.md` + teams adapter | blue |
+| red-team | Sonnet | `_base_thinker.md` + `red_team.md` | red |
+| blue-team | Sonnet | `_base_thinker.md` + `blue_team.md` | blue |
 | security-auditor | Sonnet | `ai/prompt_packs/specialists/security_auditor.md` | orange |
 
 **Loading:**
@@ -323,8 +298,8 @@ Built-in team configurations. Templates marked with **[prompt-pack]** load rich 
 2. Read `ai/prompt_packs/thinkers/red_team.md` → red_content
 3. Read `ai/prompt_packs/thinkers/blue_team.md` → blue_content
 4. Read `ai/prompt_packs/specialists/security_auditor.md` → auditor_content
-5. Compose red-team prompt: base + "\n\n" + red_content + "\n\n" + teams_adapter (with recipient "blue-team")
-6. Compose blue-team prompt: base + "\n\n" + blue_content + "\n\n" + teams_adapter (with recipient "red-team")
+5. Compose red-team prompt: base + "\n\n" + red_content
+6. Compose blue-team prompt: base + "\n\n" + blue_content
 7. Use auditor_content (minus frontmatter) as security-auditor's prompt
 
 **Task setup:** Create 3 tasks — red-team attack surface analysis, blue-team defense review, security-auditor comprehensive audit. The auditor task should be blocked by both red-team and blue-team tasks.
