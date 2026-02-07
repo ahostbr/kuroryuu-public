@@ -775,19 +775,44 @@ export class SchedulerFeature implements IFeatureModule {
 
 
 
-    private async executeTeamAction(job: ScheduledJob, action: { type: 'team'; teamId: string; taskIds?: string[] }): Promise<void> {
-        console.log(`[Scheduler] Executing team ${action.teamId} for job ${job.id}`);
+    private async executeTeamAction(job: ScheduledJob, action: { type: 'team'; teamId: string; taskIds?: string[]; executionStrategy?: 'direct' | 'prompt'; prompt?: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive' }): Promise<void> {
+        const strategy = action.executionStrategy || 'prompt';
+        console.log(`[Scheduler] Executing team ${action.teamId} for job ${job.id} (strategy: ${strategy})`);
 
-        // TODO: Import and use agent-orchestrator when available
-        // For now, we log the intent and return
-        // This will be connected to the ClaudeTeams orchestration system
+        if (strategy === 'direct') {
+            // Direct IPC: create team via claude-teams:create-team handler
+            const { BrowserWindow } = await import('electron');
+            const win = BrowserWindow.getAllWindows()[0];
+            if (!win) {
+                throw new Error('No Electron window available for IPC');
+            }
 
-        // Placeholder - actual implementation will look something like:
-        // const orchestrator = getAgentOrchestrator();
-        // await orchestrator.startTeam(action.teamId, { taskIds: action.taskIds });
+            // Create the team
+            const createResult = await win.webContents.executeJavaScript(
+                `window.electronAPI?.claudeTeams?.createTeam?.({ name: ${JSON.stringify(action.teamId)}, description: ${JSON.stringify(`Scheduled job: ${job.name}`)} })`
+            );
+            if (createResult && !createResult.ok) {
+                throw new Error(`Failed to create team: ${createResult.error || 'unknown error'}`);
+            }
+            console.log(`[Scheduler] Team ${action.teamId} created via direct IPC`);
 
-        console.log(`[Scheduler] Team execution not yet implemented for team: ${action.teamId}`);
-        await new Promise(resolve => setTimeout(resolve, 100));
+        } else {
+            // Prompt strategy: spawn claude CLI with /k-spawnteam instructions
+            const taskList = action.taskIds?.length
+                ? `\nWork on these tasks: ${action.taskIds.join(', ')}`
+                : '';
+            const teamPrompt = action.prompt
+                || `/k-spawnteam ${action.teamId}${taskList}`;
+
+            // Delegate to executePromptAction with the team prompt
+            await this.executePromptAction(job, {
+                type: 'prompt',
+                prompt: teamPrompt,
+                workdir: action.workdir,
+                model: action.model,
+                executionMode: action.executionMode,
+            });
+        }
     }
 
     private async executeScriptAction(job: ScheduledJob, action: { type: 'script'; scriptPath: string; args?: string[]; timeoutMinutes?: number }): Promise<void> {
