@@ -326,7 +326,7 @@ const api = {
     /** List available MCP tools */
     tools: (): Promise<{ tools?: unknown[]; error?: string }> =>
       ipcRenderer.invoke('mcp:tools'),
-    
+
     // Convenience methods for common tools
     inbox: {
       send: (to: string, subject: string, body: string) =>
@@ -401,7 +401,7 @@ const api = {
     /** Check if OS-level encryption is available */
     encryptionAvailable: (): Promise<boolean> =>
       ipcRenderer.invoke('auth:encryptionAvailable'),
-    
+
     /** Get status of all providers */
     getAllStatuses: (): Promise<Record<string, {
       connected: boolean;
@@ -410,11 +410,11 @@ const api = {
       expiresAt?: number;
       scope?: string;
     }>> => ipcRenderer.invoke('auth:getAllStatuses'),
-    
+
     /** Disconnect a provider */
     disconnect: (provider: string): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('auth:disconnect', provider),
-    
+
     /** Anthropic API Key */
     anthropic: {
       setKey: (apiKey: string): Promise<{ ok: boolean }> =>
@@ -426,7 +426,7 @@ const api = {
       isConnected: (): Promise<boolean> =>
         ipcRenderer.invoke('auth:anthropic:isConnected'),
     },
-    
+
     /** OpenAI API Key */
     openai: {
       setKey: (apiKey: string): Promise<{ ok: boolean }> =>
@@ -481,7 +481,7 @@ const api = {
       loadFromStore: (): Promise<{ ok: boolean; clientId?: string; error?: string }> =>
         ipcRenderer.invoke('auth:github:loadFromStore'),
     },
-    
+
     /** OAuth App Credentials (secure storage for client ID/secret) */
     oauthApp: {
       /** Save OAuth App credentials securely */
@@ -511,7 +511,7 @@ const api = {
       source: string;
       message: string;
     }> => ipcRenderer.invoke('cli:detect', tool),
-    
+
     /** Detect all CLI tools at once (legacy: kiro, git, python) */
     detectAll: (): Promise<{
       claude: { found: boolean; path?: string; version?: string; source: string; message: string };
@@ -528,7 +528,7 @@ const api = {
       installCmd: string | null;
       installUrl: string | null;
     }>> => ipcRenderer.invoke('cli:detectAllProviders'),
-    
+
     /** Configure CLI tool paths (from user settings) */
     configure: (config: {
       claudePath?: string;
@@ -621,7 +621,7 @@ const api = {
       Promise.resolve({ success: true }), // Not needed
     installMsi: (): Promise<{ success: boolean; error?: string }> =>
       Promise.resolve({ success: true }), // Not needed
-    onDownloadProgress: () => () => {}, // No-op
+    onDownloadProgress: () => () => { }, // No-op
     start: (): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('pccontrol:arm'),
     stop: (): Promise<{ success: boolean }> =>
@@ -748,6 +748,95 @@ const api = {
       ipcRenderer.invoke('agents:deleteSwarm', swarmId),
   },
   /**
+   * Scheduler API
+   * Schedule Claude CLI sessions with timers, cron patterns, and prompts
+   */
+  scheduler: {
+    /** List all scheduled jobs */
+    list: (): Promise<Array<{
+      id: string;
+      name: string;
+      description?: string;
+      enabled: boolean;
+      schedule: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
+      action: { type: 'prompt' | 'team' | 'script'; prompt?: string; teamId?: string; scriptPath?: string };
+      status: 'idle' | 'running' | 'paused';
+      lastRun?: number;
+      nextRun?: number;
+      createdAt: number;
+    }>> => ipcRenderer.invoke('scheduler:list'),
+
+    /** Get a specific job */
+    get: (id: string): Promise<unknown | null> =>
+      ipcRenderer.invoke('scheduler:get', id),
+
+    /** Create a new scheduled job */
+    create: (params: {
+      name: string;
+      description?: string;
+      schedule: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
+      action: { type: 'prompt' | 'team' | 'script'; prompt?: string; teamId?: string; scriptPath?: string };
+      enabled?: boolean;
+      notifyOnStart?: boolean;
+      notifyOnComplete?: boolean;
+      notifyOnError?: boolean;
+    }): Promise<{ ok: boolean; job?: unknown; error?: string }> =>
+      ipcRenderer.invoke('scheduler:create', params),
+
+    /** Update an existing job */
+    update: (params: {
+      id: string;
+      name?: string;
+      description?: string;
+      schedule?: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
+      action?: { type: 'prompt' | 'team' | 'script'; prompt?: string; teamId?: string; scriptPath?: string };
+      enabled?: boolean;
+    }): Promise<{ ok: boolean; job?: unknown; error?: string }> =>
+      ipcRenderer.invoke('scheduler:update', params),
+
+    /** Delete a job */
+    delete: (id: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('scheduler:delete', id),
+
+    /** Run a job immediately */
+    runNow: (id: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('scheduler:runNow', id),
+
+    /** Pause a job */
+    pause: (id: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('scheduler:pause', id),
+
+    /** Resume a paused job */
+    resume: (id: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('scheduler:resume', id),
+
+    /** Get job execution history */
+    history: (query?: { jobId?: string; status?: string; since?: number; limit?: number }): Promise<Array<{
+      id: string;
+      startedAt: number;
+      completedAt?: number;
+      status: 'running' | 'completed' | 'failed' | 'cancelled';
+      error?: string;
+    }>> => ipcRenderer.invoke('scheduler:history', query ?? {}),
+
+    /** Get scheduler settings */
+    getSettings: (): Promise<{
+      enabled: boolean;
+      maxConcurrentJobs: number;
+      historyRetentionDays: number;
+      defaultNotifyOnError: boolean;
+    } | null> => ipcRenderer.invoke('scheduler:getSettings'),
+
+    /** Update scheduler settings */
+    updateSettings: (updates: {
+      enabled?: boolean;
+      maxConcurrentJobs?: number;
+      historyRetentionDays?: number;
+      defaultNotifyOnError?: boolean;
+    }): Promise<{ ok: boolean; settings?: unknown; error?: string }> =>
+      ipcRenderer.invoke('scheduler:updateSettings', updates),
+  },
+  /**
    * Gateway Orchestration API (via Gateway /v1/orchestration/*)
    *
    * NOTE: Deprecated methods REMOVED:
@@ -788,14 +877,14 @@ const api = {
         last_checkpoint?: string;
         error?: string;
       }> => ipcRenderer.invoke('orchestration:singleAgent:status', agentId, projectRoot),
-      
+
       /** Assign a task to a single agent */
       assign: (agentId: string, taskId: string, projectRoot?: string, resetProgress?: boolean): Promise<{
         ok: boolean;
         message?: string;
         error?: string;
       }> => ipcRenderer.invoke('orchestration:singleAgent:assign', agentId, taskId, projectRoot, resetProgress),
-      
+
       /** Execute one subtask (returns context prompt + subtask details) */
       execute: (agentId: string, projectRoot?: string): Promise<{
         ok: boolean;
@@ -808,14 +897,14 @@ const api = {
         message?: string;
         error?: string;
       }> => ipcRenderer.invoke('orchestration:singleAgent:execute', agentId, projectRoot),
-      
+
       /** Reset a single agent's state */
       reset: (agentId: string, projectRoot?: string): Promise<{
         ok: boolean;
         message?: string;
         error?: string;
       }> => ipcRenderer.invoke('orchestration:singleAgent:reset', agentId, projectRoot),
-      
+
       /** Get a single agent's context summary */
       context: (agentId: string, projectRoot?: string): Promise<{
         ok: boolean;
@@ -2021,7 +2110,7 @@ const api = {
       ipcRenderer.invoke('claude-teams:cleanup-team', params.teamName),
     /** Refresh data for a specific team */
     refreshTeam: (teamName: string): Promise<void> =>
-      ipcRenderer.invoke('claude-teams:get-teams').then(() => {}),
+      ipcRenderer.invoke('claude-teams:get-teams').then(() => { }),
     /** Listen for state update events from file watcher */
     onStateUpdate: (callback: (event: unknown) => void) => {
       const handlers = [

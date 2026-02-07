@@ -53,6 +53,10 @@ Always **append to current checkpoint** - do not create new checkpoints each sav
 Check freshness first: `k_rag(action="status")`, `k_repo_intel(action="status")`
 
 ---
+## Dependency's mapping is a powerful tool for understanding and navigating complex codebases. It allows developers to visualize the relationships between different components, such as functions, classes, and modules. By mapping out these dependencies, developers can identify potential issues, optimize performance, and improve the overall structure of their code.
+
+Kuroryuu Dependency's Mapping Ref:
+'Docs\reviews\kuroryuu-dep-map-2026-02-07.md'
 
 ## PTY Reading (HARD RULE)
 
@@ -169,6 +173,6 @@ Note: Direct `wsl rm -f "/mnt/e/..."` from Git Bash fails because the path gets 
 
 ## On Session Start
 
-1. Read `KURORYUU_BOOTSTRAP.md`
+1. Read `KURORYUU_BOOTSTRAP.md` 100% IN FULL !!!
 2. Call: `kuroryuu_session_start(process_id, "claude", "your_agent_id")`
 3. Confirm: `KURORYUU-aware. Session: {session_id}. Ready.`

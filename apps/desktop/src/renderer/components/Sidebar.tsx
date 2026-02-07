@@ -29,6 +29,7 @@ import {
   Radio,
   Cpu,
   Users,
+  Calendar,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
 import { useDomainConfigStore } from '../stores/domain-config-store';
@@ -61,7 +62,8 @@ export type View =
   | 'claude-tasks'
   | 'claude-teams'
   | 'kuroryuu-agents'
-  | 'genui';
+  | 'genui'
+  | 'scheduler';
 
 interface SidebarProps {
   activeView: View;
@@ -91,6 +93,7 @@ const navGroups: NavGroup[] = [
     icon: ClipboardList,
     items: [
       { id: 'claude-tasks', label: 'Claude Plugin', icon: Sparkles, shortcut: 'C' },
+      { id: 'scheduler', label: 'Scheduler', icon: Calendar, shortcut: 'S' },
       { id: 'dojo', label: 'Dojo', icon: Swords, shortcut: 'D' },
       { id: 'kanban', label: 'Kanban', icon: LayoutGrid, shortcut: 'K' },
       // { id: 'dag', label: 'Task DAG', icon: Share2, shortcut: 'G' }, // Hidden: Use Graphiti tab in Command Center
@@ -168,9 +171,8 @@ function SidebarGroup({
         <group.icon className="w-4 h-4 flex-shrink-0" />
         <span className="flex-1 text-left">{group.label}</span>
         <ChevronDown
-          className={`w-4 h-4 transition-transform duration-200 ${
-            isExpanded ? 'rotate-0' : '-rotate-90'
-          }`}
+          className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'
+            }`}
         />
       </button>
 
@@ -194,10 +196,9 @@ function SidebarGroup({
               }}
               className={`
                 group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150
-                ${
-                  activeView === item.id
-                    ? 'bg-secondary text-primary'
-                    : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
+                ${activeView === item.id
+                  ? 'bg-secondary text-primary'
+                  : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
                 }
               `}
             >
@@ -240,7 +241,7 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
       if (stored) {
         return new Set(JSON.parse(stored));
       }
-    } catch {}
+    } catch { }
     // Default: all expanded
     return new Set(navGroups.map((g) => g.id));
   });
@@ -299,18 +300,16 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
       )}
 
       {/* Main sidebar content */}
-      <div className={`h-full bg-sidebar flex flex-col relative transition-all duration-300 overflow-hidden ${
-        isCollapsed ? 'w-12' : 'w-52'
-      } ${isKuroryuu ? '' : 'border-r border-sidebar-border'}`}>
+      <div className={`h-full bg-sidebar flex flex-col relative transition-all duration-300 overflow-hidden ${isCollapsed ? 'w-12' : 'w-52'
+        } ${isKuroryuu ? '' : 'border-r border-sidebar-border'}`}>
         {/* Collapse/Expand Toggle Button */}
         <div className={`absolute top-3 z-10 transition-all duration-300 ${isCollapsed ? 'right-1' : 'right-2'}`}>
           <button
             onClick={toggle}
-            className={`p-1 rounded transition-colors ${
-              isKuroryuu
+            className={`p-1 rounded transition-colors ${isKuroryuu
                 ? 'text-primary/70 hover:text-primary hover:bg-primary/15'
                 : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-            }`}
+              }`}
             title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
@@ -337,9 +336,8 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
 
               {/* Vertical "EXPAND" text */}
               <div
-                className={`text-[10px] tracking-widest font-medium cursor-pointer ${
-                  isKuroryuu ? 'text-primary/60 hover:text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className={`text-[10px] tracking-widest font-medium cursor-pointer ${isKuroryuu ? 'text-primary/60 hover:text-primary' : 'text-muted-foreground hover:text-foreground'
+                  }`}
                 style={{ writingMode: 'vertical-rl', textOrientation: 'mixed' }}
                 onClick={() => setCollapsed(false)}
               >
@@ -351,13 +349,12 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
                 {/* Home button */}
                 <button
                   onClick={() => onSelectView('welcome')}
-                  className={`p-1.5 rounded transition-colors ${
-                    activeView === 'welcome'
+                  className={`p-1.5 rounded transition-colors ${activeView === 'welcome'
                       ? isKuroryuu ? 'text-primary bg-primary/20' : 'text-primary bg-secondary'
                       : isKuroryuu
                         ? 'text-primary/50 hover:text-primary hover:bg-primary/10'
                         : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                  }`}
+                    }`}
                   title="Home"
                 >
                   <Home className="w-4 h-4" />
@@ -378,13 +375,12 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
                           onSelectView(group.items[0].id);
                         }
                       }}
-                      className={`p-1.5 rounded transition-colors ${
-                        hasActive
+                      className={`p-1.5 rounded transition-colors ${hasActive
                           ? isKuroryuu ? 'text-primary bg-primary/20' : 'text-primary bg-secondary'
                           : isKuroryuu
                             ? 'text-primary/50 hover:text-primary hover:bg-primary/10'
                             : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                      }`}
+                        }`}
                       title={group.label}
                     >
                       <group.icon className="w-4 h-4" />
@@ -397,11 +393,10 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
             {/* Bottom section: Settings cog */}
             <button
               onClick={() => openDialog('app')}
-              className={`p-1.5 rounded transition-colors ${
-                isKuroryuu
+              className={`p-1.5 rounded transition-colors ${isKuroryuu
                   ? 'text-primary/50 hover:text-primary hover:bg-primary/10'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
+                }`}
               title="Settings"
             >
               <Settings className="w-4 h-4" />
@@ -410,9 +405,8 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
         )}
 
         {/* Logo / Brand - Expanded State */}
-        <div className={`px-4 py-4 border-b border-border/50 flex items-center gap-3 transition-opacity duration-300 ${
-          isCollapsed ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'
-        }`}>
+        <div className={`px-4 py-4 border-b border-border/50 flex items-center gap-3 transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none absolute' : 'opacity-100'
+          }`}>
           {/* Dragon logo - always show for themed styles, debug: show for all themes */}
           {(isKuroryuu || isGrunge) && (
             <img
@@ -438,99 +432,96 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
           </div>
         )}
 
-      {/* Navigation Groups */}
-      <div className={`flex-1 overflow-y-auto py-3 px-2 space-y-1 transition-opacity duration-300 ${
-        isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}>
-        {/* Home / Welcome - Always visible at top */}
-        <button
-          onClick={() => onSelectView('welcome')}
-          className={`
+        {/* Navigation Groups */}
+        <div className={`flex-1 overflow-y-auto py-3 px-2 space-y-1 transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}>
+          {/* Home / Welcome - Always visible at top */}
+          <button
+            onClick={() => onSelectView('welcome')}
+            className={`
             group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 mb-2
-            ${
-              activeView === 'welcome'
+            ${activeView === 'welcome'
                 ? 'bg-secondary text-primary'
                 : 'text-muted-foreground hover:bg-secondary/40 hover:text-foreground'
-            }
+              }
           `}
-        >
-          {activeView === 'welcome' && (
-            <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-r-full" />
-          )}
-          <Home className="w-4 h-4 flex-shrink-0" />
-          <span className="text-sm flex-1 text-left font-medium">Home</span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
-            H
-          </span>
-        </button>
+          >
+            {activeView === 'welcome' && (
+              <div className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-r-full" />
+            )}
+            <Home className="w-4 h-4 flex-shrink-0" />
+            <span className="text-sm flex-1 text-left font-medium">Home</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono opacity-0 group-hover:opacity-100 transition-opacity">
+              H
+            </span>
+          </button>
 
-        <div className="h-px bg-border/50 my-2" />
+          <div className="h-px bg-border/50 my-2" />
 
-        {navGroups.map((group) => (
-          <SidebarGroup
-            key={group.id}
-            group={group}
-            isExpanded={expandedGroups.has(group.id)}
-            onToggle={() => toggleGroup(group.id)}
-            activeView={activeView}
-            onSelectView={onSelectView}
-            extraAction={group.id === 'build' ? (
-              <button
-                onClick={() => window.electronAPI?.codeEditor?.open?.()}
-                className="group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-secondary/40 hover:text-foreground mt-1 border-t border-border/30 pt-2"
-              >
-                <Code2 className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm flex-1 text-left">CodeEditor</span>
-                <span className="text-[10px] text-muted-foreground/40 font-mono">
-                  ↗
-                </span>
-              </button>
-            ) : undefined}
-          />
-        ))}
-      </div>
+          {navGroups.map((group) => (
+            <SidebarGroup
+              key={group.id}
+              group={group}
+              isExpanded={expandedGroups.has(group.id)}
+              onToggle={() => toggleGroup(group.id)}
+              activeView={activeView}
+              onSelectView={onSelectView}
+              extraAction={group.id === 'build' ? (
+                <button
+                  onClick={() => window.electronAPI?.codeEditor?.open?.()}
+                  className="group relative w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 text-muted-foreground hover:bg-secondary/40 hover:text-foreground mt-1 border-t border-border/30 pt-2"
+                >
+                  <Code2 className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm flex-1 text-left">CodeEditor</span>
+                  <span className="text-[10px] text-muted-foreground/40 font-mono">
+                    ↗
+                  </span>
+                </button>
+              ) : undefined}
+            />
+          ))}
+        </div>
 
-      {/* Bottom Actions */}
-      <div className={`border-t border-border/50 p-2 space-y-1 transition-opacity duration-300 ${
-        isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}>
-        <button
-          onClick={() => openDialog('integrations')}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-        >
-          <Plug className="w-4 h-4" />
-          <span className="text-sm">Integrations</span>
-        </button>
+        {/* Bottom Actions */}
+        <div className={`border-t border-border/50 p-2 space-y-1 transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+          }`}>
+          <button
+            onClick={() => openDialog('integrations')}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
+          >
+            <Plug className="w-4 h-4" />
+            <span className="text-sm">Integrations</span>
+          </button>
 
-        <button
-          onClick={() => useDomainConfigStore.getState().openDialog()}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-        >
-          <Cpu className="w-4 h-4" />
-          <span className="text-sm">Domain Config</span>
-        </button>
+          <button
+            onClick={() => useDomainConfigStore.getState().openDialog()}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
+          >
+            <Cpu className="w-4 h-4" />
+            <span className="text-sm">Domain Config</span>
+          </button>
 
-        <button
-          onClick={() => openDialog('app')}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-        >
-          <Settings className="w-4 h-4" />
-          <span className="text-sm">Settings</span>
-          <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
-            Ctrl+,
-          </span>
-        </button>
+          <button
+            onClick={() => openDialog('app')}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
+          >
+            <Settings className="w-4 h-4" />
+            <span className="text-sm">Settings</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
+              Ctrl+,
+            </span>
+          </button>
 
-        {/* Launch Tray Companion - Shift+click for debug mode (shows terminal) */}
-        <button
-          onClick={(e) => window.electronAPI?.app?.launchTrayCompanion?.({ debug: e.shiftKey })}
-          title="Launch Tray Companion (Shift+click for debug mode)"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-        >
-          <Bot className="w-4 h-4" />
-          <span className="text-sm">Tray Companion</span>
-        </button>
-      </div>
+          {/* Launch Tray Companion - Shift+click for debug mode (shows terminal) */}
+          <button
+            onClick={(e) => window.electronAPI?.app?.launchTrayCompanion?.({ debug: e.shiftKey })}
+            title="Launch Tray Companion (Shift+click for debug mode)"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
+          >
+            <Bot className="w-4 h-4" />
+            <span className="text-sm">Tray Companion</span>
+          </button>
+        </div>
       </div>
 
       {/* Kuroryuu: Right pillar decoration */}
