@@ -11,6 +11,7 @@ import * as os from 'os';
 import {
     SchedulerData,
     ScheduledJob,
+    ScheduledEvent,
     SchedulerSettings,
     DEFAULT_SCHEDULER_SETTINGS,
 } from './types';
@@ -41,6 +42,7 @@ export class SchedulerStorage {
         return {
             version: CURRENT_VERSION,
             jobs: [],
+            events: [],
             settings: { ...DEFAULT_SCHEDULER_SETTINGS },
         };
     }
@@ -78,6 +80,9 @@ export class SchedulerStorage {
             // Ensure settings exist
             if (!this.data.settings) {
                 this.data.settings = { ...DEFAULT_SCHEDULER_SETTINGS };
+            }
+            if (!this.data.events) {
+                this.data.events = [];
             }
 
             return this.data;
@@ -205,6 +210,45 @@ export class SchedulerStorage {
         if (index === -1) return false;
 
         this.data.jobs.splice(index, 1);
+        await this.save();
+        return true;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Event CRUD
+    // ---------------------------------------------------------------------------
+
+    getEvents(): ScheduledEvent[] {
+        return [...this.data.events];
+    }
+
+    getEvent(id: string): ScheduledEvent | undefined {
+        return this.data.events.find(e => e.id === id);
+    }
+
+    async addEvent(event: ScheduledEvent): Promise<void> {
+        this.data.events.push(event);
+        await this.save();
+    }
+
+    async updateEvent(id: string, updates: Partial<ScheduledEvent>): Promise<ScheduledEvent | undefined> {
+        const index = this.data.events.findIndex(e => e.id === id);
+        if (index === -1) return undefined;
+
+        this.data.events[index] = {
+            ...this.data.events[index],
+            ...updates,
+            updatedAt: Date.now(),
+        };
+        await this.save();
+        return this.data.events[index];
+    }
+
+    async deleteEvent(id: string): Promise<boolean> {
+        const index = this.data.events.findIndex(e => e.id === id);
+        if (index === -1) return false;
+
+        this.data.events.splice(index, 1);
         await this.save();
         return true;
     }

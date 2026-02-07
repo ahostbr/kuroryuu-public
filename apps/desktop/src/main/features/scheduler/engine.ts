@@ -215,6 +215,8 @@ export class SchedulerEngine extends EventEmitter {
                 await this.executeJob(job);
             }
         }
+
+        await this.checkAndAdvanceEvents(now);
     }
 
     // ---------------------------------------------------------------------------
@@ -309,6 +311,32 @@ export class SchedulerEngine extends EventEmitter {
 
         await this.executeJob(job);
         return { ok: true };
+    }
+
+    private async checkAndAdvanceEvents(now: number): Promise<void> {
+        const storage = getSchedulerStorage();
+        const events = storage.getEvents();
+
+        for (const event of events) {
+            if (!event.enabled || !event.nextRun || event.nextRun > now) {
+                continue;
+            }
+
+            if (event.notify) {
+                this.showNotification(
+                    `Event: ${event.title}`,
+                    event.location ? `Now • ${event.location}` : 'Scheduled event is due now.'
+                );
+            }
+
+            const nextRun = calculateNextRun(event.schedule, new Date(now));
+            await storage.updateEvent(event.id, {
+                lastRun: now,
+                nextRun: nextRun ?? undefined,
+            });
+
+            this.emit('event:triggered', { eventId: event.id, at: now });
+        }
     }
 
     // ---------------------------------------------------------------------------

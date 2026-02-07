@@ -759,7 +759,14 @@ const api = {
       description?: string;
       enabled: boolean;
       schedule: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
-      action: { type: 'prompt' | 'team' | 'script'; prompt?: string; teamId?: string; scriptPath?: string };
+      action: {
+        type: 'prompt' | 'team' | 'script';
+        prompt?: string;
+        executionMode?: 'background' | 'interactive';
+        teamId?: string;
+        scriptPath?: string;
+        timeoutMinutes?: number;
+      };
       status: 'idle' | 'running' | 'paused';
       lastRun?: number;
       nextRun?: number;
@@ -775,7 +782,14 @@ const api = {
       name: string;
       description?: string;
       schedule: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
-      action: { type: 'prompt' | 'team' | 'script'; prompt?: string; teamId?: string; scriptPath?: string };
+      action: {
+        type: 'prompt' | 'team' | 'script';
+        prompt?: string;
+        executionMode?: 'background' | 'interactive';
+        teamId?: string;
+        scriptPath?: string;
+        timeoutMinutes?: number;
+      };
       enabled?: boolean;
       notifyOnStart?: boolean;
       notifyOnComplete?: boolean;
@@ -789,7 +803,14 @@ const api = {
       name?: string;
       description?: string;
       schedule?: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
-      action?: { type: 'prompt' | 'team' | 'script'; prompt?: string; teamId?: string; scriptPath?: string };
+      action?: {
+        type: 'prompt' | 'team' | 'script';
+        prompt?: string;
+        executionMode?: 'background' | 'interactive';
+        teamId?: string;
+        scriptPath?: string;
+        timeoutMinutes?: number;
+      };
       enabled?: boolean;
     }): Promise<{ ok: boolean; job?: unknown; error?: string }> =>
       ipcRenderer.invoke('scheduler:update', params),
@@ -797,6 +818,61 @@ const api = {
     /** Delete a job */
     delete: (id: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('scheduler:delete', id),
+
+    /** List calendar events */
+    listEvents: (): Promise<Array<{
+      id: string;
+      title: string;
+      description?: string;
+      enabled: boolean;
+      schedule: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
+      nextRun?: number;
+      lastRun?: number;
+      location?: string;
+      allDay?: boolean;
+      tags?: string[];
+      notify?: boolean;
+      color?: string;
+      createdAt: number;
+      updatedAt: number;
+    }>> => ipcRenderer.invoke('scheduler:listEvents'),
+
+    /** Get a specific event */
+    getEvent: (id: string): Promise<unknown | null> =>
+      ipcRenderer.invoke('scheduler:getEvent', id),
+
+    /** Create a calendar event */
+    createEvent: (params: {
+      title: string;
+      description?: string;
+      schedule: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
+      enabled?: boolean;
+      location?: string;
+      allDay?: boolean;
+      tags?: string[];
+      notify?: boolean;
+      color?: string;
+    }): Promise<{ ok: boolean; event?: unknown; error?: string }> =>
+      ipcRenderer.invoke('scheduler:createEvent', params),
+
+    /** Update a calendar event */
+    updateEvent: (params: {
+      id: string;
+      title?: string;
+      description?: string;
+      schedule?: { type: 'cron' | 'interval' | 'once'; expression?: string; every?: number; unit?: string; at?: number };
+      enabled?: boolean;
+      location?: string;
+      allDay?: boolean;
+      tags?: string[];
+      notify?: boolean;
+      color?: string;
+    }): Promise<{ ok: boolean; event?: unknown; error?: string }> =>
+      ipcRenderer.invoke('scheduler:updateEvent', params),
+
+    /** Delete a calendar event */
+    deleteEvent: (id: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('scheduler:deleteEvent', id),
 
     /** Run a job immediately */
     runNow: (id: string): Promise<{ ok: boolean; error?: string }> =>

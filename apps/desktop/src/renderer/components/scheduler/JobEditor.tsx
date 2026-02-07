@@ -25,6 +25,7 @@ import type {
     JobAction,
     CreateJobParams,
     UpdateJobParams,
+    ExecutionMode,
 } from '../../types/scheduler';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -80,11 +81,17 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
     const [workdir, setWorkdir] = useState(
         job?.action?.type === 'prompt' ? job.action.workdir ?? '' : ''
     );
+    const [executionMode, setExecutionMode] = useState<ExecutionMode>(
+        job?.action?.type === 'prompt' ? job.action.executionMode ?? 'background' : 'background'
+    );
     const [teamId, setTeamId] = useState(
         job?.action?.type === 'team' ? job.action.teamId : ''
     );
     const [scriptPath, setScriptPath] = useState(
         job?.action?.type === 'script' ? job.action.scriptPath : ''
+    );
+    const [scriptTimeoutMinutes, setScriptTimeoutMinutes] = useState(
+        job?.action?.type === 'script' ? job.action.timeoutMinutes ?? 60 : 60
     );
 
     // Notification state
@@ -109,15 +116,23 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
         return { type: 'once', at: new Date(onceAt).getTime() };
     };
 
-    // Build action object
     const buildAction = (): JobAction => {
         if (actionType === 'prompt') {
-            return { type: 'prompt', prompt, workdir: workdir || undefined };
+            return {
+                type: 'prompt',
+                prompt,
+                workdir: workdir || undefined,
+                executionMode
+            };
         }
         if (actionType === 'team') {
             return { type: 'team', teamId };
         }
-        return { type: 'script', scriptPath };
+        return {
+            type: 'script',
+            scriptPath,
+            timeoutMinutes: scriptTimeoutMinutes,
+        };
     };
 
     // Handle save
@@ -251,8 +266,8 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                                     key={type}
                                     onClick={() => setScheduleType(type)}
                                     className={`px-3 py-1.5 rounded-md text-sm capitalize transition-colors ${scheduleType === type
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-secondary text-foreground hover:bg-secondary/80'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-secondary text-foreground hover:bg-secondary/80'
                                         }`}
                                 >
                                     {type === 'once' ? 'One-time' : type}
@@ -329,8 +344,8 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                                     key={type}
                                     onClick={() => setActionType(type)}
                                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm capitalize transition-colors ${actionType === type
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-secondary text-foreground hover:bg-secondary/80'
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'bg-secondary text-foreground hover:bg-secondary/80'
                                         }`}
                                 >
                                     {type === 'prompt' && <Terminal className="w-3.5 h-3.5" />}
@@ -367,6 +382,33 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                                         className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
                                     />
                                 </div>
+                                <div>
+                                    <label className="block text-sm text-muted-foreground mb-1.5">
+                                        Execution Mode
+                                    </label>
+                                    <div className="flex gap-2 p-1 bg-secondary/30 rounded-md">
+                                        <button
+                                            onClick={() => setExecutionMode('background')}
+                                            className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2 rounded text-xs transition-colors ${executionMode === 'background'
+                                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                                                }`}
+                                        >
+                                            <span className="font-medium">Background</span>
+                                            <span className="text-[10px] opacity-80">Silent & Auto-close</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setExecutionMode('interactive')}
+                                            className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2 rounded text-xs transition-colors ${executionMode === 'interactive'
+                                                ? 'bg-primary text-primary-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                                                }`}
+                                        >
+                                            <span className="font-medium">Interactive</span>
+                                            <span className="text-[10px] opacity-80">Visible & Stays Open</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
@@ -386,17 +428,34 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                         )}
 
                         {actionType === 'script' && (
-                            <div>
-                                <label className="block text-sm text-muted-foreground mb-1.5">
-                                    Script Path *
-                                </label>
-                                <input
-                                    type="text"
-                                    value={scriptPath}
-                                    onChange={(e) => setScriptPath(e.target.value)}
-                                    placeholder="/path/to/script.sh"
-                                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                                />
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-sm text-muted-foreground mb-1.5">
+                                        Script Path *
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={scriptPath}
+                                        onChange={(e) => setScriptPath(e.target.value)}
+                                        placeholder="/path/to/script.sh"
+                                        className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-muted-foreground mb-1.5">
+                                        Timeout (minutes)
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        value={scriptTimeoutMinutes}
+                                        onChange={(e) => setScriptTimeoutMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                        className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                    />
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                        Set to 0 to disable timeout.
+                                    </p>
+                                </div>
                             </div>
                         )}
                     </div>

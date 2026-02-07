@@ -12,7 +12,7 @@ import {
     Plus,
     Clock,
 } from 'lucide-react';
-import type { ScheduledJob } from '../../types/scheduler';
+import type { ScheduledJob, ScheduledEvent } from '../../types/scheduler';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Types
@@ -20,9 +20,12 @@ import type { ScheduledJob } from '../../types/scheduler';
 
 interface CalendarViewProps {
     jobs: ScheduledJob[];
+    events: ScheduledEvent[];
     onDayClick?: (date: Date) => void;
     onJobClick?: (job: ScheduledJob) => void;
+    onEventClick?: (event: ScheduledEvent) => void;
     onCreateJob?: (date: Date) => void;
+    onCreateEvent?: (date: Date) => void;
 }
 
 interface CalendarDay {
@@ -30,6 +33,7 @@ interface CalendarDay {
     isCurrentMonth: boolean;
     isToday: boolean;
     jobs: ScheduledJob[];
+    events: ScheduledEvent[];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -42,7 +46,12 @@ const MONTH_NAMES = [
     'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-function getMonthDays(year: number, month: number, jobs: ScheduledJob[]): CalendarDay[] {
+function getMonthDays(
+    year: number,
+    month: number,
+    jobs: ScheduledJob[],
+    events: ScheduledEvent[]
+): CalendarDay[] {
     const days: CalendarDay[] = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -64,6 +73,7 @@ function getMonthDays(year: number, month: number, jobs: ScheduledJob[]): Calend
             isCurrentMonth: false,
             isToday: false,
             jobs: getJobsForDate(date, jobs),
+            events: getEventsForDate(date, events),
         });
     }
 
@@ -76,6 +86,7 @@ function getMonthDays(year: number, month: number, jobs: ScheduledJob[]): Calend
             isCurrentMonth: true,
             isToday: date.getTime() === today.getTime(),
             jobs: getJobsForDate(date, jobs),
+            events: getEventsForDate(date, events),
         });
     }
 
@@ -88,6 +99,7 @@ function getMonthDays(year: number, month: number, jobs: ScheduledJob[]): Calend
             isCurrentMonth: false,
             isToday: false,
             jobs: getJobsForDate(date, jobs),
+            events: getEventsForDate(date, events),
         });
     }
 
@@ -107,6 +119,19 @@ function getJobsForDate(date: Date, jobs: ScheduledJob[]): ScheduledJob[] {
     });
 }
 
+function getEventsForDate(date: Date, events: ScheduledEvent[]): ScheduledEvent[] {
+    const dateStart = new Date(date);
+    dateStart.setHours(0, 0, 0, 0);
+    const dateEnd = new Date(date);
+    dateEnd.setHours(23, 59, 59, 999);
+
+    return events.filter((event) => {
+        if (!event.nextRun) return false;
+        const eventDate = new Date(event.nextRun);
+        return eventDate >= dateStart && eventDate <= dateEnd;
+    });
+}
+
 function formatTime(timestamp: number): string {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
@@ -115,14 +140,25 @@ function formatTime(timestamp: number): string {
 // Component
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function CalendarView({ jobs, onDayClick, onJobClick, onCreateJob }: CalendarViewProps) {
+export function CalendarView({
+    jobs,
+    events,
+    onDayClick,
+    onJobClick,
+    onEventClick,
+    onCreateJob,
+    onCreateEvent,
+}: CalendarViewProps) {
     const [currentDate, setCurrentDate] = useState(() => new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
 
-    const calendarDays = useMemo(() => getMonthDays(year, month, jobs), [year, month, jobs]);
+    const calendarDays = useMemo(
+        () => getMonthDays(year, month, jobs, events),
+        [year, month, jobs, events]
+    );
 
     const goToPrevMonth = () => {
         setCurrentDate(new Date(year, month - 1, 1));
@@ -213,49 +249,72 @@ export function CalendarView({ jobs, onDayClick, onJobClick, onCreateJob }: Cale
                                 {day.date.getDate()}
                             </div>
 
-                            {/* Jobs for this day */}
+                            {/* Jobs + events for this day */}
                             <div className="mt-1 space-y-0.5 overflow-hidden">
-                                {day.jobs.slice(0, 3).map((job) => (
+                                {[...day.jobs.map((job) => ({
+                                    key: `job-${job.id}`,
+                                    time: job.nextRun ?? Number.MAX_SAFE_INTEGER,
+                                    kind: 'job' as const,
+                                    label: job.name,
+                                    title: `${job.name} - ${formatTime(job.nextRun ?? Date.now())}`,
+                                    className: job.status === 'running'
+                                        ? 'bg-blue-500/20 text-blue-400'
+                                        : job.status === 'paused'
+                                            ? 'bg-yellow-500/20 text-yellow-400'
+                                            : 'bg-primary/20 text-primary',
+                                    onClick: (e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        onJobClick?.(job);
+                                    },
+                                })), ...day.events.map((event) => ({
+                                    key: `event-${event.id}`,
+                                    time: event.nextRun ?? Number.MAX_SAFE_INTEGER,
+                                    kind: 'event' as const,
+                                    label: event.title,
+                                    title: `${event.title} - ${formatTime(event.nextRun ?? Date.now())}`,
+                                    className: 'bg-emerald-500/20 text-emerald-300',
+                                    onClick: (e: React.MouseEvent) => {
+                                        e.stopPropagation();
+                                        onEventClick?.(event);
+                                    },
+                                }))].sort((a, b) => a.time - b.time).slice(0, 3).map((item) => (
                                     <div
-                                        key={job.id}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onJobClick?.(job);
-                                        }}
+                                        key={item.key}
+                                        onClick={item.onClick}
                                         className={`
                                             text-xs px-1.5 py-0.5 rounded truncate cursor-pointer
-                                            ${job.status === 'running'
-                                                ? 'bg-blue-500/20 text-blue-400'
-                                                : job.status === 'paused'
-                                                    ? 'bg-yellow-500/20 text-yellow-400'
-                                                    : 'bg-primary/20 text-primary'}
+                                            ${item.className}
                                             hover:opacity-80 transition-opacity
                                         `}
-                                        title={`${job.name} - ${formatTime(job.nextRun!)}`}
+                                        title={item.title}
                                     >
                                         <span className="flex items-center gap-1">
                                             <Clock className="w-3 h-3 flex-shrink-0" />
-                                            <span className="truncate">{job.name}</span>
+                                            <span className="truncate">{item.label}</span>
                                         </span>
                                     </div>
                                 ))}
-                                {day.jobs.length > 3 && (
+                                {(day.jobs.length + day.events.length) > 3 && (
                                     <div className="text-xs text-muted-foreground px-1.5">
-                                        +{day.jobs.length - 3} more
+                                        +{day.jobs.length + day.events.length - 3} more
                                     </div>
                                 )}
                             </div>
 
-                            {/* Add job button (shown on hover for current month) */}
-                            {day.isCurrentMonth && onCreateJob && (
+                            {/* Add event button (shown on hover for current month) */}
+                            {day.isCurrentMonth && (onCreateEvent || onCreateJob) && (
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        onCreateJob(day.date);
+                                        if (onCreateEvent) {
+                                            onCreateEvent(day.date);
+                                        } else if (onCreateJob) {
+                                            onCreateJob(day.date);
+                                        }
                                     }}
                                     className="absolute bottom-1 right-1 p-0.5 rounded opacity-0 hover:opacity-100 
                                                group-hover:opacity-50 hover:bg-secondary transition-opacity"
-                                    title="Add job"
+                                    title="Add event"
                                 >
                                     <Plus className="w-3.5 h-3.5 text-muted-foreground" />
                                 </button>
