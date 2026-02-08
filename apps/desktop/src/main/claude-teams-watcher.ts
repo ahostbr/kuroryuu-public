@@ -213,6 +213,16 @@ class ClaudeTeamsWatcher {
   }
 
   /**
+   * Restart watchers (stop + start). Recovers from directory deletion.
+   * Returns a fresh full snapshot.
+   */
+  async restart(): Promise<TeamsSnapshot> {
+    console.log('[ClaudeTeamsWatcher] Restarting watchers...');
+    await this.stop();
+    return this.start();
+  }
+
+  /**
    * Get the current watching status.
    */
   getStatus(): boolean {
