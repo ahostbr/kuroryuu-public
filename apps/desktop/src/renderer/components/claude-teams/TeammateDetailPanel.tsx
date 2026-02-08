@@ -120,8 +120,29 @@ export function TeammateDetailPanel() {
 
   const memberMessages = useMemo((): InboxMessage[] => {
     if (!selectedTeam || !selectedTeammateId) return [];
-    const inbox = selectedTeam.inboxes[selectedTeammateId] ?? [];
-    return inbox.slice(-10);
+
+    // Messages sent TO this teammate (their inbox)
+    const inboundMessages = selectedTeam.inboxes[selectedTeammateId] ?? [];
+
+    // Messages FROM this teammate in team-lead's inbox (their responses)
+    const leadMember = selectedTeam.config.members.find(
+      (m) => m.agentId === selectedTeam.config.leadAgentId
+    );
+    const leadInbox = leadMember ? (selectedTeam.inboxes[leadMember.name] ?? []) : [];
+    const outboundMessages = leadInbox.filter((msg) => {
+      if (msg.from !== selectedTeammateId) return false;
+      // Filter out noisy idle_notification system messages
+      try {
+        const parsed = JSON.parse(msg.text);
+        if (parsed?.type === 'idle_notification') return false;
+      } catch { /* plain text — keep */ }
+      return true;
+    });
+
+    // Merge both directions, sort by timestamp, take last 20
+    const merged = [...inboundMessages, ...outboundMessages]
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    return merged.slice(-20);
   }, [selectedTeam, selectedTeammateId]);
 
   const status = useMemo((): TeammateStatus => {
