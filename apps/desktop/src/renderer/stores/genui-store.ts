@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { A2UIComponent, ActivityLogEntry, DashboardState, JsonPatch } from '../types/genui';
+import { getDomainConfig } from './domain-config-store';
 
 const ZONE_ORDER = ['hero', 'metrics', 'insights', 'content', 'media', 'resources', 'tags'];
 
@@ -68,8 +69,11 @@ export const useGenUIStore = create<GenUIState>((set, get) => ({
     });
 
     try {
+      const domainCfg = getDomainConfig('genui');
       const body: Record<string, string> = { markdown };
       if (layoutOverride) body.layout_override = layoutOverride;
+      if (domainCfg.modelId) body.model = domainCfg.modelId;
+      if (domainCfg.provider) body.provider = domainCfg.provider;
 
       const response = await fetch('http://127.0.0.1:8200/v1/genui/generate', {
         method: 'POST',

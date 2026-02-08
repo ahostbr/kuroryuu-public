@@ -55,6 +55,7 @@ async def _gateway_llm_call(
     system_prompt: str = "",
     max_tokens: int = 4000,
     temperature: float = 0.7,
+    model: str | None = None,
 ) -> str:
     """Call LLM via Gateway's healthy backend with fallback chain."""
     backend = await get_healthy_backend()
@@ -65,7 +66,7 @@ async def _gateway_llm_call(
     messages.append(LLMMessage(role="user", content=prompt))
 
     config = LLMConfig(
-        model="",  # Backend uses its own configured model
+        model=model or "",  # Use provided model or let backend decide
         temperature=temperature,
         max_tokens=max_tokens,
     )
@@ -85,10 +86,14 @@ async def _gateway_llm_call(
 # SSE Generator
 # ---------------------------------------------------------------------------
 
-async def _generate_sse(markdown: str, layout_override: str | None = None) -> AsyncGenerator[str, None]:
+async def _generate_sse(markdown: str, layout_override: str | None = None, model: str | None = None) -> AsyncGenerator[str, None]:
     """Full 3-stage pipeline as SSE event stream."""
     thread_id = f"genui-{uuid.uuid4().hex[:8]}"
     run_id = f"run-{uuid.uuid4().hex[:8]}"
+
+    # Bind model to LLM call wrapper so downstream callbacks use the right model
+    async def _llm_call(prompt: str, system_prompt: str = "", max_tokens: int = 4000, temperature: float = 0.7) -> str:
+        return await _gateway_llm_call(prompt, system_prompt, max_tokens, temperature, model=model)
 
     # --- RUN_STARTED ---
     yield emit_run_started(thread_id, run_id).to_sse()
@@ -105,7 +110,7 @@ async def _generate_sse(markdown: str, layout_override: str | None = None) -> As
         yield emit_step_started("content_analysis").to_sse()
         yield emit_state_snapshot({"status": "analyzing", "progress": 10, "current_step": "content_analysis"}).to_sse()
 
-        analysis = await analyze_content(markdown, llm_call=_gateway_llm_call)
+        analysis = await analyze_content(markdown, llm_call=_llm_call)
         analysis_dict = analysis.model_dump()
 
         # Merge parsed data
@@ -140,7 +145,7 @@ async def _generate_sse(markdown: str, layout_override: str | None = None) -> As
         # ===== Stage 2: Layout Selection =====
         yield emit_step_started("layout_selection").to_sse()
 
-        layout = await select_layout(analysis, llm_call=_gateway_llm_call)
+        layout = await select_layout(analysis, llm_call=_llm_call)
 
         # Apply override if provided
         if layout_override:
@@ -163,7 +168,7 @@ async def _generate_sse(markdown: str, layout_override: str | None = None) -> As
 
         component_count = 0
         async for component in generate_components(
-            markdown, full_analysis, layout_dict, _gateway_llm_call,
+            markdown, full_analysis, layout_dict, _llm_call,
         ):
             component_count += 1
 
@@ -227,7 +232,7 @@ async def generate_dashboard(request: GenUIRequest):
     - RUN_FINISHED or RUN_ERROR
     """
     return StreamingResponse(
-        _generate_sse(request.markdown, request.layout_override),
+        _generate_sse(request.markdown, request.layout_override, model=request.model),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -244,7 +249,11 @@ async def analyze_content_endpoint(request: GenUIRequest):
     Returns document classification, entities, and structural analysis.
     """
     try:
-        analysis = await analyze_content(request.markdown, llm_call=_gateway_llm_call)
+        # Bind model if provided
+        async def _llm_call_analyze(prompt: str, system_prompt: str = "", max_tokens: int = 4000, temperature: float = 0.7) -> str:
+            return await _gateway_llm_call(prompt, system_prompt, max_tokens, temperature, model=request.model)
+
+        analysis = await analyze_content(request.markdown, llm_call=_llm_call_analyze)
         parsed = parse_markdown(request.markdown)
 
         return {

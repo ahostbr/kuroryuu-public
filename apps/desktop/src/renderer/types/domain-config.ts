@@ -74,7 +74,8 @@ export type DomainId =
   | 'ideation'
   | 'roadmap'
   | 'formulas'
-  | 'voice';
+  | 'voice'
+  | 'genui';
 
 export type DomainCategory = 'generation' | 'assistant';
 
@@ -126,6 +127,17 @@ export const DOMAINS: DomainInfo[] = [
     label: 'Formulas',
     description: 'Workflow template execution',
     icon: '📐',
+    category: 'generation',
+    defaultProvider: 'gateway-auto',
+    defaultModel: 'mistralai/devstral-small-2-2512',
+    supportsThinking: false,
+  },
+
+  {
+    id: 'genui',
+    label: 'Generative UI',
+    description: 'A2UI dashboard generation from markdown',
+    icon: '✨',
     category: 'generation',
     defaultProvider: 'gateway-auto',
     defaultModel: 'mistralai/devstral-small-2-2512',
