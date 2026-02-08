@@ -1,0 +1,14 @@
+Kuroryuu Authorization Analysis
+
+Goal:
+- Identify horizontal/vertical/workflow authorization failures.
+
+Tasks:
+1) Verify guard placement before side effects.
+2) Check ownership, role, tenant, and workflow-state guards.
+3) Record only real boundary-bypass opportunities.
+
+Outputs:
+- Docs/reviews/pentest/<run_id>/authz_analysis.md
+- Docs/reviews/pentest/<run_id>/authz_queue.json ({"vulnerabilities":[...]})
+
