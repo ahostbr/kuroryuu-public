@@ -183,6 +183,14 @@ export const TeammateNode = React.memo(function TeammateNode({
     healthDotTitle = 'Idle (alive, waiting)';
   }
 
+  // Append uptime to health dot title
+  if (healthInfo?.uptime != null && healthInfo.uptime > 0) {
+    const totalSec = Math.floor(healthInfo.uptime / 1000);
+    const mins = Math.floor(totalSec / 60);
+    const secs = totalSec % 60;
+    healthDotTitle += ` | Uptime: ${mins}m ${secs}s`;
+  }
+
   return (
     <div
       className="relative px-4 py-3 rounded-lg backdrop-blur-sm min-w-[130px]"
@@ -255,6 +263,24 @@ export const TeammateNode = React.memo(function TeammateNode({
           {getModelBadge(model)}
         </span>
       </div>
+
+      {/* Backend type badge */}
+      {data.data.backendType && (
+        <div className="flex items-center gap-2 mb-1">
+          <span
+            className="px-1.5 py-0.5 rounded text-[7px] font-bold uppercase"
+            style={{
+              backgroundColor: data.data.backendType === 'in-process'
+                ? 'rgba(6, 182, 212, 0.15)'
+                : 'rgba(249, 115, 22, 0.15)',
+              color: data.data.backendType === 'in-process' ? '#06b6d4' : '#f97316',
+              border: `1px solid ${data.data.backendType === 'in-process' ? '#06b6d430' : '#f9731630'}`,
+            }}
+          >
+            {data.data.backendType === 'in-process' ? 'IN-PROC' : 'TMUX'}
+          </span>
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="flex justify-between text-[10px]" style={{ color: `${colors.nodeText}70` }}>
@@ -464,6 +490,13 @@ export const TaskNode = React.memo(function TaskNode({
           </span>
         )}
       </div>
+
+      {/* Active form (spinner text) for in-progress tasks */}
+      {taskStatus === 'in_progress' && data.data.activeForm && (
+        <span className="text-[8px] text-cyan-400 animate-pulse truncate block mt-0.5">
+          {data.data.activeForm}
+        </span>
+      )}
     </div>
   );
 });

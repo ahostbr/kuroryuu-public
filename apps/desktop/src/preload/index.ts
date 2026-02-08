@@ -2199,6 +2199,9 @@ const api = {
     /** Refresh data for a specific team */
     refreshTeam: (teamName: string): Promise<void> =>
       ipcRenderer.invoke('claude-teams:get-teams').then(() => { }),
+    /** Mark all inbox messages as read for a specific agent */
+    markInboxRead: (params: { teamName: string; agentName: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:mark-inbox-read', params),
     /** Listen for state update events from file watcher */
     onStateUpdate: (callback: (event: unknown) => void) => {
       const handlers = [

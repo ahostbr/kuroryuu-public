@@ -272,6 +272,10 @@ export interface ClaudeTeamsState {
   // Health (derived teammate responsiveness)
   teammateHealth: Record<string, TeammateHealthInfo>;
 
+  // Analytics (derived metrics)
+  teamAnalytics: TeamAnalytics | null;
+  taskFirstSeen: Record<string, number>;  // taskId → epoch ms when first observed
+
   // Actions - data
   setTeams: (teams: TeamSnapshot[]) => void;
   selectTeam: (teamName: string | null) => void;
@@ -301,12 +305,28 @@ export interface ClaudeTeamsState {
   deleteTemplate: (templateId: string) => Promise<boolean>;
   toggleTemplateFavorite: (templateId: string) => Promise<boolean>;
 
-  // Actions - health
+  // Actions - health & analytics
   checkTeammateHealth: () => void;
+  computeAnalytics: () => void;
+  markInboxRead: (teamName: string, agentName: string) => Promise<void>;
 
   // Actions - bulk operations
   shutdownAllTeammates: (teamName: string) => Promise<boolean>;
   broadcastToTeammates: (teamName: string, content: string) => Promise<boolean>;
+}
+
+// ============================================================================
+// TEAM ANALYTICS (derived metrics)
+// ============================================================================
+
+export interface TeamAnalytics {
+  velocity: number;            // completed tasks per minute
+  completionPct: number;       // completed / total tasks * 100
+  totalMessages: number;       // sum of all inbox messages
+  avgResponseLatency: number;  // ms avg across all teammates
+  messageRate: number;         // messages per minute team-wide
+  bottleneckTaskIds: string[]; // task IDs with most blockedBy or longest in_progress
+  teamUptime: number;          // ms since team.config.createdAt
 }
 
 // ============================================================================
@@ -338,6 +358,9 @@ export interface TeammateHealthInfo {
   lastActivity: number;       // Epoch ms of last inbox activity
   isUnresponsive: boolean;    // True if >5min with active task and no activity
   exitedAt?: number;          // Epoch ms when member was removed from config (definitive exit)
+  uptime: number;             // ms since joinedAt (or exitedAt - joinedAt if exited)
+  messageCount: number;       // total messages from this agent
+  avgResponseTime?: number;   // ms avg between human msg → agent response
 }
 
 // ============================================================================
@@ -356,6 +379,8 @@ export interface TeamNodeData {
   isLead: boolean;
   taskCount: number;
   unreadCount: number;
+  activeForm?: string;        // Present-continuous spinner text for active tasks
+  backendType?: string;       // "in-process" | "tmux"
 }
 
 export interface TaskEdgeData {

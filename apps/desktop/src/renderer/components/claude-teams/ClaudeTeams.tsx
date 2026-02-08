@@ -22,12 +22,14 @@ import {
   Megaphone,
   Send,
   X,
+  BarChart3,
 } from 'lucide-react';
 import { useClaudeTeamsStore, setupClaudeTeamsIpcListeners } from '../../stores/claude-teams-store';
 import { useTeamFlowStore } from '../../stores/team-flow-store';
 import { TeamFlowPanel } from './TeamFlowPanel';
 import { TeammateDetailPanel } from './TeammateDetailPanel';
 import { TaskListPanel } from './TaskListPanel';
+import { TeamsAnalyticsPanel } from './TeamsAnalyticsPanel';
 import { TeamHistoryPanel } from './TeamHistoryPanel';
 import { TimelineView } from './timeline';
 import type { FlowViewMode } from '../../types/claude-teams';
@@ -55,10 +57,13 @@ export function ClaudeTeams() {
   const [activeView, setActiveView] = useState<FlowViewMode>('hub-spokes');
   const [showTasks, setShowTasks] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const setViewMode = useTeamFlowStore((s) => s.setViewMode);
   const history = useClaudeTeamsStore((s) => s.history);
   const loadHistory = useClaudeTeamsStore((s) => s.loadHistory);
   const checkTeammateHealth = useClaudeTeamsStore((s) => s.checkTeammateHealth);
+  const computeAnalytics = useClaudeTeamsStore((s) => s.computeAnalytics);
+  const teamAnalytics = useClaudeTeamsStore((s) => s.teamAnalytics);
   const shutdownAllTeammates = useClaudeTeamsStore((s) => s.shutdownAllTeammates);
   const broadcastToTeammates = useClaudeTeamsStore((s) => s.broadcastToTeammates);
 
@@ -109,13 +114,17 @@ export function ClaudeTeams() {
     }
   }, [teams, selectedTeamId, selectTeam]);
 
-  // Periodic health check for teammate responsiveness
+  // Periodic health check and analytics computation
   useEffect(() => {
     if (!selectedTeam) return;
     checkTeammateHealth();
-    const interval = setInterval(checkTeammateHealth, 30_000); // every 30s
+    computeAnalytics();
+    const interval = setInterval(() => {
+      checkTeammateHealth();
+      computeAnalytics();
+    }, 30_000); // every 30s
     return () => clearInterval(interval);
-  }, [selectedTeam, checkTeammateHealth]);
+  }, [selectedTeam, checkTeammateHealth, computeAnalytics]);
 
   const memberCount = selectedTeam?.config.members.length ?? 0;
   const taskCount = selectedTeam?.tasks.filter((t) => t.status !== 'deleted').length ?? 0;
@@ -167,6 +176,21 @@ export function ClaudeTeams() {
 
         {/* Right side controls */}
         <div className="flex items-center gap-2">
+          {/* Analytics toggle */}
+          {selectedTeam && (
+            <button
+              onClick={() => setShowAnalytics((v) => !v)}
+              className={`p-2 rounded-lg transition-colors ${
+                showAnalytics
+                  ? 'text-cyan-400 bg-cyan-400/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+              title="Toggle analytics panel"
+            >
+              <BarChart3 className="w-4 h-4" />
+            </button>
+          )}
+
           {/* Tasks toggle */}
           {selectedTeam && (
             <button
@@ -397,6 +421,13 @@ export function ClaudeTeams() {
                 <TaskListPanel />
               </div>
             )}
+
+            {/* Analytics panel (collapsible, below tasks) */}
+            {showAnalytics && (
+              <div className="border-t border-border p-3">
+                <TeamsAnalyticsPanel />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -410,7 +441,24 @@ export function ClaudeTeams() {
           {activeTasks > 0 && (
             <>
               <span className="text-border">|</span>
-              <span className="text-green-400">{activeTasks} in progress</span>
+              <span className="text-green-400">{activeTasks} active</span>
+            </>
+          )}
+          {teamAnalytics && (
+            <>
+              <span className="text-border">|</span>
+              <span className="text-cyan-400">{teamAnalytics.velocity.toFixed(1)}/min</span>
+              <span className="text-border">|</span>
+              <span>{Math.round(teamAnalytics.completionPct)}% done</span>
+              <span className="text-border">|</span>
+              <span>
+                {(() => {
+                  const totalSec = Math.floor(teamAnalytics.teamUptime / 1000);
+                  const hours = Math.floor(totalSec / 3600);
+                  const minutes = Math.floor((totalSec % 3600) / 60);
+                  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+                })()}
+              </span>
             </>
           )}
           <span className="text-border">|</span>

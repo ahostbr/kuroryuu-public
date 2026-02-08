@@ -510,6 +510,29 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
   );
 
   // -----------------------------------------------------------------------
+  // Mark inbox messages as read
+  // -----------------------------------------------------------------------
+
+  ipcMain.handle(
+    'claude-teams:mark-inbox-read',
+    async (_event, params: { teamName: string; agentName: string }) => {
+      try {
+        const inboxPath = path.join(TEAMS_DIR, params.teamName, 'inboxes', `${params.agentName}.json`);
+        const raw = await readFile(inboxPath, 'utf-8');
+        const messages = JSON.parse(raw);
+        if (Array.isArray(messages)) {
+          const updated = messages.map((m: Record<string, unknown>) => ({ ...m, read: true }));
+          await writeFileAsync(inboxPath, JSON.stringify(updated, null, 2), 'utf-8');
+        }
+        return { ok: true };
+      } catch (err) {
+        console.error('[ClaudeTeamsIPC] mark-inbox-read failed:', err);
+        return { ok: false, error: String(err) };
+      }
+    },
+  );
+
+  // -----------------------------------------------------------------------
   // Global TTS Hooks (install/remove TTS hooks in ~/.claude/settings.json)
   // -----------------------------------------------------------------------
 
@@ -723,6 +746,7 @@ export function cleanupClaudeTeamsIpc(): void {
     'claude-teams:message-teammate',
     'claude-teams:shutdown-teammate',
     'claude-teams:cleanup-team',
+    'claude-teams:mark-inbox-read',
     'claude-teams:archive-session',
     'claude-teams:list-archives',
     'claude-teams:load-archive',

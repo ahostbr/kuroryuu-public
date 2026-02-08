@@ -69,7 +69,8 @@ function MessageItem({ message }: { message: InboxMessage }) {
   const sysMsg = parseSystemMessage(message.text);
 
   return (
-    <div className="px-2 py-1.5 border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors">
+    <div className={`px-2 py-1.5 border-b border-gray-800/50 hover:bg-gray-800/30 transition-colors
+      ${!message.read ? 'border-l-2 border-l-cyan-400' : ''}`}>
       <div className="flex items-center gap-2 mb-0.5">
         <span className="text-[10px] text-gray-600 font-mono">{formatTimestamp(message.timestamp)}</span>
         <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400 border border-gray-700/50">
@@ -80,7 +81,7 @@ function MessageItem({ message }: { message: InboxMessage }) {
           <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
         )}
       </div>
-      <div className="text-xs text-gray-300 break-words pl-1">
+      <div className={`text-xs break-words pl-1 ${message.read ? 'text-gray-500' : 'text-gray-300'}`}>
         {sysMsg ? (
           <SystemMessageContent sysMsg={sysMsg} />
         ) : (

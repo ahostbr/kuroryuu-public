@@ -228,6 +228,7 @@ export function buildHubSpokesGraph(
         isLead: false,
         taskCount: taskCountByOwner.get(member.name) ?? 0,
         unreadCount: unreadByAgent.get(member.name) ?? 0,
+        backendType: member.backendType,
       },
     });
 
@@ -254,6 +255,24 @@ export function buildHubSpokesGraph(
       },
     });
   });
+
+  // --- Task dependency edges (blocks relationships) ---
+  const nodeIdSet = new Set(nodes.map((n) => n.id));
+  for (const task of tasks) {
+    for (const blockedId of task.blocks) {
+      const sourceId = `task-${task.id}`;
+      const targetId = `task-${blockedId}`;
+      if (nodeIdSet.has(sourceId) && nodeIdSet.has(targetId)) {
+        edges.push({
+          id: `edge-dep-${task.id}-${blockedId}`,
+          source: sourceId,
+          target: targetId,
+          animated: false,
+          data: { status: 'error', color: `${colors.error}50` },
+        });
+      }
+    }
+  }
 
   return { nodes, edges };
 }
@@ -361,6 +380,7 @@ export function buildHierarchyGraph(
         isLead: false,
         taskCount: taskCountByOwner.get(member.name) ?? 0,
         unreadCount: unreadByAgent.get(member.name) ?? 0,
+        backendType: member.backendType,
       },
     });
 
@@ -403,6 +423,7 @@ export function buildHierarchyGraph(
           isLead: false,
           taskCount: task.blocks.length,
           unreadCount: task.blockedBy.length,
+          activeForm: task.activeForm,
         },
       });
 
@@ -435,9 +456,28 @@ export function buildHierarchyGraph(
           isLead: false,
           taskCount: task.blocks.length,
           unreadCount: task.blockedBy.length,
+          activeForm: task.activeForm,
         },
       });
     });
+  }
+
+  // --- Task dependency edges (blocks relationships) ---
+  const nodeIdSet = new Set(nodes.map((n) => n.id));
+  for (const task of tasks) {
+    for (const blockedId of task.blocks) {
+      const sourceId = `task-${task.id}`;
+      const targetId = `task-${blockedId}`;
+      if (nodeIdSet.has(sourceId) && nodeIdSet.has(targetId)) {
+        edges.push({
+          id: `edge-dep-${task.id}-${blockedId}`,
+          source: sourceId,
+          target: targetId,
+          animated: false,
+          data: { status: 'error', color: `${colors.error}50` },
+        });
+      }
+    }
   }
 
   return { nodes, edges };
@@ -515,6 +555,7 @@ export function buildTimelineGraph(
         isLead: false,
         taskCount: taskCountByOwner.get(member.name) ?? 0,
         unreadCount: unreadByAgent.get(member.name) ?? 0,
+        backendType: member.backendType,
       },
     });
 
@@ -578,6 +619,7 @@ export function buildTimelineGraph(
           isLead: false,
           taskCount: task.blocks.length,
           unreadCount: task.blockedBy.length,
+          activeForm: task.activeForm,
         },
       });
 
@@ -596,15 +638,20 @@ export function buildTimelineGraph(
   });
 
   // --- Task dependency edges (blocks/blockedBy) ---
+  const nodeIdSet = new Set(nodes.map((n) => n.id));
   for (const task of tasks) {
     for (const blockedId of task.blocks) {
-      edges.push({
-        id: `edge-dep-${task.id}-${blockedId}`,
-        source: `task-${task.id}`,
-        target: `task-${blockedId}`,
-        animated: false,
-        data: { status: 'idle', color: colors.error },
-      });
+      const sourceId = `task-${task.id}`;
+      const targetId = `task-${blockedId}`;
+      if (nodeIdSet.has(sourceId) && nodeIdSet.has(targetId)) {
+        edges.push({
+          id: `edge-dep-${task.id}-${blockedId}`,
+          source: sourceId,
+          target: targetId,
+          animated: false,
+          data: { status: 'error', color: `${colors.error}50` },
+        });
+      }
     }
   }
 
