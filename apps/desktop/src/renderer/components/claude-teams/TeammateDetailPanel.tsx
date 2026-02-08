@@ -10,11 +10,12 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  AlertTriangle,
   MessageSquare,
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { useTeamFlowStore } from '../../stores/team-flow-store';
-import type { TeamMember, TeamTask, InboxMessage, TeammateStatus } from '../../types/claude-teams';
+import type { TeamMember, TeamTask, InboxMessage, TeammateStatus, TeammateHealthInfo } from '../../types/claude-teams';
 import { TeammateOutputViewer } from './TeammateOutputViewer';
 import { TeammateActions } from './TeammateActions';
 
@@ -23,9 +24,11 @@ function getStatusConfig(status: TeammateStatus): { label: string; color: string
     case 'active':
       return { label: 'Active', color: 'text-green-400', bg: 'bg-green-900/30 border-green-700/50', Icon: CheckCircle };
     case 'idle':
-      return { label: 'Idle', color: 'text-yellow-400', bg: 'bg-yellow-900/30 border-yellow-700/50', Icon: Clock };
+      return { label: 'Idle', color: 'text-cyan-400', bg: 'bg-cyan-900/30 border-cyan-700/50', Icon: Clock };
     case 'stopped':
-      return { label: 'Stopped', color: 'text-red-400', bg: 'bg-red-900/30 border-red-700/50', Icon: XCircle };
+      return { label: 'Stopped', color: 'text-gray-400', bg: 'bg-gray-900/30 border-gray-600/50', Icon: XCircle };
+    case 'presumed_dead':
+      return { label: 'Presumed Dead', color: 'text-red-400', bg: 'bg-red-900/30 border-red-700/50', Icon: AlertTriangle };
   }
 }
 
@@ -48,28 +51,50 @@ function deriveStatus(
   memberName: string,
   isLead: boolean,
   inboxes: Record<string, InboxMessage[]>,
-  tasks: TeamTask[]
+  tasks: TeamTask[],
+  teammateHealth: Record<string, TeammateHealthInfo>
 ): TeammateStatus {
   if (isLead) return 'active';
-  const hasActiveTask = tasks.some((t) => t.owner === memberName && t.status === 'in_progress');
-  if (hasActiveTask) return 'active';
+
+  // Definitive exit: member was removed from config
+  if (teammateHealth[memberName]?.exitedAt) return 'stopped';
+
+  // Check inbox messages for system signals
   const inbox = inboxes[memberName] ?? [];
   if (inbox.length > 0) {
     const latest = inbox[inbox.length - 1];
     try {
       const parsed = JSON.parse(latest.text);
-      if (parsed?.type === 'idle_notification') return 'idle';
       if (parsed?.type === 'shutdown_approved') return 'stopped';
+      if (parsed?.type === 'idle_notification') {
+        // Stale idle_notification (>10min) = presumed dead
+        const msgTime = new Date(latest.timestamp).getTime();
+        if (Date.now() - msgTime > 10 * 60 * 1000) return 'presumed_dead';
+        return 'idle';
+      }
     } catch {
-      return 'active';
+      // Plain text message — check below
     }
   }
+
+  // Active task
+  const hasActiveTask = tasks.some((t) => t.owner === memberName && t.status === 'in_progress');
+  if (hasActiveTask) return 'active';
+
+  // Recent plain text message = active
+  if (inbox.length > 0) {
+    const latest = inbox[inbox.length - 1];
+    const msgTime = new Date(latest.timestamp).getTime();
+    if (Date.now() - msgTime < 5 * 60 * 1000) return 'active';
+  }
+
   return 'idle';
 }
 
 export function TeammateDetailPanel() {
   const selectedTeam = useClaudeTeamsStore((s) => s.selectedTeam);
   const selectedTeamTasks = useClaudeTeamsStore((s) => s.selectedTeamTasks);
+  const teammateHealth = useClaudeTeamsStore((s) => s.teammateHealth);
   const selectedTeammateId = useTeamFlowStore((s) => s.selectedTeammateId);
   const selectTeammate = useTeamFlowStore((s) => s.selectTeammate);
 
@@ -105,9 +130,10 @@ export function TeammateDetailPanel() {
       selectedTeammateId,
       isLead,
       selectedTeam.inboxes,
-      selectedTeamTasks
+      selectedTeamTasks,
+      teammateHealth
     );
-  }, [selectedTeam, selectedTeammateId, isLead, selectedTeamTasks]);
+  }, [selectedTeam, selectedTeammateId, isLead, selectedTeamTasks, teammateHealth]);
 
   const statusConfig = getStatusConfig(status);
   const isOpen = selectedTeammateId !== null && member !== undefined;
