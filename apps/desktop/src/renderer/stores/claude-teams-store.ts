@@ -634,7 +634,7 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
     const now = Date.now();
     const teamUptime = now - selectedTeam.config.createdAt;
     const uptimeMinutes = teamUptime / 60000;
-    const tasks = selectedTeam.tasks.filter((t) => t.status !== 'deleted');
+    const tasks = selectedTeam.tasks.filter((t) => t.status !== 'deleted' && t.metadata?._internal !== true);
     const completedTasks = tasks.filter((t) => t.status === 'completed');
 
     const velocity = uptimeMinutes > 0 ? completedTasks.length / uptimeMinutes : 0;

@@ -297,15 +297,15 @@ function ArchiveDetail({ archiveId, onClose }: { archiveId: string; onClose?: ()
             </div>
           </div>
 
-          {/* Tasks */}
+          {/* Tasks (exclude internal teammate tracker tasks) */}
           {tasks.length > 0 && (
             <div>
               <h4 className="text-xs font-medium text-muted-foreground mb-1">
-                Tasks ({tasks.filter((t) => t.status !== 'deleted').length})
+                Tasks ({tasks.filter((t) => t.status !== 'deleted' && t.metadata?._internal !== true).length})
               </h4>
               <div className="space-y-1 max-h-40 overflow-y-auto">
                 {tasks
-                  .filter((t) => t.status !== 'deleted')
+                  .filter((t) => t.status !== 'deleted' && t.metadata?._internal !== true)
                   .map((task) => (
                     <ExpandableTask key={task.id} task={task} />
                   ))}
