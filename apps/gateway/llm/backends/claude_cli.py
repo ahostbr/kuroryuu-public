@@ -27,6 +27,7 @@ logger = logging.getLogger("kuroryuu.gateway.claude_cli")
 # Model aliases supported by claude CLI
 MODEL_ALIASES = {
     "opus": "opus",
+    "claude-opus-4-6-20260205": "opus",
     "opus-4.5": "opus",
     "claude-opus-4-5": "opus",
     "claude-opus-4-5-20251101": "opus",
