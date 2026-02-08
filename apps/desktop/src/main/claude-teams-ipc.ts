@@ -10,7 +10,10 @@
  *   claude-teams:get-teams       - Read all teams from disk
  *   claude-teams:get-tasks       - Read tasks for a given team
  *   claude-teams:get-messages    - Read inbox for team + agent
- *   claude-teams:exec-cli        - Spawn a claude CLI command (fire-and-forget)
+ *   claude-teams:exec-cli        - Spawn a valid claude CLI command (with error capture)
+ *   claude-teams:create-team     - Create team via prompt (spawns claude -p)
+ *   claude-teams:message-teammate - Write message to agent inbox file
+ *   claude-teams:shutdown-teammate - Write shutdown_request to agent inbox file
  *   claude-teams:archive-session - Archive team state before cleanup
  *   claude-teams:list-archives   - List all archived sessions
  *   claude-teams:load-archive    - Load a specific archived session
@@ -193,6 +196,16 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
     }
   });
 
+  ipcMain.handle('claude-teams:restart-watching', async () => {
+    try {
+      const snapshot = await claudeTeamsWatcher.restart();
+      return { ok: true, snapshot };
+    } catch (err) {
+      console.error('[ClaudeTeamsIPC] Failed to restart watching:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
+
   // -----------------------------------------------------------------------
   // Data reads (on-demand, not watcher-driven)
   // -----------------------------------------------------------------------
@@ -231,7 +244,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
   );
 
   // -----------------------------------------------------------------------
-  // Direct CLI handlers (with error capture, replaces fire-and-forget)
+  // CLI helper (for spawning valid claude commands with error capture)
   // -----------------------------------------------------------------------
 
   /**
@@ -294,24 +307,95 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
     },
   );
 
+  // -----------------------------------------------------------------------
+  // Direct inbox file operations (writes to ~/.claude/teams/{name}/inboxes/)
+  // Claude Code agents poll these files — this is the correct messaging path.
+  // -----------------------------------------------------------------------
+
+  const TEAMS_DIR = path.join(os.homedir(), '.claude', 'teams');
+
+  /**
+   * Append a message to an agent's inbox JSON file.
+   * Creates the file/directory if it doesn't exist.
+   */
+  const appendToInbox = async (
+    teamName: string,
+    recipient: string,
+    message: { from: string; text: string; timestamp: string; read: boolean; summary?: string },
+  ): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const inboxDir = path.join(TEAMS_DIR, teamName, 'inboxes');
+      const inboxPath = path.join(inboxDir, `${recipient}.json`);
+
+      // Ensure the inboxes directory exists
+      await mkdir(inboxDir, { recursive: true });
+
+      // Read existing messages (or start fresh)
+      let messages: unknown[] = [];
+      try {
+        const raw = await readFile(inboxPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) messages = parsed;
+      } catch {
+        // File doesn't exist yet — start with empty array
+      }
+
+      messages.push(message);
+      await writeFileAsync(inboxPath, JSON.stringify(messages, null, 2), 'utf-8');
+      console.log(`[ClaudeTeamsIPC] Message written to inbox: ${teamName}/${recipient}`);
+      return { ok: true };
+    } catch (err) {
+      console.error('[ClaudeTeamsIPC] Failed to write inbox:', err);
+      return { ok: false, error: String(err) };
+    }
+  };
+
   ipcMain.handle(
     'claude-teams:create-team',
-    async (_event, params: { name: string; description?: string }) => {
-      return execClaudeCmd(['--team', 'create', params.name]);
+    async (_event, params: { name: string; description?: string; prompt?: string }) => {
+      // Team creation requires a running Claude session (no CLI command exists).
+      // Spawn claude with a prompt to create the team via /k-spawnteam or similar.
+      const prompt = params.prompt || `/k-spawnteam ${params.name}`;
+      return execClaudeCmd(['-p', '--print', prompt]);
     },
   );
 
   ipcMain.handle(
     'claude-teams:message-teammate',
-    async (_event, params: { recipient: string; content: string }) => {
-      return execClaudeCmd(['--team', 'message', params.recipient, params.content]);
+    async (_event, params: { teamName: string; recipient: string; content: string; summary?: string }) => {
+      if (!params.teamName || !params.recipient) {
+        return { ok: false, error: 'teamName and recipient are required' };
+      }
+      return appendToInbox(params.teamName, params.recipient, {
+        from: 'human',
+        text: params.content,
+        timestamp: new Date().toISOString(),
+        read: false,
+        summary: params.summary || params.content.slice(0, 60),
+      });
     },
   );
 
   ipcMain.handle(
     'claude-teams:shutdown-teammate',
-    async (_event, params: { recipient: string }) => {
-      return execClaudeCmd(['--team', 'shutdown', params.recipient]);
+    async (_event, params: { teamName: string; recipient: string; content?: string }) => {
+      if (!params.teamName || !params.recipient) {
+        return { ok: false, error: 'teamName and recipient are required' };
+      }
+      // Write a shutdown_request system message to the agent's inbox
+      const shutdownMsg = JSON.stringify({
+        type: 'shutdown_request',
+        requestId: `shutdown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        from: 'human',
+        content: params.content || 'Shutdown requested from Kuroryuu Desktop',
+      });
+      return appendToInbox(params.teamName, params.recipient, {
+        from: 'human',
+        text: shutdownMsg,
+        timestamp: new Date().toISOString(),
+        read: false,
+        summary: 'Shutdown request',
+      });
     },
   );
 
@@ -630,6 +714,7 @@ export function cleanupClaudeTeamsIpc(): void {
   const channels = [
     'claude-teams:start-watching',
     'claude-teams:stop-watching',
+    'claude-teams:restart-watching',
     'claude-teams:get-teams',
     'claude-teams:get-tasks',
     'claude-teams:get-messages',

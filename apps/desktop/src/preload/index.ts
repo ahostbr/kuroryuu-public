@@ -2160,6 +2160,9 @@ const api = {
     /** Stop watching */
     stopWatching: (): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('claude-teams:stop-watching'),
+    /** Restart watching (recovers from directory deletion) */
+    restartWatching: (): Promise<{ ok: boolean; snapshot?: unknown; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:restart-watching'),
     /** Get all teams from disk */
     getTeams: (): Promise<{ ok: boolean; teams?: unknown[]; error?: string }> =>
       ipcRenderer.invoke('claude-teams:get-teams'),
@@ -2175,12 +2178,21 @@ const api = {
     /** Create a team via direct IPC (with error capture) */
     createTeam: (params: { name: string; description: string; teammates?: unknown[] }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('claude-teams:create-team', { name: params.name, description: params.description }),
-    /** Send message to a teammate via direct IPC (with error capture) */
-    messageTeammate: (params: { teamName: string; recipient: string; content: string }): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke('claude-teams:message-teammate', { recipient: params.recipient, content: params.content }),
-    /** Request teammate shutdown via direct IPC (with error capture) */
-    shutdownTeammate: (params: { teamName: string; recipient: string }): Promise<{ ok: boolean; error?: string }> =>
-      ipcRenderer.invoke('claude-teams:shutdown-teammate', { recipient: params.recipient }),
+    /** Send message to a teammate via direct inbox file write */
+    messageTeammate: (params: { teamName: string; recipient: string; content: string; summary?: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:message-teammate', {
+        teamName: params.teamName,
+        recipient: params.recipient,
+        content: params.content,
+        summary: params.summary,
+      }),
+    /** Request teammate shutdown via inbox shutdown_request message */
+    shutdownTeammate: (params: { teamName: string; recipient: string; content?: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:shutdown-teammate', {
+        teamName: params.teamName,
+        recipient: params.recipient,
+        content: params.content,
+      }),
     /** Cleanup a team (convenience wrapper) */
     cleanupTeam: (params: { teamName: string }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('claude-teams:cleanup-team', params.teamName),
