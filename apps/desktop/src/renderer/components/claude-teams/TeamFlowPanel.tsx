@@ -15,7 +15,7 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Users, Activity, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Users, Activity, CheckCircle, XCircle, Clock, Zap, MessageSquare, Skull } from 'lucide-react';
 
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { useTeamFlowStore, type TeamFlowTheme } from '../../stores/team-flow-store';
@@ -125,15 +125,19 @@ export function TeamFlowPanel() {
     selectTeammate(name);
   }, [selectTeammate]);
 
+  // Analytics
+  const teamAnalytics = useClaudeTeamsStore((s) => s.teamAnalytics);
+
   // Stats display
   const stats = useMemo(() => {
-    if (!selectedTeam) return { total: 0, active: 0, idle: 0, stopped: 0 };
+    if (!selectedTeam) return { total: 0, active: 0, idle: 0, stopped: 0, presumedDead: 0 };
     const members = selectedTeam.config.members;
     return {
       total: members.length,
       active: storeNodes.filter((n) => n.data.status === 'active').length,
       idle: storeNodes.filter((n) => n.data.status === 'idle').length,
       stopped: storeNodes.filter((n) => n.data.status === 'stopped').length,
+      presumedDead: storeNodes.filter((n) => n.data.status === 'presumed_dead').length,
     };
   }, [selectedTeam, storeNodes]);
 
@@ -171,6 +175,30 @@ export function TeamFlowPanel() {
             <span className="text-gray-400">Stopped:</span>
             <span className="claude-teams-neon-red font-medium">{stats.stopped}</span>
           </div>
+        )}
+
+        {stats.presumedDead > 0 && (
+          <div className="flex items-center gap-1.5">
+            <Skull className="w-3.5 h-3.5 text-red-500" />
+            <span className="text-gray-400">Presumed Dead:</span>
+            <span className="text-red-500 font-medium">{stats.presumedDead}</span>
+          </div>
+        )}
+
+        {teamAnalytics && (
+          <>
+            <div className="flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 claude-teams-neon-cyan" />
+              <span className="text-gray-400">Velocity:</span>
+              <span className="claude-teams-neon-cyan font-medium">{teamAnalytics.velocity.toFixed(1)}/min</span>
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-gray-400">Messages:</span>
+              <span className="text-gray-300 font-medium">{teamAnalytics.totalMessages}</span>
+            </div>
+          </>
         )}
       </div>
 

@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  AlertTriangle,
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import type { TeamTask, TeamMember, TeamTaskStatus } from '../../types/claude-teams';
@@ -48,6 +49,7 @@ const COLUMNS: {
 export function TaskListPanel() {
   const selectedTeamTasks = useClaudeTeamsStore((s) => s.selectedTeamTasks);
   const selectedTeam = useClaudeTeamsStore((s) => s.selectedTeam);
+  const teamAnalytics = useClaudeTeamsStore((s) => s.teamAnalytics);
   const [collapsed, setCollapsed] = useState(false);
 
   const members: TeamMember[] = selectedTeam?.config.members ?? [];
@@ -135,9 +137,22 @@ export function TaskListPanel() {
                           None
                         </div>
                       ) : (
-                        tasks.map((task) => (
-                          <TaskCard key={task.id} task={task} members={members} />
-                        ))
+                        tasks.map((task) => {
+                          const isBottleneck = teamAnalytics?.bottleneckTaskIds?.includes(task.id) ?? false;
+                          return (
+                            <div key={task.id}>
+                              <div className={isBottleneck ? 'border-l-2 border-amber-500 rounded-lg' : ''}>
+                                <TaskCard task={task} members={members} />
+                              </div>
+                              {isBottleneck && (
+                                <div className="flex items-center gap-1 mt-1 ml-1 text-[10px] text-amber-500">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  <span>Bottleneck</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>

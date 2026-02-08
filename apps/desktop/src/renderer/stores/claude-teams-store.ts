@@ -20,6 +20,7 @@ import type {
   TeamHistoryEntry,
   TeamTemplate,
   TeammateHealthInfo,
+  TeamAnalytics,
 } from '../types/claude-teams';
 
 /**
@@ -172,6 +173,10 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   // Health
   teammateHealth: {},
 
+  // Analytics
+  teamAnalytics: null,
+  taskFirstSeen: {},
+
   // -- Data Actions --
 
   setTeams: (teams) => {
@@ -213,10 +218,14 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
       if (removedMembers.length > 0) {
         const updatedHealth = { ...teammateHealth };
         for (const name of removedMembers) {
+          const oldMember = oldTeam.config.members.find((m) => m.name === name);
           updatedHealth[name] = {
             lastActivity: updatedHealth[name]?.lastActivity ?? Date.now(),
             isUnresponsive: false,
             exitedAt: Date.now(),
+            uptime: oldMember ? (Date.now() - oldMember.joinedAt) : 0,
+            messageCount: updatedHealth[name]?.messageCount ?? 0,
+            avgResponseTime: updatedHealth[name]?.avgResponseTime,
           };
         }
         set({ teammateHealth: updatedHealth });
@@ -235,15 +244,26 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   },
 
   updateTeamTasks: (teamName, tasks) => {
-    const { teams, selectedTeamId } = get();
+    const { teams, selectedTeamId, taskFirstSeen } = get();
     const updated = teams.map((t) =>
       t.config.name === teamName
         ? { ...t, tasks, lastUpdated: Date.now() }
         : t
     );
+    // Track first-seen timestamps for task duration display
+    const now = Date.now();
+    const updatedFirstSeen = { ...taskFirstSeen };
+    let changed = false;
+    for (const task of tasks) {
+      if (!updatedFirstSeen[task.id]) {
+        updatedFirstSeen[task.id] = now;
+        changed = true;
+      }
+    }
     set({
       teams: updated,
       ...deriveSelectedTeam(updated, selectedTeamId),
+      ...(changed ? { taskFirstSeen: updatedFirstSeen } : {}),
     });
   },
 
@@ -551,10 +571,44 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
       const isUnresponsive = (hasActiveTask && timeSinceActivity > UNRESPONSIVE_THRESHOLD)
         || timeSinceActivity > DEAD_THRESHOLD;
 
+      // Compute uptime
+      const uptime = (previousHealth?.exitedAt ?? now) - member.joinedAt;
+
+      // Count messages from this agent (in lead's inbox)
+      const leadMember = selectedTeam.config.members.find(
+        (m) => m.agentId === selectedTeam.config.leadAgentId
+      );
+      const leadInbox = leadMember ? (selectedTeam.inboxes[leadMember.name] ?? []) : [];
+      const agentMessages = leadInbox.filter((msg) => msg.from === member.name);
+      const messageCount = agentMessages.length;
+
+      // Compute avg response time: human msg in agent inbox → next agent msg in lead inbox
+      let avgResponseTime: number | undefined;
+      const agentInbox = selectedTeam.inboxes[member.name] ?? [];
+      const humanMsgs = agentInbox.filter((m) => m.from === 'human' || m.from === leadMember?.name);
+      if (humanMsgs.length > 0 && agentMessages.length > 0) {
+        const deltas: number[] = [];
+        for (const hm of humanMsgs) {
+          const hmTime = new Date(hm.timestamp).getTime();
+          const nextResponse = agentMessages.find(
+            (am) => new Date(am.timestamp).getTime() > hmTime
+          );
+          if (nextResponse) {
+            deltas.push(new Date(nextResponse.timestamp).getTime() - hmTime);
+          }
+        }
+        if (deltas.length > 0) {
+          avgResponseTime = deltas.reduce((a, b) => a + b, 0) / deltas.length;
+        }
+      }
+
       health[member.name] = {
         lastActivity,
         isUnresponsive,
         exitedAt: previousHealth?.exitedAt,
+        uptime,
+        messageCount,
+        avgResponseTime,
       };
     }
 
@@ -566,6 +620,67 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
     }
 
     set({ teammateHealth: health });
+  },
+
+  // -- Analytics --
+
+  computeAnalytics: () => {
+    const { selectedTeam, teammateHealth, taskFirstSeen } = get();
+    if (!selectedTeam) {
+      set({ teamAnalytics: null });
+      return;
+    }
+
+    const now = Date.now();
+    const teamUptime = now - selectedTeam.config.createdAt;
+    const uptimeMinutes = teamUptime / 60000;
+    const tasks = selectedTeam.tasks.filter((t) => t.status !== 'deleted');
+    const completedTasks = tasks.filter((t) => t.status === 'completed');
+
+    const velocity = uptimeMinutes > 0 ? completedTasks.length / uptimeMinutes : 0;
+    const completionPct = tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0;
+
+    // Total messages across all inboxes
+    const totalMessages = Object.values(selectedTeam.inboxes)
+      .reduce((sum, msgs) => sum + msgs.length, 0);
+    const messageRate = uptimeMinutes > 0 ? totalMessages / uptimeMinutes : 0;
+
+    // Avg response latency from per-agent health
+    const responseTimes = Object.values(teammateHealth)
+      .map((h) => h.avgResponseTime)
+      .filter((t): t is number => t !== undefined);
+    const avgResponseLatency = responseTimes.length > 0
+      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+      : 0;
+
+    // Bottleneck detection: tasks with most blockedBy OR longest in_progress
+    const scoredTasks = tasks
+      .filter((t) => t.status !== 'completed')
+      .map((t) => {
+        const blockedByScore = t.blockedBy.length * 3;
+        const durationScore = t.status === 'in_progress' && taskFirstSeen[t.id]
+          ? (now - taskFirstSeen[t.id]) / 60000 // minutes running
+          : 0;
+        return { id: t.id, score: blockedByScore + durationScore };
+      })
+      .sort((a, b) => b.score - a.score);
+    const bottleneckTaskIds = scoredTasks.slice(0, 3).filter((t) => t.score > 0).map((t) => t.id);
+
+    const analytics: TeamAnalytics = {
+      velocity,
+      completionPct,
+      totalMessages,
+      avgResponseLatency,
+      messageRate,
+      bottleneckTaskIds,
+      teamUptime,
+    };
+
+    set({ teamAnalytics: analytics });
+  },
+
+  markInboxRead: async (teamName, agentName) => {
+    await window.electronAPI?.claudeTeams?.markInboxRead?.({ teamName, agentName });
   },
 
   // -- Bulk Operations --
@@ -626,9 +741,11 @@ export function setupClaudeTeamsIpcListeners(): () => void {
   const store = useClaudeTeamsStore.getState();
   const cleanups: (() => void)[] = [];
 
-  // Automatic 30-second health polling
+  // Automatic 30-second health + analytics polling
   const healthPollInterval = setInterval(() => {
-    useClaudeTeamsStore.getState().checkTeammateHealth();
+    const s = useClaudeTeamsStore.getState();
+    s.checkTeammateHealth();
+    s.computeAnalytics();
   }, 30_000);
   cleanups.push(() => clearInterval(healthPollInterval));
 

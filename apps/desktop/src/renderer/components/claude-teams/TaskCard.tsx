@@ -10,12 +10,23 @@ import {
   AlertTriangle,
   GitBranch,
   Loader2,
+  Clock,
 } from 'lucide-react';
 import type { TeamTask, TeamMember, TeamTaskStatus } from '../../types/claude-teams';
+import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 
 interface TaskCardProps {
   task: TeamTask;
   members: TeamMember[];
+}
+
+function formatDuration(ms: number): string {
+  const minutes = Math.floor(ms / 60000);
+  if (minutes < 1) return '<1m';
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours > 0) return `${hours}h ${remainingMinutes}m`;
+  return `${minutes}m`;
 }
 
 const STATUS_COLORS: Record<TeamTaskStatus, { bg: string; text: string; label: string }> = {
@@ -27,6 +38,7 @@ const STATUS_COLORS: Record<TeamTaskStatus, { bg: string; text: string; label: s
 
 export function TaskCard({ task, members }: TaskCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const taskFirstSeen = useClaudeTeamsStore((s) => s.taskFirstSeen);
 
   const statusStyle = STATUS_COLORS[task.status] ?? STATUS_COLORS.pending;
 
@@ -62,6 +74,18 @@ export function TaskCard({ task, members }: TaskCardProps) {
       >
         {task.subject}
       </p>
+
+      {/* Duration */}
+      {taskFirstSeen[task.id] && (
+        <div className="mt-0.5 flex items-center gap-1 text-[10px] text-gray-500">
+          <Clock className="w-3 h-3 flex-shrink-0" />
+          <span>
+            {task.status === 'pending' && `${formatDuration(Date.now() - taskFirstSeen[task.id])} ago`}
+            {task.status === 'in_progress' && `Running ${formatDuration(Date.now() - taskFirstSeen[task.id])}`}
+            {task.status === 'completed' && `Took ${formatDuration(Date.now() - taskFirstSeen[task.id])}`}
+          </span>
+        </div>
+      )}
 
       {/* Description (clamp or full) */}
       {task.description && (

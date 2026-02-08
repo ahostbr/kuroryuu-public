@@ -2,7 +2,7 @@
  * TeammateDetailPanel - Side panel that slides in when a teammate node is selected.
  * Shows teammate info, current task, inbox messages, and action buttons.
  */
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import {
   User,
   Crown,
@@ -12,6 +12,8 @@ import {
   XCircle,
   AlertTriangle,
   MessageSquare,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { useTeamFlowStore } from '../../stores/team-flow-store';
@@ -37,6 +39,26 @@ function getModelBadge(model: string): string {
   if (model.includes('sonnet')) return 'SONNET';
   if (model.includes('haiku')) return 'HAIKU';
   return model.split('-').pop()?.toUpperCase() ?? 'MODEL';
+}
+
+function formatUptime(ms: number): { text: string; color: string } {
+  const totalSeconds = Math.floor(ms / 1000);
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const seconds = totalSeconds % 60;
+
+  const text = hours > 0
+    ? `${hours}h ${minutes}m`
+    : `${minutes}m ${seconds}s`;
+
+  const color = totalMinutes < 30
+    ? 'text-green-400'
+    : totalMinutes < 60
+      ? 'text-yellow-400'
+      : 'text-orange-400';
+
+  return { text, color };
 }
 
 function formatTime(epoch: number): string {
@@ -95,8 +117,10 @@ export function TeammateDetailPanel() {
   const selectedTeam = useClaudeTeamsStore((s) => s.selectedTeam);
   const selectedTeamTasks = useClaudeTeamsStore((s) => s.selectedTeamTasks);
   const teammateHealth = useClaudeTeamsStore((s) => s.teammateHealth);
+  const markInboxRead = useClaudeTeamsStore((s) => s.markInboxRead);
   const selectedTeammateId = useTeamFlowStore((s) => s.selectedTeammateId);
   const selectTeammate = useTeamFlowStore((s) => s.selectTeammate);
+  const [promptExpanded, setPromptExpanded] = useState(false);
 
   // Find the member and derived data
   const member: TeamMember | undefined = useMemo(() => {
@@ -158,6 +182,21 @@ export function TeammateDetailPanel() {
 
   const statusConfig = getStatusConfig(status);
   const isOpen = selectedTeammateId !== null && member !== undefined;
+
+  // Auto-mark inbox messages as read when teammate panel is opened
+  useEffect(() => {
+    if (!selectedTeam || !selectedTeammateId) return;
+    const inbox = selectedTeam.inboxes[selectedTeammateId] ?? [];
+    const hasUnread = inbox.some((m) => !m.read);
+    if (hasUnread) {
+      markInboxRead(selectedTeam.config.name, selectedTeammateId);
+    }
+  }, [selectedTeam, selectedTeammateId, markInboxRead]);
+
+  // Reset prompt expanded state when switching teammates
+  useEffect(() => {
+    setPromptExpanded(false);
+  }, [selectedTeammateId]);
 
   return (
     <div
@@ -225,6 +264,45 @@ export function TeammateDetailPanel() {
                     {member.cwd}
                   </p>
                 </div>
+                <div>
+                  <span className="text-gray-500">Backend</span>
+                  <p className={member.backendType === 'tmux' ? 'text-orange-400' : 'text-cyan-400'}>
+                    {member.backendType ?? 'in-process'}
+                  </p>
+                </div>
+                {member.backendType === 'tmux' && member.tmuxPaneId && (
+                  <div>
+                    <span className="text-gray-500">Pane ID</span>
+                    <p className="text-gray-300 font-mono">{member.tmuxPaneId}</p>
+                  </div>
+                )}
+                {(() => {
+                  const health = teammateHealth[member.name];
+                  if (!health?.uptime) return null;
+                  const { text, color } = formatUptime(health.uptime);
+                  return (
+                    <div>
+                      <span className="text-gray-500">Uptime</span>
+                      <p className={color}>{text}</p>
+                    </div>
+                  );
+                })()}
+                {member.subscriptions && member.subscriptions.length > 0 && (
+                  <div className="col-span-2">
+                    <span className="text-gray-500">Subscriptions</span>
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {member.subscriptions.map((sub) => (
+                        <span
+                          key={sub}
+                          className="inline-block px-1.5 py-0.5 rounded text-[9px] font-medium
+                            bg-gray-800 text-gray-400 border border-gray-700/50"
+                        >
+                          {sub}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {member.planModeRequired && (
                   <div className="col-span-2">
                     <span className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-purple-900/30 text-purple-400 border border-purple-700/40">
@@ -234,6 +312,33 @@ export function TeammateDetailPanel() {
                 )}
               </div>
             </div>
+
+            {/* Prompt Preview */}
+            {member.prompt && (
+              <div className="px-3 py-2.5 border-b border-gray-800/50">
+                <button
+                  onClick={() => setPromptExpanded((v) => !v)}
+                  className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-gray-500
+                    hover:text-gray-300 transition-colors w-full"
+                >
+                  {promptExpanded ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                  Prompt Preview
+                </button>
+                <div
+                  className={`mt-1.5 text-[11px] font-mono text-gray-400 whitespace-pre-wrap
+                    overflow-y-auto transition-all duration-200
+                    ${promptExpanded ? 'max-h-[120px]' : 'max-h-[3.6em] overflow-hidden'}`}
+                >
+                  {promptExpanded
+                    ? member.prompt
+                    : member.prompt.split('\n').slice(0, 3).join('\n')}
+                </div>
+              </div>
+            )}
 
             {/* Current Task */}
             <div className="px-3 py-2.5 border-b border-gray-800/50">
