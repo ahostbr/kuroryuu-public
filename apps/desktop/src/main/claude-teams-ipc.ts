@@ -239,9 +239,17 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
    */
   const execClaudeCmd = (args: string[]): Promise<{ ok: boolean; error?: string }> => {
     return new Promise((resolve) => {
+      let resolved = false;
+      const done = (result: { ok: boolean; error?: string }) => {
+        if (!resolved) { resolved = true; resolve(result); }
+      };
+
       try {
+        // shell: true required on Windows to resolve .cmd shims (e.g. claude.cmd)
+        // Args are still passed as array, so shell injection risk is minimal
+        const isWindows = process.platform === 'win32';
         const child = spawn('claude', args, {
-          shell: true,
+          shell: isWindows,
           stdio: ['ignore', 'pipe', 'pipe'],
           detached: false,
           env: { ...process.env, CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: '1' },
@@ -251,26 +259,29 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
         child.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString(); });
         child.on('error', (err) => {
           console.error('[ClaudeTeamsIPC] CLI spawn error:', err);
-          resolve({ ok: false, error: String(err) });
+          done({ ok: false, error: String(err) });
         });
         child.on('close', (code) => {
           if (code === 0) {
             console.log('[ClaudeTeamsIPC] CLI success:', 'claude', args.join(' '));
-            resolve({ ok: true });
+            done({ ok: true });
           } else {
             console.error('[ClaudeTeamsIPC] CLI failed (code', code, '):', stderr.trim());
-            resolve({ ok: false, error: stderr.trim() || `Exit code ${code}` });
+            done({ ok: false, error: stderr.trim() || `Exit code ${code}` });
           }
         });
 
         // Timeout after 30s
-        setTimeout(() => {
+        const timer = setTimeout(() => {
           try { child.kill(); } catch { /* ignore */ }
-          resolve({ ok: false, error: 'Command timed out after 30s' });
+          done({ ok: false, error: 'Command timed out after 30s' });
         }, 30_000);
+
+        // Clear timeout if process exits naturally
+        child.on('close', () => clearTimeout(timer));
       } catch (err) {
         console.error('[ClaudeTeamsIPC] CLI exec failed:', err);
-        resolve({ ok: false, error: String(err) });
+        done({ ok: false, error: String(err) });
       }
     });
   };

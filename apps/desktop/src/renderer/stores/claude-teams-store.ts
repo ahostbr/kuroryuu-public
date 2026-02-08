@@ -323,7 +323,7 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
     try {
       const result = await window.electronAPI?.claudeTeams?.messageTeammate?.(params);
       if (result && !result.ok) {
-        console.error('[ClaudeTeamsStore] messageTeammate failed:', result.error);
+        console.error('[ClaudeTeamsStore] messageTeammate failed:', result.error || 'unknown error (no active team?)');
       }
       return result?.ok ?? false;
     } catch (err) {
@@ -336,7 +336,7 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
     try {
       const result = await window.electronAPI?.claudeTeams?.shutdownTeammate?.(params);
       if (result && !result.ok) {
-        console.error('[ClaudeTeamsStore] shutdownTeammate failed:', result.error);
+        console.error('[ClaudeTeamsStore] shutdownTeammate failed:', result.error || 'unknown error (no active team?)');
       }
       return result?.ok ?? false;
     } catch (err) {
