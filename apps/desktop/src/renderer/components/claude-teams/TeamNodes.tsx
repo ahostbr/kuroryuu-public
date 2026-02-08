@@ -37,7 +37,9 @@ function getStatusColor(status: string, colors: typeof THEME_COLORS['default']):
     case 'idle':
       return colors.idle;
     case 'stopped':
-      return colors.error;
+      return '#6b7280'; // gray — gracefully shut down
+    case 'presumed_dead':
+      return colors.error; // red — likely exited
     default:
       return colors.idle;
   }
@@ -162,12 +164,23 @@ export const TeammateNode = React.memo(function TeammateNode({
 
   const StatusIcon = status === 'active' ? CheckCircle : status === 'idle' ? Clock : XCircle;
 
-  // Health dot: green = active recently, yellow = idle >2min, red = unresponsive (>5min with active task)
-  let healthDotColor = colors.success; // green
-  if (healthInfo?.isUnresponsive) {
+  // Health dot: green=active, cyan=idle(alive), gray=stopped, red pulsing=presumed dead, orange=unresponsive
+  let healthDotColor = colors.success; // green - healthy/active
+  let healthDotPulse = false;
+  let healthDotTitle = 'Healthy';
+  if (status === 'stopped') {
+    healthDotColor = '#6b7280'; // gray
+    healthDotTitle = 'Stopped (gracefully shut down)';
+  } else if (status === 'presumed_dead') {
     healthDotColor = colors.error; // red
+    healthDotPulse = true;
+    healthDotTitle = 'Presumed dead (no activity >10min)';
+  } else if (healthInfo?.isUnresponsive) {
+    healthDotColor = '#f97316'; // orange
+    healthDotTitle = 'Unresponsive (active task, no activity >5min)';
   } else if (status === 'idle') {
-    healthDotColor = colors.idle; // yellow
+    healthDotColor = '#06b6d4'; // cyan
+    healthDotTitle = 'Idle (alive, waiting)';
   }
 
   return (
@@ -207,18 +220,12 @@ export const TeammateNode = React.memo(function TeammateNode({
         )}
         {/* Health dot */}
         <div
-          className="w-2.5 h-2.5 rounded-full ml-auto shrink-0"
+          className={`w-2.5 h-2.5 rounded-full ml-auto shrink-0${healthDotPulse ? ' animate-pulse' : ''}`}
           style={{
             backgroundColor: healthDotColor,
             boxShadow: `0 0 6px ${healthDotColor}80`,
           }}
-          title={
-            healthInfo?.isUnresponsive
-              ? 'Unresponsive (no activity >5min with active task)'
-              : status === 'idle'
-                ? 'Idle'
-                : 'Healthy'
-          }
+          title={healthDotTitle}
         />
       </div>
 
@@ -232,7 +239,7 @@ export const TeammateNode = React.memo(function TeammateNode({
           }}
         />
         <span className="text-[10px] capitalize" style={{ color: `${colors.nodeText}90` }}>
-          {status}
+          {status === 'presumed_dead' ? 'Dead?' : status}
         </span>
       </div>
 

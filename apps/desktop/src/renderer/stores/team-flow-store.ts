@@ -115,25 +115,31 @@ function deriveTeammateStatus(
 ): TeammateStatus {
   if (isLead) return 'active';
 
-  // Check if teammate has an in-progress task
-  const hasActiveTask = tasks.some(
-    (t) => t.owner === memberName && t.status === 'in_progress'
-  );
-  if (hasActiveTask) return 'active';
-
-  // Check most recent inbox message for idle signal
+  // Check most recent inbox message for system signals
   const inbox = inboxes[memberName] ?? [];
   if (inbox.length > 0) {
     const latest = inbox[inbox.length - 1];
     try {
       const parsed = JSON.parse(latest.text);
-      if (parsed?.type === 'idle_notification') return 'idle';
       if (parsed?.type === 'shutdown_approved') return 'stopped';
+      if (parsed?.type === 'idle_notification') {
+        // Stale idle_notification (>10min) = presumed dead
+        const msgTime = new Date(latest.timestamp).getTime();
+        if (Date.now() - msgTime > 10 * 60 * 1000) return 'presumed_dead';
+        return 'idle';
+      }
     } catch {
-      // Plain text message - teammate is active
-      return 'active';
+      // Plain text message — check recency
+      const msgTime = new Date(latest.timestamp).getTime();
+      if (Date.now() - msgTime < 5 * 60 * 1000) return 'active';
     }
   }
+
+  // Check if teammate has an in-progress task
+  const hasActiveTask = tasks.some(
+    (t) => t.owner === memberName && t.status === 'in_progress'
+  );
+  if (hasActiveTask) return 'active';
 
   return 'idle';
 }
@@ -232,7 +238,7 @@ export function buildHubSpokesGraph(
     if (status === 'active') {
       edgeColor = colors.active;
       edgeStatus = 'active';
-    } else if (status === 'stopped') {
+    } else if (status === 'stopped' || status === 'presumed_dead') {
       edgeColor = colors.error;
       edgeStatus = 'error';
     }
@@ -364,7 +370,7 @@ export function buildHierarchyGraph(
     if (status === 'active') {
       edgeColor = colors.active;
       edgeStatus = 'active';
-    } else if (status === 'stopped') {
+    } else if (status === 'stopped' || status === 'presumed_dead') {
       edgeColor = colors.error;
       edgeStatus = 'error';
     }
@@ -518,7 +524,7 @@ export function buildTimelineGraph(
     if (status === 'active') {
       edgeColor = colors.active;
       edgeStatus = 'active';
-    } else if (status === 'stopped') {
+    } else if (status === 'stopped' || status === 'presumed_dead') {
       edgeColor = colors.error;
       edgeStatus = 'error';
     }

@@ -140,7 +140,7 @@ export function parseSystemMessage(text: string): SystemMessage | null {
 // TEAMMATE STATUS (derived, not on disk)
 // ============================================================================
 
-export type TeammateStatus = 'active' | 'idle' | 'stopped';
+export type TeammateStatus = 'active' | 'idle' | 'stopped' | 'presumed_dead';
 
 export interface TeammateState {
   member: TeamMember;
@@ -337,6 +337,7 @@ export interface TeamTemplate {
 export interface TeammateHealthInfo {
   lastActivity: number;       // Epoch ms of last inbox activity
   isUnresponsive: boolean;    // True if >5min with active task and no activity
+  exitedAt?: number;          // Epoch ms when member was removed from config (definitive exit)
 }
 
 // ============================================================================

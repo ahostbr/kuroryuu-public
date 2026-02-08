@@ -191,7 +191,7 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   },
 
   updateTeamConfig: (teamName, config) => {
-    const { teams, selectedTeamId } = get();
+    const { teams, selectedTeamId, teammateHealth } = get();
     const exists = teams.some((t) => t.config.name === teamName);
     if (!exists) {
       // New team detected via config change event
@@ -203,6 +203,25 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
         lastUpdated: Date.now(),
       });
       return;
+    }
+    // Detect member removal (definitive exit signal — Claude Code removes members on shutdown)
+    const oldTeam = teams.find((t) => t.config.name === teamName);
+    if (oldTeam) {
+      const oldNames = new Set(oldTeam.config.members.map((m) => m.name));
+      const newNames = new Set(config.members.map((m) => m.name));
+      const removedMembers = [...oldNames].filter((n) => !newNames.has(n));
+      if (removedMembers.length > 0) {
+        const updatedHealth = { ...teammateHealth };
+        for (const name of removedMembers) {
+          updatedHealth[name] = {
+            lastActivity: updatedHealth[name]?.lastActivity ?? Date.now(),
+            isUnresponsive: false,
+            exitedAt: Date.now(),
+          };
+        }
+        set({ teammateHealth: updatedHealth });
+        console.log('[ClaudeTeamsStore] Members removed from config (exited):', removedMembers);
+      }
     }
     const updated = teams.map((t) =>
       t.config.name === teamName
@@ -496,19 +515,23 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
   // -- Health Actions --
 
   checkTeammateHealth: () => {
-    const { selectedTeam } = get();
+    const { selectedTeam, teammateHealth: existingHealth } = get();
     if (!selectedTeam) {
       set({ teammateHealth: {} });
       return;
     }
 
     const now = Date.now();
-    const UNRESPONSIVE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+    const UNRESPONSIVE_THRESHOLD = 5 * 60 * 1000; // 5 minutes (with active task)
+    const DEAD_THRESHOLD = 10 * 60 * 1000; // 10 minutes (any agent, no task required)
     const health: Record<string, TeammateHealthInfo> = {};
 
     for (const member of selectedTeam.config.members) {
       // Skip lead
       if (member.agentId === selectedTeam.config.leadAgentId) continue;
+
+      // Preserve exitedAt from previous health state
+      const previousHealth = existingHealth[member.name];
 
       // Find latest activity from inbox messages
       const inbox = selectedTeam.inboxes[member.name] ?? [];
@@ -524,9 +547,22 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
       );
 
       const timeSinceActivity = now - lastActivity;
-      const isUnresponsive = hasActiveTask && timeSinceActivity > UNRESPONSIVE_THRESHOLD;
+      // Unresponsive: active task + >5min, OR any agent with no activity >10min
+      const isUnresponsive = (hasActiveTask && timeSinceActivity > UNRESPONSIVE_THRESHOLD)
+        || timeSinceActivity > DEAD_THRESHOLD;
 
-      health[member.name] = { lastActivity, isUnresponsive };
+      health[member.name] = {
+        lastActivity,
+        isUnresponsive,
+        exitedAt: previousHealth?.exitedAt,
+      };
+    }
+
+    // Preserve health entries for members no longer in config (exited)
+    for (const [name, info] of Object.entries(existingHealth)) {
+      if (info.exitedAt && !health[name]) {
+        health[name] = info;
+      }
     }
 
     set({ teammateHealth: health });
@@ -589,6 +625,12 @@ const recentlyArchivedTeams = new Set<string>();
 export function setupClaudeTeamsIpcListeners(): () => void {
   const store = useClaudeTeamsStore.getState();
   const cleanups: (() => void)[] = [];
+
+  // Automatic 30-second health polling
+  const healthPollInterval = setInterval(() => {
+    useClaudeTeamsStore.getState().checkTeammateHealth();
+  }, 30_000);
+  cleanups.push(() => clearInterval(healthPollInterval));
 
   // Listen for state update events from the main process file watcher
   const cleanup = window.electronAPI?.claudeTeams?.onStateUpdate?.((raw: unknown) => {
