@@ -38,9 +38,11 @@ import '../../styles/claude-teams.css';
 
 /** Convert an archived session back to a TeamSnapshot for graph rendering. */
 function archiveToSnapshot(archive: ArchivedTeamSession): TeamSnapshot {
+  // Filter out internal teammate tracker tasks from graph visualization
+  const tasks = (archive.tasks as TeamTask[]).filter((t) => t.metadata?._internal !== true);
   return {
     config: archive.config as TeamConfig,
-    tasks: archive.tasks as TeamTask[],
+    tasks,
     inboxes: archive.inboxes as Record<string, InboxMessage[]>,
     teammates: [],
     lastUpdated: new Date(archive.archivedAt).getTime(),

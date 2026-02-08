@@ -102,8 +102,9 @@ export async function archiveTeamSession(data: {
     const config = data.config as { createdAt?: number } | undefined;
     const createdAt = config?.createdAt ?? Date.now();
 
-    // Compute stats
-    const tasks = data.tasks as { status?: string }[];
+    // Compute stats (exclude internal teammate tracker tasks)
+    const allTasks = data.tasks as { status?: string; metadata?: { _internal?: boolean } }[];
+    const tasks = allTasks.filter((t) => t.metadata?._internal !== true);
     const stats: ArchivedTeamStats = {
       memberCount: ((data.config as { members?: unknown[] })?.members ?? []).length,
       taskCount: tasks.length,
