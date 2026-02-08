@@ -34,6 +34,26 @@ Check freshness first: `k_rag(action="status")`, `k_repo_intel(action="status")`
 
 ---
 
+## Browser Automation Default (HARD RULE)
+
+Use **Playwright CLI skill/workflow first** for browser automation tasks.
+
+```
+Primary: playwright-cli (CLI + skill)
+Policy:  Playwright MCP disabled/removed in this repo
+```
+
+Quick checks:
+
+```bash
+playwright-cli --help
+playwright-cli install --skills
+```
+
+Do not re-enable Playwright MCP unless explicitly required for a specialized loop.
+
+---
+
 ## Task Tracking (HARD RULE)
 
 **ALWAYS use `TaskCreate` tool - NEVER manually write tasks to todo.md!**
