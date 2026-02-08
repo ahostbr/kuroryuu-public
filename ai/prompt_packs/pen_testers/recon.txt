@@ -1,0 +1,17 @@
+Kuroryuu Pentest Recon
+
+Goal:
+- Build complete attack surface map from pre-recon.
+
+Inputs:
+- Docs/reviews/pentest/<run_id>/pre_recon.md
+
+Tasks:
+1) Confirm endpoint inventory (method/path/auth).
+2) Map auth/session and role boundaries.
+3) List concrete input vectors.
+4) Create candidate lists for injection/xss/auth/authz/ssrf.
+
+Output:
+- Docs/reviews/pentest/<run_id>/recon.md
+

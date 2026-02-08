@@ -1,0 +1,16 @@
+Kuroryuu Pentest Executive Reporting
+
+Goal:
+- Assemble final evidence-first report from all phase artifacts.
+
+Required sections:
+1) Executive Summary
+2) Scope and Method
+3) Findings by class
+4) Exploited vs blocked findings
+5) Remediation plan
+6) Residual risk
+
+Output:
+- Docs/reviews/pentest/<run_id>/final_report.md
+

@@ -1,0 +1,17 @@
+Kuroryuu Injection Analysis
+
+Goal:
+- Find exploitable SQL/NoSQL/command/template injection paths.
+
+Inputs:
+- recon.md
+
+Tasks:
+1) Trace source-to-sink.
+2) Verify sanitization/parameterization at sink.
+3) Keep only exploit-worthy candidates.
+
+Outputs:
+- Docs/reviews/pentest/<run_id>/injection_analysis.md
+- Docs/reviews/pentest/<run_id>/injection_queue.json ({"vulnerabilities":[...]})
+

@@ -1,0 +1,73 @@
+{
+  "schema": "kuroryuu_prompt_pack_index_v1",
+  "name": "Pen Testers",
+  "description": "Kuroryuu-native white-box pentest workflow prompts adapted from Shannon-style phase orchestration",
+  "version": "1.0.0",
+  "created_at": "2026-02-08",
+  "updated_at": "2026-02-08",
+  "category": "pen_testers",
+  "tool_profiles": {
+    "pentest_analyze": {
+      "description": "Read/analyze with controlled write to pentest report artifacts",
+      "allowed_tools": [
+        { "tool": "k_rag", "actions": ["query", "query_semantic", "query_hybrid", "status"] },
+        { "tool": "k_repo_intel", "actions": ["status", "get", "list"] },
+        { "tool": "k_files", "actions": ["read", "write", "list"] },
+        { "tool": "k_capture", "actions": ["screenshot", "get_latest", "get_storyboard", "get_status"] },
+        { "tool": "Read", "actions": ["*"] },
+        { "tool": "Edit", "actions": ["*"] },
+        { "tool": "Write", "actions": ["*"] },
+        { "tool": "Bash", "actions": ["*"] }
+      ],
+      "prohibited_tools": []
+    },
+    "pentest_exploit": {
+      "description": "Execution-focused testing with evidence capture and artifact writing",
+      "allowed_tools": [
+        { "tool": "k_rag", "actions": ["*"] },
+        { "tool": "k_repo_intel", "actions": ["*"] },
+        { "tool": "k_files", "actions": ["*"] },
+        { "tool": "k_capture", "actions": ["*"] },
+        { "tool": "k_checkpoint", "actions": ["save", "append", "list", "load"] },
+        { "tool": "Read", "actions": ["*"] },
+        { "tool": "Edit", "actions": ["*"] },
+        { "tool": "Write", "actions": ["*"] },
+        { "tool": "Bash", "actions": ["*"] }
+      ],
+      "prohibited_tools": []
+    },
+    "pentest_report": {
+      "description": "Report collation and executive summary generation",
+      "allowed_tools": [
+        { "tool": "k_files", "actions": ["read", "write", "list"] },
+        { "tool": "k_rag", "actions": ["query", "query_hybrid"] },
+        { "tool": "Read", "actions": ["*"] },
+        { "tool": "Edit", "actions": ["*"] },
+        { "tool": "Write", "actions": ["*"] }
+      ],
+      "prohibited_tools": []
+    }
+  },
+  "packs": [
+    { "id": "pre_recon", "name": "Pre-Recon", "file": "pre_recon.md", "category": "recon", "tool_profile": "pentest_analyze", "icon": "search", "color": "#60A5FA" },
+    { "id": "recon", "name": "Recon", "file": "recon.md", "category": "recon", "tool_profile": "pentest_analyze", "icon": "radar", "color": "#22D3EE" },
+    { "id": "analyze_injection", "name": "Injection Analyzer", "file": "analyze_injection.md", "category": "analysis", "tool_profile": "pentest_analyze", "icon": "bug", "color": "#F97316" },
+    { "id": "analyze_xss", "name": "XSS Analyzer", "file": "analyze_xss.md", "category": "analysis", "tool_profile": "pentest_analyze", "icon": "bug", "color": "#F43F5E" },
+    { "id": "analyze_auth", "name": "Auth Analyzer", "file": "analyze_auth.md", "category": "analysis", "tool_profile": "pentest_analyze", "icon": "shield-alert", "color": "#DC2626" },
+    { "id": "analyze_authz", "name": "AuthZ Analyzer", "file": "analyze_authz.md", "category": "analysis", "tool_profile": "pentest_analyze", "icon": "shield-alert", "color": "#B91C1C" },
+    { "id": "analyze_ssrf", "name": "SSRF Analyzer", "file": "analyze_ssrf.md", "category": "analysis", "tool_profile": "pentest_analyze", "icon": "network", "color": "#A855F7" },
+    { "id": "exploit_injection", "name": "Injection Exploiter", "file": "exploit_injection.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "zap", "color": "#EA580C" },
+    { "id": "exploit_xss", "name": "XSS Exploiter", "file": "exploit_xss.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "zap", "color": "#E11D48" },
+    { "id": "exploit_auth", "name": "Auth Exploiter", "file": "exploit_auth.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "key-round", "color": "#DC2626" },
+    { "id": "exploit_authz", "name": "AuthZ Exploiter", "file": "exploit_authz.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "key-round", "color": "#991B1B" },
+    { "id": "exploit_ssrf", "name": "SSRF Exploiter", "file": "exploit_ssrf.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "link", "color": "#9333EA" },
+    { "id": "report", "name": "Pentest Reporter", "file": "report.md", "category": "report", "tool_profile": "pentest_report", "icon": "file-text", "color": "#14B8A6" }
+  ],
+  "usage": {
+    "loading": "Load phase prompt based on operator-selected pentest stage",
+    "invocation": "Manual invocation from scheduler or orchestrator",
+    "output": "Writes artifacts to Docs/reviews/pentest/<run_id>/",
+    "integration": "Designed for Kuroryuu localhost-first security model"
+  }
+}
+

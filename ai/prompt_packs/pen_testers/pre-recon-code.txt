@@ -1,0 +1,19 @@
+Kuroryuu Pentest Pre-Recon
+
+Goal:
+- Produce initial white-box intelligence for {{WEB_URL}} and {{REPO_PATH}}.
+
+Rules:
+- Authorized scope only.
+- Localhost-first unless operator says otherwise.
+- Evidence-backed claims only.
+
+Tasks:
+1) Map architecture and stack.
+2) Enumerate likely external entry points.
+3) Map auth/session surfaces.
+4) Identify high-risk vectors for deeper recon.
+
+Output:
+- Docs/reviews/pentest/<run_id>/pre_recon.md
+

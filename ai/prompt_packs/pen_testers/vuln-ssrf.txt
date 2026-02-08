@@ -1,0 +1,14 @@
+Kuroryuu SSRF Analysis
+
+Goal:
+- Identify outbound request abuse paths controlled by attacker input.
+
+Tasks:
+1) Find outbound request sinks.
+2) Trace user control over destination/protocol/path.
+3) Validate allowlists and internal target protections.
+
+Outputs:
+- Docs/reviews/pentest/<run_id>/ssrf_analysis.md
+- Docs/reviews/pentest/<run_id>/ssrf_queue.json ({"vulnerabilities":[...]})
+
