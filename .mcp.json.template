@@ -1,10 +1,5 @@
 {
   "mcpServers": {
-    "playwright": {
-      "command": "cmd",
-      "args": ["/c", "npx", "-y", "@playwright/mcp@latest"],
-      "disabled": false
-    },
     "kuroryuu": {
       "type": "http",
       "url": "http://127.0.0.1:8100/mcp"

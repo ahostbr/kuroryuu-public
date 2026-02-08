@@ -10,8 +10,9 @@
     4. Installs ALL Python dependencies (mcp_core, gateway, mcp_stdio)
     5. Installs ALL Node.js dependencies (desktop, pty_daemon, web, tray_companion)
     6. Copies build assets if missing
-    7. Builds Electron apps (desktop, tray_companion)
-    8. Downloads FFmpeg for screen capture
+    7. Installs Playwright CLI and skills
+    8. Builds Electron apps (desktop, tray_companion)
+    9. Downloads FFmpeg for screen capture
 
 .EXAMPLE
     .\setup-project.ps1
@@ -41,7 +42,7 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
 Write-Host ""
 
 $stepNum = 1
-$totalSteps = 10
+$totalSteps = 11
 
 # ============================================================================
 # Step 1: Set persistent environment variable
@@ -151,6 +152,22 @@ if (-not (Test-Path $templatePath)) {
     # Write without BOM for cleaner JSON
     [System.IO.File]::WriteAllText($configPath, $config)
     Write-Host "  Generated: .mcp.json" -ForegroundColor Green
+}
+
+# Always remove legacy Playwright MCP entry from existing/generated config.
+if (Test-Path $configPath) {
+    try {
+        $mcpJson = Get-Content $configPath -Raw | ConvertFrom-Json
+        if ($mcpJson.mcpServers -and $mcpJson.mcpServers.PSObject.Properties['playwright']) {
+            $mcpJson.mcpServers.PSObject.Properties.Remove('playwright')
+            $updatedJson = $mcpJson | ConvertTo-Json -Depth 20
+            $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+            [System.IO.File]::WriteAllText($configPath, $updatedJson, $utf8NoBom)
+            Write-Host "  Removed legacy Playwright MCP entry from .mcp.json" -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "  WARNING: Failed to sanitize .mcp.json (Playwright MCP entry): $_" -ForegroundColor DarkYellow
+    }
 }
 
 # ============================================================================
@@ -324,7 +341,54 @@ if ($SkipNode) {
 }
 
 # ============================================================================
-# Step 7: Check/copy build assets
+# Step 7: Install Playwright CLI + skills
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Installing Playwright CLI + skills..." -ForegroundColor Yellow
+$stepNum++
+
+if ($SkipNode) {
+    Write-Host "  Skipped (-SkipNode)" -ForegroundColor DarkYellow
+} else {
+    $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
+    if (-not $npmCmd) {
+        Write-Host "  WARNING: npm not found. Cannot install Playwright CLI." -ForegroundColor DarkYellow
+        Write-Host "  Install Node.js from: https://nodejs.org/" -ForegroundColor Yellow
+    } else {
+        $pwCliCmd = Get-Command playwright-cli -ErrorAction SilentlyContinue
+
+        if (-not $pwCliCmd) {
+            Write-Host "  Installing @playwright/cli globally..." -ForegroundColor White
+            $ErrorActionPreference = "Continue"
+            & npm install -g @playwright/cli@latest 2>&1
+            $ErrorActionPreference = "Stop"
+            $pwCliCmd = Get-Command playwright-cli -ErrorAction SilentlyContinue
+        } else {
+            Write-Host "  playwright-cli already installed globally" -ForegroundColor DarkGray
+        }
+
+        if ($pwCliCmd) {
+            Write-Host "  Installing playwright-cli skills in project..." -ForegroundColor White
+            Push-Location $ProjectRoot
+            $ErrorActionPreference = "Continue"
+            & playwright-cli install --skills 2>&1
+            $ErrorActionPreference = "Stop"
+            Pop-Location
+
+            $skillPath = Join-Path $ProjectRoot ".claude\skills\playwright-cli\SKILL.md"
+            if (Test-Path $skillPath) {
+                Write-Host "  playwright-cli skills installed" -ForegroundColor Green
+            } else {
+                Write-Host "  playwright-cli installed, but skill files were not detected in .claude/skills" -ForegroundColor DarkYellow
+            }
+        } else {
+            Write-Host "  WARNING: playwright-cli install failed or command unavailable." -ForegroundColor DarkYellow
+        }
+    }
+}
+
+# ============================================================================
+# Step 8: Check/copy build assets
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Checking build assets..." -ForegroundColor Yellow
@@ -365,7 +429,7 @@ if (-not (Test-Path $iconIco) -and -not (Test-Path $iconPng)) {
 }
 
 # ============================================================================
-# Step 8: Build Electron apps (desktop and tray companion)
+# Step 9: Build Electron apps (desktop and tray companion)
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Building Electron apps..." -ForegroundColor Yellow
@@ -405,7 +469,7 @@ if ($SkipNode) {
 }
 
 # ============================================================================
-# Step 9: Download FFmpeg (for screen capture feature)
+# Step 10: Download FFmpeg (for screen capture feature)
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Setting up FFmpeg for screen capture..." -ForegroundColor Yellow
