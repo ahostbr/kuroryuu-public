@@ -328,6 +328,7 @@ export function featureToDomainId(feature: string): DomainId | null {
     'code-editor': 'code-editor',
     'formulas': 'formulas',
     'voice': 'voice',
+    'genui': 'genui',
   };
   return mapping[feature] || null;
 }

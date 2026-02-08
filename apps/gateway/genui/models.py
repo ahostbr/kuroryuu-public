@@ -104,6 +104,8 @@ class GenUIRequest(BaseModel):
 
     markdown: str = Field(..., min_length=1, description="Markdown content to process")
     layout_override: str | None = Field(None, description="Force a specific layout type")
+    model: str | None = Field(None, description="LLM model ID to use (from domain config)")
+    provider: str | None = Field(None, description="LLM provider to use (from domain config)")
 
 
 class ComponentListResponse(BaseModel):
