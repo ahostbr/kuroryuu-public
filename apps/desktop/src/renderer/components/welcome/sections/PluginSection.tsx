@@ -89,11 +89,11 @@ export function PluginSection({ className }: PluginSectionProps) {
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
-              <div className="text-2xl font-bold text-primary">16</div>
+              <div className="text-2xl font-bold text-primary">18</div>
               <div className="text-xs text-muted-foreground">MCP Tools</div>
             </div>
             <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
-              <div className="text-2xl font-bold text-purple-500">118</div>
+              <div className="text-2xl font-bold text-purple-500">130+</div>
               <div className="text-xs text-muted-foreground">Total Actions</div>
             </div>
           </div>
@@ -142,6 +142,23 @@ export function PluginSection({ className }: PluginSectionProps) {
                   Test any voice before selecting with instant audio playback
                 </p>
               </div>
+              <div className="p-2 rounded bg-purple-500/10 border border-purple-500/30">
+                <div className="flex items-center gap-2">
+                  <Volume2 className="w-3 h-3 text-purple-500" />
+                  <span className="font-medium text-foreground text-xs">ElevenLabs Integration</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Premium voices with stability/similarity controls, Turbo v2.5 and Multilingual v2 models
+                </p>
+              </div>
+              <div className="p-2 rounded bg-secondary/50">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium text-foreground">Smart TTS Announcements</span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Task extraction from transcripts with contextual completion messages
+                </p>
+              </div>
             </div>
           </div>
           <div>
@@ -153,17 +170,35 @@ export function PluginSection({ className }: PluginSectionProps) {
               </p>
             </div>
           </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2">Backup & Config</div>
+            <div className="grid gap-2">
+              <div className="p-2 rounded bg-secondary/50">
+                <span className="text-xs font-medium text-foreground">Config Backup/Restore</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Auto-backup settings with 20 versions, one-click restore via Plugin Config
+                </p>
+              </div>
+              <div className="p-2 rounded bg-secondary/50">
+                <span className="text-xs font-medium text-foreground">Restic Integration</span>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Encrypted backup repos with real-time progress via k_backup
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </CollapsibleSection>
 
       {/* Slash Commands */}
-      <CollapsibleSection title="Slash Commands (13)" icon={Terminal}>
+      <CollapsibleSection title="Slash Commands (24)" icon={Terminal}>
         <div className="space-y-3">
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-1">Session Management</div>
             <div className="flex flex-wrap gap-1">
               <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-start [role]</code>
               <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-status</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/question_toggle [t/f]</code>
             </div>
           </div>
           <div>
@@ -189,6 +224,8 @@ export function PluginSection({ className }: PluginSectionProps) {
               <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-rag [query]</code>
               <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-inbox [action]</code>
               <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-memory [key]</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-repo-intel [action]</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-mcptoolsearch [query]</code>
             </div>
           </div>
           <div>
@@ -198,6 +235,41 @@ export function PluginSection({ className }: PluginSectionProps) {
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Activates wave-based parallel task decomposition and agent spawning.
+            </p>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Team Orchestration</div>
+            <div className="flex flex-wrap gap-1">
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-spawnteam [template]</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-ralph [task]</code>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Planning</div>
+            <div className="flex flex-wrap gap-1">
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-plan [desc]</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/k-plan-w-quizmaster</code>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Multi-Agent</div>
+            <div className="flex flex-wrap gap-1">
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/max-swarm [task]</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/find-skill-sh [query]</code>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Spawn coding agent swarms and search skills.sh library.
+            </p>
+          </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Ralph Signals</div>
+            <div className="flex flex-wrap gap-1">
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/ralph_done</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/ralph_progress [n]</code>
+              <code className="bg-secondary px-1.5 py-0.5 rounded text-xs">/ralph_stuck [reason]</code>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Signal task status to Ralph orchestrator.
             </p>
           </div>
         </div>
@@ -269,7 +341,7 @@ export function PluginSection({ className }: PluginSectionProps) {
       </CollapsibleSection>
 
       {/* Skills */}
-      <CollapsibleSection title="Skills (2)" icon={MessageSquare}>
+      <CollapsibleSection title="Skills (7)" icon={MessageSquare}>
         <div className="space-y-3">
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
             <div className="flex items-center gap-2 mb-1">
@@ -289,11 +361,51 @@ export function PluginSection({ className }: PluginSectionProps) {
               Triggers on "do this in parallel", "spawn multiple agents", "parallelize this".
             </p>
           </div>
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-foreground">find-skill-sh</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Search skills.sh for technology-specific procedural knowledge. Triggers on "find skill for X", "how do I do X".
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-foreground">vercel-react-best-practices</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              42 optimization rules with agent guidance for React apps.
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-foreground">vite</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Build configuration reference (INDEX.md + 19 references).
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-foreground">vitest</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Testing framework reference (INDEX.md + 18 references).
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-secondary/50">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-foreground">web-design-guidelines</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Design documentation and patterns for web interfaces.
+            </p>
+          </div>
         </div>
       </CollapsibleSection>
 
       {/* Agents */}
-      <CollapsibleSection title="Agents (11)" icon={Bot}>
+      <CollapsibleSection title="Agents (14)" icon={Bot}>
         <div className="space-y-3">
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2">Explorers</div>
@@ -328,11 +440,26 @@ export function PluginSection({ className }: PluginSectionProps) {
               <span className="bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded text-xs">prd-hackathon-finalizer</span>
             </div>
           </div>
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2">Utility</div>
+            <div className="flex flex-wrap gap-1">
+              <span className="bg-cyan-500/20 text-cyan-400 px-1.5 py-0.5 rounded text-xs">meta-agent</span>
+              <span className="text-[10px] text-muted-foreground ml-1">Meta-analysis and agent configuration generation</span>
+            </div>
+            <div className="flex flex-wrap gap-1 mt-1">
+              <span className="bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded text-xs">mp-builder</span>
+              <span className="text-[10px] text-muted-foreground ml-1">Max-Parallel builder for focused implementation</span>
+            </div>
+            <div className="flex flex-wrap gap-1 mt-1">
+              <span className="bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded text-xs">mp-validator</span>
+              <span className="text-[10px] text-muted-foreground ml-1">Max-Parallel read-only validator for task verification</span>
+            </div>
+          </div>
         </div>
       </CollapsibleSection>
 
       {/* MCP Tools */}
-      <CollapsibleSection title="MCP Tools (16)" icon={Wrench}>
+      <CollapsibleSection title="MCP Tools (18)" icon={Wrench}>
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="p-2 rounded bg-secondary/50">
@@ -374,6 +501,18 @@ export function PluginSection({ className }: PluginSectionProps) {
             <div className="p-2 rounded bg-secondary/50">
               <code className="text-primary">k_collective</code>
               <span className="text-muted-foreground ml-1">(6 actions)</span>
+            </div>
+            <div className="p-2 rounded bg-secondary/50">
+              <code className="text-primary">k_bash</code>
+              <span className="text-muted-foreground ml-1">Background process management</span>
+            </div>
+            <div className="p-2 rounded bg-secondary/50">
+              <code className="text-primary">k_process</code>
+              <span className="text-muted-foreground ml-1">Process monitoring and control</span>
+            </div>
+            <div className="p-2 rounded bg-secondary/50">
+              <code className="text-primary">k_backup</code>
+              <span className="text-muted-foreground ml-1">(11 actions)</span>
             </div>
           </div>
           <p className="text-xs text-muted-foreground">

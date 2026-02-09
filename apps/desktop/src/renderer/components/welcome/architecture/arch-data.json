@@ -117,9 +117,22 @@
       "icon": "monitor"
     },
     {
+      "id": "claude_teams",
+      "label": "Claude Teams",
+      "x": 0.02,
+      "y": 0.60,
+      "w": 0.18,
+      "h": 0.11,
+      "title": "Claude Teams (Agent Orchestration)",
+      "bodyMd": "**What you're seeing:** Multi-agent team management.\n\n**Why it matters:** Coordinate AI agent teams at scale.\n\n• File-watcher based real-time monitoring\n• 7 spawn templates with per-teammate models\n• Health tracking with 30s polling\n• Session archive and ReactFlow replay\n• Analytics: velocity, completion%, bottlenecks\n• Bulk shutdown and broadcast",
+      "jumpRoute": "claude-teams",
+      "color": "#f59e0b",
+      "icon": "users"
+    },
+    {
       "id": "persistence",
       "label": "Persistence",
-      "x": 0.25,
+      "x": 0.20,
       "y": 0.60,
       "w": 0.18,
       "h": 0.11,
@@ -129,9 +142,22 @@
       "icon": "database"
     },
     {
+      "id": "scheduler",
+      "label": "Scheduler",
+      "x": 0.38,
+      "y": 0.60,
+      "w": 0.16,
+      "h": 0.11,
+      "title": "Scheduler Engine",
+      "bodyMd": "**What you're seeing:** Job scheduling system.\n\n**Why it matters:** Automated recurring and one-off task execution.\n\n• Calendar view with day modal\n• Background (silent) and interactive (visible) modes\n• Per-job configurable timeout\n• Execution history and logs",
+      "jumpRoute": "scheduler",
+      "color": "#06b6d4",
+      "icon": "calendar"
+    },
+    {
       "id": "observability",
       "label": "Observability",
-      "x": 0.50,
+      "x": 0.56,
       "y": 0.60,
       "w": 0.18,
       "h": 0.11,
@@ -140,6 +166,18 @@
       "jumpRoute": "capture",
       "color": "#ef4444",
       "icon": "activity"
+    },
+    {
+      "id": "genui",
+      "label": "GenUI Engine",
+      "x": 0.74,
+      "y": 0.60,
+      "w": 0.18,
+      "h": 0.11,
+      "title": "GenUI Engine (A2UI)",
+      "bodyMd": "**What you're seeing:** AI-powered generative UI engine.\n\n**Why it matters:** Natural language to interactive dashboards.\n\n• 51 A2UI components across 11 categories\n• 3-stage pipeline: analyze, layout, generate\n• Zone-based dashboard rendering\n• SSE streaming with JSON Patch updates\n• Imperial/Theme-aware CSS variable theming",
+      "color": "#f472b6",
+      "icon": "sparkles"
     }
   ],
   "edges": [
@@ -154,7 +192,11 @@
     { "from": "leader_worker", "to": "pty", "label": "Shell" },
     { "from": "mcp_core", "to": "pccontrol", "label": "Automation" },
     { "from": "mcp_core", "to": "persistence", "label": "State" },
-    { "from": "mcp_core", "to": "observability", "label": "Metrics" }
+    { "from": "mcp_core", "to": "observability", "label": "Metrics" },
+    { "from": "desktop", "to": "claude_teams", "label": "File Watch" },
+    { "from": "gateway", "to": "genui", "label": "SSE" },
+    { "from": "gateway", "to": "scheduler", "label": "Jobs" },
+    { "from": "mcp_core", "to": "scheduler", "label": "Execute" }
   ],
   "suggestedPaths": [
     {
@@ -181,6 +223,16 @@
       "id": "security",
       "label": "Security Boundaries",
       "components": ["gateway", "persistence"]
+    },
+    {
+      "id": "genui-flow",
+      "label": "GenUI Flow",
+      "components": ["desktop", "gateway", "genui"]
+    },
+    {
+      "id": "team-management",
+      "label": "Team Management",
+      "components": ["desktop", "claude_teams", "leader_worker", "pty"]
     }
   ]
 }

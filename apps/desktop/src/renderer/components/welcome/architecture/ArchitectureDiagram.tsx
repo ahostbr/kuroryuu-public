@@ -12,6 +12,8 @@ import {
   ChevronRight,
   ExternalLink,
   X,
+  Sparkles,
+  Calendar,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import archDataJson from './arch-data.json';
@@ -35,6 +37,8 @@ const iconMap: Record<string, React.ElementType> = {
   terminal: Terminal,
   database: Database,
   activity: Activity,
+  sparkles: Sparkles,
+  calendar: Calendar,
 };
 
 interface ArchitectureDiagramProps {

@@ -25,6 +25,10 @@ import {
   Brain,
   FileText,
   Users,
+  Bot,
+  Calendar,
+  Archive,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { ImageCarousel } from '../ImageCarousel';
@@ -137,9 +141,26 @@ const features: Feature[] = [
       'Auto-sync with Claude Tasks',
       'Priority indicators',
       'Evidence chain to worklogs',
+      'Task metadata persistence (description, priority, worklog, checkpoint)',
+      'ai/task-meta.json sidecar for rich metadata',
     ],
     route: 'kanban',
     screenshots: [screenshotKanban1, screenshotKanban2],
+  },
+  {
+    id: 'scheduler',
+    icon: Calendar,
+    title: 'Scheduler',
+    shortDesc: 'Calendar-based job scheduling with dual execution modes',
+    longDesc: 'Schedule recurring and one-off jobs with a visual calendar. Supports background (silent) and interactive (visible PowerShell) execution modes.',
+    bullets: [
+      'Calendar view with day modal for event management',
+      'Background mode: silent auto-close with PID tracking',
+      'Interactive mode: visible persistent PowerShell',
+      'Per-job configurable timeout',
+      'Job history panel with execution logs',
+    ],
+    route: 'scheduler',
   },
 
   // === BUILD Group ===
@@ -216,6 +237,51 @@ const features: Feature[] = [
     screenshots: [screenshotCodeEditor1, screenshotCodeEditor2, screenshotCodeEditor3],
     // No route - launches external window
   },
+  {
+    id: 'claude-teams',
+    icon: Users,
+    title: 'Claude Teams',
+    shortDesc: 'Multi-agent team orchestration with real-time monitoring',
+    longDesc: 'Spawn, monitor, and coordinate Claude agent teams with health tracking, session archiving, replay visualization, analytics, and bulk operations.',
+    bullets: [
+      'Spawn teams from 7 templates (code-review, feature-dev, research, debug, etc.)',
+      'Per-teammate model selection (Opus, Sonnet, Haiku)',
+      'Health monitoring with 30s polling and unresponsive detection',
+      'Session archive with ReactFlow replay in Hub/Hierarchy/Timeline views',
+      'Analytics panel with velocity, completion%, bottleneck detection',
+      'Bulk shutdown and broadcast operations',
+    ],
+    route: 'claude-teams',
+  },
+  {
+    id: 'kuroryuu-agents',
+    icon: Bot,
+    title: 'Kuroryuu Agents',
+    shortDesc: 'Coding agent sessions with real-time output streaming',
+    longDesc: 'Launch and monitor coding agent sessions with dedicated PTYs, live log streaming, and hub-and-spoke flow visualization.',
+    bullets: [
+      'Spawn agents with presets (Claude, Codex, Kiro, Aider, Custom)',
+      'Real-time output streaming via WebSocket',
+      'Hub-and-spoke ReactFlow agent visualization',
+      'Session persistence via IndexedDB',
+      'Controls: pause, reset, reconnect, view toggle',
+    ],
+    route: 'kuroryuu-agents',
+  },
+  {
+    id: 'generative-ui',
+    icon: Sparkles,
+    title: 'Generative UI',
+    shortDesc: 'AI-powered dashboard generation with 51 themed components',
+    longDesc: "Describe what you want to see and get a zone-based dashboard rendered from 51 A2UI components. Supports imperial/theme-aware mode toggle.",
+    bullets: [
+      '51 A2UI components across 11 categories (Data, Summary, Lists, Media, etc.)',
+      '3-stage pipeline: content analysis, layout selection, component generation',
+      'Zone-based dashboard with SSE streaming',
+      'Imperial/Theme-aware mode toggle with CSS variable theming',
+      "Standalone Electron window (Sidebar shortcut 'G')",
+    ],
+  },
 
   // === MONITOR Group ===
   {
@@ -244,6 +310,8 @@ const features: Feature[] = [
       'Gantt timeline visualization',
       'Real-time file watching',
       'Worklog link tracking',
+      'Team analytics: velocity, per-agent performance, bottleneck detection',
+      'Task duration display and activeForm spinner',
     ],
     route: 'claude-tasks',
     screenshots: [screenshotClaudeTasks],
@@ -307,6 +375,19 @@ const features: Feature[] = [
     route: 'transcripts',
     screenshots: [screenshotTranscripts],
   },
+  {
+    id: 'domain-config',
+    icon: SlidersHorizontal,
+    title: 'Domain Config',
+    shortDesc: 'Per-domain AI model and provider configuration',
+    longDesc: 'Configure which LLM model and provider to use for different operations like chat, GenUI, code review, and more.',
+    bullets: [
+      'Per-domain model selection (chat, genui, code-review, etc.)',
+      'Source-grouped provider dropdown (Claude, OpenAI, Gemini)',
+      'CLIProxyAPI integration for model routing',
+    ],
+    route: 'domain-config',
+  },
 
   // === SYSTEM Group ===
   {
@@ -322,6 +403,8 @@ const features: Feature[] = [
       'Git-friendly storage',
       'Use /savenow or /k-save to save',
       'Use /loadnow or /k-load to restore',
+      'Auto-worklog generation with cross-reference headers',
+      'task_id auto-link to ai/task-meta.json sidecar',
     ],
   },
   {
@@ -336,6 +419,7 @@ const features: Feature[] = [
       'k_rag: interactive human-in-loop selection',
       'k_repo_intel: symbol_map, routes, dependencies',
       'k_repo_intel: component and API analysis',
+      'Interactive human-in-loop result filtering',
     ],
   },
   {
@@ -350,6 +434,7 @@ const features: Feature[] = [
       'Entity/fact/event/preference types',
       'Graph visualization mode',
       'Requires running Graphiti server',
+      'Claude Memory tab (reads ~/.claude/projects/ memory)',
     ],
     route: 'memory',
     screenshots: [screenshotMemory],
@@ -369,6 +454,20 @@ const features: Feature[] = [
       'Best results at 100% display scaling',
     ],
     // No route - enabled in Settings
+  },
+  {
+    id: 'restic-backup',
+    icon: Archive,
+    title: 'Restic Backup',
+    shortDesc: 'Encrypted backup and restore via k_backup MCP tool',
+    longDesc: 'Full backup management with Restic. Initialize repos, create snapshots, diff, restore, and prune with real-time progress streaming.',
+    bullets: [
+      '11 actions: init, backup, list, restore, diff, check, forget, prune, config',
+      'Auto-download of restic binary',
+      'Real-time progress streaming to Gateway',
+      'bcrypt password hashing for repository security',
+      'Config backup/restore in Plugin Config tab',
+    ],
   },
   {
     id: 'integrations',
@@ -392,12 +491,14 @@ const features: Feature[] = [
     shortDesc: 'TTS, voice input, and AI chat in your system tray',
     longDesc: 'Always-available companion with text-to-speech (Windows SAPI or Edge neural voices), voice input via Python speech recognition, and direct LMStudio chat with tool calling.',
     bullets: [
-      'TTS with Windows SAPI or Edge neural voices',
+      'TTS with Edge neural, ElevenLabs, and Windows SAPI voices',
+      'ElevenLabs integration with stability/similarity controls',
+      'Smart completion announcements with context-aware messages',
       'Voice input with real-time waveform display',
       'LMStudio Devstral chat with auto-speak',
       'RAG search & MCP integration',
       'Global hotkeys (Ctrl+Shift+S to speak clipboard)',
-      'Clipboard monitoring for auto-speak',
+      'Minimize-to-tray and close-to-tray support',
     ],
     // No route - launches external process
   },
