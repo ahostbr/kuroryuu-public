@@ -130,8 +130,8 @@ ai/task-meta.json
 /ai/reviews
 /Docs/CaseStudies
 
-# Personal Claude Code settings (not committed — copy settings.default.json to settings.json)
-.claude/settings.json
+# Personal Claude Code settings backup (not committed)
+.claude/settings.local.json
 .claude/ai/data/tts_queue/tts.lock
 /.claude/kuro_configs
 .claude/settings.template.json

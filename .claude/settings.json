@@ -1,0 +1,160 @@
+{
+  "env": {
+    "ENABLE_TOOL_SEARCH": "true"
+  },
+  "plugins": [
+    ".claude/plugins/kuro"
+  ],
+  "enabledPlugins": {
+    "kuro": true
+  },
+  "plansDirectory": "Docs/Plans",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd /c echo WRITE >> ai/hooks/hook_fired.txt",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cmd /c echo EDIT >> ai/hooks/hook_fired.txt",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "TaskCreate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/sync-claude-task.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/sync-claude-task.ps1\"",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell.exe -NoProfile -Command \"$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){uv run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}\"",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/export-transcript.ps1\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -Command \"Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\\"\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \".claude/plugins/kuro/scripts/export-transcript.ps1\"",
+            "timeout": 10000
+          },
+          {
+            "type": "command",
+            "command": "uv run .claude/plugins/kuro/hooks/smart_tts.py \"Work complete\" --type stop --voice \"en-GB-SoniaNeural\"",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/plugins/kuro/hooks/smart_tts.py \"Task finished\" --type subagent --voice \"en-GB-SoniaNeural\"",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run .claude/plugins/kuro/hooks/smart_tts.py \"Your attention is needed\" --type notification --voice \"en-GB-SoniaNeural\"",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \".claude\\statusline.ps1\""
+  },
+  "kuroPlugin": {
+    "version": 1,
+    "tts": {
+      "provider": "edge_tts",
+      "voice": "en-GB-SoniaNeural",
+      "smartSummaries": false,
+      "summaryProvider": "gateway-auto",
+      "summaryModel": "",
+      "userName": "User",
+      "messages": {
+        "stop": "Work complete",
+        "subagentStop": "Task finished",
+        "notification": "Your attention is needed"
+      }
+    },
+    "validators": {
+      "ruff": true,
+      "ty": false,
+      "timeout": 30000
+    },
+    "hooks": {
+      "ttsOnStop": true,
+      "ttsOnSubagentStop": true,
+      "ttsOnNotification": true,
+      "taskSync": true,
+      "transcriptExport": true
+    },
+    "features": {
+      "ragInteractive": false,
+      "questionMode": false
+    }
+  }
+}
