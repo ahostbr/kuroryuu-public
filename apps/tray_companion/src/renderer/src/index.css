@@ -378,3 +378,122 @@ select {
 .shrine-toggle.active::after {
   transform: translateX(16px);
 }
+
+/* Top Bar */
+.shrine-topbar {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  background-color: var(--bg-shrine);
+  border-bottom: 1px solid var(--gold-muted);
+  flex-shrink: 0;
+}
+
+.shrine-topbar-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  border: none;
+  background: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.shrine-topbar-tab.active {
+  color: var(--gold-primary);
+  border-bottom-color: var(--gold-primary);
+}
+
+.shrine-topbar-tab:hover:not(.active) {
+  color: var(--text-primary);
+  background-color: rgba(201, 162, 39, 0.05);
+}
+
+.shrine-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Vertical gold divider (for top bar) */
+.gold-divider-v {
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(180deg, transparent, var(--gold-muted), transparent);
+  margin: 0 8px;
+}
+
+/* TTS Settings three-column layout */
+.tts-three-col {
+  display: flex;
+  gap: 20px;
+  min-height: 0;
+}
+
+.tts-col-engine {
+  flex: 0 0 200px;
+  min-width: 0;
+}
+
+.tts-col-config {
+  flex: 1;
+  min-width: 0;
+}
+
+.tts-col-autospeak {
+  flex: 0 0 280px;
+  min-width: 0;
+}
+
+/* Collapsible section header */
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 4px 0;
+  transition: color var(--transition-base);
+}
+
+.collapsible-header:hover {
+  color: var(--gold-primary);
+}
+
+.collapsible-chevron {
+  transition: transform var(--transition-base);
+}
+
+.collapsible-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* ElevenLabs engine seal variant */
+.engine-seal.elevenlabs .seal-ring {
+  border-color: #a855f7;
+}
+
+.engine-seal.elevenlabs .status-dot {
+  background: #a855f7;
+}
+
+/* Responsive fallback */
+@media (max-width: 800px) {
+  .tts-three-col {
+    flex-direction: column;
+  }
+  .tts-col-engine,
+  .tts-col-autospeak {
+    flex: none;
+  }
+}

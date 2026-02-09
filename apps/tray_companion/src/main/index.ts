@@ -68,12 +68,9 @@ function createSettingsWindow(): void {
     settingsWindow = null;
   });
 
-  // Minimize to tray instead of taskbar - prevent minimize, hide directly
+  // Minimize to tray instead of taskbar
   settingsWindow.on('minimize', () => {
-    // Hide immediately - the minimize animation may have started but hiding takes over
     settingsWindow?.hide();
-    // Restore to prevent the window from staying in minimized state when shown again
-    settingsWindow?.restore();
     console.log('[TrayCompanion] Window hidden to tray');
   });
 
