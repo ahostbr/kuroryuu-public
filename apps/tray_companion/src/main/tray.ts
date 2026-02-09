@@ -110,9 +110,10 @@ function rebuildTrayMenu(): void {
   const settings = getSettings();
   
   // Create context menu with current state
+  // Note: sublabel doesn't render on Windows native menus, so descriptions go in labels
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Speak Clipboard',
+      label: 'Speak Clipboard  (read aloud via TTS)',
       click: async () => {
         const text = clipboard.readText();
         if (text.trim()) {
@@ -121,7 +122,7 @@ function rebuildTrayMenu(): void {
       }
     },
     {
-      label: 'Stop Speaking',
+      label: 'Stop Speaking  (silence playback)',
       click: () => {
         stopSpeaking();
       }
@@ -132,13 +133,13 @@ function rebuildTrayMenu(): void {
       enabled: false
     },
     {
-      label: `Auto-speak: ${settings.autoSpeak ? 'ON' : 'OFF'}`,
+      label: `Auto-speak: ${settings.autoSpeak ? 'ON' : 'OFF'}  (auto-read clipboard)`,
       type: 'checkbox',
       checked: settings.autoSpeak,
       click: () => {
         const current = getSettings();
         updateSettings({ autoSpeak: !current.autoSpeak });
-        updateTrayIcon(currentState); // Rebuild menu to reflect change
+        updateTrayIcon(currentState);
         console.log('[Tray] Auto-speak toggled to:', !current.autoSpeak);
       }
     },
@@ -148,7 +149,7 @@ function rebuildTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: 'Ask LMStudio',
+      label: 'Ask LMStudio  (clipboard → LMStudio)',
       click: async () => {
         const text = clipboard.readText();
         if (text.trim()) {
@@ -158,7 +159,7 @@ function rebuildTrayMenu(): void {
       }
     },
     {
-      label: 'RAG Search',
+      label: 'RAG Search  (clipboard → Gateway RAG)',
       click: async () => {
         const text = clipboard.readText();
         if (text.trim()) {
@@ -170,7 +171,7 @@ function rebuildTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: 'Settings',
+      label: 'Settings  (open companion window)',
       click: () => {
         if (settingsClickHandler) {
           settingsClickHandler();
@@ -179,7 +180,7 @@ function rebuildTrayMenu(): void {
     },
     { type: 'separator' },
     {
-      label: 'Quit',
+      label: 'Quit  (exit completely)',
       click: () => {
         app.quit();
       }
