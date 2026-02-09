@@ -56,12 +56,14 @@ const api = {
     reloadPrompt: () => ipcRenderer.invoke('voice:reloadPrompt'),
     selectPromptFile: () => ipcRenderer.invoke('voice:selectPromptFile'),
     onMessageSent: (callback: (event: any) => void) => {
-      ipcRenderer.on('voice-message-sent', (_, data) => {
-        callback({ detail: data });
-      });
+      const handler = (_: any, data: any) => callback({ detail: data });
+      ipcRenderer.on('voice-message-sent', handler);
+      return () => { ipcRenderer.removeListener('voice-message-sent', handler); };
     },
     onContextUpdate: (callback: (info: { usedTokens: number; completionTokens: number; totalTokens: number; modelMaxTokens?: number; maxTokens: number; percentage: number }) => void) => {
-      ipcRenderer.on('context-update', (_, info) => callback(info));
+      const handler = (_: any, info: any) => callback(info);
+      ipcRenderer.on('context-update', handler);
+      return () => { ipcRenderer.removeListener('context-update', handler); };
     },
     getCLIProxyModels: () => ipcRenderer.invoke('voice:getCLIProxyModels'),
     checkProviderHealth: () => ipcRenderer.invoke('voice:checkProviderHealth')
@@ -71,7 +73,9 @@ const api = {
   domainConfig: {
     getVoiceConfig: () => ipcRenderer.invoke('domain-config:get-voice'),
     onUpdate: (callback: (config: any) => void) => {
-      ipcRenderer.on('domain-config:updated', (_, config) => callback(config));
+      const handler = (_: any, config: any) => callback(config);
+      ipcRenderer.on('domain-config:updated', handler);
+      return () => { ipcRenderer.removeListener('domain-config:updated', handler); };
     }
   },
 
@@ -92,31 +96,41 @@ const api = {
     startAlwaysListen: (forceEnable?: boolean) => ipcRenderer.invoke('speech:startAlwaysListen', forceEnable),
     stopAlwaysListen: () => ipcRenderer.invoke('speech:stopAlwaysListen'),
     onTranscript: (callback: (transcript: string) => void) => {
-      ipcRenderer.on('speech:transcript', (_, transcript) => callback(transcript));
+      const handler = (_: any, transcript: string) => callback(transcript);
+      ipcRenderer.on('speech:transcript', handler);
+      return () => { ipcRenderer.removeListener('speech:transcript', handler); };
     }
   },
 
   // Voice detection events
   onVoiceDetected: (callback: () => void) => {
-    ipcRenderer.on('voice-detected', () => callback());
+    const handler = () => callback();
+    ipcRenderer.on('voice-detected', handler);
+    return () => { ipcRenderer.removeListener('voice-detected', handler); };
   },
-  
+
   onSpeechTranscript: (callback: (transcript: string) => void) => {
-    ipcRenderer.on('speech:transcript', (_, transcript) => callback(transcript));
+    const handler = (_: any, transcript: string) => callback(transcript);
+    ipcRenderer.on('speech:transcript', handler);
+    return () => { ipcRenderer.removeListener('speech:transcript', handler); };
   },
 
   onSpeechInterim: (callback: (interim: string) => void) => {
-    ipcRenderer.on('speech-interim', (_, interim) => callback(interim));
+    const handler = (_: any, interim: string) => callback(interim);
+    ipcRenderer.on('speech-interim', handler);
+    return () => { ipcRenderer.removeListener('speech-interim', handler); };
   },
 
-  // NEW: Audio level for real-time visualization
   onAudioLevel: (callback: (level: number) => void) => {
-    ipcRenderer.on('audio-level', (_, level) => callback(level));
+    const handler = (_: any, level: number) => callback(level);
+    ipcRenderer.on('audio-level', handler);
+    return () => { ipcRenderer.removeListener('audio-level', handler); };
   },
 
-  // NEW: Speech state for activity indicator
   onSpeechState: (callback: (state: string) => void) => {
-    ipcRenderer.on('speech-state', (_, state) => callback(state));
+    const handler = (_: any, state: string) => callback(state);
+    ipcRenderer.on('speech-state', handler);
+    return () => { ipcRenderer.removeListener('speech-state', handler); };
   }
 };
 

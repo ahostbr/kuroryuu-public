@@ -28,7 +28,7 @@ from ..agui.events import (
     emit_state_snapshot,
     emit_state_delta,
 )
-from ..llm import get_healthy_backend, LLMConfig, LLMMessage, StreamEvent
+from ..llm import get_backend, get_healthy_backend, LLMConfig, LLMMessage, StreamEvent
 
 from .models import (
     GenUIRequest,
@@ -56,9 +56,17 @@ async def _gateway_llm_call(
     max_tokens: int = 4000,
     temperature: float = 0.7,
     model: str | None = None,
+    provider: str | None = None,
 ) -> str:
-    """Call LLM via Gateway's healthy backend with fallback chain."""
-    backend = await get_healthy_backend()
+    """Call LLM via Gateway backend.
+
+    If provider is specified (and not 'gateway-auto'), uses that backend directly.
+    Otherwise falls back to the healthy backend chain.
+    """
+    if provider and provider != "gateway-auto":
+        backend = get_backend(provider)
+    else:
+        backend = await get_healthy_backend()
 
     messages: list[LLMMessage] = []
     if system_prompt:
@@ -86,14 +94,14 @@ async def _gateway_llm_call(
 # SSE Generator
 # ---------------------------------------------------------------------------
 
-async def _generate_sse(markdown: str, layout_override: str | None = None, model: str | None = None) -> AsyncGenerator[str, None]:
+async def _generate_sse(markdown: str, layout_override: str | None = None, model: str | None = None, provider: str | None = None) -> AsyncGenerator[str, None]:
     """Full 3-stage pipeline as SSE event stream."""
     thread_id = f"genui-{uuid.uuid4().hex[:8]}"
     run_id = f"run-{uuid.uuid4().hex[:8]}"
 
-    # Bind model to LLM call wrapper so downstream callbacks use the right model
+    # Bind model+provider to LLM call wrapper so downstream callbacks use the right backend
     async def _llm_call(prompt: str, system_prompt: str = "", max_tokens: int = 4000, temperature: float = 0.7) -> str:
-        return await _gateway_llm_call(prompt, system_prompt, max_tokens, temperature, model=model)
+        return await _gateway_llm_call(prompt, system_prompt, max_tokens, temperature, model=model, provider=provider)
 
     # --- RUN_STARTED ---
     yield emit_run_started(thread_id, run_id).to_sse()
@@ -232,7 +240,7 @@ async def generate_dashboard(request: GenUIRequest):
     - RUN_FINISHED or RUN_ERROR
     """
     return StreamingResponse(
-        _generate_sse(request.markdown, request.layout_override, model=request.model),
+        _generate_sse(request.markdown, request.layout_override, model=request.model, provider=request.provider),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -249,9 +257,9 @@ async def analyze_content_endpoint(request: GenUIRequest):
     Returns document classification, entities, and structural analysis.
     """
     try:
-        # Bind model if provided
+        # Bind model+provider if provided
         async def _llm_call_analyze(prompt: str, system_prompt: str = "", max_tokens: int = 4000, temperature: float = 0.7) -> str:
-            return await _gateway_llm_call(prompt, system_prompt, max_tokens, temperature, model=request.model)
+            return await _gateway_llm_call(prompt, system_prompt, max_tokens, temperature, model=request.model, provider=request.provider)
 
         analysis = await analyze_content(request.markdown, llm_call=_llm_call_analyze)
         parsed = parse_markdown(request.markdown)

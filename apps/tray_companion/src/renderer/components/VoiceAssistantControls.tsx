@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, Trash2, TestTube, Loader2, Mic, MicOff, MessageSquare, Volume2, Activity, Settings, Link, Pin } from 'lucide-react';
+import { Send, Trash2, TestTube, Loader2, Mic, MicOff, MessageSquare, Volume2, Activity, Settings, Link, Pin, ChevronDown, RefreshCw } from 'lucide-react';
 
 // Provider definitions (matching Desktop domain-config types)
 // CLIProxyAPI supports: Claude, GPT, Gemini, Qwen, iFlow, etc.
@@ -150,6 +150,10 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
   const [audioLevelHistory, setAudioLevelHistory] = useState<number[]>(new Array(30).fill(0));
   const audioLevelRef = useRef<number[]>(new Array(30).fill(0));
 
+  // Collapsible sections
+  const [providerExpanded, setProviderExpanded] = useState(true);
+  const [connectionExpanded, setConnectionExpanded] = useState(true);
+
   // Domain config state (sync with Desktop app)
   const [domainConfigSource, setDomainConfigSource] = useState<'local' | 'shared'>('local');
   const [currentProvider, setCurrentProvider] = useState<LLMProvider>('lmstudio');
@@ -172,47 +176,55 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
     }
 
     const api = (window as any).api;
+    const cleanups: (() => void)[] = [];
 
     // Domain config updates from Desktop app
     if (api.domainConfig?.onUpdate) {
-      api.domainConfig.onUpdate((config: DomainConfig) => {
+      const unsub = api.domainConfig.onUpdate((config: DomainConfig) => {
         console.log('[UI] Domain config updated:', config);
         setDomainConfigSource('shared');
         setCurrentProvider(config.provider);
         setSelectedModel(config.modelId);
       });
+      if (unsub) cleanups.push(unsub);
     }
 
     // Speech transcript (final)
     if (api.onSpeechTranscript) {
-      api.onSpeechTranscript((transcript: string) => {
+      const unsub = api.onSpeechTranscript((transcript: string) => {
         console.log('[UI] Transcript:', transcript);
         setMessage(transcript);
         setInterimTranscript('');
       });
+      if (unsub) cleanups.push(unsub);
     }
 
     // Speech interim (in progress)
     if (api.onSpeechInterim) {
-      api.onSpeechInterim((interim: string) => {
+      const unsub = api.onSpeechInterim((interim: string) => {
         console.log('[UI] Interim:', interim);
         setInterimTranscript(interim);
       });
+      if (unsub) cleanups.push(unsub);
     }
 
-    // Audio level (real-time)
+    // Audio level (real-time) — throttled to ~15 FPS to prevent render flood
     if (api.onAudioLevel) {
-      api.onAudioLevel((level: number) => {
+      let lastUpdate = 0;
+      const unsub = api.onAudioLevel((level: number) => {
+        const now = Date.now();
+        if (now - lastUpdate < 66) return;
+        lastUpdate = now;
         setAudioLevel(level);
-        // Update history for waveform
         audioLevelRef.current = [...audioLevelRef.current.slice(1), level];
         setAudioLevelHistory([...audioLevelRef.current]);
       });
+      if (unsub) cleanups.push(unsub);
     }
 
     // Speech state changes
     if (api.onSpeechState) {
-      api.onSpeechState((state: string) => {
+      const unsub = api.onSpeechState((state: string) => {
         console.log('[UI] Speech state:', state);
         setSpeechState(state as SpeechState);
 
@@ -222,37 +234,43 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
           setIsListening(false);
         }
       });
+      if (unsub) cleanups.push(unsub);
     }
 
     // Voice detected
     if (api.onVoiceDetected) {
-      api.onVoiceDetected(() => {
+      const unsub = api.onVoiceDetected(() => {
         console.log('[UI] Voice detected');
       });
+      if (unsub) cleanups.push(unsub);
     }
 
     // Message sent event
     if (api.voice?.onMessageSent) {
-      api.voice.onMessageSent((event: any) => {
+      const unsub = api.voice.onMessageSent((event: any) => {
         const { command, success } = event.detail || {};
         if (command) {
           setAutoSentMessage(success ? `Sent: "${command}"` : `Failed: "${command}"`);
           setTimeout(() => setAutoSentMessage(''), 5000);
         }
-        // Reload history after message sent
         loadHistory();
-        // Reload context info after message
         loadContextInfo();
       });
+      if (unsub) cleanups.push(unsub);
     }
 
     // Context update events
     if (api.voice?.onContextUpdate) {
-      api.voice.onContextUpdate((info: { usedTokens: number; completionTokens: number; totalTokens: number; modelMaxTokens?: number; maxTokens: number; percentage: number }) => {
+      const unsub = api.voice.onContextUpdate((info: { usedTokens: number; completionTokens: number; totalTokens: number; modelMaxTokens?: number; maxTokens: number; percentage: number }) => {
         console.log('[UI] Context update:', info);
         setContextInfo(info);
       });
+      if (unsub) cleanups.push(unsub);
     }
+
+    return () => {
+      cleanups.forEach(fn => fn());
+    };
   }, [settings.voiceEnabled]);
 
   useEffect(() => {
@@ -515,7 +533,7 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
   const stateInfo = STATE_INFO[speechState] || STATE_INFO.idle;
 
   return (
-    <div className="max-w-2xl">
+    <div>
       <h2 className="shrine-header">
         <div className="header-icon-shrine">
           <MessageSquare />
@@ -557,190 +575,230 @@ function VoiceAssistantControls({ settings, onUpdateSettings }: VoiceAssistantCo
 
       {settings.voiceEnabled && (
         <>
-          {/* Provider Configuration */}
-          <div className="content-card p-5 mb-4">
-              <div className="flex items-center justify-between mb-3">
+          {/* Provider Configuration (collapsible) */}
+          <div className="content-card mb-4">
+              <div
+                className="collapsible-header p-5 pb-3"
+                onClick={() => setProviderExpanded(!providerExpanded)}
+              >
                 <h3 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Provider Configuration
+                  {domainConfigSource === 'shared' && (
+                    <span className="text-xs px-2 py-0.5 bg-green-500/20 text-green-400 rounded">
+                      Synced
+                    </span>
+                  )}
                 </h3>
-                {domainConfigSource === 'shared' && (
-                  <span className="text-xs px-2 py-1 bg-green-500/20 text-green-400 rounded">
-                    Synced with Desktop
-                  </span>
-                )}
-              </div>
-
-              {/* Provider Buttons */}
-              <div className="mb-4">
-                <label className="block text-sm text-zinc-400 mb-2">Provider</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {PROVIDERS.map((provider) => (
-                    <button
-                      key={provider.id}
-                      onClick={() => handleProviderChange(provider.id)}
-                      disabled={domainConfigSource === 'shared'}
-                      className={`px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2
-                        ${currentProvider === provider.id
-                          ? 'bg-yellow-500/20 border-2 border-yellow-500 text-yellow-400'
-                          : 'bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-zinc-700'}
-                        ${domainConfigSource === 'shared' ? 'opacity-60 cursor-not-allowed' : ''}
-                      `}
-                    >
-                      <div className={`w-2 h-2 rounded-full ${
-                        providerHealth[provider.id] ? 'bg-green-500' : 'bg-red-500'
-                      }`} />
-                      {provider.name}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); loadDomainConfig(); checkAllProviderHealth(); }}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg transition-colors"
+                    style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--gold-muted)' }}
+                    title="Resync with Desktop app"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Refresh
+                  </button>
+                  <ChevronDown className={`w-4 h-4 text-zinc-400 collapsible-chevron ${providerExpanded ? 'open' : ''}`} />
                 </div>
-                {domainConfigSource === 'shared' && (
-                  <p className="text-xs text-zinc-500 mt-2">
-                    Provider is managed by Desktop app. Open Domain Configuration in Desktop to change.
-                  </p>
-                )}
               </div>
 
+              {providerExpanded && (
+                <div className="px-5 pb-5">
+                  {/* Provider Buttons */}
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">Provider</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {PROVIDERS.map((provider) => (
+                        <button
+                          key={provider.id}
+                          onClick={() => handleProviderChange(provider.id)}
+                          disabled={domainConfigSource === 'shared'}
+                          className={`px-3 py-2 rounded-lg text-sm transition-colors flex items-center gap-2
+                            ${currentProvider === provider.id
+                              ? 'bg-yellow-500/20 border-2 border-yellow-500 text-yellow-400'
+                              : 'bg-zinc-800 border border-zinc-700 text-zinc-400 hover:bg-zinc-700'}
+                            ${domainConfigSource === 'shared' ? 'opacity-60 cursor-not-allowed' : ''}
+                          `}
+                        >
+                          <div className={`w-2 h-2 rounded-full ${
+                            providerHealth[provider.id] ? 'bg-green-500' : 'bg-red-500'
+                          }`} />
+                          {provider.name}
+                        </button>
+                      ))}
+                    </div>
+                    {domainConfigSource === 'shared' && (
+                      <p className="text-xs text-zinc-500 mt-2">
+                        Provider is managed by Desktop app. Open Domain Configuration in Desktop to change.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
           </div>
 
-          {/* Connection Settings */}
-          <div className="content-card p-5 mb-4">
-            <div className="mb-4">
-              <label className="block text-sm text-zinc-400 mb-2">Local LLM URL</label>
-              <input
-                type="text"
-                value={settings.localLlmUrl}
-                onChange={(e) => onUpdateSettings({ localLlmUrl: e.target.value })}
-                placeholder="http://127.0.0.1:1234"
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-yellow-500/50"
-              />
+          {/* Connection Settings (collapsible) */}
+          <div className="content-card mb-4">
+            <div
+              className="collapsible-header p-5 pb-3"
+              onClick={() => setConnectionExpanded(!connectionExpanded)}
+            >
+              <h3 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                <Link className="w-4 h-4" />
+                Connection & Model
+                <div className="flex items-center gap-1.5 ml-2">
+                  <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className="text-xs text-zinc-500">{connectionStatus}</span>
+                </div>
+              </h3>
+              <ChevronDown className={`w-4 h-4 text-zinc-400 collapsible-chevron ${connectionExpanded ? 'open' : ''}`} />
             </div>
 
-            {/* Model Selection Dropdown - Grouped by Family */}
-            {availableModels.length > 0 && (
-              <div className="mb-4">
-                <label className="block text-sm text-zinc-400 mb-2">Model</label>
-                <select
-                  value={selectedModel}
-                  onChange={(e) => handleModelChange(e.target.value)}
-                  disabled={isLoadingModels}
-                  className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-yellow-500/50 disabled:opacity-50"
-                >
-                  {(() => {
-                    const grouped = groupModelsByFamily(availableModels);
-                    const families = Array.from(grouped.keys());
-
-                    return families.map(family => {
-                      const familyModels = grouped.get(family) || [];
-                      const label = `${MODEL_FAMILY_LABELS[family]} (${familyModels.length})`;
-
-                      return (
-                        <optgroup key={family} label={label}>
-                          {familyModels.map((model) => (
-                            <option key={model} value={model}>
-                              {model}
-                            </option>
-                          ))}
-                        </optgroup>
-                      );
-                    });
-                  })()}
-                </select>
-                <p className="text-xs text-zinc-500 mt-1">
-                  {availableModels.length} {modelsSource === 'loaded' ? 'loaded model' : 'model'}
-                  {availableModels.length !== 1 ? 's' : ''} {modelsSource === 'loaded' ? 'loaded' : 'available'}
-                </p>
-                {modelsSource !== 'loaded' && (
-                  <p className="text-xs text-zinc-500 mt-1">
-                    If a model won't switch, load it in LM Studio first.
-                  </p>
+            {connectionExpanded && (
+              <div className="px-5 pb-5 space-y-4">
+                {/* Local LLM URL - only show for LMStudio */}
+                {currentProvider === 'lmstudio' && (
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">Local LLM URL</label>
+                    <input
+                      type="text"
+                      value={settings.localLlmUrl}
+                      onChange={(e) => onUpdateSettings({ localLlmUrl: e.target.value })}
+                      placeholder="http://127.0.0.1:1234"
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-yellow-500/50"
+                    />
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* System Prompt File */}
-            <div className="mb-4">
-              <label className="block text-sm text-zinc-400 mb-2">System prompt file</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={promptPath}
-                    onChange={(e) => setPromptPath(e.target.value)}
-                    onBlur={applyPromptPath}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        applyPromptPath();
-                        (e.currentTarget as HTMLInputElement).blur();
-                      }
-                    }}
-                    placeholder={autoPromptFilename ? `(auto) Prompts/${autoPromptFilename}` : '(auto) Prompts/<model>.md'}
-                    className="flex-1 px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-yellow-500/50"
-                  />
-                  <button
-                    onClick={browsePromptFile}
-                    className="px-3 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors whitespace-nowrap"
-                  >
-                    Browse
-                  </button>
-                  {promptPath.trim() && (
+                {/* Model Selection Dropdown - Grouped by Family */}
+                {availableModels.length > 0 && (
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">Model</label>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => handleModelChange(e.target.value)}
+                      disabled={isLoadingModels}
+                      className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:outline-none focus:border-yellow-500/50 disabled:opacity-50"
+                    >
+                      {(() => {
+                        const grouped = groupModelsByFamily(availableModels);
+                        const families = Array.from(grouped.keys());
+
+                        return families.map(family => {
+                          const familyModels = grouped.get(family) || [];
+                          const label = `${MODEL_FAMILY_LABELS[family]} (${familyModels.length})`;
+
+                          return (
+                            <optgroup key={family} label={label}>
+                              {familyModels.map((model) => (
+                                <option key={model} value={model}>
+                                  {model}
+                                </option>
+                              ))}
+                            </optgroup>
+                          );
+                        });
+                      })()}
+                    </select>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      {availableModels.length} {modelsSource === 'loaded' ? 'loaded model' : 'model'}
+                      {availableModels.length !== 1 ? 's' : ''} {modelsSource === 'loaded' ? 'loaded' : 'available'}
+                    </p>
+                    {currentProvider === 'lmstudio' && modelsSource !== 'loaded' && (
+                      <p className="text-xs text-zinc-500 mt-1">
+                        If a model won't switch, load it in LM Studio first.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* System Prompt File */}
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">System prompt file</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promptPath}
+                      onChange={(e) => setPromptPath(e.target.value)}
+                      onBlur={applyPromptPath}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          applyPromptPath();
+                          (e.currentTarget as HTMLInputElement).blur();
+                        }
+                      }}
+                      placeholder={autoPromptFilename ? `(auto) Prompts/${autoPromptFilename}` : '(auto) Prompts/<model>.md'}
+                      className="flex-1 px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-yellow-500/50"
+                    />
                     <button
-                      onClick={clearPromptPath}
+                      onClick={browsePromptFile}
                       className="px-3 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors whitespace-nowrap"
                     >
-                      Clear
+                      Browse
                     </button>
-                  )}
-                </div>
-                <p className="text-xs text-zinc-500 mt-1">
-                  Leave blank to auto-load {autoPromptFilename ? `Prompts/${autoPromptFilename}` : 'Prompts/<model>.md'}
-                </p>
-                {systemPromptText.trim() && (
+                    {promptPath.trim() && (
+                      <button
+                        onClick={clearPromptPath}
+                        className="px-3 py-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                   <p className="text-xs text-zinc-500 mt-1">
-                    System prompt override is set; the prompt file is ignored until you clear it.
-                  </p>
-                )}
-            </div>
-
-            {/* System Prompt Text */}
-            <div className="mb-4">
-              <label className="block text-sm text-zinc-400 mb-2">System prompt override</label>
-                <textarea
-                  value={systemPromptText}
-                  onChange={(e) => setSystemPromptText(e.target.value)}
-                  onBlur={applySystemPromptText}
-                  placeholder="Optional: paste a full system prompt here (overrides the prompt file and defaults)."
-                  rows={6}
-                  className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-yellow-500/50 resize-y"
-                />
-                <div className="flex items-center justify-between mt-1">
-                  <p className="text-xs text-zinc-500">
-                    If set, this is sent as the first system message on every request.
+                    Leave blank to auto-load {autoPromptFilename ? `Prompts/${autoPromptFilename}` : 'Prompts/<model>.md'}
                   </p>
                   {systemPromptText.trim() && (
-                    <button
-                      onClick={clearSystemPromptText}
-                      className="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors whitespace-nowrap"
-                    >
-                      Clear
-                    </button>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      System prompt override is set; the prompt file is ignored until you clear it.
+                    </p>
                   )}
                 </div>
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-                <span className="text-sm text-zinc-400">{connectionStatus}</span>
+                {/* System Prompt Text */}
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">System prompt override</label>
+                  <textarea
+                    value={systemPromptText}
+                    onChange={(e) => setSystemPromptText(e.target.value)}
+                    onBlur={applySystemPromptText}
+                    placeholder="Optional: paste a full system prompt here (overrides the prompt file and defaults)."
+                    rows={6}
+                    className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-yellow-500/50 resize-y"
+                  />
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-xs text-zinc-500">
+                      If set, this is sent as the first system message on every request.
+                    </p>
+                    {systemPromptText.trim() && (
+                      <button
+                        onClick={clearSystemPromptText}
+                        className="px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors whitespace-nowrap"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                    <span className="text-sm text-zinc-400">{connectionStatus}</span>
+                  </div>
+
+                  <button
+                    onClick={() => { testConnection(); checkAllProviderHealth(); loadModels(); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
+                  >
+                    <TestTube className="w-3 h-3" />
+                    Test
+                  </button>
+                </div>
               </div>
-
-              <button
-                onClick={() => { testConnection(); checkAllProviderHealth(); loadModels(); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors"
-              >
-                <TestTube className="w-3 h-3" />
-                Test
-              </button>
-            </div>
+            )}
           </div>
 
           {/* Context Usage Bar */}
