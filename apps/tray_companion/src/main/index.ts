@@ -13,6 +13,7 @@ import { initializeTokenStore, saveApiKey, getApiKey, deleteApiKey, hasApiKey } 
 import { reinitializeElevenLabs, getElevenLabsVoices } from './tts/tts-manager';
 
 let settingsWindow: BrowserWindow | null = null;
+let isQuitting = false;
 
 function createSettingsWindow(): void {
   const preloadPath = join(__dirname, '../preload/index.js');
@@ -68,6 +69,15 @@ function createSettingsWindow(): void {
     settingsWindow = null;
   });
 
+  // Close to tray instead of quitting (unless app.quit() was called)
+  settingsWindow.on('close', (e) => {
+    if (!isQuitting) {
+      e.preventDefault();
+      settingsWindow?.hide();
+      console.log('[TrayCompanion] Window hidden to tray (close)');
+    }
+  });
+
   // Minimize to tray instead of taskbar
   settingsWindow.on('minimize', () => {
     settingsWindow?.hide();
@@ -117,6 +127,11 @@ if (!gotTheLock) {
     }
   });
 }
+
+// Allow app.quit() to bypass close-to-tray
+app.on('before-quit', () => {
+  isQuitting = true;
+});
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(async () => {
