@@ -1,10 +1,13 @@
 /**
  * File Logger - Main Process
  * Logs stored in: ai/logs/main.log
+ * Rotation: renames to .log.old at 5MB
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
+
+const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB
 
 class MainFileLogger {
   private logPath: string;
@@ -22,8 +25,8 @@ class MainFileLogger {
 
     this.logPath = path.join(logsDir, 'main.log');
 
-    // Flush buffer every 1 second
-    this.flushInterval = setInterval(() => this.flush(), 1000);
+    // Flush buffer every 5 seconds
+    this.flushInterval = setInterval(() => this.flush(), 5000);
   }
 
   private formatMessage(level: string, component: string, message: string, data?: any): string {
@@ -50,17 +53,33 @@ class MainFileLogger {
     this.buffer.push(formatted);
   }
 
+  private rotate() {
+    try {
+      const stats = fs.statSync(this.logPath);
+      if (stats.size >= MAX_LOG_SIZE) {
+        const oldPath = this.logPath + '.old';
+        // Remove previous .old if exists, then rename current
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+        fs.renameSync(this.logPath, oldPath);
+      }
+    } catch {
+      // File doesn't exist yet or can't stat — nothing to rotate
+    }
+  }
+
   private flush() {
     if (this.buffer.length === 0) return;
 
     const logs = this.buffer.join('\n') + '\n';
     this.buffer = [];
 
-    try {
-      fs.appendFileSync(this.logPath, logs);
-    } catch (err) {
-      console.error('[MainFileLogger] Failed to write logs:', err);
-    }
+    this.rotate();
+
+    fs.appendFile(this.logPath, logs, (err) => {
+      if (err) {
+        console.error('[MainFileLogger] Failed to write logs:', err);
+      }
+    });
   }
 
   destroy() {

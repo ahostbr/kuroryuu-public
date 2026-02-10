@@ -1,15 +1,20 @@
 /**
  * File Logger - Writes logs to disk via IPC
  * Logs stored in: ai/logs/renderer.log
+ * Rotation: truncates at 5MB
  */
+
+const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB
+const LOG_PATH = 'ai/logs/renderer.log';
 
 class FileLogger {
   private buffer: string[] = [];
   private flushInterval: NodeJS.Timeout | null = null;
+  private estimatedSize = 0;
 
   constructor() {
-    // Flush buffer every 1 second
-    this.flushInterval = setInterval(() => this.flush(), 1000);
+    // Flush buffer every 5 seconds
+    this.flushInterval = setInterval(() => this.flush(), 5000);
 
     // Flush on page unload
     window.addEventListener('beforeunload', () => this.flush());
@@ -44,10 +49,24 @@ class FileLogger {
 
     const logs = this.buffer.join('\n') + '\n';
     this.buffer = [];
+    this.estimatedSize += logs.length;
+
+    // Rotate: if estimated size exceeds limit, truncate the file first
+    if (this.estimatedSize >= MAX_LOG_SIZE) {
+      if (window.electronAPI?.fs?.writeFile) {
+        window.electronAPI.fs.writeFile(LOG_PATH, '').then(() => {
+          this.estimatedSize = logs.length;
+          return window.electronAPI.fs.appendFile(LOG_PATH, logs);
+        }).catch((err: Error) => {
+          console.error('[FileLogger] Failed to rotate logs:', err);
+        });
+        return;
+      }
+    }
 
     // Write to disk via IPC
     if (window.electronAPI?.fs?.appendFile) {
-      window.electronAPI.fs.appendFile('ai/logs/renderer.log', logs).catch((err: Error) => {
+      window.electronAPI.fs.appendFile(LOG_PATH, logs).catch((err: Error) => {
         console.error('[FileLogger] Failed to write logs:', err);
       });
     }

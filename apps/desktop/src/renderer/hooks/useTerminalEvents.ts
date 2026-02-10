@@ -41,7 +41,6 @@ export function useTerminalEvents({
 
     const cleanup = window.electronAPI.pty.onData((id, data) => {
       if (id === terminalId) {
-        fileLogger.log('useTerminalEvents', 'Received data', { terminalId, dataLength: data.length });
         // Use ref to call latest callback (avoids stale closure)
         onOutputRef.current?.(data);
       }
