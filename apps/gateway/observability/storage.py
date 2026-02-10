@@ -196,6 +196,62 @@ class ObservabilityStorage:
                 },
             }
 
+    def clear_all_events(self) -> int:
+        """Delete all events. Returns count deleted."""
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.execute("SELECT COUNT(*) FROM hook_events")
+                count = cursor.fetchone()[0]
+                conn.execute("DELETE FROM hook_events")
+                return count
+
+    def export_all_events(self) -> List[Dict[str, Any]]:
+        """Export all events for backup/download."""
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM hook_events ORDER BY timestamp ASC"
+            ).fetchall()
+            return [self._row_to_dict(row) for row in rows]
+
+    def import_events(self, events: List[Dict[str, Any]]) -> Dict[str, int]:
+        """Import events from a backup. Skips duplicates by source_app+session_id+timestamp+hook_event_type."""
+        imported = 0
+        skipped = 0
+        with self._lock:
+            with self._get_connection() as conn:
+                for ev in events:
+                    # Check for duplicate by composite key
+                    existing = conn.execute(
+                        "SELECT 1 FROM hook_events WHERE source_app=? AND session_id=? AND timestamp=? AND hook_event_type=? LIMIT 1",
+                        (ev.get("source_app", ""), ev.get("session_id", ""), ev.get("timestamp", 0), ev.get("hook_event_type", "")),
+                    ).fetchone()
+                    if existing:
+                        skipped += 1
+                        continue
+                    payload = ev.get("payload", {})
+                    if isinstance(payload, dict):
+                        payload = json.dumps(payload)
+                    conn.execute("""
+                        INSERT INTO hook_events (
+                            source_app, session_id, agent_id, hook_event_type,
+                            tool_name, payload, chat_transcript, summary,
+                            model_name, timestamp
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        ev.get("source_app", "kuroryuu"),
+                        ev.get("session_id", ""),
+                        ev.get("agent_id"),
+                        ev.get("hook_event_type", ""),
+                        ev.get("tool_name"),
+                        payload,
+                        ev.get("chat_transcript"),
+                        ev.get("summary"),
+                        ev.get("model_name"),
+                        ev.get("timestamp", 0),
+                    ))
+                    imported += 1
+        return {"imported": imported, "skipped": skipped}
+
     def cleanup_old_events(self):
         """Remove events older than retention period and enforce max count"""
         with self._lock:

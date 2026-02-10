@@ -11,9 +11,20 @@ const TIME_RANGE_SECONDS: Record<ObservabilityTimeRange, number> = {
   '3m': 180,
   '5m': 300,
   '10m': 600,
+  '30m': 1800,
+  '1h': 3600,
+  '6h': 21600,
+  '24h': 86400,
 };
 
-const BUCKET_SIZE_MS = 1000; // 1 second buckets
+// Adaptive bucket sizes: keeps chart readable at any zoom level
+function getBucketSizeMs(timeRange: ObservabilityTimeRange): number {
+  const secs = TIME_RANGE_SECONDS[timeRange];
+  if (secs > 21600) return 300_000; // >6h → 5 min buckets
+  if (secs > 3600) return 60_000;   // >1h → 60s buckets
+  if (secs > 600) return 10_000;    // >10m → 10s buckets
+  return 1000;                       // ≤10m → 1s buckets
+}
 
 function getThemeColor(el: HTMLElement, varName: string, fallback: string): string {
   const val = getComputedStyle(el).getPropertyValue(varName).trim();
@@ -26,24 +37,25 @@ export function PulseChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Build time-series buckets
+  // Build time-series buckets with adaptive sizing
+  const bucketSizeMs = getBucketSizeMs(timeRange);
   const buckets = useMemo(() => {
     const now = Date.now();
     const rangeMs = TIME_RANGE_SECONDS[timeRange] * 1000;
     const startMs = now - rangeMs;
-    const numBuckets = Math.ceil(rangeMs / BUCKET_SIZE_MS);
+    const numBuckets = Math.ceil(rangeMs / bucketSizeMs);
     const result = new Array(numBuckets).fill(0);
 
     for (const event of events) {
       if (event.timestamp >= startMs) {
-        const idx = Math.floor((event.timestamp - startMs) / BUCKET_SIZE_MS);
+        const idx = Math.floor((event.timestamp - startMs) / bucketSizeMs);
         if (idx >= 0 && idx < numBuckets) {
           result[idx]++;
         }
       }
     }
     return result;
-  }, [events, timeRange]);
+  }, [events, timeRange, bucketSizeMs]);
 
   // Canvas render loop
   useEffect(() => {
@@ -112,18 +124,22 @@ export function PulseChart() {
       ctx.fillRect(x, y, Math.max(bw - 1, 1), barH);
     }
 
-    // Y-axis label
+    // Y-axis label — show unit based on bucket size
+    const bucketLabel = bucketSizeMs >= 300_000 ? '/5m'
+      : bucketSizeMs >= 60_000 ? '/min'
+      : bucketSizeMs >= 10_000 ? '/10s'
+      : '/s';
     ctx.fillStyle = mutedColor;
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`max: ${maxVal}/s`, padding.left, padding.top - 5);
+    ctx.fillText(`max: ${maxVal}${bucketLabel}`, padding.left, padding.top - 5);
 
     // X-axis time label
     ctx.textAlign = 'right';
     ctx.fillText('now', w - padding.right, h - 5);
     ctx.textAlign = 'left';
     ctx.fillText(`-${timeRange}`, padding.left, h - 5);
-  }, [buckets, timeRange]);
+  }, [buckets, timeRange, bucketSizeMs]);
 
   // Resize observer
   useEffect(() => {

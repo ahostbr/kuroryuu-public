@@ -41,7 +41,7 @@ export interface SessionInfo {
   eventCount: number;
 }
 
-export type ObservabilityTimeRange = '1m' | '3m' | '5m' | '10m';
+export type ObservabilityTimeRange = '1m' | '3m' | '5m' | '10m' | '30m' | '1h' | '6h' | '24h';
 
 export type ObservabilitySubTab = 'timeline' | 'pulse' | 'tools' | 'swimlanes';
 
@@ -97,7 +97,7 @@ export const TOOL_EMOJIS: Record<string, string> = {
   NotebookEdit: '\u{1F4D3}',   // notebook
 };
 
-// Session color palette for visual distinction
+// Session color palette for visual distinction (20 colors)
 export const SESSION_COLORS = [
   'bg-blue-500',
   'bg-green-500',
@@ -109,4 +109,14 @@ export const SESSION_COLORS = [
   'bg-rose-500',
   'bg-teal-500',
   'bg-orange-500',
+  'bg-lime-500',
+  'bg-fuchsia-500',
+  'bg-sky-500',
+  'bg-violet-500',
+  'bg-emerald-500',
+  'bg-red-500',
+  'bg-slate-400',
+  'bg-zinc-400',
+  'bg-stone-500',
+  'bg-yellow-500',
 ];

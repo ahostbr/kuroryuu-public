@@ -2,7 +2,7 @@
  * ObservabilityView - Main view with sub-tabs and filter bar
  * Rendered inside ClaudeTeams when the Observability tab is active
  */
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import {
   Activity,
   BarChart3,
@@ -12,6 +12,8 @@ import {
   Play,
   RefreshCw,
   Trash2,
+  Download,
+  Upload,
 } from 'lucide-react';
 import { useObservabilityStore } from '../../../stores/observability-store';
 import { EventTimeline } from './EventTimeline';
@@ -28,7 +30,7 @@ const SUB_TABS: { id: ObservabilitySubTab; label: string; icon: React.ElementTyp
   { id: 'swimlanes', label: 'Swim Lanes', icon: Rows3 },
 ];
 
-const TIME_RANGES: ObservabilityTimeRange[] = ['1m', '3m', '5m', '10m'];
+const TIME_RANGES: ObservabilityTimeRange[] = ['1m', '3m', '5m', '10m', '30m', '1h', '6h', '24h'];
 
 export function ObservabilityView() {
   const connect = useObservabilityStore((s) => s.connect);
@@ -45,9 +47,13 @@ export function ObservabilityView() {
   const clearEvents = useObservabilityStore((s) => s.clearEvents);
   const loadRecentEvents = useObservabilityStore((s) => s.loadRecentEvents);
   const loadStats = useObservabilityStore((s) => s.loadStats);
+  const exportEvents = useObservabilityStore((s) => s.exportEvents);
+  const importEvents = useObservabilityStore((s) => s.importEvents);
   const events = useObservabilityStore((s) => s.events);
   const stats = useObservabilityStore((s) => s.stats);
   const activeSessions = useObservabilityStore((s) => s.activeSessions);
+  const searchQuery = useObservabilityStore((s) => s.searchQuery);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Connect on mount, disconnect on unmount
   useEffect(() => {
@@ -76,6 +82,21 @@ export function ObservabilityView() {
       sessionIds: Array.from(sessionIds),
     };
   }, [activeSessions]);
+
+  const hasActiveFilters = !!(filters.sourceApp || filters.sessionId || filters.eventType || filters.toolName || searchQuery);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const result = await importEvents(file);
+      console.log(`[Observability] Imported ${result.imported}, skipped ${result.skipped}`);
+    } catch (err) {
+      console.error('[Observability] Import failed:', err);
+    }
+    // Reset file input so the same file can be re-imported
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -150,6 +171,27 @@ export function ObservabilityView() {
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
           <button
+            onClick={exportEvents}
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title="Export events"
+          >
+            <Download className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            title="Import events"
+          >
+            <Upload className="w-3.5 h-3.5" />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
+          <button
             onClick={clearEvents}
             className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             title="Clear"
@@ -181,7 +223,11 @@ export function ObservabilityView() {
 
         {/* Stats summary */}
         <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
-          <span>{events.length} events</span>
+          <span>
+            {hasActiveFilters && stats
+              ? `${events.length} / ${stats.total_events} events`
+              : `${events.length} events`}
+          </span>
           {stats && (
             <>
               <span className="text-border">|</span>
