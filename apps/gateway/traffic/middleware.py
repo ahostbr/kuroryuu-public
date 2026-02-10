@@ -145,6 +145,12 @@ EXCLUDED_PATHS = {
     "/favicon.ico",
 }
 
+# Path prefixes to exclude (monitoring these creates feedback loops)
+EXCLUDED_PREFIXES = (
+    "/v1/observability",
+    "/ws/observability",
+)
+
 # Content types to capture body for
 CAPTURABLE_CONTENT_TYPES = {
     "application/json",
@@ -219,7 +225,7 @@ class TrafficMonitoringMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Skip excluded paths
         path = request.url.path
-        if path in EXCLUDED_PATHS or path.startswith("/static"):
+        if path in EXCLUDED_PATHS or path.startswith("/static") or path.startswith(EXCLUDED_PREFIXES):
             return await call_next(request)
 
         # Generate unique event ID and correlation ID
