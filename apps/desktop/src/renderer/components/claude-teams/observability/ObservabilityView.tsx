@@ -14,20 +14,23 @@ import {
   Trash2,
   Download,
   Upload,
+  GitGraph,
 } from 'lucide-react';
 import { useObservabilityStore } from '../../../stores/observability-store';
 import { EventTimeline } from './EventTimeline';
 import { PulseChart } from './PulseChart';
 import { ToolAnalytics } from './ToolAnalytics';
 import { AgentSwimLanes } from './AgentSwimLanes';
+import { ObservabilityVisualTimeline } from './ObservabilityVisualTimeline';
 import { EventSearch } from './EventSearch';
 import type { ObservabilitySubTab, ObservabilityTimeRange } from '../../../types/observability';
 
 const SUB_TABS: { id: ObservabilitySubTab; label: string; icon: React.ElementType }[] = [
-  { id: 'timeline', label: 'Timeline', icon: Activity },
+  { id: 'swimlanes', label: 'Swim Lanes', icon: Rows3 },
+  { id: 'timeline', label: 'Event Log', icon: Activity },
   { id: 'pulse', label: 'Pulse', icon: BarChart3 },
   { id: 'tools', label: 'Tools', icon: Wrench },
-  { id: 'swimlanes', label: 'Swim Lanes', icon: Rows3 },
+  { id: 'visual-timeline', label: 'Visual Timeline', icon: GitGraph },
 ];
 
 const TIME_RANGES: ObservabilityTimeRange[] = ['1m', '3m', '5m', '10m', '30m', '1h', '6h', '24h'];
@@ -245,6 +248,7 @@ export function ObservabilityView() {
         {activeSubTab === 'pulse' && <PulseChart />}
         {activeSubTab === 'tools' && <ToolAnalytics />}
         {activeSubTab === 'swimlanes' && <AgentSwimLanes />}
+        {activeSubTab === 'visual-timeline' && <ObservabilityVisualTimeline />}
       </div>
     </div>
   );

@@ -77,7 +77,7 @@ async def get_recent_events(
 
 
 @router.get("/events/export")
-async def export_events(format: str = Query(default="json", regex="^(json|csv)$")):
+async def export_events(format: str = Query(default="json", pattern="^(json|csv)$")):
     """Export all events as JSON or CSV download."""
     events = observability_storage.export_all_events()
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")

@@ -11,11 +11,34 @@ import type {
   ObservabilityFilters,
   ObservabilityStats,
 } from '../types/observability';
+import type { TimelineStyle, TimelineColorMode } from '../components/claude-teams/timeline/timeline-types';
+import { TIMELINE_STYLES, TIMELINE_COLOR_MODES } from '../components/claude-teams/timeline/timeline-types';
 
 const GATEWAY_URL = 'http://localhost:8200';
 const WS_URL = 'ws://localhost:8200/ws/observability-stream';
 const MAX_EVENTS = 500;
 const RECONNECT_DELAY_MS = 3000;
+const HEALTH_CHECK_RETRIES = 8;
+const HEALTH_CHECK_INITIAL_DELAY_MS = 500;
+
+/**
+ * Poll Gateway /v1/health until it responds 200, with exponential backoff.
+ * Returns true if reachable, false after all retries exhausted.
+ */
+async function waitForGateway(): Promise<boolean> {
+  let delay = HEALTH_CHECK_INITIAL_DELAY_MS;
+  for (let i = 0; i < HEALTH_CHECK_RETRIES; i++) {
+    try {
+      const res = await fetch(`${GATEWAY_URL}/v1/health`, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) return true;
+    } catch {
+      // Gateway not ready yet
+    }
+    await new Promise((r) => setTimeout(r, delay));
+    delay = Math.min(delay * 1.5, 5000);
+  }
+  return false;
+}
 
 interface ObservabilityState {
   // Data
@@ -36,6 +59,8 @@ interface ObservabilityState {
   timeRange: ObservabilityTimeRange;
   searchQuery: string;
   isPaused: boolean;
+  visualTimelineStyle: TimelineStyle;
+  visualTimelineColorMode: TimelineColorMode;
 
   // Actions
   connect: () => void;
@@ -54,6 +79,8 @@ interface ObservabilityState {
   setTimeRange: (range: ObservabilityTimeRange) => void;
   setSearchQuery: (query: string) => void;
   togglePause: () => void;
+  cycleVisualTimelineStyle: () => void;
+  cycleVisualTimelineColorMode: () => void;
 }
 
 let ws: WebSocket | null = null;
@@ -109,66 +136,79 @@ export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
   toolStats: {},
   eventTypeStats: {},
   stats: null,
-  activeSubTab: 'timeline',
+  activeSubTab: 'swimlanes',
   filters: { sourceApp: '', sessionId: '', eventType: '', toolName: '' },
   selectedAgentLanes: [],
   timeRange: '5m',
   searchQuery: '',
   isPaused: false,
+  visualTimelineStyle: 'svg-spine' as TimelineStyle,
+  visualTimelineColorMode: 'status' as TimelineColorMode,
 
   connect: () => {
     if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
       return;
     }
 
-    try {
-      ws = new WebSocket(WS_URL);
-
-      ws.onopen = () => {
-        set({ isConnected: true, error: null });
-        // Load initial events
-        get().loadRecentEvents();
-        get().loadStats();
-
-        // Start ping keep-alive
-        if (pingTimer) clearInterval(pingTimer);
-        pingTimer = setInterval(() => {
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'ping' }));
-          }
-        }, 30000);
-      };
-
-      ws.onmessage = (msg) => {
-        try {
-          const data = JSON.parse(msg.data);
-          if (data.type === 'hook_event' && data.event && !get().isPaused) {
-            get().addEvent(data.event as HookEvent);
-          }
-        } catch {
-          // ignore parse errors
-        }
-      };
-
-      ws.onclose = () => {
-        set({ isConnected: false });
-        if (pingTimer) {
-          clearInterval(pingTimer);
-          pingTimer = null;
-        }
-        // Auto-reconnect
+    // Wait for Gateway to be ready before connecting
+    waitForGateway().then((ready) => {
+      if (!ready) {
+        set({ error: 'Gateway not reachable after retries' });
+        // Schedule a retry
         if (reconnectTimer) clearTimeout(reconnectTimer);
-        reconnectTimer = setTimeout(() => {
-          get().connect();
-        }, RECONNECT_DELAY_MS);
-      };
+        reconnectTimer = setTimeout(() => get().connect(), RECONNECT_DELAY_MS);
+        return;
+      }
 
-      ws.onerror = () => {
-        set({ error: 'WebSocket connection error' });
-      };
-    } catch (e) {
-      set({ error: String(e) });
-    }
+      try {
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+          set({ isConnected: true, error: null });
+          // Load initial events
+          get().loadRecentEvents();
+          get().loadStats();
+
+          // Start ping keep-alive
+          if (pingTimer) clearInterval(pingTimer);
+          pingTimer = setInterval(() => {
+            if (ws?.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({ type: 'ping' }));
+            }
+          }, 30000);
+        };
+
+        ws.onmessage = (msg) => {
+          try {
+            const data = JSON.parse(msg.data);
+            if (data.type === 'hook_event' && data.event && !get().isPaused) {
+              get().addEvent(data.event as HookEvent);
+            }
+          } catch {
+            // ignore parse errors
+          }
+        };
+
+        ws.onclose = () => {
+          set({ isConnected: false });
+          if (pingTimer) {
+            clearInterval(pingTimer);
+            pingTimer = null;
+          }
+          // Auto-reconnect
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            get().connect();
+          }, RECONNECT_DELAY_MS);
+        };
+
+        ws.onerror = () => {
+          set({ error: 'WebSocket connection error' });
+        };
+      } catch (e) {
+        set({ error: String(e) });
+      }
+    });
   },
 
   disconnect: () => {
@@ -334,4 +374,12 @@ export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
   setTimeRange: (range) => set({ timeRange: range }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   togglePause: () => set((state) => ({ isPaused: !state.isPaused })),
+  cycleVisualTimelineStyle: () => set((state) => {
+    const idx = TIMELINE_STYLES.indexOf(state.visualTimelineStyle);
+    return { visualTimelineStyle: TIMELINE_STYLES[(idx + 1) % TIMELINE_STYLES.length] };
+  }),
+  cycleVisualTimelineColorMode: () => set((state) => {
+    const idx = TIMELINE_COLOR_MODES.indexOf(state.visualTimelineColorMode);
+    return { visualTimelineColorMode: TIMELINE_COLOR_MODES[(idx + 1) % TIMELINE_COLOR_MODES.length] };
+  }),
 }));
