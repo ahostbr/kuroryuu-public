@@ -299,7 +299,21 @@ app = FastAPI(
     version="0.12.0",  # M5 Complete: chat proxy, websocket, sessions
 )
 
-# CORS for web UI (configurable via KURORYUU_CORS_ORIGINS)
+# Middleware order matters! Starlette processes outermost (added last) first.
+# CORRECT order: ProxyHeaders → CORS → OriginValidation → TrafficMonitoring → Route
+#
+# CORS must be OUTERMOST (added last) so it always adds Access-Control headers
+# to the final response — even when inner BaseHTTPMiddleware reconstructs
+# the response object (which can lose headers injected during ASGI send phase).
+
+# Traffic monitoring middleware (innermost — for network visualization)
+app.add_middleware(TrafficMonitoringMiddleware)
+
+# Origin validation middleware (security - CSRF protection for POST/PUT/DELETE)
+app.add_middleware(OriginValidationMiddleware)
+
+# CORS for web UI — MUST be outermost app middleware so headers survive
+# response reconstruction by inner BaseHTTPMiddleware wrappers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=config.cors_origins,
@@ -307,13 +321,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*", "Authorization", "Content-Type", "X-Requested-With"],
 )
-
-# Traffic monitoring middleware (for network visualization)
-app.add_middleware(TrafficMonitoringMiddleware)
-
-# Origin validation middleware (security - CSRF protection for POST/PUT/DELETE)
-# Must be added AFTER traffic monitoring to run BEFORE it in the middleware chain
-app.add_middleware(OriginValidationMiddleware)
 
 # Trusted proxies middleware (for running behind nginx/Caddy)
 # Enables correct client IP detection from X-Forwarded-For headers
@@ -329,6 +336,22 @@ if config.trusted_proxies:
         logger.error("=" * 60)
         sys.exit(1)
     app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=config.trusted_proxies)
+
+# Global exception handler — ensures CORS headers even on unhandled exceptions
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    from starlette.responses import JSONResponse
+    origin = request.headers.get("origin", "")
+    response = JSONResponse(
+        {"error": "Internal Server Error", "detail": str(exc), "path": str(request.url.path)},
+        status_code=500,
+    )
+    # Manually add CORS headers so the browser can read the error
+    if origin and ("localhost" in origin or "127.0.0.1" in origin):
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+    logger.error(f"Unhandled exception on {request.method} {request.url.path}: {exc}")
+    return response
 
 # M2: Include agent registry router
 app.include_router(agents_router)

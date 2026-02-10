@@ -91,7 +91,7 @@ class ObservabilityStorage:
                         event.agent_id,
                         event.hook_event_type,
                         event.tool_name,
-                        json.dumps(event.payload),
+                        json.dumps(self._sanitize_surrogates(event.payload)),
                         event.chat_transcript,
                         event.summary,
                         event.model_name,
@@ -285,12 +285,31 @@ class ObservabilityStorage:
                     )
                 """, (MAX_EVENTS,))
 
+    @staticmethod
+    def _sanitize_surrogates(obj):
+        """Replace orphan UTF-16 surrogates that crash UTF-8 encoding.
+
+        Windows file system APIs can produce lone surrogates (U+D800..U+DFFF)
+        in paths. These are valid in Python strings but cannot be encoded to
+        UTF-8, causing FastAPI's JSONResponse to crash with:
+          UnicodeEncodeError: 'utf-8' codec can't encode character '\\udXXX'
+        """
+        if isinstance(obj, str):
+            # encode with surrogatepass to preserve, then decode with replace
+            # to swap surrogates for the Unicode replacement character
+            return obj.encode('utf-16', 'surrogatepass').decode('utf-16', 'replace')
+        if isinstance(obj, dict):
+            return {k: ObservabilityStorage._sanitize_surrogates(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [ObservabilityStorage._sanitize_surrogates(item) for item in obj]
+        return obj
+
     def _row_to_dict(self, row: sqlite3.Row) -> Dict[str, Any]:
         """Convert a database row to a dictionary"""
         d = dict(row)
         if d.get("payload"):
             try:
-                d["payload"] = json.loads(d["payload"])
+                d["payload"] = self._sanitize_surrogates(json.loads(d["payload"]))
             except json.JSONDecodeError:
                 d["payload"] = {}
         return d
