@@ -530,7 +530,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       const result = await window.electronAPI?.gateway?.chat?.(
         messages,
         domainCfg.modelId || 'mistralai/devstral-small-2-2512',
-        { backend: domainCfg.provider }
+        { backend: domainCfg.provider, direct: true }
       );
 
       if (!result?.ok || !result.chunks?.length) {

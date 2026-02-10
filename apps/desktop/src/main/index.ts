@@ -2731,17 +2731,20 @@ function setupGatewayIpc(): void {
         return await res.json();
       }
 
-      // Collect streamed response
+      // Collect streamed response (buffered to handle partial reads)
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       const chunks: string[] = [];
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const text = decoder.decode(value);
-        for (const line of text.split('\n')) {
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep last incomplete line in buffer
+        for (const line of lines) {
           if (line.startsWith('data: ') && line !== 'data: [DONE]') {
             chunks.push(line.slice(6));
           }
