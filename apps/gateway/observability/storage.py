@@ -205,6 +205,24 @@ class ObservabilityStorage:
                 conn.execute("DELETE FROM hook_events")
                 return count
 
+    def delete_session_events(self, session_id: str) -> int:
+        """Delete all events for a specific session. Returns count deleted."""
+        with self._lock:
+            with self._get_connection() as conn:
+                cursor = conn.execute("SELECT COUNT(*) FROM hook_events WHERE session_id = ?", (session_id,))
+                count = cursor.fetchone()[0]
+                conn.execute("DELETE FROM hook_events WHERE session_id = ?", (session_id,))
+                return count
+
+    def export_session_events(self, session_id: str) -> List[Dict[str, Any]]:
+        """Export all events for a specific session."""
+        with self._get_connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM hook_events WHERE session_id = ? ORDER BY timestamp ASC",
+                (session_id,),
+            ).fetchall()
+            return [self._row_to_dict(row) for row in rows]
+
     def export_all_events(self) -> List[Dict[str, Any]]:
         """Export all events for backup/download."""
         with self._get_connection() as conn:

@@ -124,6 +124,26 @@ async def clear_events() -> Dict[str, Any]:
     return {"status": "ok", "deleted": count}
 
 
+@router.delete("/events/session/{session_id}")
+async def delete_session_events(session_id: str) -> Dict[str, Any]:
+    """Delete all events for a specific session."""
+    count = observability_storage.delete_session_events(session_id)
+    return {"status": "ok", "deleted": count, "session_id": session_id}
+
+
+@router.get("/events/session/{session_id}/export")
+async def export_session_events(session_id: str) -> Dict[str, Any]:
+    """Export all events for a specific session."""
+    events = observability_storage.export_session_events(session_id)
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+    return {
+        "exported_at": now_str,
+        "session_id": session_id,
+        "count": len(events),
+        "events": events,
+    }
+
+
 @router.get("/events/filters")
 async def get_event_filters() -> Dict[str, List[str]]:
     """Get distinct source_apps, sessions, and event types for filter dropdowns."""

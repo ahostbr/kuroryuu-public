@@ -44,7 +44,9 @@ interface ObservabilityState {
   loadRecentEvents: () => Promise<void>;
   loadStats: () => Promise<void>;
   clearEvents: () => Promise<void>;
+  deleteSessionEvents: (sessionId: string) => Promise<void>;
   exportEvents: () => Promise<void>;
+  exportSessionEvents: (sessionId: string) => Promise<void>;
   importEvents: (file: File) => Promise<{ imported: number; skipped: number }>;
   setFilters: (f: Partial<ObservabilityFilters>) => void;
   setActiveSubTab: (tab: ObservabilitySubTab) => void;
@@ -243,6 +245,24 @@ export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
     });
   },
 
+  deleteSessionEvents: async (sessionId: string) => {
+    try {
+      await fetch(`${GATEWAY_URL}/v1/observability/events/session/${sessionId}`, { method: 'DELETE' });
+    } catch {
+      // Gateway may not be running
+    }
+    // Remove from local state
+    set((state) => {
+      const newEvents = state.events.filter((e) => e.session_id !== sessionId);
+      return {
+        events: newEvents,
+        activeSessions: deriveSessionInfo(newEvents),
+        toolStats: deriveToolStats(newEvents),
+        eventTypeStats: deriveEventTypeStats(newEvents),
+      };
+    });
+  },
+
   exportEvents: async () => {
     try {
       const res = await fetch(`${GATEWAY_URL}/v1/observability/events/export`);
@@ -254,6 +274,24 @@ export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
       const date = new Date().toISOString().slice(0, 10);
       a.href = url;
       a.download = `observability-events-${date}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Gateway may not be running
+    }
+  },
+
+  exportSessionEvents: async (sessionId: string) => {
+    try {
+      const res = await fetch(`${GATEWAY_URL}/v1/observability/events/session/${sessionId}/export`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `observability-session-${sessionId.slice(0, 8)}-${date}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
