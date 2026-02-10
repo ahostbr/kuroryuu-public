@@ -79,6 +79,7 @@ interface KuroConfig {
     ttsOnNotification: boolean;
     taskSync: boolean;
     transcriptExport: boolean;
+    observability: boolean;
   };
   features: {
     ragInteractive: boolean;
@@ -115,6 +116,7 @@ const DEFAULT_CONFIG: KuroConfig = {
     ttsOnNotification: true,
     taskSync: true,
     transcriptExport: true,
+    observability: false,
   },
   features: {
     ragInteractive: false,
@@ -706,6 +708,7 @@ export function KuroPluginConfig() {
             ttsOnNotification: restored.hooks?.ttsOnNotification ?? DEFAULT_CONFIG.hooks.ttsOnNotification,
             taskSync: restored.hooks?.taskSync ?? DEFAULT_CONFIG.hooks.taskSync,
             transcriptExport: restored.hooks?.transcriptExport ?? DEFAULT_CONFIG.hooks.transcriptExport,
+            observability: restored.hooks?.observability ?? DEFAULT_CONFIG.hooks.observability,
           },
           features: {
             ragInteractive: restored.features?.ragInteractive ?? DEFAULT_CONFIG.features.ragInteractive,
@@ -1204,6 +1207,13 @@ export function KuroPluginConfig() {
               onChange={(checked) => updateConfig('hooks', { transcriptExport: checked })}
             />
           </FieldRow>
+
+          <FieldRow label="Observability" description="Stream hook events to Gateway for real-time monitoring">
+            <Toggle
+              checked={config.hooks.observability}
+              onChange={(checked) => updateConfig('hooks', { observability: checked })}
+            />
+          </FieldRow>
         </CollapsibleSection>
 
         {/* Features */}
@@ -1412,6 +1422,14 @@ export function KuroPluginConfig() {
                                   <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
                                 )}
                                 <span className="text-xs">Transcript Export</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.hooks?.observability ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Observability</span>
                               </div>
                             </div>
                           </div>
