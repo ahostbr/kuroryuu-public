@@ -1915,33 +1915,37 @@ const api = {
     discardChanges: (filePath: string): Promise<{ success: boolean; error?: string }> =>
       ipcRenderer.invoke('git:discardChanges', filePath),
 
-    /** Get recent commits (T411) */
+    /** Get recent commits */
     log: (limit?: number): Promise<{
-      ok: boolean;
       commits: Array<{
         hash: string;
         shortHash: string;
-        subject: string;
+        summary: string;
         authorName: string;
         authorEmail: string;
         date: string;
+        timestamp: number;
+        parents: string[];
       }>;
       error?: string;
     }> => ipcRenderer.invoke('git:log', limit),
 
-    /** Get commit details (T411) */
+    /** Get commit details */
     show: (commitHash?: string): Promise<{
-      ok: boolean;
-      commit: {
+      commit?: {
         hash: string;
         shortHash: string;
-        subject: string;
+        summary: string;
+        message: string;
         body: string;
-        authorName: string;
-        authorEmail: string;
-        date: string;
-        files: Array<{ status: string; path: string }>;
-      } | null;
+        author: { name: string; email: string; date: string };
+        timestamp: number;
+        parents: string[];
+        files: Array<{ status: string; path: string; additions: number; deletions: number }>;
+        filesChanged: number;
+        additions: number;
+        deletions: number;
+      };
       error?: string;
     }> => ipcRenderer.invoke('git:show', commitHash),
 

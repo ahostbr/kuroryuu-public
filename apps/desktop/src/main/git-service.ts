@@ -271,9 +271,9 @@ export function setupGitIpc(): void {
     return { success: result.code === 0, error: result.stderr };
   });
 
-  // Get commit history
+  // Get commit history (NUL-delimited to handle | in commit messages)
   ipcMain.handle('git:log', (_event, limit: number = 50) => {
-    const format = '%H|%h|%s|%an|%ae|%ai|%P';
+    const format = '%H%x00%h%x00%s%x00%an%x00%ae%x00%ai%x00%P';
     const result = gitExec(['log', `-${limit}`, `--format=${format}`]);
 
     if (result.code !== 0) {
@@ -281,22 +281,16 @@ export function setupGitIpc(): void {
     }
 
     const commits = result.stdout.split('\n').filter(Boolean).map((line) => {
-      const [hash, shortHash, summary, authorName, authorEmail, date, parents] = line.split('|');
+      const [hash, shortHash, summary, authorName, authorEmail, date, parents] = line.split('\0');
       return {
         hash,
         shortHash,
         summary,
-        message: summary, // Full message loaded separately
-        author: {
-          name: authorName,
-          email: authorEmail,
-          date,
-        },
+        authorName,
+        authorEmail,
+        date,
         timestamp: new Date(date).getTime(),
         parents: parents ? parents.split(' ') : [],
-        filesChanged: 0, // Loaded separately
-        additions: 0,
-        deletions: 0,
       };
     });
 
@@ -311,13 +305,13 @@ export function setupGitIpc(): void {
       return { error: messageResult.stderr };
     }
 
-    // Get commit info
-    const infoResult = gitExec(['log', '-1', '--format=%H|%h|%s|%an|%ae|%ai|%P', hash]);
+    // Get commit info (NUL-delimited to handle | in commit messages)
+    const infoResult = gitExec(['log', '-1', '--format=%H%x00%h%x00%s%x00%an%x00%ae%x00%ai%x00%P', hash]);
     if (infoResult.code !== 0) {
       return { error: infoResult.stderr };
     }
 
-    const [commitHash, shortHash, summary, authorName, authorEmail, date, parents] = infoResult.stdout.split('|');
+    const [commitHash, shortHash, summary, authorName, authorEmail, date, parents] = infoResult.stdout.split('\0');
 
     // Get files changed with stats
     const statsResult = gitExec(['diff-tree', '--no-commit-id', '--name-status', '-r', hash]);

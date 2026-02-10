@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Wrench,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useDomainConfigStore } from '../../stores/domain-config-store';
 import { ThemedFrame } from '../ui/ThemedFrame';
 import { useIsThemedStyle } from '../../hooks/useTheme';
@@ -141,41 +141,6 @@ function DomainCard({ domainId, availableModels, providerHealthy }: DomainCardPr
           />
         </div>
 
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// Category Section Component
-// ============================================================================
-
-interface CategorySectionProps {
-  category: DomainCategory;
-  availableModels: ModelInfo[];
-  providerHealthy: Record<LLMProvider, boolean>;
-}
-
-function CategorySection({ category, availableModels, providerHealthy }: CategorySectionProps) {
-  const domains = getDomainsByCategory(category);
-  const { icon: Icon, label, color } = CATEGORY_INFO[category];
-
-  return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className={`w-4 h-4 ${color}`} />
-        <h3 className="text-sm font-medium text-foreground">{label}</h3>
-        <span className="text-xs text-muted-foreground">({domains.length})</span>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {domains.map((domain) => (
-          <DomainCard
-            key={domain.id}
-            domainId={domain.id}
-            availableModels={availableModels}
-            providerHealthy={providerHealthy}
-          />
-        ))}
       </div>
     </div>
   );
@@ -316,21 +281,29 @@ export function DomainConfigDialog() {
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto min-h-0 p-4">
-              <CategorySection
-                category="generation"
-                availableModels={availableModels}
-                providerHealthy={providerHealthy}
-              />
-              <CategorySection
-                category="assistant"
-                availableModels={availableModels}
-                providerHealthy={providerHealthy}
-              />
-              <CategorySection
-                category="tools"
-                availableModels={availableModels}
-                providerHealthy={providerHealthy}
-              />
+              <div className="grid grid-cols-2 gap-3">
+                {(['generation', 'assistant', 'tools'] as DomainCategory[]).map((category) => {
+                  const domains = getDomainsByCategory(category);
+                  const { icon: Icon, label, color } = CATEGORY_INFO[category];
+                  return (
+                    <Fragment key={category}>
+                      <div className="col-span-2 flex items-center gap-2 mt-3 first:mt-0">
+                        <Icon className={`w-4 h-4 ${color}`} />
+                        <h3 className="text-sm font-medium text-foreground">{label}</h3>
+                        <span className="text-xs text-muted-foreground">({domains.length})</span>
+                      </div>
+                      {domains.map((domain) => (
+                        <DomainCard
+                          key={domain.id}
+                          domainId={domain.id}
+                          availableModels={availableModels}
+                          providerHealthy={providerHealthy}
+                        />
+                      ))}
+                    </Fragment>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Footer */}
