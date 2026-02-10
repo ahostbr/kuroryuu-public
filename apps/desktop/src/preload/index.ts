@@ -1874,6 +1874,7 @@ const api = {
     status: (): Promise<{
       ok: boolean;
       output?: string;
+      format?: string;
       files?: Array<{ path: string; status: string; staged: boolean }>;
       error?: string;
     }> => ipcRenderer.invoke('git:status'),

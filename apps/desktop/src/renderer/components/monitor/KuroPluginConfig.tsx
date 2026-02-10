@@ -1089,15 +1089,19 @@ export function KuroPluginConfig() {
             </FieldRow>
           )}
 
-          <FieldRow label="Your Name" description="Name used in announcements">
+          <div className="flex items-center gap-4">
+            <div className="shrink-0">
+              <p className="text-sm text-foreground">Your Name</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Name used in announcements</p>
+            </div>
             <input
               type="text"
               value={config.tts.userName}
               onChange={(e) => updateConfig('tts', { userName: e.target.value })}
-              className="w-32 px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+              className="flex-1 px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               placeholder="Ryan"
             />
-          </FieldRow>
+          </div>
 
           <FieldRow label="Stop Message" description="Fallback when session ends">
             <input

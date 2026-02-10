@@ -14,6 +14,7 @@ import {
   RotateCcw,
   Sparkles,
   MessageSquare,
+  Wrench,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useDomainConfigStore } from '../../stores/domain-config-store';
@@ -37,6 +38,7 @@ import { GroupedModelSelect } from './GroupedModelSelect';
 const CATEGORY_INFO: Record<DomainCategory, { icon: typeof Sparkles; label: string; color: string }> = {
   generation: { icon: Sparkles, label: 'Generation Domains', color: 'text-yellow-400' },
   assistant: { icon: MessageSquare, label: 'Assistant Domains', color: 'text-purple-400' },
+  tools: { icon: Wrench, label: 'Tool Domains', color: 'text-cyan-400' },
 };
 
 // ============================================================================
@@ -321,6 +323,11 @@ export function DomainConfigDialog() {
               />
               <CategorySection
                 category="assistant"
+                availableModels={availableModels}
+                providerHealthy={providerHealthy}
+              />
+              <CategorySection
+                category="tools"
                 availableModels={availableModels}
                 providerHealthy={providerHealthy}
               />
