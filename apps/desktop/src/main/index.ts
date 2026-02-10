@@ -1648,6 +1648,7 @@ function setupKuroConfigIpc(): void {
             ttsOnNotification: false,
             taskSync: false,
             transcriptExport: false,
+            observability: false,
           },
           features: kuroPlugin.features || {
             ragInteractive: false,
@@ -1688,6 +1689,7 @@ function setupKuroConfigIpc(): void {
           ttsOnNotification: false,
           taskSync: false,
           transcriptExport: false,
+          observability: false,
         },
         features: {
           ragInteractive: false,
@@ -1771,11 +1773,18 @@ function setupKuroConfigIpc(): void {
         }
       }
 
-      // Parse PreToolUse for RAG interactive
+      // Parse PreToolUse for RAG interactive + observability
       const preHooks = hooks.PreToolUse || [];
       for (const hookGroup of preHooks) {
         if (hookGroup.matcher === 'mcp__kuroryuu__k_rag') {
           config.features.ragInteractive = true;
+        }
+      }
+
+      // Parse for observability hooks (check Stop hooks for observability script)
+      for (const hook of stopHooks) {
+        if (hook.command?.includes('observability')) {
+          config.hooks.observability = true;
         }
       }
 
@@ -1808,6 +1817,7 @@ function setupKuroConfigIpc(): void {
       ttsOnNotification: boolean;
       taskSync: boolean;
       transcriptExport: boolean;
+      observability: boolean;
     };
     features: { ragInteractive: boolean; questionMode: boolean };
   }) => {
@@ -1865,6 +1875,9 @@ function setupKuroConfigIpc(): void {
               ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
               : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
             stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+          }
+          if (config.hooks.observability) {
+            stopHookEntries.push({ type: 'command', command: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/hooks/observability/stop.ps1"`, timeout: 5000 });
           }
           hooks.Stop = [{ hooks: stopHookEntries }];
         }
@@ -1933,29 +1946,87 @@ function setupKuroConfigIpc(): void {
           postHooks.push({ matcher: 'Write|Edit', hooks: validatorHooks });
         }
 
+        // Observability helper: generate script command for an event type
+        const obsScript = (event: string) =>
+          `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/hooks/observability/${event}.ps1"`;
+        const obsTimeout = 5000;
+
+        // Add observability hooks to PostToolUse if enabled
+        if (config.hooks.observability) {
+          postHooks.push({ matcher: '', hooks: [{ type: 'command', command: obsScript('post-tool-use'), timeout: obsTimeout }] });
+        }
+
         hooks.PostToolUse = postHooks;
 
         // Update UserPromptSubmit hooks
-        if (config.hooks.transcriptExport) {
-          hooks.UserPromptSubmit = [{
-            hooks: [
-              { type: 'command', command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"', timeout: 5 },
-            ],
-          }];
-        } else {
-          delete hooks.UserPromptSubmit;
+        {
+          const upsHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          if (config.hooks.transcriptExport) {
+            upsHooks.push({ type: 'command', command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"', timeout: 5 });
+          }
+          if (config.hooks.observability) {
+            upsHooks.push({ type: 'command', command: obsScript('user-prompt-submit'), timeout: obsTimeout });
+          }
+          if (upsHooks.length > 0) {
+            hooks.UserPromptSubmit = [{ hooks: upsHooks }];
+          } else {
+            delete hooks.UserPromptSubmit;
+          }
         }
 
-        // Update PreToolUse hooks (RAG interactive)
-        if (config.features.ragInteractive) {
-          hooks.PreToolUse = [{
-            matcher: 'mcp__kuroryuu__k_rag',
-            hooks: [
-              { type: 'command', command: 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/rag-interactive-gate.ps1"', timeout: 5000 },
-            ],
-          }];
+        // Update PreToolUse hooks (RAG interactive + observability)
+        {
+          const preToolHooks: Array<{ matcher: string; hooks: Array<{ type: string; command: string; timeout: number }> }> = [];
+          if (config.features.ragInteractive) {
+            preToolHooks.push({
+              matcher: 'mcp__kuroryuu__k_rag',
+              hooks: [
+                { type: 'command', command: 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/rag-interactive-gate.ps1"', timeout: 5000 },
+              ],
+            });
+          }
+          if (config.hooks.observability) {
+            preToolHooks.push({
+              matcher: '',
+              hooks: [{ type: 'command', command: obsScript('pre-tool-use'), timeout: obsTimeout }],
+            });
+          }
+          if (preToolHooks.length > 0) {
+            hooks.PreToolUse = preToolHooks;
+          } else {
+            delete hooks.PreToolUse;
+          }
+        }
+
+        // Observability: Add hooks for remaining event types
+        if (config.hooks.observability) {
+          // Stop already has observability added via stopHookEntries above — add it there
+          // SessionStart
+          hooks.SessionStart = [{ hooks: [{ type: 'command', command: obsScript('session-start'), timeout: obsTimeout }] }];
+          // SessionEnd
+          hooks.SessionEnd = [{ hooks: [{ type: 'command', command: obsScript('session-end'), timeout: obsTimeout }] }];
+          // Notification (append to existing if present)
+          if (!hooks.Notification) hooks.Notification = [{ hooks: [] }];
+          (hooks.Notification as any[])[0].hooks.push({ type: 'command', command: obsScript('notification'), timeout: obsTimeout });
+          // SubagentStop (append to existing if present)
+          if (!hooks.SubagentStop) hooks.SubagentStop = [{ hooks: [] }];
+          (hooks.SubagentStop as any[])[0].hooks.push({ type: 'command', command: obsScript('subagent-stop'), timeout: obsTimeout });
+          // SubagentStart
+          hooks.SubagentStart = [{ hooks: [{ type: 'command', command: obsScript('subagent-start'), timeout: obsTimeout }] }];
+          // PreCompact
+          hooks.PreCompact = [{ hooks: [{ type: 'command', command: obsScript('pre-compact'), timeout: obsTimeout }] }];
+          // PermissionRequest
+          hooks.PermissionRequest = [{ hooks: [{ type: 'command', command: obsScript('permission-request'), timeout: obsTimeout }] }];
+          // PostToolUseFailure
+          hooks.PostToolUseFailure = [{ matcher: '', hooks: [{ type: 'command', command: obsScript('post-tool-use-failure'), timeout: obsTimeout }] }];
         } else {
-          delete hooks.PreToolUse;
+          // Clean up observability-only event types when disabled
+          delete hooks.SessionStart;
+          delete hooks.SessionEnd;
+          delete hooks.SubagentStart;
+          delete hooks.PreCompact;
+          delete hooks.PermissionRequest;
+          delete hooks.PostToolUseFailure;
         }
       },
     });

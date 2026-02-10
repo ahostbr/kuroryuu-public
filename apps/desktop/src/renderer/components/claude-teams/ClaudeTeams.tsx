@@ -32,12 +32,14 @@ import { TaskListPanel } from './TaskListPanel';
 import { TeamsAnalyticsPanel } from './TeamsAnalyticsPanel';
 import { TeamHistoryPanel } from './TeamHistoryPanel';
 import { TimelineView } from './timeline';
+import { ObservabilityView } from './observability';
 import type { FlowViewMode } from '../../types/claude-teams';
 
 const VIEW_TABS: { id: FlowViewMode; label: string; icon: React.ElementType; ready: boolean }[] = [
   { id: 'hub-spokes', label: 'Hub', icon: Network, ready: true },
   { id: 'hierarchy', label: 'Hierarchy', icon: GitBranch, ready: true },
   { id: 'timeline', label: 'Timeline', icon: Clock, ready: true },
+  { id: 'observability', label: 'Observability', icon: BarChart3, ready: true },
 ];
 
 export function ClaudeTeams() {
@@ -409,6 +411,8 @@ export function ClaudeTeams() {
             <div className="flex-1 overflow-hidden relative">
               {activeView === 'timeline' ? (
                 <TimelineView team={selectedTeam} />
+              ) : activeView === 'observability' ? (
+                <ObservabilityView />
               ) : (
                 <TeamFlowPanel />
               )}
