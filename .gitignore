@@ -139,3 +139,6 @@ ai/task-meta.json
 ai/hooks/task_id_map.json
 /ai/team-history
 /.agents
+
+# Standalone face swap UI (not part of Kuroryuu)
+/apps/gen_swap_UI/

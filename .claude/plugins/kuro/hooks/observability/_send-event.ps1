@@ -1,50 +1,35 @@
-param(
-    [Parameter(Mandatory=$true)]
-    [string]$EventType,
-    [string]$SourceApp = "kuroryuu"
-)
+# Observability hook: POST event to Gateway
+# Called directly by Claude Code hooks (no wrapper scripts)
+# Usage: _send-event.ps1 <EventType> [SourceApp]
+#
+# DOES NOT read stdin — all stdin approaches block on Windows:
+#   - [Console]::In.ReadToEnd() blocks forever
+#   - $input | Out-String blocks forever
+#   - ReadToEndAsync().Wait() deadlocks in PS runtime
+# Session ID comes from CLAUDE_SESSION_ID env var if available.
 
-# Read stdin JSON (hook payload from Claude Code)
-$input_json = [Console]::In.ReadToEnd()
+$EventType = $args[0]
+$SourceApp = if ($args[1]) { $args[1] } else { "kuroryuu" }
 
-try {
-    $event = $input_json | ConvertFrom-Json
-} catch {
-    # If stdin is empty or invalid, create minimal payload
-    $event = @{ session_id = "unknown" }
+if (-not $EventType) {
+    exit 0
 }
 
-# Extract session_id from hook payload
-$sessionId = if ($event.session_id) { $event.session_id } else { "unknown" }
+$sessionId = if ($env:CLAUDE_SESSION_ID) { $env:CLAUDE_SESSION_ID } else { "unknown" }
+$toolName = $env:TOOL_NAME
 
-# Extract agent_id if present (for team agents)
-$agentId = $null
-if ($event.agent_id) { $agentId = $event.agent_id }
-if ($event.agent -and $event.agent.name) { $agentId = $event.agent.name }
-
-# Extract tool_name for PreToolUse/PostToolUse events
-$toolName = $null
-if ($event.tool_name) { $toolName = $event.tool_name }
-if ($event.tool -and $event.tool.name) { $toolName = $event.tool.name }
-
-# Build payload
 $body = @{
     source_app = $SourceApp
     session_id = $sessionId
     hook_event_type = $EventType
     tool_name = $toolName
-    agent_id = $agentId
-    payload = $event
     timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
 } | ConvertTo-Json -Depth 10 -Compress
 
-# Fire-and-forget POST to Gateway, always exit 0
 try {
     Invoke-RestMethod -Uri "http://127.0.0.1:8200/v1/observability/events" `
         -Method POST -Body $body -ContentType "application/json" `
         -TimeoutSec 3 | Out-Null
-} catch {
-    # Silent failure — hooks must never block Claude Code
-}
+} catch {}
 
 exit 0

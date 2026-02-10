@@ -1864,6 +1864,11 @@ function setupKuroConfigIpc(): void {
         // User preference flags (ttsOnStop etc.) are preserved regardless
         const skipProjectTts = prevTeamTtsActive;
 
+        // Observability: Python script via uv run (PowerShell corrupts Windows console input mode)
+        const obsScript = (eventType: string) =>
+          `${uvPath} run .claude/plugins/kuro/hooks/observability/send_event.py "${eventType}"`;
+        const obsTimeout = 5000;
+
         // Update Stop hooks - always keep session log + transcript export, only toggle TTS
         {
           const stopHookEntries: Array<{ type: string; command: string; timeout: number }> = [
@@ -1877,39 +1882,47 @@ function setupKuroConfigIpc(): void {
             stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
           }
           if (config.hooks.observability) {
-            stopHookEntries.push({ type: 'command', command: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/hooks/observability/stop.ps1"`, timeout: 5000 });
+            stopHookEntries.push({ type: 'command', command: obsScript('Stop'), timeout: obsTimeout });
           }
           hooks.Stop = [{ hooks: stopHookEntries }];
         }
 
-        // Update SubagentStop hooks
-        if (config.hooks.ttsOnSubagentStop && !skipProjectTts) {
-          // Smart TTS uses --task to pass task description for AI summary
-          const ttsCommand = (useSmartTts || isElevenLabs)
-            ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
-            : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
-          hooks.SubagentStop = [{
-            hooks: [
-              { type: 'command', command: ttsCommand, timeout: ttsTimeout },
-            ],
-          }];
-        } else if (!config.hooks.ttsOnSubagentStop) {
-          // Only delete if user actually disabled it (not just team override)
-          delete hooks.SubagentStop;
+        // Update SubagentStop hooks (TTS + observability built together)
+        {
+          const subStopHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          if (config.hooks.ttsOnSubagentStop && !skipProjectTts) {
+            const ttsCommand = (useSmartTts || isElevenLabs)
+              ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
+              : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
+            subStopHooks.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+          }
+          if (config.hooks.observability && subStopHooks.length > 0) {
+            subStopHooks.push({ type: 'command', command: obsScript('SubagentStop'), timeout: obsTimeout });
+          }
+          if (subStopHooks.length > 0) {
+            hooks.SubagentStop = [{ hooks: subStopHooks }];
+          } else if (!config.hooks.ttsOnSubagentStop) {
+            delete hooks.SubagentStop;
+          }
         }
 
-        // Update Notification hooks
-        if (config.hooks.ttsOnNotification && !skipProjectTts) {
-          const ttsCommand = (useSmartTts || isElevenLabs)
-            ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
-            : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
-          hooks.Notification = [{
-            hooks: [
-              { type: 'command', command: ttsCommand, timeout: ttsTimeout },
-            ],
-          }];
-        } else if (!config.hooks.ttsOnNotification) {
-          delete hooks.Notification;
+        // Update Notification hooks (TTS + observability built together)
+        {
+          const notifHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          if (config.hooks.ttsOnNotification && !skipProjectTts) {
+            const ttsCommand = (useSmartTts || isElevenLabs)
+              ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
+              : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
+            notifHooks.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+          }
+          if (config.hooks.observability && notifHooks.length > 0) {
+            notifHooks.push({ type: 'command', command: obsScript('Notification'), timeout: obsTimeout });
+          }
+          if (notifHooks.length > 0) {
+            hooks.Notification = [{ hooks: notifHooks }];
+          } else if (!config.hooks.ttsOnNotification) {
+            delete hooks.Notification;
+          }
         }
 
         // Update PostToolUse hooks (validators and task sync)
@@ -1946,14 +1959,9 @@ function setupKuroConfigIpc(): void {
           postHooks.push({ matcher: 'Write|Edit', hooks: validatorHooks });
         }
 
-        // Observability helper: generate script command for an event type
-        const obsScript = (event: string) =>
-          `powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/hooks/observability/${event}.ps1"`;
-        const obsTimeout = 5000;
-
         // Add observability hooks to PostToolUse if enabled
         if (config.hooks.observability) {
-          postHooks.push({ matcher: '', hooks: [{ type: 'command', command: obsScript('post-tool-use'), timeout: obsTimeout }] });
+          postHooks.push({ matcher: '', hooks: [{ type: 'command', command: obsScript('PostToolUse'), timeout: obsTimeout }] });
         }
 
         hooks.PostToolUse = postHooks;
@@ -1964,8 +1972,10 @@ function setupKuroConfigIpc(): void {
           if (config.hooks.transcriptExport) {
             upsHooks.push({ type: 'command', command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"', timeout: 5 });
           }
-          if (config.hooks.observability) {
-            upsHooks.push({ type: 'command', command: obsScript('user-prompt-submit'), timeout: obsTimeout });
+          if (config.hooks.observability && upsHooks.length > 0) {
+            // Only add observability if other UPS hooks exist — standalone arrays
+            // break Windows terminal input in Claude Code v2.1.37
+            upsHooks.push({ type: 'command', command: obsScript('UserPromptSubmit'), timeout: obsTimeout });
           }
           if (upsHooks.length > 0) {
             hooks.UserPromptSubmit = [{ hooks: upsHooks }];
@@ -1985,10 +1995,12 @@ function setupKuroConfigIpc(): void {
               ],
             });
           }
-          if (config.hooks.observability) {
+          if (config.hooks.observability && preToolHooks.length > 0) {
+            // Only add observability if other PreToolUse hooks exist — standalone arrays
+            // break Windows terminal input in Claude Code v2.1.37
             preToolHooks.push({
               matcher: '',
-              hooks: [{ type: 'command', command: obsScript('pre-tool-use'), timeout: obsTimeout }],
+              hooks: [{ type: 'command', command: obsScript('PreToolUse'), timeout: obsTimeout }],
             });
           }
           if (preToolHooks.length > 0) {
@@ -1998,35 +2010,13 @@ function setupKuroConfigIpc(): void {
           }
         }
 
-        // Observability: Add hooks for remaining event types
+        // Observability: SessionStart must be empty (standalone hooks break Windows terminal input)
+        // Stop, SubagentStop, Notification, PostToolUse, UserPromptSubmit observability
+        // is built inline above (not appended separately, to prevent duplication on re-save)
         if (config.hooks.observability) {
-          // Stop already has observability added via stopHookEntries above — add it there
-          // SessionStart
-          hooks.SessionStart = [{ hooks: [{ type: 'command', command: obsScript('session-start'), timeout: obsTimeout }] }];
-          // SessionEnd
-          hooks.SessionEnd = [{ hooks: [{ type: 'command', command: obsScript('session-end'), timeout: obsTimeout }] }];
-          // Notification (append to existing if present)
-          if (!hooks.Notification) hooks.Notification = [{ hooks: [] }];
-          (hooks.Notification as any[])[0].hooks.push({ type: 'command', command: obsScript('notification'), timeout: obsTimeout });
-          // SubagentStop (append to existing if present)
-          if (!hooks.SubagentStop) hooks.SubagentStop = [{ hooks: [] }];
-          (hooks.SubagentStop as any[])[0].hooks.push({ type: 'command', command: obsScript('subagent-stop'), timeout: obsTimeout });
-          // SubagentStart
-          hooks.SubagentStart = [{ hooks: [{ type: 'command', command: obsScript('subagent-start'), timeout: obsTimeout }] }];
-          // PreCompact
-          hooks.PreCompact = [{ hooks: [{ type: 'command', command: obsScript('pre-compact'), timeout: obsTimeout }] }];
-          // PermissionRequest
-          hooks.PermissionRequest = [{ hooks: [{ type: 'command', command: obsScript('permission-request'), timeout: obsTimeout }] }];
-          // PostToolUseFailure
-          hooks.PostToolUseFailure = [{ matcher: '', hooks: [{ type: 'command', command: obsScript('post-tool-use-failure'), timeout: obsTimeout }] }];
+          hooks.SessionStart = [];
         } else {
-          // Clean up observability-only event types when disabled
           delete hooks.SessionStart;
-          delete hooks.SessionEnd;
-          delete hooks.SubagentStart;
-          delete hooks.PreCompact;
-          delete hooks.PermissionRequest;
-          delete hooks.PostToolUseFailure;
         }
       },
     });

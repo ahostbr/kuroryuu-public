@@ -15,6 +15,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import * as Tabs from '@radix-ui/react-tabs';
 import {
   Activity,
+  BarChart3,
   CheckCircle2,
   Clock,
   FileText,
@@ -28,6 +29,7 @@ import { useClaudeTaskStore, getDisplayTasks, type ClaudeTask } from '../../stor
 import { useSettingsStore } from '../../stores/settings-store';
 import { useFileWatch } from '../../hooks/use-file-watch';
 import { KuroPluginConfig } from './KuroPluginConfig';
+import { ObservabilityView } from '../claude-teams/observability';
 
 // ============================================================================
 // Progress Donut Chart - SVG-based with 3 segments
@@ -296,7 +298,7 @@ export function ClaudeTaskMonitor() {
   const { tasks, stats, isLoading, error, displayLimit, loadTasks, setTodoPath, setDisplayLimit } = useClaudeTaskStore();
   const { projectSettings } = useSettingsStore();
   const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab] = useState<'tasks' | 'config'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'observability' | 'config'>('tasks');
 
   // Compute todo path
   const todoPath = useMemo(() => {
@@ -412,6 +414,18 @@ export function ClaudeTaskMonitor() {
           >
             <Activity className="w-4 h-4" />
             Claude Tasks
+          </Tabs.Trigger>
+
+          <Tabs.Trigger
+            value="observability"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium transition-colors ${
+              activeTab === 'observability'
+                ? 'bg-secondary text-foreground border-b-2 border-primary'
+                : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            Observability
           </Tabs.Trigger>
 
           <Tabs.Trigger
@@ -549,6 +563,11 @@ export function ClaudeTaskMonitor() {
           </div>
         </div>
       )}
+        </Tabs.Content>
+
+        {/* Observability Tab Content */}
+        <Tabs.Content value="observability" className="flex-1 overflow-hidden">
+          <ObservabilityView />
         </Tabs.Content>
 
         {/* Config Tab Content */}

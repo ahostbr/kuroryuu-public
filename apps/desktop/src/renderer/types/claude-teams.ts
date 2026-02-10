@@ -367,7 +367,7 @@ export interface TeammateHealthInfo {
 // REACTFLOW NODE TYPES (for graph visualization)
 // ============================================================================
 
-export type FlowViewMode = 'hub-spokes' | 'hierarchy' | 'timeline' | 'observability';
+export type FlowViewMode = 'hub-spokes' | 'hierarchy' | 'timeline';
 
 export interface TeamNodeData {
   label: string;
