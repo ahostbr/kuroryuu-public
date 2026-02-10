@@ -4,6 +4,7 @@
  */
 
 import { create } from 'zustand';
+import { getDomainConfig } from './domain-config-store';
 import type {
   ChangedFile,
   FileDiff,
@@ -73,6 +74,7 @@ interface RepositoryState {
   commitSummary: string;
   commitDescription: string;
   isCommitting: boolean;
+  isSummarizing: boolean;
   commitError: string | null;
 
   // History state
@@ -113,6 +115,7 @@ interface RepositoryState {
   setCommitSummary: (summary: string) => void;
   setCommitDescription: (description: string) => void;
   createCommit: () => Promise<boolean>;
+  summarizeCommit: () => Promise<void>;
 
   // History actions
   loadHistory: (limit?: number) => Promise<void>;
@@ -127,12 +130,55 @@ interface RepositoryState {
 // Helper: Parse git status output
 // ============================================================================
 
-function parseGitStatus(statusOutput: string): ChangedFile[] {
+function parseGitStatus(statusOutput: string, format?: string): ChangedFile[] {
   const files: ChangedFile[] = [];
-  const lines = statusOutput.trim().split('\n').filter(Boolean);
+
+  // NUL-delimited format from `git status --porcelain -z` (GitHub Desktop pattern)
+  if (format === 'nul') {
+    const entries = statusOutput.split('\0').filter(Boolean);
+
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      const match = entry.match(/^(.)(.) (.+)$/);
+      if (!match) continue;
+
+      const [, index, worktree, path] = match;
+      let status: FileStatus = 'modified';
+      let oldPath: string | undefined;
+
+      // Renames/copies: next NUL-delimited entry is the source path
+      if (index === 'R' || index === 'C') {
+        status = index === 'R' ? 'renamed' : 'copied';
+        if (i + 1 < entries.length && !entries[i + 1].match(/^.{2} /)) {
+          oldPath = entries[++i];
+        }
+        files.push({ path, status, included: true, oldPath });
+        continue;
+      }
+
+      // Determine status from index and worktree indicators
+      if (index === '?' || worktree === '?') {
+        status = 'untracked';
+      } else if (index === 'A' || worktree === 'A') {
+        status = 'new';
+      } else if (index === 'D' || worktree === 'D') {
+        status = 'deleted';
+      } else if (index === 'U' || worktree === 'U') {
+        status = 'conflicted';
+      } else if (index === 'M' || worktree === 'M') {
+        status = 'modified';
+      }
+
+      files.push({ path, status, included: true, oldPath });
+    }
+
+    return files;
+  }
+
+  // Legacy newline-delimited format fallback
+  const lines = statusOutput.trimEnd().split('\n').filter(Boolean);
 
   for (const line of lines) {
-    // Git status porcelain format: XY filename
     const match = line.match(/^(.)(.) (.+)$/);
     if (!match) continue;
 
@@ -140,7 +186,6 @@ function parseGitStatus(statusOutput: string): ChangedFile[] {
     let status: FileStatus = 'modified';
     let oldPath: string | undefined;
 
-    // Check for rename (R) with -> separator
     if (path.includes(' -> ')) {
       const [old, newPath] = path.split(' -> ');
       oldPath = old;
@@ -149,7 +194,6 @@ function parseGitStatus(statusOutput: string): ChangedFile[] {
       continue;
     }
 
-    // Determine status from index and worktree indicators
     if (index === '?' || worktree === '?') {
       status = 'untracked';
     } else if (index === 'A' || worktree === 'A') {
@@ -194,6 +238,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
   commitSummary: '',
   commitDescription: '',
   isCommitting: false,
+  isSummarizing: false,
   commitError: null,
 
   commits: [],
@@ -255,7 +300,7 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
     try {
       const result = await window.electronAPI?.git?.status?.();
       if (result?.output) {
-        const files = parseGitStatus(result.output);
+        const files = parseGitStatus(result.output, result.format);
         // Preserve included state from existing files
         const { changedFiles: existing, stagedFiles } = get();
         const existingMap = new Map(existing.map(f => [f.path, f]));
@@ -438,6 +483,94 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
       console.error('Failed to create commit:', error);
       set({ commitError: String(error), isCommitting: false });
       return false;
+    }
+  },
+
+  summarizeCommit: async () => {
+    const { changedFiles } = get();
+    if (changedFiles.length === 0) return;
+
+    set({ isSummarizing: true, commitError: null });
+
+    try {
+      // Collect diffs from all changed files
+      const diffs: string[] = [];
+      for (const file of changedFiles) {
+        const result = await window.electronAPI?.git?.diff?.(file.path);
+        if (result?.diff) {
+          diffs.push(`--- ${file.path} ---\n${result.diff}`);
+        }
+      }
+
+      if (diffs.length === 0) {
+        set({ isSummarizing: false, commitError: 'No diffs available to summarize' });
+        return;
+      }
+
+      const diffText = diffs.join('\n\n');
+      // Truncate to ~8k chars to stay within model context
+      const truncated = diffText.length > 8000
+        ? diffText.slice(0, 8000) + '\n\n... (truncated)'
+        : diffText;
+
+      // Get domain config for git-commit
+      const domainCfg = getDomainConfig('git-commit');
+
+      const messages = [
+        {
+          role: 'system',
+          content: 'Generate a concise git commit message from the following diff. Return ONLY the commit message. First line: summary (max 72 chars, imperative tense, e.g. "Fix bug" not "Fixed bug"). Then a blank line. Then optional bullet-point description of key changes. No markdown formatting, no code blocks.',
+        },
+        {
+          role: 'user',
+          content: truncated,
+        },
+      ];
+
+      const result = await window.electronAPI?.gateway?.chat?.(
+        messages,
+        domainCfg.modelId || 'mistralai/devstral-small-2-2512',
+        { backend: domainCfg.provider }
+      );
+
+      if (!result?.ok || !result.chunks?.length) {
+        set({ isSummarizing: false, commitError: result?.error || 'Summarization failed' });
+        return;
+      }
+
+      // Assemble response from SSE chunks
+      // Gateway AG-UI format: { type: "delta", text: "..." }
+      // OpenAI format: { choices: [{ delta: { content: "..." } }] }
+      let response = '';
+      for (const chunkStr of result.chunks) {
+        try {
+          const chunk = JSON.parse(chunkStr);
+          // Gateway AG-UI format (primary): { type: "delta", text: "..." }
+          if (chunk.type === 'delta' && chunk.text) {
+            response += chunk.text;
+          }
+          // OpenAI SSE format: choices[0].delta.content
+          else if (chunk?.choices?.[0]?.delta?.content) {
+            response += chunk.choices[0].delta.content;
+          }
+        } catch {
+          // skip unparseable
+        }
+      }
+
+      // Parse: first line = summary, rest = description
+      const lines = response.trim().split('\n');
+      const summary = lines[0]?.trim() || '';
+      const description = lines.slice(1).join('\n').trim();
+
+      set({
+        commitSummary: summary,
+        commitDescription: description,
+        isSummarizing: false,
+      });
+    } catch (error) {
+      console.error('Failed to summarize commit:', error);
+      set({ isSummarizing: false, commitError: String(error) });
     }
   },
 

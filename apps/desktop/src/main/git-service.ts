@@ -6,7 +6,7 @@
  */
 
 import { ipcMain } from 'electron';
-import { execSync } from 'child_process';
+import { execFileSync, execFile } from 'child_process';
 import { basename, join } from 'path';
 import { statSync } from 'fs';
 
@@ -29,13 +29,14 @@ export function configureGitService(config: { repoPath?: string }): void {
  */
 function gitExec(args: string[], cwd?: string): { stdout: string; stderr: string; code: number } {
   try {
-    const stdout = execSync(`git ${args.join(' ')}`, {
+    const stdout = execFileSync('git', args, {
       cwd: cwd || repoPath,
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large diffs
+      env: { ...process.env, TERM: 'dumb' }, // Prevent interactive prompts (GitHub Desktop pattern)
     });
-    return { stdout: stdout.trim(), stderr: '', code: 0 };
+    return { stdout: stdout.trimEnd(), stderr: '', code: 0 };
   } catch (error: unknown) {
     const err = error as { stdout?: string; stderr?: string; status?: number };
     return {
@@ -44,6 +45,35 @@ function gitExec(args: string[], cwd?: string): { stdout: string; stderr: string
       code: err.status || 1,
     };
   }
+}
+
+/**
+ * Execute git command with stdin input (for commit messages via -F -)
+ * Async version to avoid blocking on stdin write.
+ */
+function gitExecStdin(args: string[], stdin: string, cwd?: string): Promise<{ stdout: string; stderr: string; code: number }> {
+  return new Promise((resolve) => {
+    const child = execFile('git', args, {
+      cwd: cwd || repoPath,
+      encoding: 'utf-8',
+      maxBuffer: 10 * 1024 * 1024,
+      env: { ...process.env, TERM: 'dumb' },
+    }, (error, stdout, stderr) => {
+      if (error) {
+        const err = error as { code?: number };
+        resolve({
+          stdout: (stdout || '').trimEnd(),
+          stderr: (stderr || '').trimEnd(),
+          code: err.code || 1,
+        });
+      } else {
+        resolve({ stdout: (stdout || '').trimEnd(), stderr: '', code: 0 });
+      }
+    });
+    // Write commit message to stdin and close
+    child.stdin?.write(stdin);
+    child.stdin?.end();
+  });
 }
 
 /**
@@ -98,27 +128,32 @@ export function setupGitIpc(): void {
     return { ok: true, branch: result.stdout };
   });
 
-  // Get git status (porcelain format)
+  // Get git status (porcelain format, NUL-delimited for robust parsing)
   ipcMain.handle('git:status', () => {
-    const result = gitExec(['status', '--porcelain']);
+    const result = gitExec(['status', '--porcelain', '-z']);
     if (result.code !== 0) {
       return { error: result.stderr };
     }
 
-    // Filter out files larger than 99MB (GitHub limit is 100MB)
-    const lines = result.stdout.split('\n');
-    const filteredLines = lines.filter((line) => {
-      if (!line.trim()) return true; // Keep empty lines
+    // -z uses NUL as delimiter. Split on NUL, filter empty entries.
+    const entries = result.stdout.split('\0').filter(Boolean);
 
-      // Parse file path from porcelain format: XY filename
-      const match = line.match(/^.{2} (.+)$/);
-      if (!match) return true;
+    const filteredEntries: string[] = [];
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      // Porcelain -z format: "XY path" (renames have a second NUL-delimited path)
+      const match = entry.match(/^(.)(.) (.+)$/);
+      if (!match) {
+        filteredEntries.push(entry);
+        continue;
+      }
 
-      let filePath = match[1];
+      const [, indexStatus, , filePath] = match;
 
-      // Handle renames: "old -> new"
-      if (filePath.includes(' -> ')) {
-        filePath = filePath.split(' -> ')[1];
+      // Renames (R) and copies (C) have a second entry for the source path
+      let renameSrc: string | undefined;
+      if ((indexStatus === 'R' || indexStatus === 'C') && i + 1 < entries.length) {
+        renameSrc = entries[++i]; // consume next entry as rename source
       }
 
       // Check if file exists and get size (deleted files won't exist)
@@ -129,16 +164,22 @@ export function setupGitIpc(): void {
           console.log(
             `[Git] Filtering large file (${(stats.size / 1024 / 1024).toFixed(1)}MB): ${filePath}`
           );
-          return false;
+          continue; // Skip this file
         }
       } catch {
         // File doesn't exist (deleted) or can't be accessed - keep it
       }
 
-      return true;
-    });
+      // Reconstruct entry with rename info for the renderer parser
+      if (renameSrc) {
+        filteredEntries.push(`${entry}\0${renameSrc}`);
+      } else {
+        filteredEntries.push(entry);
+      }
+    }
 
-    return { output: filteredLines.join('\n') };
+    // Return NUL-delimited output so the renderer can parse reliably
+    return { output: filteredEntries.join('\0'), format: 'nul' };
   });
 
   // Get diff for a specific file
@@ -215,13 +256,13 @@ export function setupGitIpc(): void {
     return { success: result.code === 0, error: result.stderr };
   });
 
-  // Create a commit
-  ipcMain.handle('git:commit', (_event, message: string) => {
-    const result = gitExec(['commit', '-m', message]);
+  // Create a commit (message via stdin to avoid shell parsing issues — GitHub Desktop pattern)
+  ipcMain.handle('git:commit', async (_event, message: string) => {
+    const result = await gitExecStdin(['commit', '-F', '-'], message);
     if (result.code !== 0) {
-      return { success: false, error: result.stderr };
+      return { ok: false, error: result.stderr };
     }
-    return { success: true };
+    return { ok: true };
   });
 
   // Fetch from origin

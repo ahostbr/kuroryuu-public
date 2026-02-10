@@ -3,7 +3,7 @@
  * Summary input, description textarea, and commit button
  */
 
-import { Users, Settings, User } from 'lucide-react';
+import { Users, Settings, User, Sparkles } from 'lucide-react';
 import { useRepositoryStore } from '../../stores/repository-store';
 
 interface CommitMessageProps {
@@ -16,10 +16,13 @@ export function CommitMessage({ includedCount, branchName }: CommitMessageProps)
     commitSummary,
     commitDescription,
     isCommitting,
+    isSummarizing,
     commitError,
+    changedFiles,
     setCommitSummary,
     setCommitDescription,
     createCommit,
+    summarizeCommit,
   } = useRepositoryStore();
 
   const canCommit = commitSummary.trim().length > 0 && includedCount > 0 && !isCommitting;
@@ -69,6 +72,19 @@ export function CommitMessage({ includedCount, branchName }: CommitMessageProps)
             title="Commit options"
           >
             <Settings size={14} />
+          </button>
+          <button
+            type="button"
+            className="ghd-commit-action-btn"
+            title="AI summarize commit"
+            onClick={() => summarizeCommit()}
+            disabled={isSummarizing || changedFiles.length === 0}
+            style={{
+              marginLeft: 'auto',
+              ...(isSummarizing ? { color: 'var(--ghd-accent-gold)', opacity: 0.7 } : {}),
+            }}
+          >
+            <Sparkles size={14} style={isSummarizing ? { animation: 'spin 1.5s linear infinite' } : undefined} />
           </button>
         </div>
       </div>

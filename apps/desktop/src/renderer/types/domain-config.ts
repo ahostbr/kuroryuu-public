@@ -75,9 +75,10 @@ export type DomainId =
   | 'roadmap'
   | 'formulas'
   | 'voice'
-  | 'genui';
+  | 'genui'
+  | 'git-commit';
 
-export type DomainCategory = 'generation' | 'assistant';
+export type DomainCategory = 'generation' | 'assistant' | 'tools';
 
 export interface DomainInfo {
   id: DomainId;
@@ -147,7 +148,7 @@ export const DOMAINS: DomainInfo[] = [
   // Assistant domains - interactive chat features
   {
     id: 'code-editor',
-    label: 'Insights',
+    label: 'Chatbot',
     description: 'AI chat assistant',
     icon: '🧠',
     category: 'assistant',
@@ -163,6 +164,18 @@ export const DOMAINS: DomainInfo[] = [
     category: 'assistant',
     defaultProvider: 'gateway-auto',
     defaultModel: '',
+    supportsThinking: false,
+  },
+
+  // Tools domains - utility features powered by LLM
+  {
+    id: 'git-commit',
+    label: 'Git Commit',
+    description: 'AI commit message summarization',
+    icon: '📝',
+    category: 'tools',
+    defaultProvider: 'gateway-auto',
+    defaultModel: 'mistralai/devstral-small-2-2512',
     supportsThinking: false,
   },
 ];
@@ -250,6 +263,7 @@ export function getDefaultDomainConfig(domainId: DomainId): DomainConfig {
   const defaults: Record<DomainCategory, Partial<DomainConfig>> = {
     generation: { temperature: 0.7, maxTokens: 4096, thinkingLevel: 'none' },
     assistant: { temperature: 0.7, maxTokens: 4096, thinkingLevel: 'none' },
+    tools: { temperature: 0.3, maxTokens: 2048, thinkingLevel: 'none' },
   };
 
   const categoryDefaults = defaults[domain.category];

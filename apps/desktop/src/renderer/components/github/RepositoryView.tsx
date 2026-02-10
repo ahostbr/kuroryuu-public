@@ -24,12 +24,19 @@ export function RepositoryView({ worktreesContent }: RepositoryViewProps) {
     activeTab,
     changedFiles,
     initialize,
+    refreshStatus,
   } = useRepositoryStore();
 
   // Initialize on mount
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // Auto-refresh git status every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(refreshStatus, 10_000);
+    return () => clearInterval(interval);
+  }, [refreshStatus]);
 
   return (
     <div className="ghd-repository-view">
