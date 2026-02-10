@@ -66,14 +66,18 @@ async def get_recent_events(
     tool_name: Optional[str] = Query(default=None),
 ) -> Dict[str, Any]:
     """Get recent hook events with optional filtering."""
-    events = observability_storage.get_recent_events(
-        limit=limit,
-        session_id=session_id,
-        source_app=source_app,
-        event_type=event_type,
-        tool_name=tool_name,
-    )
-    return {"events": events, "count": len(events)}
+    try:
+        events = observability_storage.get_recent_events(
+            limit=limit,
+            session_id=session_id,
+            source_app=source_app,
+            event_type=event_type,
+            tool_name=tool_name,
+        )
+        return {"events": events, "count": len(events)}
+    except Exception as e:
+        logger.error(f"Error loading recent events: {e}")
+        return {"events": [], "count": 0, "error": str(e)}
 
 
 @router.get("/events/export")
@@ -153,9 +157,21 @@ async def get_event_filters() -> Dict[str, List[str]]:
 @router.get("/stats")
 async def get_observability_stats() -> Dict[str, Any]:
     """Get aggregate statistics: events/min, tool counts, active sessions."""
-    stats = observability_storage.get_stats()
-    stats["websocket_clients"] = obs_ws_manager.connection_count
-    return stats
+    try:
+        stats = observability_storage.get_stats()
+        stats["websocket_clients"] = obs_ws_manager.connection_count
+        return stats
+    except Exception as e:
+        logger.error(f"Error loading stats: {e}")
+        return {
+            "total_events": 0,
+            "events_per_minute": 0,
+            "active_sessions": 0,
+            "tool_counts": {},
+            "event_type_counts": {},
+            "websocket_clients": 0,
+            "error": str(e),
+        }
 
 
 @router.get("/health")

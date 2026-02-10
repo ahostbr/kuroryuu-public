@@ -22,17 +22,20 @@ const HEALTH_CHECK_RETRIES = 8;
 const HEALTH_CHECK_INITIAL_DELAY_MS = 500;
 
 /**
- * Poll Gateway /v1/health until it responds 200, with exponential backoff.
- * Returns true if reachable, false after all retries exhausted.
+ * Poll Gateway observability endpoint until it responds 200, with exponential backoff.
+ * Uses the actual observability stats endpoint (not /v1/health) to ensure the
+ * SQLite database is initialized and the observability module is ready.
  */
 async function waitForGateway(): Promise<boolean> {
   let delay = HEALTH_CHECK_INITIAL_DELAY_MS;
   for (let i = 0; i < HEALTH_CHECK_RETRIES; i++) {
     try {
-      const res = await fetch(`${GATEWAY_URL}/v1/health`, { signal: AbortSignal.timeout(2000) });
+      const res = await fetch(`${GATEWAY_URL}/v1/observability/stats`, {
+        signal: AbortSignal.timeout(3000),
+      });
       if (res.ok) return true;
     } catch {
-      // Gateway not ready yet
+      // Gateway or observability module not ready yet
     }
     await new Promise((r) => setTimeout(r, delay));
     delay = Math.min(delay * 1.5, 5000);
@@ -242,31 +245,43 @@ export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
     });
   },
 
-  loadRecentEvents: async () => {
-    try {
-      const res = await fetch(`${GATEWAY_URL}/v1/observability/events/recent?limit=300`);
-      if (!res.ok) return;
-      const data = await res.json();
-      const events: HookEvent[] = data.events || [];
-      set({
-        events,
-        activeSessions: deriveSessionInfo(events),
-        toolStats: deriveToolStats(events),
-        eventTypeStats: deriveEventTypeStats(events),
-      });
-    } catch {
-      // Gateway may not be running
+  loadRecentEvents: async (retries = 2) => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(`${GATEWAY_URL}/v1/observability/events/recent?limit=300`);
+        if (!res.ok) {
+          if (attempt < retries) { await new Promise((r) => setTimeout(r, 1000)); continue; }
+          return;
+        }
+        const data = await res.json();
+        const events: HookEvent[] = data.events || [];
+        set({
+          events,
+          activeSessions: deriveSessionInfo(events),
+          toolStats: deriveToolStats(events),
+          eventTypeStats: deriveEventTypeStats(events),
+        });
+        return;
+      } catch {
+        if (attempt < retries) { await new Promise((r) => setTimeout(r, 1000)); continue; }
+      }
     }
   },
 
-  loadStats: async () => {
-    try {
-      const res = await fetch(`${GATEWAY_URL}/v1/observability/stats`);
-      if (!res.ok) return;
-      const stats: ObservabilityStats = await res.json();
-      set({ stats });
-    } catch {
-      // Gateway may not be running
+  loadStats: async (retries = 2) => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const res = await fetch(`${GATEWAY_URL}/v1/observability/stats`);
+        if (!res.ok) {
+          if (attempt < retries) { await new Promise((r) => setTimeout(r, 1000)); continue; }
+          return;
+        }
+        const stats: ObservabilityStats = await res.json();
+        set({ stats });
+        return;
+      } catch {
+        if (attempt < retries) { await new Promise((r) => setTimeout(r, 1000)); continue; }
+      }
     }
   },
 
