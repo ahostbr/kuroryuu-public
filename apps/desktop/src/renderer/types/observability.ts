@@ -43,7 +43,7 @@ export interface SessionInfo {
 
 export type ObservabilityTimeRange = '1m' | '3m' | '5m' | '10m' | '30m' | '1h' | '6h' | '24h';
 
-export type ObservabilitySubTab = 'timeline' | 'pulse' | 'tools' | 'swimlanes';
+export type ObservabilitySubTab = 'timeline' | 'pulse' | 'tools' | 'swimlanes' | 'visual-timeline';
 
 export interface ObservabilityFilters {
   sourceApp: string;
