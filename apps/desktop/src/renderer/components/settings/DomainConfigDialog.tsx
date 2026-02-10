@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Wrench,
 } from 'lucide-react';
-import { Fragment, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDomainConfigStore } from '../../stores/domain-config-store';
 import { ThemedFrame } from '../ui/ThemedFrame';
 import { useIsThemedStyle } from '../../hooks/useTheme';
@@ -49,9 +49,10 @@ interface DomainCardProps {
   domainId: DomainId;
   availableModels: ModelInfo[];
   providerHealthy: Record<LLMProvider, boolean>;
+  categoryHeader?: { icon: typeof Sparkles; label: string; color: string; count: number };
 }
 
-function DomainCard({ domainId, availableModels, providerHealthy }: DomainCardProps) {
+function DomainCard({ domainId, availableModels, providerHealthy, categoryHeader }: DomainCardProps) {
   const { getConfigForDomain, updateDomainConfig, resetDomainToDefault } = useDomainConfigStore();
   const config = getConfigForDomain(domainId);
   const domainInfo = DOMAINS.find(d => d.id === domainId);
@@ -73,6 +74,14 @@ function DomainCard({ domainId, availableModels, providerHealthy }: DomainCardPr
     : [{ id: config.modelId || 'auto', name: config.modelName || 'Auto', provider: config.provider }];
 
   return (
+    <div>
+      {categoryHeader && (
+        <div className="flex items-center gap-2 mb-2">
+          <categoryHeader.icon className={`w-4 h-4 ${categoryHeader.color}`} />
+          <h3 className="text-sm font-medium text-foreground">{categoryHeader.label}</h3>
+          <span className="text-xs text-muted-foreground">({categoryHeader.count})</span>
+        </div>
+      )}
     <div className={`p-4 bg-card rounded-lg border ${getProviderBorderClass(config.provider)} hover:border-primary/30 transition-colors`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
@@ -142,6 +151,7 @@ function DomainCard({ domainId, availableModels, providerHealthy }: DomainCardPr
         </div>
 
       </div>
+    </div>
     </div>
   );
 }
@@ -282,26 +292,18 @@ export function DomainConfigDialog() {
             {/* Content */}
             <div className="flex-1 overflow-y-auto min-h-0 p-4">
               <div className="grid grid-cols-2 gap-3">
-                {(['generation', 'assistant', 'tools'] as DomainCategory[]).map((category) => {
+                {(['generation', 'assistant', 'tools'] as DomainCategory[]).flatMap((category) => {
                   const domains = getDomainsByCategory(category);
-                  const { icon: Icon, label, color } = CATEGORY_INFO[category];
-                  return (
-                    <Fragment key={category}>
-                      <div className="col-span-2 flex items-center gap-2 mt-3 first:mt-0">
-                        <Icon className={`w-4 h-4 ${color}`} />
-                        <h3 className="text-sm font-medium text-foreground">{label}</h3>
-                        <span className="text-xs text-muted-foreground">({domains.length})</span>
-                      </div>
-                      {domains.map((domain) => (
-                        <DomainCard
-                          key={domain.id}
-                          domainId={domain.id}
-                          availableModels={availableModels}
-                          providerHealthy={providerHealthy}
-                        />
-                      ))}
-                    </Fragment>
-                  );
+                  const catInfo = CATEGORY_INFO[category];
+                  return domains.map((domain, i) => (
+                    <DomainCard
+                      key={domain.id}
+                      domainId={domain.id}
+                      availableModels={availableModels}
+                      providerHealthy={providerHealthy}
+                      categoryHeader={i === 0 ? { ...catInfo, count: domains.length } : undefined}
+                    />
+                  ));
                 })}
               </div>
             </div>
