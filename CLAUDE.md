@@ -176,3 +176,10 @@ Note: Direct `wsl rm -f "/mnt/e/..."` from Git Bash fails because the path gets 
 1. Read `KURORYUU_BOOTSTRAP.md` 100% IN FULL !!!
 2. Call: `kuroryuu_session_start(process_id, "claude", "your_agent_id")`
 3. Confirm: `KURORYUU-aware. Session: {session_id}. Ready.`
+
+##Claude.md Version
+2026-02-11
+- Added PTY Reading section
+- Added Claude Task Evidence section
+- Added Cross-Reference Rules section
+- Added Windows "nul" File Bug section
