@@ -2,8 +2,13 @@
 Observability REST API Router
 REST endpoints for hook event telemetry
 """
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from typing import Dict, Any, List, Optional
+from datetime import datetime, timezone
+import csv
+import io
+import json
 
 from .storage import observability_storage
 from .websocket import obs_ws_manager
@@ -69,6 +74,54 @@ async def get_recent_events(
         tool_name=tool_name,
     )
     return {"events": events, "count": len(events)}
+
+
+@router.get("/events/export")
+async def export_events(format: str = Query(default="json", regex="^(json|csv)$")):
+    """Export all events as JSON or CSV download."""
+    events = observability_storage.export_all_events()
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
+
+    if format == "csv":
+        output = io.StringIO()
+        if events:
+            writer = csv.DictWriter(output, fieldnames=events[0].keys())
+            writer.writeheader()
+            for ev in events:
+                row = {**ev}
+                if isinstance(row.get("payload"), dict):
+                    row["payload"] = json.dumps(row["payload"])
+                writer.writerow(row)
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=observability-events-{now_str}.csv"},
+        )
+
+    return {
+        "exported_at": now_str,
+        "count": len(events),
+        "events": events,
+    }
+
+
+@router.post("/events/import")
+async def import_events(request: Request) -> Dict[str, Any]:
+    """Import events from a JSON export. Skips duplicates."""
+    body = await request.json()
+    events = body.get("events", body) if isinstance(body, dict) else body
+    if not isinstance(events, list):
+        raise HTTPException(status_code=400, detail="Expected JSON array of events or {events: [...]}")
+    result = observability_storage.import_events(events)
+    return {"status": "ok", **result}
+
+
+@router.delete("/events")
+async def clear_events() -> Dict[str, Any]:
+    """Delete all observability events."""
+    count = observability_storage.clear_all_events()
+    return {"status": "ok", "deleted": count}
 
 
 @router.get("/events/filters")

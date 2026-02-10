@@ -43,7 +43,9 @@ interface ObservabilityState {
   addEvent: (event: HookEvent) => void;
   loadRecentEvents: () => Promise<void>;
   loadStats: () => Promise<void>;
-  clearEvents: () => void;
+  clearEvents: () => Promise<void>;
+  exportEvents: () => Promise<void>;
+  importEvents: (file: File) => Promise<{ imported: number; skipped: number }>;
   setFilters: (f: Partial<ObservabilityFilters>) => void;
   setActiveSubTab: (tab: ObservabilitySubTab) => void;
   toggleAgentLane: (agent: string) => void;
@@ -186,6 +188,8 @@ export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
 
   addEvent: (event: HookEvent) => {
     set((state) => {
+      // Dedup: skip if event.id already exists
+      if (state.events.some((e) => e.id === event.id)) return state;
       const newEvents = [event, ...state.events].slice(0, MAX_EVENTS);
       return {
         events: newEvents,
@@ -224,13 +228,52 @@ export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
     }
   },
 
-  clearEvents: () => {
+  clearEvents: async () => {
+    // Delete from Gateway first, then clear local state
+    try {
+      await fetch(`${GATEWAY_URL}/v1/observability/events`, { method: 'DELETE' });
+    } catch {
+      // Gateway may not be running — still clear locally
+    }
     set({
       events: [],
       activeSessions: new Map(),
       toolStats: {},
       eventTypeStats: {},
     });
+  },
+
+  exportEvents: async () => {
+    try {
+      const res = await fetch(`${GATEWAY_URL}/v1/observability/events/export`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `observability-events-${date}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // Gateway may not be running
+    }
+  },
+
+  importEvents: async (file: File) => {
+    const text = await file.text();
+    const body = JSON.parse(text);
+    const res = await fetch(`${GATEWAY_URL}/v1/observability/events/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error('Import failed');
+    const result = await res.json();
+    // Refresh events after import
+    get().loadRecentEvents();
+    return { imported: result.imported, skipped: result.skipped };
   },
 
   setFilters: (f) => {
