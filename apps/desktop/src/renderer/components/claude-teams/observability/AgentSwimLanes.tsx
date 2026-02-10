@@ -2,7 +2,8 @@
  * AgentSwimLanes - Side-by-side agent activity comparison
  * Shows events grouped by agent/session in horizontal lanes
  */
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
+import { Trash2, Download, ClipboardCheck, Copy } from 'lucide-react';
 import { useObservabilityStore } from '../../../stores/observability-store';
 import {
   HOOK_EVENT_EMOJIS,
@@ -33,6 +34,47 @@ interface LaneData {
   agentId?: string;
   events: HookEvent[];
   color: string;
+}
+
+function LaneActions({ sessionId }: { sessionId: string }) {
+  const deleteSessionEvents = useObservabilityStore((s) => s.deleteSessionEvents);
+  const exportSessionEvents = useObservabilityStore((s) => s.exportSessionEvents);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    const events = useObservabilityStore.getState().events.filter((e) => e.session_id === sessionId);
+    navigator.clipboard.writeText(JSON.stringify(events, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [sessionId]);
+
+  return (
+    <div className="flex items-center gap-0.5 ml-auto">
+      <button
+        onClick={handleCopy}
+        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+        title="Copy session events"
+      >
+        {copied
+          ? <ClipboardCheck className="w-3 h-3 text-green-500" />
+          : <Copy className="w-3 h-3" />}
+      </button>
+      <button
+        onClick={() => exportSessionEvents(sessionId)}
+        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
+        title="Export session events"
+      >
+        <Download className="w-3 h-3" />
+      </button>
+      <button
+        onClick={() => deleteSessionEvents(sessionId)}
+        className="p-1 rounded text-muted-foreground hover:text-red-400 hover:bg-secondary/60 transition-colors"
+        title="Delete session events"
+      >
+        <Trash2 className="w-3 h-3" />
+      </button>
+    </div>
+  );
 }
 
 export function AgentSwimLanes() {
@@ -112,6 +154,7 @@ export function AgentSwimLanes() {
               <span className="text-xs text-muted-foreground">
                 {lane.events.length} events
               </span>
+              <LaneActions sessionId={lane.sessionId} />
             </div>
 
             {/* Lane events (horizontal scroll) */}
