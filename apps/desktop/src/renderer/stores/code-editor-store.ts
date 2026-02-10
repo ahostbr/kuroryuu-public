@@ -25,6 +25,7 @@ export interface GitCommit {
   authorName: string;
   authorEmail: string;
   date: string;
+  timestamp?: number;
 }
 
 export interface GitBranch {
@@ -541,8 +542,18 @@ export const useCodeEditorStore = create<CodeEditorState & CodeEditorActions>((s
   fetchLog: async (limit: number = 20) => {
     try {
       const result = await window.electronAPI?.git?.log?.(limit);
-      if (result?.ok) {
-        set({ recentCommits: result.commits });
+      if (result?.commits) {
+        // Map from IPC format (summary) to GitCommit format (subject)
+        const commits: GitCommit[] = result.commits.map(c => ({
+          hash: c.hash,
+          shortHash: c.shortHash,
+          subject: c.summary,
+          authorName: c.authorName,
+          authorEmail: c.authorEmail,
+          date: c.date,
+          timestamp: c.timestamp,
+        }));
+        set({ recentCommits: commits });
       }
     } catch (err) {
       console.error('[CodeEditor] Fetch log error:', err);
@@ -563,15 +574,16 @@ export const useCodeEditorStore = create<CodeEditorState & CodeEditorActions>((s
   fetchLastCommit: async () => {
     try {
       const result = await window.electronAPI?.git?.show?.('HEAD');
-      if (result?.ok && result.commit) {
+      if (result?.commit) {
         set({
           lastCommit: {
             hash: result.commit.hash,
             shortHash: result.commit.shortHash,
-            subject: result.commit.subject,
-            authorName: result.commit.authorName,
-            authorEmail: result.commit.authorEmail,
-            date: result.commit.date,
+            subject: result.commit.summary,
+            authorName: result.commit.author.name,
+            authorEmail: result.commit.author.email,
+            date: result.commit.author.date,
+            timestamp: result.commit.timestamp,
           }
         });
       }
