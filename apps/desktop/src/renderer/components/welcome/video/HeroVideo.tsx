@@ -34,8 +34,6 @@ export function HeroVideo({
   // Use stored path or prop src
   const storedPath = videoPaths[videoId] || src;
 
-  fileLogger.log('HeroVideo', `Render: videoId=${videoId}, storedPath=${storedPath?.substring(0, 50)}, sessionBlob=${sessionBlobUrl?.substring(0, 30)}`);
-
   // On mount: if we have a saved relative path, load the video file
   useEffect(() => {
     if (didMountInit.current) return;
@@ -98,7 +96,6 @@ export function HeroVideo({
 
   // Handle video load
   const handleCanPlay = useCallback(() => {
-    fileLogger.log('HeroVideo', 'Video ready to play');
     setVideoState('ready');
   }, []);
 

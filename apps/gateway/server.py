@@ -133,6 +133,11 @@ from .traffic.storage import cleanup_task as traffic_cleanup_task
 from .traffic.pty_router import router as pty_traffic_router
 from .traffic.pty_websocket import websocket_pty_traffic
 
+# Observability (Hook Event Telemetry)
+from .observability.router import router as observability_router
+from .observability.websocket import websocket_observability_stream
+from .observability.storage import cleanup_task as observability_cleanup_task
+
 # Logging
 from .utils.logging_config import setup_logging, get_logger
 
@@ -397,6 +402,9 @@ app.include_router(tasks_router)
 # System: Include unified stats and health router
 app.include_router(system_router)
 app.include_router(system_redirect_router)  # Deprecated stats redirects
+
+# Observability: Hook event telemetry
+app.include_router(observability_router)
 
 # GenUI: A2UI generative UI pipeline
 app.include_router(genui_router)
@@ -2276,6 +2284,12 @@ async def ws_traffic_flow(websocket: WebSocket):
 async def ws_pty_traffic(websocket: WebSocket):
     """WebSocket endpoint for real-time PTY traffic visualization."""
     await websocket_pty_traffic(websocket)
+
+
+@app.websocket("/ws/observability-stream")
+async def ws_observability_stream(websocket: WebSocket):
+    """WebSocket endpoint for real-time hook event observability."""
+    await websocket_observability_stream(websocket)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -29,8 +29,6 @@ export function VideoPlaceholder({
 
   const [sessionBlobUrl, setSessionBlobUrl] = useState<string | null>(null);
 
-  fileLogger.log('VideoPlaceholder', `Render: videoId=${videoId}, storedPath=${storedPath}, sessionBlobUrl=${sessionBlobUrl?.substring(0, 30)}`);
-
   // On mount: if we have a saved path, try to load from file
   useEffect(() => {
     if (didMountCleanup.current) return;
@@ -148,7 +146,6 @@ export function VideoPlaceholder({
 
   // If video blob URL is set, show video player
   if (resolvedVideoSrc) {
-    fileLogger.log('VideoPlaceholder', `Rendering video player with src: ${resolvedVideoSrc.substring(0, 50)}...`);
     return (
       <div className={cn('flex flex-col gap-2', className)}>
         <div className="relative w-full aspect-video rounded-xl overflow-hidden">
