@@ -21,12 +21,14 @@ import {
   Play,
   Square,
   Archive,
+  GitBranch,
+  Info,
 } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings-store';
 import { CLIBootstrapInstall } from '../CLIBootstrapInstall';
 import { CLIProxySection } from './CLIProxySection';
 import { FullDesktopSection } from './FullDesktopSection';
-import { useSettings, type GraphitiSettings } from '../../hooks/useSettings';
+import { useSettings, type GraphitiSettings, type GitHubWorkflowSettings } from '../../hooks/useSettings';
 import { toast } from '../ui/toast';
 import { ThemedFrame } from '../ui/ThemedFrame';
 import { useIsThemedStyle } from '../../hooks/useTheme';
@@ -423,6 +425,121 @@ function GraphitiSection() {
   );
 }
 
+// GitHub Workflow Section (Opt-in)
+function GitHubWorkflowSection() {
+  const [workflowSettings, setWorkflowSettings] = useSettings<GitHubWorkflowSettings>('githubWorkflow');
+  const [showInfo, setShowInfo] = useState(false);
+
+  const enabled = workflowSettings?.enabled ?? false;
+
+  const handleToggle = () => {
+    setWorkflowSettings(s => ({ ...s, enabled: !s.enabled }));
+  };
+
+  const handleSubToggle = (key: keyof GitHubWorkflowSettings) => {
+    setWorkflowSettings(s => ({ ...s, [key]: !s[key] }));
+  };
+
+  return (
+    <div>
+      {/* Header with toggle */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-green-500/10 rounded">
+            <GitBranch className="w-3.5 h-3.5 text-green-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-foreground">GitHub Workflow</h3>
+            <p className="text-[10px] text-muted-foreground">Branch → PR → Review</p>
+          </div>
+        </div>
+        <button
+          onClick={handleToggle}
+          className={`w-8 h-4 rounded-full p-0.5 transition-all duration-200 ${
+            enabled ? 'bg-green-500' : 'bg-muted'
+          }`}
+        >
+          <div
+            className={`w-3 h-3 rounded-full bg-white transition-transform duration-200 ${
+              enabled ? 'translate-x-4' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Configuration (when enabled) */}
+      {enabled && (
+        <div className="space-y-2 mt-2">
+          {/* Sub-toggles */}
+          {[
+            { key: 'autoCreateWorktree' as const, label: 'Auto-create worktree on task start' },
+            { key: 'autoCreatePR' as const, label: 'Auto-create PR on task completion' },
+            { key: 'requireReviewBeforeMerge' as const, label: 'Require AI review before merge' },
+            { key: 'autoDeleteBranchAfterMerge' as const, label: 'Delete branch after merge' },
+          ].map(({ key, label }) => (
+            <label key={key} className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={workflowSettings?.[key] as boolean ?? true}
+                onChange={() => handleSubToggle(key)}
+                className="w-3 h-3 rounded border-border accent-green-500"
+              />
+              {label}
+            </label>
+          ))}
+
+          {/* Base branch */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Base branch:</span>
+            <input
+              type="text"
+              value={workflowSettings?.defaultBaseBranch ?? 'master'}
+              onChange={(e) => setWorkflowSettings(s => ({ ...s, defaultBaseBranch: e.target.value }))}
+              className="flex-1 px-2 py-0.5 bg-secondary border border-border rounded text-xs text-foreground focus:border-green-500 focus:outline-none"
+            />
+          </div>
+
+          {/* Branch prefix */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Branch prefix:</span>
+            <input
+              type="text"
+              value={workflowSettings?.branchPrefix ?? 'task/'}
+              onChange={(e) => setWorkflowSettings(s => ({ ...s, branchPrefix: e.target.value }))}
+              className="flex-1 px-2 py-0.5 bg-secondary border border-border rounded text-xs text-foreground focus:border-green-500 focus:outline-none"
+            />
+          </div>
+
+          {/* How it works */}
+          <button
+            onClick={() => setShowInfo(!showInfo)}
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground mt-1"
+          >
+            <Info className="w-2.5 h-2.5" />
+            {showInfo ? 'Hide' : 'How it works'}
+          </button>
+          {showInfo && (
+            <div className="text-[10px] text-muted-foreground bg-secondary/50 rounded p-2 space-y-1">
+              <p>1. Task claimed → worktree created on isolated branch</p>
+              <p>2. Work happens in the worktree (main stays clean)</p>
+              <p>3. Task completed → branch pushed, PR created</p>
+              <p>4. AI reviews the PR diff for bugs and issues</p>
+              <p>5. Merge when review passes (or override)</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Disabled hint */}
+      {!enabled && (
+        <p className="text-[10px] text-muted-foreground mt-1">
+          Automated branch, PR, and review pipeline
+        </p>
+      )}
+    </div>
+  );
+}
+
 export function IntegrationsDialog() {
   const { activeDialog, closeDialog, projectSettings } = useSettingsStore();
   const isOpen = activeDialog === 'integrations';
@@ -679,31 +796,6 @@ export function IntegrationsDialog() {
                   </button>
                 )}
 
-                {/* Placeholder for GitLab */}
-                <div className="py-2 border-b border-border/30 opacity-50">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-secondary rounded">
-                      <Key className="w-3.5 h-3.5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">GitLab</h3>
-                      <p className="text-[10px] text-muted-foreground">Coming soon</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Placeholder for Bitbucket */}
-                <div className="py-2 opacity-50">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-secondary rounded">
-                      <Key className="w-3.5 h-3.5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Bitbucket</h3>
-                      <p className="text-[10px] text-muted-foreground">Coming soon</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -784,6 +876,14 @@ export function IntegrationsDialog() {
                   <FullDesktopSection />
                 </div>
               </div>
+            </div>
+
+            {/* Row: Workflow */}
+            <div className="bg-card/30 rounded-lg p-3 border border-border/50">
+              <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Workflow
+              </h2>
+              <GitHubWorkflowSection />
             </div>
 
             {/* Row 3: Optional Services */}

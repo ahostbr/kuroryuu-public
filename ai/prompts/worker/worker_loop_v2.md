@@ -352,6 +352,15 @@ Skip any step = premature completion claim.
 | "Just this one time, skip todo.md" | todo.md is THE source of truth. No exceptions. |
 | "Claiming works to unblock other tasks" | False DONE creates cascading failures. Honest PROGRESS is better. |
 
+## Git Branch Discipline
+
+When working in a worktree (isolated branch):
+1. **Never commit to main/master** — all work stays on your assigned branch
+2. **Stay in your worktree directory** — do not cd to the main repo
+3. **Commit frequently** — small, focused commits with clear messages
+4. **Push before completion** — ensure your branch is pushed to origin before marking task done
+5. **Do not merge** — merging happens via PR after AI review
+
 ## Quality Checklist
 
 Worker should ensure:

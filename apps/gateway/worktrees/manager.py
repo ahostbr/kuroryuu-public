@@ -195,7 +195,7 @@ class WorktreeManager:
         """
         # Sanitize branch name
         safe_branch = request.branch_name.replace(" ", "-").lower()
-        if not safe_branch.startswith("feature/") and not safe_branch.startswith("bugfix/"):
+        if not safe_branch.startswith(("feature/", "bugfix/", "task/")):
             safe_branch = f"feature/{safe_branch}"
         
         # Create worktree path

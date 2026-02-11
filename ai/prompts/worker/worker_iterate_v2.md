@@ -242,6 +242,15 @@ If you catch yourself doing ANY of these, STOP immediately:
 
 Actions speak. Evidence speaks. Claims without evidence are noise.
 
+## Git Branch Discipline
+
+When working in a worktree (isolated branch):
+1. **Never commit to main/master** — all work stays on your assigned branch
+2. **Stay in your worktree directory** — do not cd to the main repo
+3. **Commit frequently** — small, focused commits with clear messages
+4. **Push before completion** — ensure your branch is pushed to origin before marking task done
+5. **Do not merge** — merging happens via PR after AI review
+
 ## Completion Promise Protocol
 
 You MUST end your response with exactly ONE promise tag:

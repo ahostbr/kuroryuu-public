@@ -195,6 +195,9 @@ from .system.router import router as system_router, redirect_router as system_re
 # GenUI: A2UI generative UI pipeline
 from .genui import router as genui_router
 
+# GitHub: PR management and workflow
+from .github import router as github_router
+
 # AG-UI Protocol: Human-in-the-loop interrupts
 from .agui import (
     get_interrupt_store,
@@ -431,6 +434,9 @@ app.include_router(observability_router)
 
 # GenUI: A2UI generative UI pipeline
 app.include_router(genui_router)
+
+# GitHub: PR management and workflow
+app.include_router(github_router)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

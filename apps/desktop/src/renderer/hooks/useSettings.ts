@@ -58,6 +58,16 @@ export interface GraphitiSettings {
   autoSync: boolean;
 }
 
+export interface GitHubWorkflowSettings {
+  enabled: boolean;
+  autoCreateWorktree: boolean;
+  autoCreatePR: boolean;
+  requireReviewBeforeMerge: boolean;
+  defaultBaseBranch: string;
+  branchPrefix: string;
+  autoDeleteBranchAfterMerge: boolean;
+}
+
 // Defaults (in case API fails)
 const DEFAULT_MIC_SETTINGS: MicSettings = {
   silenceThreshold: 0.12,
@@ -101,6 +111,16 @@ const DEFAULT_GRAPHITI_SETTINGS: GraphitiSettings = {
   autoSync: false,
 };
 
+const DEFAULT_GITHUB_WORKFLOW_SETTINGS: GitHubWorkflowSettings = {
+  enabled: false,
+  autoCreateWorktree: true,
+  autoCreatePR: true,
+  requireReviewBeforeMerge: true,
+  defaultBaseBranch: 'master',
+  branchPrefix: 'task/',
+  autoDeleteBranchAfterMerge: true,
+};
+
 // Namespace to default mapping
 const NAMESPACE_DEFAULTS: Record<string, unknown> = {
   'audio.mic': DEFAULT_MIC_SETTINGS,
@@ -109,6 +129,7 @@ const NAMESPACE_DEFAULTS: Record<string, unknown> = {
   'ui.layout': DEFAULT_LAYOUT_SETTINGS,
   'terminal': DEFAULT_TERMINAL_SETTINGS,
   'graphiti': DEFAULT_GRAPHITI_SETTINGS,
+  'githubWorkflow': DEFAULT_GITHUB_WORKFLOW_SETTINGS,
 };
 
 type SettingsScope = 'user' | 'project';
