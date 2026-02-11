@@ -1,5 +1,5 @@
 import { useMarketingStore } from '../../stores/marketing-store';
-import { Search, Lightbulb, Target, FileText, Image, Mail, Globe, DollarSign, TrendingUp } from 'lucide-react';
+import { Search, Lightbulb, Target, FileText, Mail, Globe, DollarSign, TrendingUp } from 'lucide-react';
 
 const SKILLS = [
   { id: 'research', label: 'Research', icon: Search, file: 'research.md' },
@@ -22,12 +22,12 @@ export function MarketingSkillPicker() {
   };
 
   return (
-    <div className="bg-zinc-800 rounded-lg border border-zinc-700 p-3">
-      <div className="flex items-center gap-2 mb-2">
+    <div className="h-full flex flex-col">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-700">
         <Lightbulb className="w-4 h-4 text-amber-500" />
-        <h3 className="text-sm font-medium text-zinc-100">Marketing Skills</h3>
+        <span className="text-xs font-medium text-zinc-300">Skills</span>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
         {SKILLS.map((skill) => {
           const Icon = skill.icon;
           return (
@@ -35,9 +35,9 @@ export function MarketingSkillPicker() {
               key={skill.id}
               onClick={() => handleSkillClick(skill.file)}
               disabled={!terminalPtyId}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-amber-500/20 hover:border-amber-500/50 disabled:opacity-50 disabled:cursor-not-allowed border border-zinc-700 rounded text-sm text-zinc-300 hover:text-amber-500 transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2 rounded text-sm text-zinc-300 hover:bg-amber-500/20 hover:text-amber-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-left"
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-4 h-4 flex-shrink-0" />
               {skill.label}
             </button>
           );

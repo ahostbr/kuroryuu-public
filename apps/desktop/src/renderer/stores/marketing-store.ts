@@ -18,11 +18,13 @@ interface MarketingStore {
   setSetupComplete: (v: boolean) => void;
 
   // View
-  viewMode: 'split' | 'tabbed';
-  activeTab: 'terminal' | 'tools' | 'gallery';
+  showSkillsSidebar: boolean;
+  showToolsPanel: boolean;
+  toolsPanelTab: 'tools' | 'gallery';
   activePhase: MarketingPhase;
-  setViewMode: (mode: 'split' | 'tabbed') => void;
-  setActiveTab: (tab: 'terminal' | 'tools' | 'gallery') => void;
+  setShowSkillsSidebar: (v: boolean) => void;
+  setShowToolsPanel: (v: boolean) => void;
+  setToolsPanelTab: (tab: 'tools' | 'gallery') => void;
   setActivePhase: (phase: MarketingPhase) => void;
 
   // Terminal
@@ -67,11 +69,13 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
   setSetupComplete: (v) => set({ setupComplete: v }),
 
   // View
-  viewMode: 'split',
-  activeTab: 'terminal',
+  showSkillsSidebar: true,
+  showToolsPanel: false,
+  toolsPanelTab: 'tools',
   activePhase: 'research',
-  setViewMode: (mode) => set({ viewMode: mode }),
-  setActiveTab: (tab) => set({ activeTab: tab }),
+  setShowSkillsSidebar: (v) => set({ showSkillsSidebar: v }),
+  setShowToolsPanel: (v) => set({ showToolsPanel: v }),
+  setToolsPanelTab: (tab) => set({ toolsPanelTab: tab }),
   setActivePhase: (phase) => set({ activePhase: phase }),
 
   // Terminal

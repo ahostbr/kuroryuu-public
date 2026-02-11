@@ -83,46 +83,33 @@ function FloatingTerminalWindow() {
 }
 
 export function MarketingWorkspace() {
-  const viewMode = useMarketingStore((s) => s.viewMode);
-  const activeTab = useMarketingStore((s) => s.activeTab);
+  const showSkillsSidebar = useMarketingStore((s) => s.showSkillsSidebar);
+  const showToolsPanel = useMarketingStore((s) => s.showToolsPanel);
+  const toolsPanelTab = useMarketingStore((s) => s.toolsPanelTab);
 
-  if (viewMode === 'split') {
-    return (
-      <div className="w-full h-full flex flex-col bg-zinc-900">
-        <MarketingHeader />
-        <div className="flex-1 flex gap-4 p-4 overflow-hidden">
-          {/* Left: Skill Picker + Floating Terminal */}
-          <div className="flex-1 flex flex-col gap-4 min-w-0">
-            <MarketingSkillPicker />
-            <div className="flex-1 min-h-0 relative">
-              <FloatingTerminalWindow />
-            </div>
-          </div>
-
-          {/* Right: Tool Panel or Asset Gallery */}
-          <div className="w-96 min-w-0">
-            {activeTab === 'tools' && <MarketingToolPanel />}
-            {activeTab === 'gallery' && <MarketingAssetGallery />}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Tabbed view
   return (
     <div className="w-full h-full flex flex-col bg-zinc-900">
       <MarketingHeader />
-      <div className="flex-1 p-4 overflow-hidden relative">
-        {/* Terminal stays mounted, hidden via CSS to preserve PTY */}
-        <div className={`absolute inset-0 p-4 flex flex-col gap-4 ${activeTab === 'terminal' ? '' : 'hidden pointer-events-none'}`}>
-          <MarketingSkillPicker />
-          <div className="flex-1 min-h-0 relative">
-            <FloatingTerminalWindow />
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left sidebar — Skills (fly-in, like FileExplorer) */}
+        {showSkillsSidebar && (
+          <div className="w-56 flex-shrink-0 border-r border-zinc-700 bg-zinc-800 overflow-y-auto">
+            <MarketingSkillPicker />
           </div>
+        )}
+
+        {/* Center — Terminal area */}
+        <div className="flex-1 min-w-0 relative p-4">
+          <FloatingTerminalWindow />
         </div>
-        {activeTab === 'tools' && <MarketingToolPanel />}
-        {activeTab === 'gallery' && <MarketingAssetGallery />}
+
+        {/* Right sidebar — Tools/Gallery (fly-in from right) */}
+        {showToolsPanel && (
+          <div className="w-80 flex-shrink-0 border-l border-zinc-700 bg-zinc-800 overflow-y-auto">
+            {toolsPanelTab === 'tools' && <MarketingToolPanel />}
+            {toolsPanelTab === 'gallery' && <MarketingAssetGallery />}
+          </div>
+        )}
       </div>
     </div>
   );
