@@ -4024,6 +4024,12 @@ app.whenReady().then(async () => {
   setupGatewayIpc();
   setupCliIpc();
   setupAuthIpc();
+  // Auto-restore GitHub service from stored credentials
+  const ghCreds = getOAuthAppCredentials('github');
+  if (ghCreds?.clientId) {
+    githubService = new GitHubOAuthService(ghCreds.clientId, ghCreds.clientSecret);
+    console.log('[GitHub] Auto-restored service from stored credentials');
+  }
   setupThinkerIpc();
   setupSpecialistIpc();
   setupQuizmasterIpc();

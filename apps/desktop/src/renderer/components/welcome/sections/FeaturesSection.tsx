@@ -672,19 +672,17 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
                       {/* External URL button */}
                       {feature.externalUrl && !feature.route && (
                         <div className="mt-4 flex flex-col items-center gap-4">
-                          <a
-                            href={feature.externalUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            onClick={() => window.electronAPI?.shell?.openExternal?.(feature.externalUrl!)}
                             className={cn(
                               'flex items-center gap-2 px-4 py-2 rounded-lg',
                               'bg-primary text-primary-foreground hover:bg-primary/90',
-                              'font-medium text-sm transition-colors no-underline'
+                              'font-medium text-sm transition-colors'
                             )}
                           >
                             Visit {feature.title}
                             <ExternalLink className="w-4 h-4" />
-                          </a>
+                          </button>
                         </div>
                       )}
 
