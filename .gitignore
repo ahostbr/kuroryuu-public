@@ -119,6 +119,7 @@ ai/config/*.flag
 ai/capture/output/
 ai/.internal_secret
 /apps/kuroryuu_cli_v2
+/apps/kuroryuu_cli_v3
 Docs/CaseStudies/OLLM_CLI_CaseStudy.md
 /assets/videos/frames
 assets/videos/Timeline 1.mp4
@@ -128,8 +129,6 @@ ai/hooks/task_id_map.json
 # Personal task tracking (not committed — use ai/todo.md.template for clean slate)
 ai/todo.md
 ai/task-meta.json
-
-/apps/kuroryuu_cli_v3
 /ai/reviews
 /Docs/CaseStudies
 
