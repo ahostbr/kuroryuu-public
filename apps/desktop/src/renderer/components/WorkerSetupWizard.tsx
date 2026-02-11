@@ -213,7 +213,7 @@ const WORKFLOW_TYPES: SubtypeOption[] = [
 ];
 
 // Get bootstrap @ files based on role and subtype
-function getBootstrapFiles(role: AgentRole, subtype: string | null, quizmasterVariant: 'small' | 'full' = 'small'): string[] {
+function getBootstrapFiles(role: AgentRole, subtype: string | null, quizmasterVariant: 'small' | 'full' | 'v4' | 'v5' = 'small'): string[] {
   switch (role) {
     case 'worker':
       return ['KURORYUU_WORKER.md'];
@@ -235,10 +235,15 @@ function getBootstrapFiles(role: AgentRole, subtype: string | null, quizmasterVa
         return [`ai/prompt_packs/workflow_specialists/${subtype}.md`];
       }
       return [];
-    case 'quizmaster':
-      return quizmasterVariant === 'full'
-        ? ['ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER PROMPT_full.md']
-        : ['ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_small.md'];
+    case 'quizmaster': {
+      const QUIZMASTER_PROMPTS: Record<string, string> = {
+        small: 'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_small.md',
+        full:  'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER PROMPT_full.md',
+        v4:    'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_v4.md',
+        v5:    'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_v5.md',
+      };
+      return [QUIZMASTER_PROMPTS[quizmasterVariant] || QUIZMASTER_PROMPTS.small];
+    }
     default:
       return [];
   }
@@ -252,7 +257,7 @@ interface Props {
   projectRoot?: string;
   onLaunchThinker?: (basePath: string, personaPath: string, personaName: string) => void;
   onLaunchWorkflowSpecialist?: (promptPath: string, specialistName: string, profile: string) => void;
-  onLaunchQuizmaster?: () => void;
+  onLaunchQuizmaster?: (variant?: string) => void;
 }
 
 type WorktreeMode = 'none' | 'shared' | 'per-worker';
@@ -291,7 +296,7 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
   const [isLaunching, setIsLaunching] = useState(false);
 
   // Quizmaster prompt variant toggle
-  const [quizmasterVariant, setQuizmasterVariant] = useState<'small' | 'full'>('small');
+  const [quizmasterVariant, setQuizmasterVariant] = useState<'small' | 'full' | 'v4' | 'v5'>('small');
 
   // Computed bootstrap files
   const bootstrapFiles = useMemo(() => {
@@ -406,7 +411,7 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
 
     // Handle quizmaster launch - direct spawn like the hidden toolbar button
     if (selectedRole === 'quizmaster' && onLaunchQuizmaster) {
-      onLaunchQuizmaster();
+      onLaunchQuizmaster(quizmasterVariant);
       onCancel();
       return;
     }
@@ -839,8 +844,9 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
                       </div>
                     </div>
 
-                    {/* Key Capabilities */}
+                    {/* Key Capabilities - dynamic based on variant */}
                     <div className="grid grid-cols-2 gap-3 mb-5">
+                      {/* Base capabilities (all variants) */}
                       <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
                         <div className="w-1.5 h-1.5 rounded-full bg-[#c9a227] mt-1.5 flex-shrink-0" />
                         <div>
@@ -869,40 +875,154 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
                           <div className="text-[10px] text-zinc-500">Structured input collection</div>
                         </div>
                       </div>
+                      {/* v4+ capabilities */}
+                      {(quizmasterVariant === 'v4' || quizmasterVariant === 'v5') && (
+                        <>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#fbbf24] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Coverage Maps</div>
+                              <div className="text-[10px] text-zinc-500">Visual domain tracking</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#fbbf24] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Assumption Gate</div>
+                              <div className="text-[10px] text-zinc-500">Validates before planning</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#fbbf24] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Quality Metrics</div>
+                              <div className="text-[10px] text-zinc-500">Question impact tracking</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#fbbf24] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Retrospective</div>
+                              <div className="text-[10px] text-zinc-500">Post-plan feedback loop</div>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      {/* v5-only capabilities */}
+                      {quizmasterVariant === 'v5' && (
+                        <>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Reconnaissance</div>
+                              <div className="text-[10px] text-zinc-500">Scans codebase first</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Collective Memory</div>
+                              <div className="text-[10px] text-zinc-500">Learns from past sessions</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Predictive</div>
+                              <div className="text-[10px] text-zinc-500">Predicts answers after R3</div>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-2 p-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#f59e0b] mt-1.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-zinc-300">Self-Evolution</div>
+                              <div className="text-[10px] text-zinc-500">Rewrites itself after use</div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    {/* Prompt Variant Toggle */}
+                    {/* Prompt Variant Selector - 2x2 card grid */}
                     <div className="p-3 rounded-xl bg-black/30 border border-[#c9a227]/20">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-medium text-zinc-400">Prompt Depth</span>
-                        <div className="flex items-center gap-2 p-1 rounded-lg bg-black/40">
-                          <button
-                            onClick={() => setQuizmasterVariant('small')}
-                            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-                              quizmasterVariant === 'small'
-                                ? 'bg-[#c9a227] text-black'
-                                : 'text-zinc-400 hover:text-zinc-300'
-                            }`}
-                          >
-                            Concise
-                          </button>
-                          <button
-                            onClick={() => setQuizmasterVariant('full')}
-                            className={`px-3 py-1 rounded text-xs font-medium transition-all ${
-                              quizmasterVariant === 'full'
-                                ? 'bg-[#c9a227] text-black'
-                                : 'text-zinc-400 hover:text-zinc-300'
-                            }`}
-                          >
-                            Exhaustive
-                          </button>
-                        </div>
+                        <span className="text-xs font-medium text-zinc-400">Prompt Variant</span>
                       </div>
-                      <div className="text-[11px] text-zinc-500">
-                        {quizmasterVariant === 'small'
-                          ? 'Efficient 6-12 questions per turn, focused on high-impact unknowns'
-                          : 'Complete 10-domain coverage with exhaustive risk analysis'
-                        }
+                      <div className="grid grid-cols-2 gap-2">
+                        {/* Concise (small) */}
+                        <button
+                          onClick={() => setQuizmasterVariant('small')}
+                          className={`p-2.5 rounded-lg border text-left transition-all ${
+                            quizmasterVariant === 'small'
+                              ? 'border-[#c9a227] bg-[#c9a227]/15 shadow-[0_0_12px_rgba(201,162,39,0.2)]'
+                              : 'border-[#c9a227]/20 bg-black/20 hover:border-[#c9a227]/40 hover:bg-black/30'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-xs font-semibold text-zinc-200">Concise</span>
+                            <span className="text-[9px] text-zinc-500 bg-black/30 px-1 rounded">6 KB</span>
+                          </div>
+                          <div className="text-[10px] text-zinc-500 leading-relaxed">
+                            Efficient 6-12 questions per turn, high-impact unknowns
+                          </div>
+                        </button>
+
+                        {/* Exhaustive (full) */}
+                        <button
+                          onClick={() => setQuizmasterVariant('full')}
+                          className={`p-2.5 rounded-lg border text-left transition-all ${
+                            quizmasterVariant === 'full'
+                              ? 'border-[#c9a227] bg-[#c9a227]/15 shadow-[0_0_12px_rgba(201,162,39,0.2)]'
+                              : 'border-[#c9a227]/20 bg-black/20 hover:border-[#c9a227]/40 hover:bg-black/30'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-xs font-semibold text-zinc-200">Exhaustive</span>
+                            <span className="text-[9px] text-zinc-500 bg-black/30 px-1 rounded">10 KB</span>
+                          </div>
+                          <div className="text-[10px] text-zinc-500 leading-relaxed">
+                            Complete 10-domain coverage with per-domain examples
+                          </div>
+                        </button>
+
+                        {/* v4 — Metrics */}
+                        <button
+                          onClick={() => setQuizmasterVariant('v4')}
+                          className={`p-2.5 rounded-lg border text-left transition-all ${
+                            quizmasterVariant === 'v4'
+                              ? 'border-[#c9a227] bg-[#c9a227]/15 shadow-[0_0_12px_rgba(201,162,39,0.2)]'
+                              : 'border-[#c9a227]/20 bg-black/20 hover:border-[#c9a227]/40 hover:bg-black/30'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-xs font-semibold text-zinc-200">v4 — Metrics</span>
+                            <span className="text-[9px] text-zinc-500 bg-black/30 px-1 rounded">16 KB</span>
+                          </div>
+                          <div className="text-[10px] text-zinc-500 leading-relaxed">
+                            Coverage maps, quality metrics, assumption gate
+                          </div>
+                        </button>
+
+                        {/* v5 — Living */}
+                        <button
+                          onClick={() => setQuizmasterVariant('v5')}
+                          className={`p-2.5 rounded-lg border text-left transition-all relative ${
+                            quizmasterVariant === 'v5'
+                              ? 'border-[#c9a227] bg-[#c9a227]/15 shadow-[0_0_12px_rgba(201,162,39,0.2)]'
+                              : 'border-[#c9a227]/20 bg-black/20 hover:border-[#c9a227]/40 hover:bg-black/30'
+                          }`}
+                        >
+                          <div className="absolute -top-1.5 right-2 px-1.5 py-0 rounded text-[8px] font-bold bg-[#c9a227]/80 text-black uppercase tracking-wider">
+                            Latest
+                          </div>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-xs font-semibold text-zinc-200">v5 — Living</span>
+                            <span className="text-[9px] text-zinc-500 bg-black/30 px-1 rounded">35 KB</span>
+                          </div>
+                          <div className="text-[10px] text-zinc-500 leading-relaxed">
+                            Recon, adaptive weights, collective memory, self-evolution
+                          </div>
+                        </button>
                       </div>
                       <div className="mt-2 flex items-center gap-1.5">
                         <FileText className="w-3 h-3 text-[#c9a227]/60" />

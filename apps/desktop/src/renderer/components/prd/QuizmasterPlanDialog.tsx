@@ -12,7 +12,7 @@ interface QuizmasterPlanDialogProps {
   workflow: WorkflowType;
   onClose: () => void;
   onProceedDirect: () => void;
-  onLaunchQuizmaster: () => void;
+  onLaunchQuizmaster: (variant?: string) => void;
 }
 
 // Workflow labels for display
@@ -71,7 +71,7 @@ export function QuizmasterPlanDialog({
 
           {/* Option 1: Use Quizmaster */}
           <button
-            onClick={onLaunchQuizmaster}
+            onClick={() => onLaunchQuizmaster()}
             className="w-full flex items-center gap-4 p-4 rounded-lg border-2 border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/20 hover:border-orange-500/50 transition-all duration-200 text-left group"
           >
             <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-orange-500/20 flex items-center justify-center group-hover:bg-orange-500/30 transition-colors">

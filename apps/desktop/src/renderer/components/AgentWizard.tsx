@@ -20,7 +20,7 @@ interface AgentWizardProps {
   onLaunchThinker: (basePath: string, personaPath: string, personaName: string) => void;
   onLaunchSpecialist: (promptPath: string, specialistName: string, profile: string) => void;
   onLaunchWorkflowSpecialist: (promptPath: string, specialistName: string, profile: string) => void;
-  onLaunchQuizmaster?: () => void;
+  onLaunchQuizmaster?: (variant?: string) => void;
   defaultTab?: TabType;
 }
 

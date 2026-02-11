@@ -1375,28 +1375,31 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
 
   // Handle Quizmaster launch - direct launch without wizard
   // FIXED: Follow worker pattern - let Terminal.tsx create PTY to avoid race condition
-  const handleQuizmasterLaunch = useCallback(async () => {
+  const handleQuizmasterLaunch = useCallback(async (variant?: string) => {
     const quizmasterId = `quizmaster_${Date.now()}`;
 
     try {
-      // Get quizmaster prompt path
-      const result = await window.electronAPI.quizmaster.getPromptPath();
-      if (!result.ok || !result.promptPath) {
-        toast.error('Failed to get quizmaster prompt path');
-        return;
-      }
+      // Map variant to prompt path directly (no IPC needed)
+      const QUIZMASTER_PROMPTS: Record<string, string> = {
+        small: 'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_small.md',
+        full:  'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER PROMPT_full.md',
+        v4:    'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_v4.md',
+        v5:    'ai/prompt_packs/quizmasterplanner/ULTIMATE_QUIZZER_PROMPT_v5.md',
+      };
+      const promptPath = QUIZMASTER_PROMPTS[variant || 'small'] || QUIZMASTER_PROMPTS.small;
+      const variantLabel = variant === 'v5' ? ' (Living)' : variant === 'v4' ? ' (Metrics)' : variant === 'full' ? ' (Exhaustive)' : '';
 
       // Create agent config with prompt path
       const quizmasterConfig: AgentConfig = {
         id: quizmasterId,
-        name: 'Quizmaster Planning',
+        name: `Quizmaster Planning${variantLabel}`,
         role: 'worker',
         modelName: 'claude-opus-4',
         backend: 'claude-cli',
         capabilities: ['quizmaster', 'planning', 'requirements'],
         enabled: true,
         cliProvider: 'claude',                  // buildCliConfig will use this
-        specialistPromptPath: result.promptPath, // buildCliConfig will add @promptPath
+        specialistPromptPath: promptPath,        // buildCliConfig will add @promptPath
         claudeModeEnabled: true,                // Enable Claude Mode for inbox polling
       };
 
@@ -1406,7 +1409,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
       // Create terminal WITHOUT ptyId - let Terminal.tsx create the PTY
       const newTerminal: TerminalInstance = {
         id: `quizmaster_terminal_${Date.now()}`,
-        title: 'Quizmaster Planning',
+        title: `Quizmaster Planning${variantLabel}`,
         linkedAgentId: quizmasterId,
         claudeMode: true,
         viewMode: 'terminal',
