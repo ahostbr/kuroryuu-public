@@ -21,10 +21,12 @@ interface MarketingStore {
   showSkillsSidebar: boolean;
   showToolsPanel: boolean;
   toolsPanelTab: 'tools' | 'gallery';
+  layoutMode: 'grid' | 'splitter' | 'window';
   activePhase: MarketingPhase;
   setShowSkillsSidebar: (v: boolean) => void;
   setShowToolsPanel: (v: boolean) => void;
   setToolsPanelTab: (tab: 'tools' | 'gallery') => void;
+  setLayoutMode: (mode: 'grid' | 'splitter' | 'window') => void;
   setActivePhase: (phase: MarketingPhase) => void;
 
   // Terminal
@@ -72,10 +74,15 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
   showSkillsSidebar: true,
   showToolsPanel: false,
   toolsPanelTab: 'tools',
+  layoutMode: 'window',
   activePhase: 'research',
   setShowSkillsSidebar: (v) => set({ showSkillsSidebar: v }),
   setShowToolsPanel: (v) => set({ showToolsPanel: v }),
   setToolsPanelTab: (tab) => set({ toolsPanelTab: tab }),
+  setLayoutMode: (mode) => {
+    set({ layoutMode: mode });
+    window.electronAPI?.settings?.set?.('ui.marketingLayout', mode).catch(console.error);
+  },
   setActivePhase: (phase) => set({ activePhase: phase }),
 
   // Terminal

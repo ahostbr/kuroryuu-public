@@ -49,7 +49,7 @@ function findUvPath(): string | null {
   try {
     const result = execSync(
       process.platform === 'win32' ? 'where uv' : 'which uv',
-      { stdio: 'pipe', shell: true, env: { ...process.env, PATH: getAugmentedPath() } },
+      { stdio: 'pipe', shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/sh', env: { ...process.env, PATH: getAugmentedPath() } },
     );
     const firstLine = result.toString().trim().split(/\r?\n/)[0];
     if (firstLine && fs.existsSync(firstLine)) return firstLine;

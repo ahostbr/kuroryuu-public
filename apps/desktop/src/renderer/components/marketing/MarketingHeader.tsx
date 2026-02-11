@@ -1,6 +1,6 @@
 import { useMarketingStore } from '../../stores/marketing-store';
 import { MARKETING_PHASES } from '../../types/marketing';
-import { Settings2, Lightbulb, Wrench } from 'lucide-react';
+import { Settings2, Lightbulb, Wrench, LayoutGrid, GripVertical, Layers } from 'lucide-react';
 
 export function MarketingHeader() {
   const activePhase = useMarketingStore((s) => s.activePhase);
@@ -11,6 +11,8 @@ export function MarketingHeader() {
   const setShowToolsPanel = useMarketingStore((s) => s.setShowToolsPanel);
   const toolsPanelTab = useMarketingStore((s) => s.toolsPanelTab);
   const setToolsPanelTab = useMarketingStore((s) => s.setToolsPanelTab);
+  const layoutMode = useMarketingStore((s) => s.layoutMode);
+  const setLayoutMode = useMarketingStore((s) => s.setLayoutMode);
   const setSetupComplete = useMarketingStore((s) => s.setSetupComplete);
 
   return (
@@ -55,8 +57,31 @@ export function MarketingHeader() {
           </div>
         </div>
 
-        {/* Right: Tools panel toggle + tab switcher + Settings */}
+        {/* Right: Layout toggle + Tools panel toggle + tab switcher + Settings */}
         <div className="flex items-center gap-2">
+          {/* Layout Mode Toggle */}
+          <div className="relative group">
+            <button
+              onClick={() => {
+                const modes: ('grid' | 'splitter' | 'window')[] = ['grid', 'splitter', 'window'];
+                const idx = modes.indexOf(layoutMode);
+                setLayoutMode(modes[(idx + 1) % modes.length]);
+              }}
+              className="p-1.5 rounded transition-colors text-zinc-400 hover:text-zinc-100 hover:bg-zinc-700"
+              title={`Layout: ${layoutMode.charAt(0).toUpperCase() + layoutMode.slice(1)}`}
+            >
+              {layoutMode === 'grid' && <LayoutGrid className="w-4 h-4" />}
+              {layoutMode === 'splitter' && <GripVertical className="w-4 h-4" />}
+              {layoutMode === 'window' && <Layers className="w-4 h-4" />}
+            </button>
+            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 px-1.5 py-0.5 text-[10px] font-medium
+              bg-zinc-800 border border-zinc-600 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-50">
+              {layoutMode}
+            </div>
+          </div>
+
+          <div className="w-px h-5 bg-zinc-600" />
+
           {/* Tools panel toggle */}
           <button
             onClick={() => setShowToolsPanel(!showToolsPanel)}

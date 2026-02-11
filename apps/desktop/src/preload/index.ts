@@ -2525,7 +2525,7 @@ const api = {
       ipcRenderer.invoke('marketing:cloneRepo', repoUrl, targetDir),
     installDeps: (toolDir: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('marketing:installDeps', toolDir),
-    getToolStatus: (): Promise<{ tools: Array<{ id: string; name: string; installed: boolean; path: string | null }> }> =>
+    getToolStatus: (): Promise<{ tools: Array<{ id: string; name: string; description: string; installed: boolean; depsInstalled: boolean; path: string | null; version: string | null; repoUrl: string; optional: boolean }> }> =>
       ipcRenderer.invoke('marketing:getToolStatus'),
     getSetupState: (): Promise<{ complete: boolean; tools: unknown[] }> =>
       ipcRenderer.invoke('marketing:getSetupState'),
