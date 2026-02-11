@@ -3,7 +3,7 @@
  * Top navigation bar with repository info, branch selector, and context-aware fetch/push/pull button
  */
 
-import { GitBranch, RefreshCw, ChevronDown, ArrowUp, ArrowDown, Check, FolderOpen } from 'lucide-react';
+import { GitBranch, RefreshCw, ChevronDown, ArrowUp, ArrowDown, Check, FolderOpen, Lock, BookMarked } from 'lucide-react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRepositoryStore } from '../../stores/repository-store';
 
@@ -181,9 +181,23 @@ function BranchDropdown({ onClose }: { onClose: () => void }) {
 // Repo Info Popover
 // ============================================================================
 
-function RepoInfoPopover({ repoPath, onClose }: { repoPath: string; onClose: () => void }) {
-  const popoverRef = useRef<HTMLDivElement>(null);
+interface GitHubRepoItem {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+}
 
+function RepoInfoPopover({ repoPath, repoName, onClose }: { repoPath: string; repoName: string; onClose: () => void }) {
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [filter, setFilter] = useState('');
+  const [repos, setRepos] = useState<GitHubRepoItem[]>([]);
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [connected, setConnected] = useState(false);
+
+  // Outside click to close
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
@@ -194,11 +208,42 @@ function RepoInfoPopover({ repoPath, onClose }: { repoPath: string; onClose: () 
     return () => document.removeEventListener('mousedown', handleClick);
   }, [onClose]);
 
+  // Fetch repos on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const isConnected = await window.electronAPI?.github?.isConnected?.();
+        setConnected(!!isConnected);
+        if (!isConnected) { setLoading(false); return; }
+
+        const [user, repoList] = await Promise.all([
+          window.electronAPI?.github?.getUser?.(),
+          window.electronAPI?.github?.listRepos?.({ sort: 'full_name', per_page: 100 }),
+        ]);
+
+        if (user?.login) setUsername(user.login);
+        if (Array.isArray(repoList)) setRepos(repoList);
+      } catch (err) {
+        console.error('Failed to fetch GitHub repos:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  // Focus filter input
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const filtered = repos.filter(r =>
+    r.name.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  const currentRepoLower = repoName.toLowerCase();
+
   const handleOpenExplorer = async () => {
     try {
       await window.electronAPI?.shell?.openPath?.(repoPath);
     } catch {
-      // Fallback: try shell.showItemInFolder if openPath isn't available
       console.error('Failed to open path');
     }
     onClose();
@@ -220,40 +265,122 @@ function RepoInfoPopover({ repoPath, onClose }: { repoPath: string; onClose: () 
         overflow: 'hidden',
       }}
     >
-      <div style={{ padding: '12px', borderBottom: '1px solid var(--ghd-border)' }}>
-        <div style={{ fontSize: 'var(--ghd-font-size-sm)', color: 'var(--ghd-text-muted)', marginBottom: '4px' }}>
-          Repository path
-        </div>
-        <div style={{
-          fontSize: 'var(--ghd-font-size-sm)',
-          color: 'var(--ghd-text-primary)',
-          wordBreak: 'break-all',
-          fontFamily: 'monospace',
-        }}>
-          {repoPath}
-        </div>
+      {/* Filter */}
+      <div style={{ padding: '8px', borderBottom: '1px solid var(--ghd-border)' }}>
+        <input
+          ref={inputRef}
+          type="text"
+          placeholder="Filter repositories..."
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            background: 'var(--ghd-bg-primary)',
+            border: '1px solid var(--ghd-border)',
+            borderRadius: '4px',
+            color: 'var(--ghd-text-primary)',
+            fontSize: 'var(--ghd-font-size-sm)',
+            outline: 'none',
+          }}
+        />
       </div>
-      <button
-        onClick={handleOpenExplorer}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          width: '100%',
-          padding: '10px 12px',
-          background: 'transparent',
-          border: 'none',
-          color: 'var(--ghd-text-primary)',
-          fontSize: 'var(--ghd-font-size-sm)',
-          cursor: 'pointer',
-          textAlign: 'left',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ghd-bg-hover)'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-      >
-        <FolderOpen size={14} style={{ color: 'var(--ghd-text-secondary)' }} />
-        Open in Explorer
-      </button>
+
+      {/* Repo list */}
+      <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        {loading ? (
+          <div style={{ padding: '12px', color: 'var(--ghd-text-muted)', textAlign: 'center', fontSize: 'var(--ghd-font-size-sm)' }}>
+            Loading repositories...
+          </div>
+        ) : !connected ? (
+          <div style={{ padding: '12px', color: 'var(--ghd-text-muted)', textAlign: 'center', fontSize: 'var(--ghd-font-size-sm)' }}>
+            Sign in to GitHub to see your repos
+          </div>
+        ) : (
+          <>
+            {/* Account header */}
+            {username && (
+              <div style={{
+                padding: '6px 12px',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--ghd-text-muted)',
+                textTransform: 'lowercase',
+              }}>
+                {username}
+              </div>
+            )}
+            {filtered.length === 0 ? (
+              <div style={{ padding: '12px', color: 'var(--ghd-text-muted)', textAlign: 'center', fontSize: 'var(--ghd-font-size-sm)' }}>
+                No repositories found
+              </div>
+            ) : (
+              filtered.map((repo) => {
+                const isCurrent = repo.name.toLowerCase() === currentRepoLower
+                  || repo.name.toLowerCase() === currentRepoLower.replace(/-master$/, '')
+                  || repo.name.toLowerCase() === currentRepoLower.replace(/-main$/, '');
+                return (
+                  <div
+                    key={repo.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      width: '100%',
+                      padding: '7px 12px',
+                      background: isCurrent ? 'var(--ghd-bg-active)' : 'transparent',
+                      color: 'var(--ghd-text-primary)',
+                      fontSize: 'var(--ghd-font-size-sm)',
+                    }}
+                  >
+                    {repo.private
+                      ? <Lock size={14} style={{ color: 'var(--ghd-text-muted)', flexShrink: 0 }} />
+                      : <BookMarked size={14} style={{ color: 'var(--ghd-text-muted)', flexShrink: 0 }} />
+                    }
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {repo.name}
+                    </span>
+                    {isCurrent && (
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: 'var(--ghd-accent-blue, #58a6ff)',
+                        flexShrink: 0,
+                      }} />
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Open in Explorer */}
+      <div style={{ borderTop: '1px solid var(--ghd-border)' }}>
+        <button
+          onClick={handleOpenExplorer}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            width: '100%',
+            padding: '10px 12px',
+            background: 'transparent',
+            border: 'none',
+            color: 'var(--ghd-text-primary)',
+            fontSize: 'var(--ghd-font-size-sm)',
+            cursor: 'pointer',
+            textAlign: 'left',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ghd-bg-hover)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+        >
+          <FolderOpen size={14} style={{ color: 'var(--ghd-text-secondary)' }} />
+          Open in Explorer
+        </button>
+      </div>
     </div>
   );
 }
@@ -326,6 +453,7 @@ export function Toolbar() {
         {showRepoPopover && repository?.path && (
           <RepoInfoPopover
             repoPath={repository.path}
+            repoName={repository.name || ''}
             onClose={() => setShowRepoPopover(false)}
           />
         )}
