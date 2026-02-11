@@ -2143,40 +2143,6 @@ async def delete_worker_config(worker_id: str):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Static Web UI Routes (MUST BE LAST - lowest priority, after all API routes)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-if _web_dist.exists():
-    # Serve index.html at root (with auth)
-    @app.get("/")
-    async def serve_root(kuroryuu_session: str = Cookie(None)):
-        if not _check_auth(kuroryuu_session):
-            return RedirectResponse(url="/login", status_code=303)
-        return FileResponse(str(_web_dist / "index.html"))
-    
-    # Catch-all for SPA routing - MUST be last route defined
-    @app.get("/{path:path}")
-    async def serve_spa(path: str, kuroryuu_session: str = Cookie(None)):
-        # Allow static files without auth (images, favicon, etc.)
-        static_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.woff', '.woff2', '.ttf')
-        if path.endswith(static_extensions):
-            file_path = _web_dist / path
-            if file_path.exists() and file_path.is_file():
-                return FileResponse(str(file_path))
-            raise HTTPException(status_code=404, detail="Not Found")
-        
-        # Auth check for web UI pages
-        if not _check_auth(kuroryuu_session):
-            return RedirectResponse(url="/login", status_code=303)
-        # Check if it's a static file
-        file_path = _web_dist / path
-        if file_path.exists() and file_path.is_file():
-            return FileResponse(str(file_path))
-        # Fallback to index.html for SPA routing
-        return FileResponse(str(_web_dist / "index.html"))
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
 # Leader Dashboards (Phase 0 Tier 1.2 - Task 4)
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -2289,6 +2255,44 @@ async def get_leader_dashboard_text(leader_id: str):
 
     except Exception as e:
         return f"Error generating dashboard: {str(e)}"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Static Web UI Routes (MUST BE LAST - lowest priority, after all API routes)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+if _web_dist.exists():
+    # Serve index.html at root (with auth)
+    @app.get("/")
+    async def serve_root(kuroryuu_session: str = Cookie(None)):
+        if not _check_auth(kuroryuu_session):
+            return RedirectResponse(url="/login", status_code=303)
+        return FileResponse(str(_web_dist / "index.html"))
+    
+    # Catch-all for SPA routing - MUST be last route defined
+    @app.get("/{path:path}")
+    async def serve_spa(path: str, kuroryuu_session: str = Cookie(None)):
+        # API routes should never fall through to SPA — return 404 not 303
+        if path.startswith(("v1/", "api/", "ws/")):
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        # Allow static files without auth (images, favicon, etc.)
+        static_extensions = ('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.woff', '.woff2', '.ttf')
+        if path.endswith(static_extensions):
+            file_path = _web_dist / path
+            if file_path.exists() and file_path.is_file():
+                return FileResponse(str(file_path))
+            raise HTTPException(status_code=404, detail="Not Found")
+        
+        # Auth check for web UI pages
+        if not _check_auth(kuroryuu_session):
+            return RedirectResponse(url="/login", status_code=303)
+        # Check if it's a static file
+        file_path = _web_dist / path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(str(file_path))
+        # Fallback to index.html for SPA routing
+        return FileResponse(str(_web_dist / "index.html"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

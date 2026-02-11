@@ -71,4 +71,4 @@ GET `http://127.0.0.1:8200/v1/status` for combined status.
 If services unavailable:
 1. Run `.\run_all.ps1` to start stack
 2. Check `claude mcp list` for MCP connection
-3. Verify Gateway at http://127.0.0.1:8200/health
+3. Verify Gateway at http://127.0.0.1:8200/v1/health

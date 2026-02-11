@@ -569,7 +569,7 @@ claude mcp list  # Verify connection
 ```
 
 3. **Gateway Available:**
-- Check: http://127.0.0.1:8200/health
+- Check: http://127.0.0.1:8200/v1/health
 
 ### Installation Options
 
@@ -640,7 +640,7 @@ cc --plugin-dir ~/.claude/plugins/kuro
 3. Re-add MCP server if needed
 
 ### Gateway Unavailable
-1. Check health: http://127.0.0.1:8200/health
+1. Check health: http://127.0.0.1:8200/v1/health
 2. Start the stack: `.\run_all.ps1`
 3. Check logs in `apps/gateway/`
 

@@ -227,7 +227,7 @@ Save checkpoints:
 
 ### Gateway Unavailable
 
-1. Check Gateway: `http://127.0.0.1:8200/health`
+1. Check Gateway: `http://127.0.0.1:8200/v1/health`
 2. Start stack: `.\run_all.ps1`
 3. Use MCP tools directly as fallback
 
