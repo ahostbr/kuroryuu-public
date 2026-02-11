@@ -11,7 +11,19 @@ export function MarketingWorkspace() {
   const showToolsPanel = useMarketingStore((s) => s.showToolsPanel);
   const toolsPanelTab = useMarketingStore((s) => s.toolsPanelTab);
   const layoutMode = useMarketingStore((s) => s.layoutMode);
+  const setLayoutMode = useMarketingStore((s) => s.setLayoutMode);
   const termWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Load persisted layout mode on mount (matching TerminalGrid pattern lines 244-253)
+  useEffect(() => {
+    window.electronAPI?.settings?.get?.('ui.marketingLayout').then((raw: unknown) => {
+      const mode = raw as 'grid' | 'splitter' | 'window' | null;
+      if (mode && ['grid', 'splitter', 'window'].includes(mode)) {
+        setLayoutMode(mode);
+      }
+    }).catch(console.error);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Window mode state (drag + resize)
   const [win, setWin] = useState({ x: 20, y: 20, width: 700, height: 450 });
@@ -61,21 +73,19 @@ export function MarketingWorkspace() {
     document.addEventListener('mouseup', onUp);
   }, [win]);
 
-  // Force terminal ResizeObserver to fire after layout mode changes.
-  // Briefly toggle 1px padding on the wrapper — this guarantees the observed
-  // element's dimensions change, even if the grid layout settles to similar
-  // pixel values as the previous mode.
+  // Force terminal refit after layout changes.
+  // Uses delayed padding nudge to guarantee ResizeObserver fires AFTER
+  // Terminal.tsx has set up its observer (which depends on async PTY connection).
   useEffect(() => {
     const el = termWrapperRef.current;
     if (!el) return;
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      el.style.paddingRight = '1px';
-      raf2 = requestAnimationFrame(() => {
-        el.style.paddingRight = '';
-      });
-    });
-    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+    const timers = [300, 600, 1000].map(delay =>
+      setTimeout(() => {
+        el.style.paddingRight = '1px';
+        requestAnimationFrame(() => { el.style.paddingRight = ''; });
+      }, delay)
+    );
+    return () => timers.forEach(t => clearTimeout(t));
   }, [layoutMode, showSkillsSidebar, showToolsPanel]);
 
   // Compute container styles based on layout mode
