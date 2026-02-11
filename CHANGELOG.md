@@ -9,6 +9,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### kuroryuu.com Website Launch (Feb 11, 2026)
+- Full Next.js 15 + OpenNext + Cloudflare Workers site: Home (hero, features, stats), Features (28 items across 4 groups), About, Downloads, Docs (5 MDX pages with sidebar nav), Blog (6 posts), Changelog
+- Imperial dragon theme with dark aesthetic carried from desktop app
+- Fixed undocumented OpenNext static cache deployment gap on Cloudflare
+- FAB Marketplace links and YouTube integration
+- GitHub releases created: v0.1.0 (hackathon, Jan 30) and v0.2.0 (website launch, Feb 11) on ahostbr/kuroryuu-public
+
+#### Marketing Workspace — "Vibe Marketing" (Feb 11, 2026)
+- 6 marketing skills + 6 gateway Python modules + 10 renderer TSX components + Zustand store
+- Embedded Claude Code terminal with marketing-specific skills (image gen, video, screenshots via Gateway API)
+- Split and tabbed view modes for workspace layout
+- Skills and tools side panels with auto-install uv
+- Floating draggable/resizable standalone terminal window component
+- Marketing terminal persistence across layout switches
+
+#### LLM Apps Catalog (Feb 11, 2026)
+- Discovery engine from awesome-llm-apps shallow clone with Gateway catalog builder
+- Desktop UI: run/quickstart cards, tutorial metadata, quick-start links
+- "Check for Updates" pull-and-rebuild flow with new/removed app count delta
+- k-find-app skill for searching the LLM Apps catalog from Claude Code
+- Shared `buildCatalogFromDisk()` helper for catalog build and update paths
+
+#### CLIProxyAPI Auto-Update System (Feb 11, 2026)
+- Update check system with version comparison and UI indicators
+- Automatic detection of available updates for CLIProxyAPI
+
+#### GitHub-first Workflow (Feb 11, 2026)
+- PR management, AI review, and workflow automation
+- Setup-project script updates and lock file regeneration
+
+#### GitHub/Chronicles UI (Feb 10, 2026)
+- Branch selector with ahead/behind indicators and repository info popover in GitHub toolbar
+- GitHub repo picker in RepoInfoPopover for multi-repo support
+- Commit-file diff viewer with Claude AI summary UI
+- Branch rename/delete UI and IPC handlers
+- Worktrees basePath changed to `ai/worktrees/tasks`
+
+#### Quizmaster Variant Selector (Feb 10, 2026)
+- Support for multiple quizmaster prompt variants with selector UI
+
 #### Generative UI Case Study — Full AG-UI Pipeline (Feb 5-6, 2026)
 - Gateway A2UI engine with 3-stage pipeline: content analyzer, layout selector, component generator (8 Python files in `apps/gateway/genui/`)
 - 51 A2UI React components across 11 categories (Data, Summary, Instructional, Lists, Resources, People, News, Media, Comparison, Layout, Tags)
@@ -158,6 +198,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### SPA & Routing (Feb 10, 2026)
+- Switched health probes to `/v1/health` endpoint; tightened SPA static file routing rules
+
 #### UI/UX Updates (Feb 9-10, 2026)
 - Sidebar: moved Claude Plugin from PLAN nav group to bottom actions section (custom ClaudeCodeIcon SVG with square eye cutouts and blocky body)
 - Domain config dialog: embedded category headers inside first card of each category (continuous 2-col grid, no blank spots)
@@ -196,6 +239,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plan Mode button added (shift+tab shortcut)
 
 ### Fixed
+
+#### TTS Double-Fire Prevention (Feb 11, 2026)
+- `smart_tts.py` `should_skip_global()` checked preference flags (`ttsOnStop` etc.) instead of actual hook commands, causing circular skip where global hooks deferred to project hooks that lacked TTS commands; fixed by inspecting `settings.hooks` for actual `smart_tts.py`/`edge_tts.py` commands
+- Set `skipProjectTts=false` in `index.ts` so TTS is always present in project hooks
+- Fixed timeout units mismatch: 90000→90 seconds in `index.ts` and `claude-teams-ipc.ts`
+
+#### Marketing Terminal Fixes (Feb 11, 2026)
+- Fixed input race condition on marketing terminal startup
+- Fixed PTY behavior and terminal hook detection for marketing workspace
+- Fixed marketing-handlers.ts `shell:true` boolean→string TypeScript type error
+- Fixed preload `getToolStatus` return type missing `ToolStatus` fields
 
 #### Observability Fixes (Feb 9-10, 2026)
 - Windows hook terminal freeze: standalone hook arrays (SessionStart, SessionEnd, SubagentStart, etc.) break keyboard input on Windows v2.1.37 — fixed via piggyback pattern (only append to existing hook arrays)
