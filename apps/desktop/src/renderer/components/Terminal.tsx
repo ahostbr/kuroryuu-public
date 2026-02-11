@@ -386,6 +386,8 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
   }, [termId, safeFit]);
 
   // Handle input - uses ref to avoid stale closure after navigation
+  // Depends on [termId, initialized] because when initialId is pre-set,
+  // termId never changes, so we need initialized to trigger re-run after xterm opens
   useEffect(() => {
     if (!termRef.current || !termId) return;
 
@@ -398,9 +400,10 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
     });
 
     return () => disposable.dispose();
-  }, [termId]);
+  }, [termId, initialized]);
 
   // Handle keyboard shortcuts: copy (Ctrl+C), paste (Ctrl+V), and special keys (Shift+Tab)
+  // Depends on [termId, initialized] for same reason as onData effect above
   useEffect(() => {
     if (!termRef.current || !termId) return;
 
@@ -449,7 +452,7 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
 
       return true; // Let all other keys pass through to xterm
     });
-  }, [termId]);
+  }, [termId, initialized]);
 
   // Document-level capture listener for Shift+Tab
   // Chromium captures Shift+Tab for focus navigation before xterm can see it

@@ -3,26 +3,19 @@ import { useMarketingStore } from '../../stores/marketing-store';
 import { Terminal } from '../Terminal';
 import { Loader2 } from 'lucide-react';
 
+const MARKETING_CMD = 'claude @ai/skills/marketing/MARKETING_BOOTSTRAP.md';
+
 export function MarketingTerminal() {
   const terminalPtyId = useMarketingStore((s) => s.terminalPtyId);
   const setTerminalPtyId = useMarketingStore((s) => s.setTerminalPtyId);
   const [creating, setCreating] = useState(false);
   const isCreatingRef = useRef(false);
+  const cmdWrittenRef = useRef(false);
 
+  // Create PTY only when none exists
   useEffect(() => {
-    if (terminalPtyId) {
-      // PTY ID exists in store — try reconnecting (survives view switch)
-      window.electronAPI.pty.subscribe(terminalPtyId)
-        .then(() => {
-          console.log('[Marketing] Reconnected to existing PTY:', terminalPtyId);
-        })
-        .catch(() => {
-          // PTY died (app restart, etc) — clear and let next render create fresh
-          console.log('[Marketing] PTY dead, clearing for recreation:', terminalPtyId);
-          setTerminalPtyId(null);
-        });
-      return;
-    }
+    // Already have a PTY — Terminal component handles reconnection internally
+    if (terminalPtyId) return;
 
     // Prevent duplicate creation
     if (isCreatingRef.current) return;
@@ -33,12 +26,11 @@ export function MarketingTerminal() {
       try {
         const projectRoot = await window.electronAPI.app.getProjectRoot();
 
+        // Spawn a plain PowerShell shell (no cmd = defaults to powershell.exe)
         const pty = await window.electronAPI.pty.create({
           cols: 120,
           rows: 30,
           cwd: projectRoot,
-          cmd: 'claude',
-          args: ['@ai/skills/marketing/MARKETING_BOOTSTRAP.md'],
           env: {
             KURORYUU_AGENT_ID: 'marketing-specialist',
             KURORYUU_AGENT_NAME: 'Marketing Specialist',
@@ -47,6 +39,7 @@ export function MarketingTerminal() {
         });
 
         setTerminalPtyId(pty.id);
+        cmdWrittenRef.current = false;
       } catch (err) {
         console.error('[Marketing] Failed to create PTY:', err);
       } finally {
@@ -59,7 +52,6 @@ export function MarketingTerminal() {
   }, [terminalPtyId, setTerminalPtyId]);
 
   // No cleanup — PTY persists across view switches.
-  // Kill only happens when the user explicitly closes/resets the marketing terminal.
 
   if (creating || !terminalPtyId) {
     return (
@@ -78,6 +70,14 @@ export function MarketingTerminal() {
       terminalId={`marketing-${terminalPtyId}`}
       onReady={(id) => {
         console.log('[Marketing] Terminal ready:', id);
+        // Pre-type the claude command (no Enter — user decides when to launch)
+        if (!cmdWrittenRef.current) {
+          cmdWrittenRef.current = true;
+          // Small delay to let the shell prompt render first
+          setTimeout(() => {
+            window.electronAPI.pty.write(id, MARKETING_CMD);
+          }, 800);
+        }
       }}
     />
   );
