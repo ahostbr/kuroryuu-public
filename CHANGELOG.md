@@ -133,7 +133,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Image lightbox functionality
 - Quizmaster cinematic redesign with animations
 
+#### Multi-Agent Observability Dashboard (Feb 9-10, 2026)
+- Gateway observability module: SQLite storage, WebSocket live streaming, 5 REST endpoints (`/v1/observability/events`, `/stream`, `/stats`, `/export`, `/clear`)
+- ObservabilityStorage with event ingestion, time-range queries, tool analytics aggregation, adaptive time bucketing
+- 13 hook scripts via unified `send_event.py` (Python/uv) replacing 12 individual PowerShell wrappers
+- Zustand store with WebSocket auto-reconnect, time range filtering, tool frequency maps, swim lane grouping
+- 7 React UI components: ObservabilityPanel (tab router), EventTimeline, PulseChart, ToolAnalytics, SwimLanes, ObservabilitySettings, ExportButton
+- Export/import JSON, copy-to-clipboard, extended time ranges (1h/6h/24h/all), live timestamp refresh
+- Windows piggyback pattern: observability hooks only appended to existing hook arrays to avoid Claude Code terminal input freeze bug on Windows v2.1.37
+
+#### Superpowers V2 Prompts (Feb 10, 2026)
+- 7 V2 prompt files with Superpowers discipline integration (verification gates, rationalization prevention, red flags, forbidden responses)
+- Files: worker_iterate_v2, worker_loop_v2, leader_escalate_v2, prd_validator_v2, prd_code_reviewer_v2, prd_hackathon_finalizer_v2, ralph_done_v2
+
+#### Agents Overflow Integration (Feb 10, 2026)
+- Installed Agents Overflow plugin commands: ao-search, ao-browse, ao-ask, ao-answer
+- Updated agent prompts (worker_iterate, worker_iterate_v2, KURORYUU_BOOTSTRAP) with AO awareness
+- Homescreen feature card with `shell.openExternal` URL button
+- Plugin registered in settings.json
+
+#### VirtualBox Sandboxing Documentation (Feb 10, 2026)
+- Technical analysis of VirtualBox 7.2.6 Python API for programmatic VM sandboxing
+- End-user guide for sandbox setup (`Docs/Guides/VirtualBox-Sandboxing.md`)
+
 ### Changed
+
+#### UI/UX Updates (Feb 9-10, 2026)
+- Sidebar: moved Claude Plugin from PLAN nav group to bottom actions section (custom ClaudeCodeIcon SVG with square eye cutouts and blocky body)
+- Domain config dialog: embedded category headers inside first card of each category (continuous 2-col grid, no blank spots)
+- KuroPluginConfig: fixed "Your Name" input width with flex-1 layout
+- Settings template/default updated with current feature set (agent teams, official plugins, observability)
+- Git commit log parser: NUL-delimited format for reliable multi-line commit message handling
+- Observability hooks consolidated: 12 PowerShell wrapper scripts replaced with single `send_event.py` (Python/uv)
+- Log rotation and reduced verbose logging in Gateway
 
 #### UI/UX Overhaul (Feb 5-8, 2026)
 - Command Center renamed to Server Status; ServersTab compacted from grid of large cards to single card with compact rows (~40px each); ToolsTab server section from ~240px grid to ~40px inline status bar
@@ -164,6 +196,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plan Mode button added (shift+tab shortcut)
 
 ### Fixed
+
+#### Observability Fixes (Feb 9-10, 2026)
+- Windows hook terminal freeze: standalone hook arrays (SessionStart, SessionEnd, SubagentStart, etc.) break keyboard input on Windows v2.1.37 — fixed via piggyback pattern (only append to existing hook arrays)
+- UTF-16 surrogate crash: orphan surrogates (`\udc90`) in Windows file paths crash FastAPI JSONResponse UTF-8 encoding — added `_sanitize_surrogates()` to ObservabilityStorage
+- Startup race condition: observability WebSocket connected before Gateway ready — added health probe with 3 retries (1s delay)
+- CORS middleware ordering: moved CORS to outermost position; excluded `/v1/observability` from TrafficMonitoringMiddleware
+- WebSocket disconnect race: null check on handlers before close in observability-store.ts
+- Global exception handler with CORS headers for unhandled route errors
+
+#### Git & Config Fixes (Feb 10, 2026)
+- Removed `.claude/settings.json` from git tracking to prevent personal API keys/paths from being committed
+- Stripped API key from commit history via rebase + force push
+- Scrubbed `.gitignore` from all 17 past commits using git-filter-repo (168→166 commits)
+- GitHub OAuth auto-restore after history rewrite using `shell.openExternal`
 
 #### GenUI Fixes (Feb 6-8, 2026)
 - GenUI provider routing: now respects domain config provider selection instead of always falling back to LMStudio
@@ -226,6 +272,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+#### Settings Security (Feb 10, 2026)
+- Removed `settings.json` from version control to prevent API key exposure in git history
+- Cleaned API key from git commit history via interactive rebase + force push
+- Updated `settings.template.json` and `settings.default.json` as safe tracked alternatives with current feature set
+
 #### Security Review (Feb 7, 2026)
 - Full security audit of execClaudeCmd helper, IPC handlers, scheduler executeJavaScript, preload bridges (localhost-only Electron context)
 - Localhost security posture documented
@@ -239,6 +290,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed ALLOW_EXTERNAL config option
 
 ### Documentation
+
+#### New Documentation (Feb 9-10, 2026)
+- VirtualBox sandboxing: technical API analysis of VBox 7.2.6 Python bindings + end-user setup guide
+- V2 workflow prompts with Superpowers discipline techniques (verification gates, rationalization prevention)
+- Agents Overflow integration docs in KURORYUU_BOOTSTRAP.md and worker prompts
+- Observability Dashboard architecture (Gateway module, hooks, WebSocket streaming, UI components)
 
 #### New Documentation (Feb 5-7, 2026)
 - Timeline View architecture doc (TIMELINE_VIEW.md) covering 4 renderers, data flow, and user guide
