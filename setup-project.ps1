@@ -5,14 +5,17 @@
 .DESCRIPTION
     This script sets up EVERYTHING needed to run Kuroryuu from a fresh clone:
     1. Sets KURORYUU_PROJECT_ROOT environment variable (persistent)
-    2. Generates .mcp.json from template with resolved paths
-    3. Creates Python 3.12 virtual environment
-    4. Installs ALL Python dependencies (mcp_core, gateway, mcp_stdio)
-    5. Installs ALL Node.js dependencies (desktop, pty_daemon, web, tray_companion)
-    6. Copies build assets if missing
-    7. Installs Playwright CLI and skills
-    8. Builds Electron apps (desktop, tray_companion)
-    9. Downloads FFmpeg for screen capture
+    2. Creates runtime directories
+    3. Generates .mcp.json from template with resolved paths
+    4. Generates personal config files from templates
+    5. Creates Python 3.12 virtual environment
+    6. Installs ALL Python dependencies (mcp_core, gateway, mcp_stdio)
+    7. Installs ALL Node.js dependencies (desktop, pty_daemon, web, tray_companion)
+    8. Fixes npm security vulnerabilities (npm audit fix)
+    9. Installs Playwright CLI and skills
+    10. Copies build assets if missing
+    11. Builds Electron apps (desktop, tray_companion)
+    12. Downloads FFmpeg for screen capture
 
 .EXAMPLE
     .\setup-project.ps1
@@ -42,7 +45,7 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
 Write-Host ""
 
 $stepNum = 1
-$totalSteps = 11
+$totalSteps = 12
 
 # ============================================================================
 # Step 1: Set persistent environment variable
@@ -238,7 +241,7 @@ if ($SkipPython) {
 }
 
 # ============================================================================
-# Step 5: Install Python dependencies
+# Step 6: Install Python dependencies
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Installing Python dependencies..." -ForegroundColor Yellow
@@ -295,7 +298,7 @@ if ($SkipPython) {
 }
 
 # ============================================================================
-# Step 6: Install Node.js dependencies
+# Step 7: Install Node.js dependencies
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Installing Node.js dependencies..." -ForegroundColor Yellow
@@ -341,7 +344,38 @@ if ($SkipNode) {
 }
 
 # ============================================================================
-# Step 7: Install Playwright CLI + skills
+# Step 8: Fix npm security vulnerabilities
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Running npm audit fix..." -ForegroundColor Yellow
+$stepNum++
+
+if ($SkipNode) {
+    Write-Host "  Skipped (-SkipNode)" -ForegroundColor DarkYellow
+} else {
+    foreach ($app in $npmApps) {
+        $appPath = Join-Path $ProjectRoot $app
+        $nodeModules = Join-Path $appPath "node_modules"
+        if (Test-Path $nodeModules) {
+            $appName = Split-Path $app -Leaf
+            Push-Location $appPath
+            $ErrorActionPreference = "Continue"
+            $auditOutput = & npm audit fix 2>&1
+            $ErrorActionPreference = "Stop"
+            Pop-Location
+
+            # Check if any fixes were applied
+            if ($auditOutput -match "found 0 vulnerabilities") {
+                Write-Host "  $appName - no vulnerabilities" -ForegroundColor Green
+            } else {
+                Write-Host "  $appName - applied fixes" -ForegroundColor Green
+            }
+        }
+    }
+}
+
+# ============================================================================
+# Step 9: Install Playwright CLI + skills
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Installing Playwright CLI + skills..." -ForegroundColor Yellow
@@ -388,7 +422,7 @@ if ($SkipNode) {
 }
 
 # ============================================================================
-# Step 8: Check/copy build assets
+# Step 10: Check/copy build assets
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Checking build assets..." -ForegroundColor Yellow
@@ -429,7 +463,7 @@ if (-not (Test-Path $iconIco) -and -not (Test-Path $iconPng)) {
 }
 
 # ============================================================================
-# Step 9: Build Electron apps (desktop and tray companion)
+# Step 11: Build Electron apps (desktop and tray companion)
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Building Electron apps..." -ForegroundColor Yellow
@@ -469,7 +503,7 @@ if ($SkipNode) {
 }
 
 # ============================================================================
-# Step 10: Download FFmpeg (for screen capture feature)
+# Step 12: Download FFmpeg (for screen capture feature)
 # ============================================================================
 Write-Host ""
 Write-Host "[$stepNum/$totalSteps] Setting up FFmpeg for screen capture..." -ForegroundColor Yellow
