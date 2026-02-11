@@ -10,6 +10,7 @@ import {
   Check,
   BookOpen,
   Terminal,
+  Play,
 } from 'lucide-react';
 import { useLLMAppsStore } from '../../stores/llm-apps-store';
 import type { LLMApp } from '../../types/llm-apps';
@@ -134,15 +135,16 @@ export function LLMAppDetail({ app, onBack }: LLMAppDetailProps) {
   );
 }
 
-/** Quick Start card with copy-to-clipboard commands */
+/** Quick Start card with copy-to-clipboard commands and Run button */
 function QuickStartCard({ app }: { app: LLMApp }) {
   const [copied, setCopied] = useState(false);
+  const [launching, setLaunching] = useState(false);
 
   const REPO_URL = 'https://github.com/Shubhamsaboo/awesome-llm-apps';
 
+  // Repo is already cloned by Kuroryuu wizard — show local path, not git clone
   const lines = [
-    `git clone ${REPO_URL}.git`,
-    `cd awesome-llm-apps/${app.path}`,
+    `cd ${app.absolutePath.replace(/\\/g, '/')}`,
   ];
   if (app.hasRequirements) lines.push('pip install -r requirements.txt');
   if (app.runCommand) lines.push(app.runCommand);
@@ -155,6 +157,17 @@ function QuickStartCard({ app }: { app: LLMApp }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch { /* clipboard may not be available */ }
+  };
+
+  const handleRun = async () => {
+    setLaunching(true);
+    try {
+      await window.electronAPI.llmApps.runApp(app.path, app.runCommand, app.hasRequirements);
+    } catch (err) {
+      console.error('[LLM Apps] Failed to launch:', err);
+    } finally {
+      setTimeout(() => setLaunching(false), 1500);
+    }
   };
 
   return (
@@ -188,6 +201,23 @@ function QuickStartCard({ app }: { app: LLMApp }) {
                 <>
                   <Copy className="w-3 h-3" />
                   Copy
+                </>
+              )}
+            </button>
+            <button
+              onClick={handleRun}
+              disabled={launching}
+              className="px-3 py-1 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:text-green-400 text-white rounded text-xs font-medium transition-colors flex items-center gap-1.5"
+            >
+              {launching ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Launching...
+                </>
+              ) : (
+                <>
+                  <Play className="w-3 h-3" />
+                  Run
                 </>
               )}
             </button>

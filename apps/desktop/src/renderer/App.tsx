@@ -103,6 +103,7 @@ export function App() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [activeView, setActiveView] = useState<View>('welcome');
   const [terminalMounted, setTerminalMounted] = useState(false);
+  const [marketingMounted, setMarketingMounted] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
 
 
@@ -329,7 +330,10 @@ export function App() {
     if (activeView === 'terminals' && !terminalMounted) {
       setTerminalMounted(true);
     }
-  }, [activeView, terminalMounted]);
+    if (activeView === 'marketing' && !marketingMounted) {
+      setMarketingMounted(true);
+    }
+  }, [activeView, terminalMounted, marketingMounted]);
 
   return (
     <ErrorBoundary>
@@ -404,8 +408,12 @@ export function App() {
                 {/* Scheduler - Automated job scheduling */}
                 {activeView === 'scheduler' && <SchedulerPanel />}
 
-                {/* Marketing - Research, positioning, copy, ads workflow */}
-                {activeView === 'marketing' && <MarketingPanel />}
+                {/* Marketing - Research, positioning, copy, ads workflow (keep mounted) */}
+                {marketingMounted && (
+                  <div className={`absolute inset-0 ${activeView === 'marketing' ? '' : 'hidden pointer-events-none'}`}>
+                    <MarketingPanel />
+                  </div>
+                )}
 
                 {/* LLM Apps - Browse awesome-llm-apps catalog */}
                 {activeView === 'llm-apps' && <LLMAppsPanel />}

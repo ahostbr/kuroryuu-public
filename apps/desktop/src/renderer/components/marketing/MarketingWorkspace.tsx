@@ -36,15 +36,14 @@ export function MarketingWorkspace() {
   return (
     <div className="w-full h-full flex flex-col bg-zinc-900">
       <MarketingHeader />
-      <div className="flex-1 p-4 overflow-hidden">
-        {activeTab === 'terminal' && (
-          <div className="h-full flex flex-col gap-4">
-            <MarketingSkillPicker />
-            <div className="flex-1 min-h-0">
-              <MarketingTerminal />
-            </div>
+      <div className="flex-1 p-4 overflow-hidden relative">
+        {/* Terminal stays mounted, hidden via CSS to preserve PTY */}
+        <div className={`absolute inset-0 p-4 flex flex-col gap-4 ${activeTab === 'terminal' ? '' : 'hidden pointer-events-none'}`}>
+          <MarketingSkillPicker />
+          <div className="flex-1 min-h-0">
+            <MarketingTerminal />
           </div>
-        )}
+        </div>
         {activeTab === 'tools' && <MarketingToolPanel />}
         {activeTab === 'gallery' && <MarketingAssetGallery />}
       </div>

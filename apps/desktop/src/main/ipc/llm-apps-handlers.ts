@@ -375,6 +375,51 @@ export function registerLLMAppsHandlers(): void {
     }
   });
 
+  // Run an app — opens a new PowerShell window with install + run commands
+  ipcMain.handle('llm-apps:runApp', async (_event, appPath: string, runCmd: string | null, hasReqs: boolean) => {
+    try {
+      const fullDir = path.join(REPO_DIR, appPath);
+      if (!fs.existsSync(fullDir)) {
+        return { ok: false, error: `App directory not found: ${appPath}` };
+      }
+
+      // Build the command chain for PowerShell
+      const cmds: string[] = [];
+      cmds.push(`cd '${fullDir}'`);
+      if (hasReqs) cmds.push('pip install -r requirements.txt');
+      if (runCmd) {
+        cmds.push(runCmd);
+      } else {
+        // Fallback: try to find a .py file to run
+        const pyFiles = fs.readdirSync(fullDir).filter((f) => f.endsWith('.py'));
+        if (pyFiles.length === 1) {
+          cmds.push(`python ${pyFiles[0]}`);
+        } else {
+          cmds.push('echo "No run command found — check the README"');
+        }
+      }
+
+      const psCommand = cmds.join('; ');
+      console.log('[LLM Apps] Running app:', psCommand);
+
+      // Spawn a new PowerShell window (-NoExit keeps it open)
+      spawn('powershell', [
+        '-NoExit',
+        '-Command',
+        psCommand,
+      ], {
+        cwd: fullDir,
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      }).unref();
+
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+
   // Get setup state
   ipcMain.handle('llm-apps:getSetupState', async () => {
     try {

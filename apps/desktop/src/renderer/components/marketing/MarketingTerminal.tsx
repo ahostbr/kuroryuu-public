@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useMarketingStore } from '../../stores/marketing-store';
 import { Terminal } from '../Terminal';
 import { Loader2 } from 'lucide-react';
@@ -7,17 +7,32 @@ export function MarketingTerminal() {
   const terminalPtyId = useMarketingStore((s) => s.terminalPtyId);
   const setTerminalPtyId = useMarketingStore((s) => s.setTerminalPtyId);
   const [creating, setCreating] = useState(false);
+  const isCreatingRef = useRef(false);
 
   useEffect(() => {
-    if (terminalPtyId) return;
+    if (terminalPtyId) {
+      // PTY ID exists in store — try reconnecting (survives view switch)
+      window.electronAPI.pty.subscribe(terminalPtyId)
+        .then(() => {
+          console.log('[Marketing] Reconnected to existing PTY:', terminalPtyId);
+        })
+        .catch(() => {
+          // PTY died (app restart, etc) — clear and let next render create fresh
+          console.log('[Marketing] PTY dead, clearing for recreation:', terminalPtyId);
+          setTerminalPtyId(null);
+        });
+      return;
+    }
+
+    // Prevent duplicate creation
+    if (isCreatingRef.current) return;
 
     const createPty = async () => {
+      isCreatingRef.current = true;
       setCreating(true);
       try {
-        // Get project root
         const projectRoot = await window.electronAPI.app.getProjectRoot();
 
-        // Create PTY with marketing agent config
         const pty = await window.electronAPI.pty.create({
           cols: 120,
           rows: 30,
@@ -36,22 +51,15 @@ export function MarketingTerminal() {
         console.error('[Marketing] Failed to create PTY:', err);
       } finally {
         setCreating(false);
+        isCreatingRef.current = false;
       }
     };
 
     createPty();
   }, [terminalPtyId, setTerminalPtyId]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (terminalPtyId) {
-        window.electronAPI.pty.kill(terminalPtyId).catch(() => {
-          // Ignore errors on cleanup
-        });
-      }
-    };
-  }, [terminalPtyId]);
+  // No cleanup — PTY persists across view switches.
+  // Kill only happens when the user explicitly closes/resets the marketing terminal.
 
   if (creating || !terminalPtyId) {
     return (

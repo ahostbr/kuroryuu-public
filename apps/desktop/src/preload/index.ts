@@ -2545,6 +2545,8 @@ const api = {
       ipcRenderer.invoke('llm-apps:getCatalog'),
     getAppReadme: (appPath: string): Promise<{ ok: boolean; content?: string; error?: string }> =>
       ipcRenderer.invoke('llm-apps:getAppReadme', appPath),
+    runApp: (appPath: string, runCmd: string | null, hasReqs: boolean): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('llm-apps:runApp', appPath, runCmd, hasReqs),
     getSetupState: (): Promise<{ complete: boolean }> =>
       ipcRenderer.invoke('llm-apps:getSetupState'),
     saveSetup: (state: unknown): Promise<{ ok: boolean }> =>
