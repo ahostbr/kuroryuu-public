@@ -11,6 +11,15 @@ The PostToolUse hook automatically syncs tasks to `ai/todo.md` with proper times
 
 **When complete:** `TaskUpdate: taskId="..." status="completed"` → marks `[x]` with completion timestamp
 
+### Session IDs vs Todo IDs (CRITICAL)
+
+**Session-local task IDs (#1, #2, #3) are NOT the same as ai/todo.md T### IDs (T080, T081).**
+
+- `TaskCreate` returns session-local IDs (#1, #2...) for use with `TaskUpdate` during this session
+- The PostToolUse hook assigns the real sequential T### ID (T080, T081...) in `ai/todo.md`
+- **When saving checkpoints:** read `ai/todo.md` to find actual T### IDs — NEVER use session #N IDs
+- **k_checkpoint `task_id` param:** expects T### format (e.g. "T080"), not "#1"
+
 ### Why This Matters
 - **Timestamps required for monitoring** - Desktop Gantt timeline needs `(created: timestamp)`
 - Tasks without timestamps show "✓" instead of elapsed time in monitor
@@ -179,6 +188,7 @@ Note: Direct `wsl rm -f "/mnt/e/..."` from Git Bash fails because the path gets 
 
 ##Claude.md Version
 2026-02-11
+- Added Session IDs vs Todo IDs section (session #N ≠ ai/todo.md T###)
 - Added PTY Reading section
 - Added Claude Task Evidence section
 - Added Cross-Reference Rules section

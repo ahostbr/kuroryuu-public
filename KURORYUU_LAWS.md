@@ -142,7 +142,20 @@ Windows PowerShell: Always use `\r\n` (CRLF).
 
 `ai/todo.md` is the canonical task list.
 
-### 5.2 Your Responsibilities
+### 5.2 Session IDs vs Todo IDs (HARD RULE)
+
+**Session-local task IDs (#1, #2) ≠ ai/todo.md T### IDs (T080, T081).**
+
+| ID Type | Example | Source | Use For |
+|---------|---------|--------|---------|
+| Session-local | #1, #2 | `TaskCreate` return value | `TaskUpdate` within same session |
+| Todo T### | T080, T081 | PostToolUse hook writes to `ai/todo.md` | Checkpoints, worklogs, cross-references |
+
+- **NEVER** put session-local IDs in checkpoint `task_ids` or worklog headers
+- **ALWAYS** read `ai/todo.md` to find the real T### IDs before saving checkpoints
+- `k_checkpoint(task_id="T080")` — correct. `k_checkpoint(task_id="1")` — WRONG.
+
+### 5.3 Your Responsibilities
 
 1. Mark done: `- [ ]` → `- [x]`
 2. Add tasks: `- [ ] T00X — description`

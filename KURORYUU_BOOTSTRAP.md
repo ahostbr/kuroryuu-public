@@ -78,6 +78,19 @@ TaskUpdate: taskId="1" status="completed"
 ```
 → Hook adds `(completed: timestamp)` and marks `[x]`
 
+### Session IDs vs Todo IDs (CRITICAL)
+
+Session-local IDs (#1, #2) from `TaskCreate` are **NOT** the same as `ai/todo.md` T### IDs (T080, T081).
+
+| Context | Use |
+|---------|-----|
+| `TaskUpdate` in same session | Session ID (`taskId="1"`) |
+| Checkpoint `task_ids` | Real T### from `ai/todo.md` (`"T080"`) |
+| Worklog headers | Real T### (`Tasks: T080, T081`) |
+| `k_checkpoint(task_id=...)` | Real T### (`task_id="T080"`) |
+
+**Before saving checkpoints:** read `ai/todo.md` to find actual T### IDs.
+
 **Monitor:** MONITOR → Claude Tasks (donut chart + Gantt timeline)
 
 ---
