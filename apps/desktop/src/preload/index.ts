@@ -2519,6 +2519,8 @@ const api = {
    * Tool installation and setup for marketing workspace
    */
   marketing: {
+    ensureUv: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('marketing:ensureUv'),
     cloneRepo: (repoUrl: string, targetDir: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('marketing:cloneRepo', repoUrl, targetDir),
     installDeps: (toolDir: string): Promise<{ ok: boolean; error?: string }> =>

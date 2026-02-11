@@ -18,7 +18,7 @@ export function MarketingSkillPicker() {
   const handleSkillClick = (file: string) => {
     if (!terminalPtyId) return;
     // Send skill reference to terminal
-    window.api.pty.write(terminalPtyId, `/skill @ai/skills/marketing/${file}\n`);
+    window.electronAPI.pty.write(terminalPtyId, `/skill @ai/skills/marketing/${file}\n`);
   };
 
   return (

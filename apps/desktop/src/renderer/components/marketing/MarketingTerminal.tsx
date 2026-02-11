@@ -15,10 +15,10 @@ export function MarketingTerminal() {
       setCreating(true);
       try {
         // Get project root
-        const projectRoot = await window.api.app.getProjectRoot();
+        const projectRoot = await window.electronAPI.app.getProjectRoot();
 
         // Create PTY with marketing agent config
-        const pty = await window.api.pty.create({
+        const pty = await window.electronAPI.pty.create({
           cols: 120,
           rows: 30,
           cwd: projectRoot,
@@ -46,7 +46,7 @@ export function MarketingTerminal() {
   useEffect(() => {
     return () => {
       if (terminalPtyId) {
-        window.api.pty.kill(terminalPtyId).catch(() => {
+        window.electronAPI.pty.kill(terminalPtyId).catch(() => {
           // Ignore errors on cleanup
         });
       }

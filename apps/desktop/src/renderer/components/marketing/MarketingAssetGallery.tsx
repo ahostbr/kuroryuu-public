@@ -142,7 +142,7 @@ export function MarketingAssetGallery() {
               <button
                 onClick={() => {
                   // Open file in default application
-                  window.api.shell?.openPath(selectedAsset.path);
+                  window.electronAPI.shell?.openPath(selectedAsset.path);
                 }}
                 className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-900 rounded text-sm font-medium transition-colors"
               >

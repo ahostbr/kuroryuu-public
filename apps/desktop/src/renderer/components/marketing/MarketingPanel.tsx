@@ -12,7 +12,7 @@ export function MarketingPanel() {
   useEffect(() => {
     const checkSetup = async () => {
       try {
-        const result = await window.api.marketing.getSetupState();
+        const result = await window.electronAPI.marketing.getSetupState();
         if (result.complete) {
           setSetupComplete(true);
           setState('workspace');

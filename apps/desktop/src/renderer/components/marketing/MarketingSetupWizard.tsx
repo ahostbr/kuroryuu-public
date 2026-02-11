@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Loader2, Download, Settings2, Rocket } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Download, Settings2, Rocket, Terminal } from 'lucide-react';
 import type { ToolStatus } from '../../types/marketing';
 
 interface MarketingSetupWizardProps {
@@ -27,6 +27,9 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
   const [stage, setStage] = useState<1 | 2>(1);
   const [tools, setTools] = useState<ToolStatus[]>([]);
   const [installing, setInstalling] = useState<string | null>(null);
+  const [installError, setInstallError] = useState<string | null>(null);
+  const [uvInstalled, setUvInstalled] = useState<boolean | null>(null);
+  const [uvInstalling, setUvInstalling] = useState(false);
   const [gatewayOnline, setGatewayOnline] = useState(false);
   const [cliProxyConnected, setCliProxyConnected] = useState(false);
   const [googleApiKey, setGoogleApiKey] = useState('');
@@ -35,11 +38,12 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
   useEffect(() => {
     loadToolStatus();
     checkHealth();
+    checkUv();
   }, []);
 
   const loadToolStatus = async () => {
     try {
-      const result = await window.api.marketing.getToolStatus();
+      const result = await window.electronAPI.marketing.getToolStatus();
       setTools(result.tools || []);
     } catch (err) {
       console.error('[Marketing] Failed to load tool status:', err);
@@ -60,24 +64,60 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
     }
   };
 
+  const checkUv = async () => {
+    try {
+      const result = await window.electronAPI.marketing.ensureUv();
+      setUvInstalled(result.ok);
+    } catch {
+      setUvInstalled(false);
+    }
+  };
+
+  const setupUv = async () => {
+    setUvInstalling(true);
+    setInstallError(null);
+    try {
+      const result = await window.electronAPI.marketing.ensureUv();
+      setUvInstalled(result.ok);
+      if (!result.ok) {
+        setInstallError(result.error || 'Failed to install uv');
+      }
+    } catch (err) {
+      setInstallError(String(err));
+      setUvInstalled(false);
+    } finally {
+      setUvInstalling(false);
+    }
+  };
+
   const installTool = async (toolId: string) => {
     const tool = TOOLS.find((t) => t.id === toolId);
     if (!tool) return;
 
     setInstalling(toolId);
+    setInstallError(null);
     try {
-      // Clone repo
-      const cloneResult = await window.api.marketing.cloneRepo(tool.repoUrl, tool.targetDir);
-      if (!cloneResult.ok) {
-        console.error(`[Marketing] Clone failed: ${cloneResult.error}`);
+      // Ensure uv is available (auto-installs if missing)
+      const uvResult = await window.electronAPI.marketing.ensureUv();
+      setUvInstalled(uvResult.ok);
+      if (!uvResult.ok) {
+        setInstallError(`uv setup failed: ${uvResult.error}`);
         setInstalling(null);
         return;
       }
 
-      // Install deps
-      const installResult = await window.api.marketing.installDeps(tool.targetDir);
+      // Clone repo
+      const cloneResult = await window.electronAPI.marketing.cloneRepo(tool.repoUrl, tool.targetDir);
+      if (!cloneResult.ok) {
+        setInstallError(`Clone failed: ${cloneResult.error}`);
+        setInstalling(null);
+        return;
+      }
+
+      // Install deps (handles both Python/uv and Node/npm)
+      const installResult = await window.electronAPI.marketing.installDeps(tool.targetDir);
       if (!installResult.ok) {
-        console.error(`[Marketing] Install failed: ${installResult.error}`);
+        setInstallError(`Dependency install failed: ${installResult.error}`);
         setInstalling(null);
         return;
       }
@@ -85,7 +125,7 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
       // Reload status
       await loadToolStatus();
     } catch (err) {
-      console.error(`[Marketing] Install error:`, err);
+      setInstallError(String(err));
     } finally {
       setInstalling(null);
     }
@@ -168,6 +208,49 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               </div>
             </div>
 
+            {/* uv prerequisite */}
+            <div className="bg-zinc-800 rounded-lg p-4 border border-zinc-700 mb-2">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Terminal className="w-4 h-4 text-violet-400" />
+                    <h3 className="font-medium">uv (Python Package Manager)</h3>
+                    {uvInstalled === true && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                    {uvInstalled === false && <XCircle className="w-4 h-4 text-red-500" />}
+                  </div>
+                  <p className="text-sm text-zinc-400">
+                    Required for Python tool dependencies. Will be installed automatically if missing.
+                  </p>
+                </div>
+                {uvInstalled === false && (
+                  <button
+                    onClick={setupUv}
+                    disabled={uvInstalling}
+                    className="px-3 py-1.5 bg-violet-500 hover:bg-violet-600 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    {uvInstalling ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Installing
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3 h-3" />
+                        Install uv
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Error display */}
+            {installError && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-sm text-red-400">
+                {installError}
+              </div>
+            )}
+
             <div className="grid gap-4">
               {TOOLS.map((tool) => {
                 const status = tools.find((t) => t.id === tool.id);
@@ -183,7 +266,16 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
                           {isInstalled && <CheckCircle2 className="w-4 h-4 text-green-500" />}
                         </div>
                         <p className="text-sm text-zinc-400 mb-2">{tool.description}</p>
-                        <p className="text-xs text-zinc-500">{tool.repoUrl}</p>
+                        <a
+                          href="#"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.electronAPI.shell.openExternal(tool.repoUrl);
+                          }}
+                          className="text-xs text-zinc-500 hover:text-amber-500 hover:underline cursor-pointer"
+                        >
+                          {tool.repoUrl}
+                        </a>
                       </div>
                       <button
                         onClick={() => installTool(tool.id)}
@@ -232,6 +324,21 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
             {/* Health checks */}
             <div className="bg-zinc-800 rounded-lg p-4 border border-zinc-700 space-y-3">
               <h3 className="font-medium mb-3">System Health</h3>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-zinc-300">uv (Python)</span>
+                {uvInstalled ? (
+                  <div className="flex items-center gap-2 text-green-500 text-sm">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Installed
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-500 text-sm">
+                    <XCircle className="w-4 h-4" />
+                    Not Found
+                  </div>
+                )}
+              </div>
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-zinc-300">Gateway Online</span>
@@ -285,10 +392,12 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               <p className="text-sm text-zinc-400 mb-3">
                 Required for Google Image Generator. Get your key from{' '}
                 <a
-                  href="https://makersuite.google.com/app/apikey"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-amber-500 hover:underline"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.electronAPI.shell.openExternal('https://makersuite.google.com/app/apikey');
+                  }}
+                  className="text-amber-500 hover:underline cursor-pointer"
                 >
                   Google AI Studio
                 </a>
@@ -312,7 +421,7 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               <button
                 onClick={async () => {
                   // Save setup state
-                  await window.api.marketing.saveSetup({ complete: true, googleApiKey });
+                  await window.electronAPI.marketing.saveSetup({ complete: true, googleApiKey });
                   onComplete();
                 }}
                 className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-900 rounded font-medium transition-colors flex items-center gap-2"
