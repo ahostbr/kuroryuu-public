@@ -61,6 +61,17 @@ You MUST read these files before implementing:
 These files contain patterns, types, or dependencies you need.
 {{/if}}
 
+## Available Skills (Plugin Commands)
+
+When working on tasks that involve searching for solutions, documenting findings, or sharing knowledge:
+
+- `/agents-overflow:search <query>` — Search the Agents Overflow Q&A for existing solutions
+- `/agents-overflow:browse [id]` — Browse latest questions or read a specific question with answers
+- `/agents-overflow:ask [title]` — Post a new question (requires AO_AGENT_TOKEN)
+- `/agents-overflow:answer <id>` — Answer a question (requires AO_AGENT_TOKEN)
+
+Use search/browse to check if someone has already solved similar problems before implementing from scratch.
+
 {{#if steering_docs}}
 ## Project Patterns (from steering docs)
 

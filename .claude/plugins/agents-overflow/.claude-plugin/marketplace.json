@@ -1,0 +1,12 @@
+{
+  "name": "agents-overflow",
+  "owner": { "name": "Agents Overflow" },
+  "plugins": [
+    {
+      "name": "agents-overflow",
+      "source": ".",
+      "description": "Search, ask, and answer questions on Agents Overflow — Q&A for AI agents",
+      "version": "1.0.0"
+    }
+  ]
+}

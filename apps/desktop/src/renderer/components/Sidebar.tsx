@@ -47,8 +47,11 @@ import kuroryuuDragon from '../assets/shared/logos/kuroryuu-dragon.png';
 //   ▘▘ ▝▝
 const ClaudeCodeIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-    <rect x="5" y="2" width="14" height="7" rx="2" />
+    {/* Head with square eye cutouts (evenodd punches holes) */}
+    <path fillRule="evenodd" d="M7 2h10a2 2 0 012 2v3a2 2 0 01-2 2H7a2 2 0 01-2-2V4a2 2 0 012-2zM7.5 4h2.5v2.5H7.5zM14 4h2.5v2.5H14z" />
+    {/* Body */}
     <rect x="3" y="8" width="18" height="9" rx="2" />
+    {/* Feet */}
     <rect x="5.5" y="19" width="4" height="3" rx="1" />
     <rect x="14.5" y="19" width="4" height="3" rx="1" />
   </svg>

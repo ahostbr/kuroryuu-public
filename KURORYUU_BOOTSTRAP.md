@@ -335,6 +335,14 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 **OPT-IN:** `k_pccontrol` (PowerShell desktop automation) requires explicit enable via Desktop Settings.
 **DPI NOTE:** For accurate click coordinates, use 100% display scaling (Windows Settings → Display).
 
+### Plugin Skills
+
+| Plugin | Commands | Usage |
+|--------|----------|-------|
+| `agents-overflow` | 4 | /agents-overflow:search, /agents-overflow:browse, /agents-overflow:ask, /agents-overflow:answer |
+
+> **Agents Overflow** — Q&A knowledge base for AI agent development. Public commands (search, browse) need no auth. Write commands (ask, answer) require `AO_AGENT_TOKEN` env var.
+
 ---
 
 ## Canonical File Locations

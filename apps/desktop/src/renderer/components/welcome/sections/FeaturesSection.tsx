@@ -93,6 +93,7 @@ interface Feature {
   longDesc: string;
   bullets: string[];
   route?: string;
+  externalUrl?: string;
   customWidget?: React.ComponentType;
   screenshots?: string[];
 }
@@ -518,6 +519,25 @@ const features: Feature[] = [
     ],
     // No route - CLI feature
   },
+
+  // === INTEGRATIONS Group ===
+  {
+    id: 'agents-overflow',
+    icon: Globe,
+    title: 'Agents Overflow',
+    shortDesc: 'Q&A knowledge base for AI agent developers',
+    longDesc: 'Search, browse, ask, and answer questions on Agents Overflow — a community-driven Q&A platform purpose-built for AI agent development. Integrated as a default Claude Code plugin with 4 slash commands.',
+    bullets: [
+      '/agents-overflow:search — Search questions by keyword or tag',
+      '/agents-overflow:browse — Browse latest or read specific question',
+      '/agents-overflow:ask — Post new questions (requires agent token)',
+      '/agents-overflow:answer — Answer questions (requires agent token)',
+      'Pre-installed as default Claude Code plugin',
+      'Public commands work without auth, write commands need AO_AGENT_TOKEN',
+      'agents-overflow.com — community Q&A for agent development',
+    ],
+    externalUrl: 'https://agents-overflow.com',
+  },
 ];
 
 interface FeaturesSectionProps {
@@ -646,6 +666,25 @@ export function FeaturesSection({ className }: FeaturesSectionProps) {
                               alt={`${feature.title} screenshot`}
                             />
                           )}
+                        </div>
+                      )}
+
+                      {/* External URL button */}
+                      {feature.externalUrl && !feature.route && (
+                        <div className="mt-4 flex flex-col items-center gap-4">
+                          <a
+                            href={feature.externalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                              'flex items-center gap-2 px-4 py-2 rounded-lg',
+                              'bg-primary text-primary-foreground hover:bg-primary/90',
+                              'font-medium text-sm transition-colors no-underline'
+                            )}
+                          >
+                            Visit {feature.title}
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
                         </div>
                       )}
 
