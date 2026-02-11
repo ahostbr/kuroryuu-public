@@ -1,0 +1,147 @@
+# Python venvs
+/.venv*/
+.venv/
+__pycache__/
+*.pyc
+
+# Generated configs (use templates instead)
+.mcp.json
+.claude/settings.local.json
+
+# Node
+node_modules/
+dist/
+.next/
+
+# Runtime data (MCP inbox, checkpoints, RAG index)
+WORKING/
+ai/checkpoints/
+ai/working_memory.json
+ai/.claude_mode/
+ai/exports/
+ai/logs/
+ai/rag_index/
+ai/repo_intel/_cache/
+ai/repo_intel/_logs/
+ai/repo_intel/__pycache__/
+ai/reports/
+Docs/worklogs/
+Docs/Plans/
+Reports/
+*.log
+
+# IDE/Editor
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+nul
+
+# Session artifacts
+*-this-session-is-being-continued-*.txt
+
+# CLI history
+.kuroryuu_cli_history
+ai/.cli_history
+
+# API keys (never commit)
+**/claude_api.ini
+
+# Environment files (contain secrets)
+**/.env
+.env
+.env.local
+.env.*.local
+
+# Spurious files
+New Text Document.txt
+
+# Build artifacts
+*.egg-info/
+build/
+out/
+
+# Auto Claude data directory (legacy, removed)
+.auto-claude/
+
+# Git worktrees for parallel task development
+ai/worktrees/
+
+# CLIProxyAPI local data
+# Binary is large (~15MB), pid/version are runtime files
+.cliproxyapi/CLIProxyAPIPlus.exe
+.cliproxyapi/*.pid
+.cliproxyapi/version.txt
+# DO track config.yaml and auth/ for portability (commented out = tracked)
+# !.cliproxyapi/config.yaml
+# !.cliproxyapi/auth/
+
+
+/Docs/CaseStudies/REPOS
+/apps/mcp_core/__pycache__
+/ffmpeg
+/Graphiti
+/SASgraphiti-server
+ai/hooks/hook_fired.txt
+ai/hooks/hook_fired.txt
+ai/context_check.png
+ai/checkpoints/session_log.txt
+ai/checkpoints/_index.jsonl
+ai/checkpoints/session_log.txt
+ai/checkpoints/_index.jsonl
+ai/agents_registry.json
+*.log
+*.db
+/.cliproxyapi/auth
+nul
+ai/config/domain-config.json
+ai/current_run.json
+
+# User runtime state (added for public release)
+ai/sessions.json
+ai/agent_context.md
+ai/inbox_messages.json
+ai/artifacts/
+ai/inbox/new/
+ai/inbox/done/
+ai/inbox/cur/
+ai/inbox/dead/
+ai/inbox/tmp/
+ai/inbox/.index/
+ai/chat_history/
+ai/cli_sessions/
+ai/collective/patterns.jsonl
+ai/collective/skill_matrix.json
+ai/config/*.flag
+ai/capture/output/
+ai/.internal_secret
+/apps/kuroryuu_cli_v2
+Docs/CaseStudies/OLLM_CLI_CaseStudy.md
+/assets/videos/frames
+assets/videos/Timeline 1.mp4
+# Personal hook state (session-scoped, not committed)
+ai/hooks/task_id_map.json
+
+# Personal task tracking (not committed — use ai/todo.md.template for clean slate)
+ai/todo.md
+ai/task-meta.json
+
+/apps/kuroryuu_cli_v3
+/ai/reviews
+/Docs/CaseStudies
+
+# Personal Claude Code settings (generated from template by setup-project.ps1)
+.claude/settings.json
+.claude/settings.local.json
+.claude/ai/data/tts_queue/tts.lock
+/.claude/kuro_configs
+.kiro/settings/mcp.json
+ai/hooks/task_id_map.json
+/ai/team-history
+/.agents
+
+# Standalone app (not part of Kuroryuu)
+/apps/gen_swap_UI/
