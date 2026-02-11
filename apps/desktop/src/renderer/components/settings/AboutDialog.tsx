@@ -18,7 +18,7 @@ export function AboutDialog() {
 
   useEffect(() => {
     if (isOpen) {
-      window.electronAPI?.updater?.getVersion?.().then((v) => setVersion(v || '0.1.0'));
+      window.electronAPI?.app?.getVersion?.().then((v: string) => setVersion(v || '0.2.0')).catch(() => setVersion('0.2.0'));
     }
   }, [isOpen]);
 
@@ -69,6 +69,15 @@ export function AboutDialog() {
               <ExternalLink className="w-3 h-3" />
               GitHub
             </span>
+            <span
+              style={linkStyle}
+              onClick={() => openExternal('http://shadowsandshurikens.com/')}
+              onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.textDecoration = 'none'; }}
+            >
+              <ExternalLink className="w-3 h-3" />
+              SOTS
+            </span>
           </div>
           <button
             onClick={() => closeDialog()}
@@ -107,10 +116,12 @@ export function AboutDialog() {
           style={{ color: isKuroryuu ? '#c9b896' : 'var(--muted-foreground)' }}
         >
           Kuroryuu is an open-source AI agent orchestration platform built for Claude Code
-          power users. Born from 877 conversations, 27,570 messages, and a 3-year plan that
-          started when a father found out he was going to be a dad — 4 months of building
-          turned a vision into a multi-agent desktop harness with MCP gateway, graph
-          visualization, TTS, memory systems, and full session persistence. The dragon is real.
+          power users. 21 years of self-taught coding since the 90s, 3 years of game dev
+          prep when ChatGPT hit, 26 Unreal Engine plugins ported from Blueprint to C++ in
+          one month when Opus launched — then Kuroryuu started January 5th, 2026. Built
+          back-to-back with Shadows and Shurikens into a multi-agent desktop harness with
+          MCP gateway, graph visualization, TTS, memory systems, and full session
+          persistence. The dragon is real.
         </p>
 
         {/* Dedication */}
@@ -132,7 +143,7 @@ export function AboutDialog() {
             borderColor: isKuroryuu ? 'rgba(201, 162, 39, 0.15)' : 'var(--border)',
           }}
         >
-          v{version || '0.1.0'} · Electron {electronVersion} · Node {nodeVersion} · {platform}
+          v{version || '0.2.0'} · Electron {electronVersion} · Node {nodeVersion} · {platform}
         </div>
       </div>
     </KuroryuuDialog>

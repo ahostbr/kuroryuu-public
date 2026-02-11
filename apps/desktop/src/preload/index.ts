@@ -1359,6 +1359,9 @@ const api = {
    * Get app configuration and paths
    */
   app: {
+    /** Get app version (from git tags, fallback to package.json) */
+    getVersion: (): Promise<string> =>
+      ipcRenderer.invoke('app:getVersion'),
     /** Get project root path (from KURORYUU_ROOT env or resolved) */
     getProjectRoot: (): Promise<string> =>
       ipcRenderer.invoke('app:getProjectRoot'),

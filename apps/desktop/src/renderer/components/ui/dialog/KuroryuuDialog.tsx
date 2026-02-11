@@ -70,6 +70,9 @@ export function KuroryuuDialog({
     if (open) {
       setMounted(true);
       setIsExiting(false);
+    } else if (mounted) {
+      // Handle external close (e.g., store-driven closeDialog())
+      setMounted(false);
     }
   }, [open]);
 

@@ -2,7 +2,7 @@ import { app, BrowserWindow, screen, ipcMain, shell, protocol, dialog, Tray, Men
 import { join, dirname, extname } from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import { readFile, writeFile, readdir } from 'fs/promises';
 import { randomBytes } from 'crypto';
 import { PtyManager } from './pty/manager';
@@ -66,6 +66,15 @@ const isDev = process.env.NODE_ENV === 'development' || !!process.env.ELECTRON_R
 
 const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 900;
+
+/** Get version from git tags, fallback to package.json version */
+function getGitVersion(): string {
+  try {
+    return execSync('git describe --tags --abbrev=0', { encoding: 'utf-8', timeout: 3000 }).trim().replace(/^v/, '');
+  } catch {
+    return app.getVersion();
+  }
+}
 
 let mainWindow: BrowserWindow | null = null;
 let codeEditorWindow: BrowserWindow | null = null;
@@ -1472,6 +1481,8 @@ function setupFsIpc(): void {
   ipcMain.handle('shell:openExternal', async (_, url: string) => {
     return shell.openExternal(url);
   });
+
+  ipcMain.handle('app:getVersion', () => getGitVersion());
 
   // Changelog: Save to file
   ipcMain.handle('changelog:saveToFile', async (_, content: string, version: string) => {
@@ -3586,7 +3597,7 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    title: 'Kuroryuu',
+    title: `Kuroryuu v${getGitVersion()}`,
     icon: appIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
