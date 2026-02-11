@@ -198,6 +198,9 @@ from .genui import router as genui_router
 # GitHub: PR management and workflow
 from .github import router as github_router
 
+# Marketing: Research engine, web scraper, asset generation
+from .marketing import router as marketing_router
+
 # AG-UI Protocol: Human-in-the-loop interrupts
 from .agui import (
     get_interrupt_store,
@@ -437,6 +440,9 @@ app.include_router(genui_router)
 
 # GitHub: PR management and workflow
 app.include_router(github_router)
+
+# Marketing: Research engine, web scraper, asset generation
+app.include_router(marketing_router)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

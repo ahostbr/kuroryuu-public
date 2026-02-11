@@ -2514,6 +2514,22 @@ const api = {
     selectRestoreTarget: (): Promise<{ ok: boolean; canceled?: boolean; data?: { path: string } }> =>
       ipcRenderer.invoke('backup:select-restore-target'),
   },
+  /**
+   * Marketing API
+   * Tool installation and setup for marketing workspace
+   */
+  marketing: {
+    cloneRepo: (repoUrl: string, targetDir: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('marketing:cloneRepo', repoUrl, targetDir),
+    installDeps: (toolDir: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('marketing:installDeps', toolDir),
+    getToolStatus: (): Promise<{ tools: Array<{ id: string; name: string; installed: boolean; path: string | null }> }> =>
+      ipcRenderer.invoke('marketing:getToolStatus'),
+    getSetupState: (): Promise<{ complete: boolean; tools: unknown[] }> =>
+      ipcRenderer.invoke('marketing:getSetupState'),
+    saveSetup: (state: unknown): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('marketing:saveSetup', state),
+  },
 };
 
 export type ElectronAPI = typeof api;

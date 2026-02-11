@@ -30,6 +30,7 @@ import {
   Cpu,
   Users,
   Calendar,
+  Megaphone,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
 import { useDomainConfigStore } from '../stores/domain-config-store';
@@ -79,7 +80,8 @@ export type View =
   | 'claude-teams'
   | 'kuroryuu-agents'
   | 'genui'
-  | 'scheduler';
+  | 'scheduler'
+  | 'marketing';
 
 interface SidebarProps {
   activeView: View;
@@ -144,6 +146,7 @@ const navGroups: NavGroup[] = [
     items: [
       { id: 'changelog', label: 'Changelog', icon: FileText, shortcut: 'L' },
       { id: 'worktrees', label: 'GitHub', icon: GitBranch, shortcut: 'W' },
+      { id: 'marketing', label: 'Marketing', icon: Megaphone, shortcut: 'B' },
       { id: 'memory', label: 'Memory', icon: Bot },
       { id: 'transcripts', label: 'Transcripts', icon: ScrollText, shortcut: 'R' },
       // { id: 'canvas', label: 'Canvas', icon: Layers, shortcut: 'V' }, // Hidden: Use Graphiti tab in Command Center

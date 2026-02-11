@@ -30,6 +30,7 @@ import { ClaudeTaskMonitor } from './components/monitor';  // Claude Code task m
 import { ClaudeTeams } from './components/claude-teams';  // Claude Code Agent Teams orchestration
 import { KuroryuuAgents } from './components/kuroryuu-agents';  // Kuroryuu Agents (rebranded coding-agents)
 import { SchedulerPanel } from './components/scheduler';  // Job scheduler
+import { MarketingPanel } from './components/marketing';  // Marketing workflow
 // BackupManagerPage opened as dialog from IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
@@ -401,6 +402,9 @@ export function App() {
 
                 {/* Scheduler - Automated job scheduling */}
                 {activeView === 'scheduler' && <SchedulerPanel />}
+
+                {/* Marketing - Research, positioning, copy, ads workflow */}
+                {activeView === 'marketing' && <MarketingPanel />}
 
               </ErrorBoundary>
             </main>

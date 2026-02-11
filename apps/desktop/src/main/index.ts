@@ -49,6 +49,7 @@ import { getCLIProxyNativeManager } from './services/cliproxy-native';
 import { registerTaskHandlers } from './ipc/task-handlers';
 import { setupSchedulerIpc, cleanupSchedulerIpc } from './ipc/scheduler-handlers';
 import { registerBackupHandlers } from './ipc/backup-handlers';
+import { registerMarketingHandlers } from './ipc/marketing-handlers';
 import { getTaskService } from './services/task-service';
 import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow, initializeState as initPCControlState } from './integrations/pccontrol-service';
 import { registerPythonHandlers, setMainWindow as setPythonMainWindow } from './integrations/python-service';
@@ -4094,6 +4095,7 @@ app.whenReady().then(async () => {
   setupSecurityIpc();
   setupOrchestrationIpc();
   registerBootstrapHandlers();
+  registerMarketingHandlers();
 
   // Auto-launch tray companion if enabled (uses project scope via resolveScope)
   const autoLaunchEnabled = settingsService.get('integrations.trayCompanion.launchOnStartup') as boolean;

@@ -1,0 +1,292 @@
+"""Marketing Router - FastAPI endpoints for Marketing module.
+
+Endpoints:
+- POST /v1/marketing/research       - Research engine (Perplexity replacement)
+- POST /v1/marketing/scrape         - Web scraper (Firecrawl replacement)
+- GET  /v1/marketing/tools/status   - Tool installation status
+- GET  /v1/marketing/assets         - List generated assets
+- GET  /v1/marketing/assets/{id}    - Serve asset file
+- DELETE /v1/marketing/assets/{id}  - Delete asset
+- POST /v1/marketing/generate/image - SSE image generation
+- POST /v1/marketing/generate/voiceover - SSE voiceover generation
+- POST /v1/marketing/generate/music - SSE music generation
+- POST /v1/marketing/generate/video - SSE video rendering
+- GET  /v1/marketing/skills         - List marketing skills
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import StreamingResponse, FileResponse
+
+from .models import (
+    ResearchRequest,
+    ResearchResponse,
+    ScrapeRequest,
+    ScrapeResponse,
+    ImageGenRequest,
+    VoiceoverRequest,
+    MusicRequest,
+    VideoRequest,
+    ToolStatusResponse,
+    AssetsResponse,
+    AssetInfo,
+    SkillInfo,
+)
+
+from .research_engine import research
+from .web_scraper import scrape
+from .image_service import generate_image
+from .video_service import generate_voiceover, generate_music, render_video
+from .tool_manager import (
+    get_tool_status,
+    list_assets,
+    get_asset_path,
+    delete_asset,
+    list_skills,
+)
+
+logger = logging.getLogger("marketing.router")
+
+router = APIRouter(prefix="/v1/marketing", tags=["marketing"])
+
+
+# ---------------------------------------------------------------------------
+# Research Engine
+# ---------------------------------------------------------------------------
+
+@router.post("/research", response_model=ResearchResponse)
+async def research_endpoint(request: ResearchRequest) -> ResearchResponse:
+    """Execute research query via DuckDuckGo + LLM synthesis.
+
+    Replaces Perplexity with local web search + Gateway LLM.
+
+    Args:
+        request: ResearchRequest with query, mode, model, provider
+
+    Returns:
+        ResearchResponse with synthesized content and citations
+    """
+    try:
+        return await research(
+            query=request.query,
+            mode=request.mode,
+            model=request.model,
+            provider=request.provider,
+        )
+    except Exception as e:
+        logger.error(f"Research failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Web Scraper
+# ---------------------------------------------------------------------------
+
+@router.post("/scrape", response_model=ScrapeResponse)
+async def scrape_endpoint(request: ScrapeRequest) -> ScrapeResponse:
+    """Scrape web page content via Playwright.
+
+    Replaces Firecrawl with local browser automation.
+
+    Args:
+        request: ScrapeRequest with url, mode, model, provider
+
+    Returns:
+        ScrapeResponse with scraped content
+    """
+    try:
+        return await scrape(
+            url=request.url,
+            mode=request.mode,
+            model=request.model,
+            provider=request.provider,
+        )
+    except Exception as e:
+        logger.error(f"Scraping failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Tool Management
+# ---------------------------------------------------------------------------
+
+@router.get("/tools/status", response_model=ToolStatusResponse)
+async def tools_status_endpoint() -> ToolStatusResponse:
+    """Get installation status for all marketing tools.
+
+    Returns:
+        ToolStatusResponse with tool info
+    """
+    return get_tool_status()
+
+
+# ---------------------------------------------------------------------------
+# Asset Management
+# ---------------------------------------------------------------------------
+
+@router.get("/assets", response_model=AssetsResponse)
+async def list_assets_endpoint() -> AssetsResponse:
+    """List all generated assets.
+
+    Returns:
+        AssetsResponse with asset info
+    """
+    assets = list_assets()
+    return AssetsResponse(assets=[AssetInfo(**a) for a in assets])
+
+
+@router.get("/assets/{asset_id}")
+async def get_asset_endpoint(asset_id: str) -> FileResponse:
+    """Serve an asset file.
+
+    Args:
+        asset_id: Asset filename
+
+    Returns:
+        FileResponse with asset file
+    """
+    asset_path = get_asset_path(asset_id)
+    if not asset_path:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    return FileResponse(asset_path)
+
+
+@router.delete("/assets/{asset_id}")
+async def delete_asset_endpoint(asset_id: str) -> dict[str, Any]:
+    """Delete an asset file.
+
+    Args:
+        asset_id: Asset filename
+
+    Returns:
+        Success message
+    """
+    success = delete_asset(asset_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    return {"status": "deleted", "asset_id": asset_id}
+
+
+# ---------------------------------------------------------------------------
+# Image Generation
+# ---------------------------------------------------------------------------
+
+@router.post("/generate/image")
+async def generate_image_endpoint(request: ImageGenRequest) -> StreamingResponse:
+    """Generate image via google-image-gen-api-starter.
+
+    SSE event stream with progress and completion events.
+
+    Args:
+        request: ImageGenRequest with prompt, style, aspect_ratio
+
+    Returns:
+        StreamingResponse with SSE events
+    """
+    async def event_generator():
+        async for event_json in generate_image(
+            prompt=request.prompt,
+            style=request.style,
+            aspect_ratio=request.aspect_ratio,
+        ):
+            yield f"data: {event_json}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Voiceover Generation
+# ---------------------------------------------------------------------------
+
+@router.post("/generate/voiceover")
+async def generate_voiceover_endpoint(request: VoiceoverRequest) -> StreamingResponse:
+    """Generate voiceover via ElevenLabs (via video toolkit).
+
+    SSE event stream with progress and completion events.
+
+    Args:
+        request: VoiceoverRequest with text, voice_id
+
+    Returns:
+        StreamingResponse with SSE events
+    """
+    async def event_generator():
+        async for event_json in generate_voiceover(
+            text=request.text,
+            voice_id=request.voice_id,
+        ):
+            yield f"data: {event_json}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Music Generation
+# ---------------------------------------------------------------------------
+
+@router.post("/generate/music")
+async def generate_music_endpoint(request: MusicRequest) -> StreamingResponse:
+    """Generate music via video toolkit.
+
+    SSE event stream with progress and completion events.
+
+    Args:
+        request: MusicRequest with prompt, duration
+
+    Returns:
+        StreamingResponse with SSE events
+    """
+    async def event_generator():
+        async for event_json in generate_music(
+            prompt=request.prompt,
+            duration=request.duration,
+        ):
+            yield f"data: {event_json}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Video Rendering
+# ---------------------------------------------------------------------------
+
+@router.post("/generate/video")
+async def generate_video_endpoint(request: VideoRequest) -> StreamingResponse:
+    """Render video via Remotion (via video toolkit).
+
+    SSE event stream with progress and completion events.
+
+    Args:
+        request: VideoRequest with template, props
+
+    Returns:
+        StreamingResponse with SSE events
+    """
+    async def event_generator():
+        async for event_json in render_video(
+            template=request.template,
+            props=request.props,
+        ):
+            yield f"data: {event_json}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Skills Discovery
+# ---------------------------------------------------------------------------
+
+@router.get("/skills", response_model=list[SkillInfo])
+async def list_skills_endpoint() -> list[SkillInfo]:
+    """List all marketing skills.
+
+    Returns:
+        List of SkillInfo objects
+    """
+    return list_skills()
