@@ -1,11 +1,11 @@
 /**
  * GitHub Desktop History Sidebar Component
- * Scrollable list of commits with relative timestamps and context menu
+ * Scrollable list of commits with expandable inline details and file list
  */
 
-import { GitCommit, Copy, RotateCcw, GitBranch, ExternalLink } from 'lucide-react';
+import { GitCommit, Copy, RotateCcw, GitBranch, User, Calendar, FileText } from 'lucide-react';
 import { useRepositoryStore } from '../../stores/repository-store';
-import type { Commit } from '../../types/repository';
+import type { Commit, CommitDetails, CommitFile } from '../../types/repository';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useState } from 'react';
 
@@ -13,8 +13,12 @@ export function HistorySidebar() {
   const {
     commits,
     selectedCommit,
+    selectedCommitDetails,
     isLoadingHistory,
+    isLoadingCommitDetails,
     selectCommit,
+    selectedHistoryFile,
+    loadCommitFileDiff,
   } = useRepositoryStore();
 
   if (isLoadingHistory) {
@@ -49,7 +53,17 @@ export function HistorySidebar() {
             key={commit.hash}
             commit={commit}
             isSelected={selectedCommit?.hash === commit.hash}
-            onSelect={() => selectCommit(commit)}
+            details={selectedCommit?.hash === commit.hash ? selectedCommitDetails : null}
+            isLoadingDetails={selectedCommit?.hash === commit.hash && isLoadingCommitDetails}
+            selectedFilePath={selectedHistoryFile}
+            onSelect={() => {
+              if (selectedCommit?.hash === commit.hash) {
+                selectCommit(null); // toggle collapse
+              } else {
+                selectCommit(commit);
+              }
+            }}
+            onFileSelect={(filePath) => loadCommitFileDiff(commit.hash, filePath)}
           />
         ))}
       </div>
@@ -58,19 +72,22 @@ export function HistorySidebar() {
 }
 
 // ============================================================================
-// Commit Item
+// Commit Item (with expandable details)
 // ============================================================================
 
 interface CommitItemProps {
   commit: Commit;
   isSelected: boolean;
+  details: CommitDetails | null;
+  isLoadingDetails: boolean;
+  selectedFilePath: string | null;
   onSelect: () => void;
+  onFileSelect: (filePath: string) => void;
 }
 
-function CommitItem({ commit, isSelected, onSelect }: CommitItemProps) {
+function CommitItem({ commit, isSelected, details, isLoadingDetails, selectedFilePath, onSelect, onFileSelect }: CommitItemProps) {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
-  // Format relative time
   const formatRelativeTime = (timestamp: number) => {
     const now = Date.now();
     const diff = now - timestamp;
@@ -86,6 +103,28 @@ function CommitItem({ commit, isSelected, onSelect }: CommitItemProps) {
     if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`;
     if (weeks < 4) return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
     return `${months} month${months !== 1 ? 's' : ''} ago`;
+  };
+
+  const formatDate = (timestamp?: number, dateStr?: string) => {
+    if (timestamp) {
+      return new Date(timestamp).toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    }
+    if (dateStr) {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+    return 'Unknown date';
   };
 
   const handleContextMenu = (e: React.MouseEvent) => {
@@ -116,13 +155,24 @@ function CommitItem({ commit, isSelected, onSelect }: CommitItemProps) {
   };
 
   const handleCreateBranch = () => {
-    // TODO: Implement branch creation dialog
     console.log('Create branch from commit:', commit.hash);
     setContextMenu(null);
   };
 
+  const statusColors: Record<string, string> = {
+    new: 'var(--ghd-status-new)',
+    modified: 'var(--ghd-status-modified)',
+    deleted: 'var(--ghd-status-deleted)',
+    renamed: 'var(--ghd-status-renamed)',
+  };
+
+  // Type guard for files
+  const hasFiles = (d: CommitDetails | null): d is CommitDetails =>
+    d !== null && 'files' in d && Array.isArray(d.files);
+
   return (
     <>
+      {/* Commit summary row (always visible) */}
       <div
         className={`ghd-commit-item ${isSelected ? 'selected' : ''}`}
         onClick={onSelect}
@@ -138,6 +188,112 @@ function CommitItem({ commit, isSelected, onSelect }: CommitItemProps) {
         </div>
       </div>
 
+      {/* Expanded details (only when selected) */}
+      {isSelected && (
+        <div style={{
+          background: 'var(--ghd-bg-primary)',
+          borderBottom: '1px solid var(--ghd-border)',
+          fontSize: 'var(--ghd-font-size-sm)',
+        }}>
+          {isLoadingDetails ? (
+            <div style={{ padding: '12px', display: 'flex', justifyContent: 'center' }}>
+              <div className="ghd-spinner" />
+            </div>
+          ) : (
+            <>
+              {/* Commit meta */}
+              <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px', borderBottom: '1px solid var(--ghd-border)' }}>
+                {details?.author && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--ghd-text-secondary)' }}>
+                    <User size={12} />
+                    <span>{details.author.name}</span>
+                    <span style={{ color: 'var(--ghd-text-muted)' }}>
+                      &lt;{details.author.email}&gt;
+                    </span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--ghd-text-muted)' }}>
+                  <Calendar size={12} />
+                  <span>{formatDate(details?.timestamp || commit.timestamp, details?.author?.date)}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--ghd-text-muted)' }}>
+                  <GitCommit size={12} />
+                  <span style={{ fontFamily: 'var(--ghd-font-mono)' }}>{commit.shortHash}</span>
+                </div>
+              </div>
+
+              {/* Full message body (if different from summary) */}
+              {details?.message && String(details.message).trim() !== details.summary && (
+                <div style={{
+                  padding: '8px 12px',
+                  color: 'var(--ghd-text-secondary)',
+                  whiteSpace: 'pre-wrap',
+                  fontSize: 'var(--ghd-font-size-xs)',
+                  borderBottom: '1px solid var(--ghd-border)',
+                }}>
+                  {String(details.message).trim()}
+                </div>
+              )}
+
+              {/* Files changed */}
+              {hasFiles(details) && details.files.length > 0 && (
+                <div>
+                  <div style={{
+                    padding: '6px 12px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--ghd-text-muted)',
+                  }}>
+                    Files changed ({details.files.length})
+                  </div>
+                  {details.files.map((file: CommitFile) => (
+                    <button
+                      key={file.path}
+                      onClick={(e) => { e.stopPropagation(); onFileSelect(file.path); }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        width: '100%',
+                        padding: '5px 12px',
+                        background: selectedFilePath === file.path ? 'var(--ghd-bg-active)' : 'transparent',
+                        border: 'none',
+                        color: 'var(--ghd-text-primary)',
+                        fontSize: 'var(--ghd-font-size-xs)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedFilePath !== file.path) e.currentTarget.style.background = 'var(--ghd-bg-hover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = selectedFilePath === file.path ? 'var(--ghd-bg-active)' : 'transparent';
+                      }}
+                    >
+                      <FileText
+                        size={12}
+                        style={{ color: statusColors[file.status] || 'var(--ghd-text-muted)', flexShrink: 0 }}
+                      />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {file.path}
+                      </span>
+                      <span style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                        {file.additions > 0 && (
+                          <span style={{ color: 'var(--ghd-diff-add-text)' }}>+{file.additions}</span>
+                        )}
+                        {file.deletions > 0 && (
+                          <span style={{ color: 'var(--ghd-diff-del-text)' }}>-{file.deletions}</span>
+                        )}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Context Menu */}
       {contextMenu && (
         <DropdownMenu.Root
@@ -151,7 +307,6 @@ function CommitItem({ commit, isSelected, onSelect }: CommitItemProps) {
               onInteractOutside={() => setContextMenu(null)}
               onEscapeKeyDown={() => setContextMenu(null)}
             >
-              {/* Copy SHA */}
               <DropdownMenu.Item
                 className="ghd-context-menu-item"
                 onClick={handleCopySHA}
@@ -170,7 +325,6 @@ function CommitItem({ commit, isSelected, onSelect }: CommitItemProps) {
 
               <DropdownMenu.Separator className="ghd-context-menu-separator" />
 
-              {/* Branch from commit */}
               <DropdownMenu.Item
                 className="ghd-context-menu-item"
                 onClick={handleCreateBranch}
@@ -181,7 +335,6 @@ function CommitItem({ commit, isSelected, onSelect }: CommitItemProps) {
 
               <DropdownMenu.Separator className="ghd-context-menu-separator" />
 
-              {/* Revert */}
               <DropdownMenu.Item
                 className="ghd-context-menu-item danger"
                 onClick={handleRevertCommit}

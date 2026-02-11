@@ -1887,6 +1887,10 @@ const api = {
     diff: (filePath: string): Promise<{ ok: boolean; diff: string; error?: string }> =>
       ipcRenderer.invoke('git:diff', filePath),
 
+    /** Get diff for a specific file in a commit */
+    diffCommit: (hash: string, filePath: string): Promise<{ diff?: string; error?: string }> =>
+      ipcRenderer.invoke('git:diffCommit', hash, filePath),
+
     /** Stage a file */
     stage: (filePath: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('git:stage', filePath),

@@ -1,24 +1,25 @@
 /**
  * GitHub Desktop Commit Details Component
- * Shows full commit information when a commit is selected in History tab
+ * Shows file diff when a file is selected from the expanded commit in History sidebar
  */
 
-import { User, Calendar, GitCommit, FileText } from 'lucide-react';
+import { Settings, FileCode } from 'lucide-react';
 import { useRepositoryStore } from '../../stores/repository-store';
-import type { CommitDetails as CommitDetailsType, CommitFile } from '../../types/repository';
+import type { DiffLine, FileDiff } from '../../types/repository';
 
 export function CommitDetails() {
   const {
     selectedCommit,
-    selectedCommitDetails,
-    isLoadingCommitDetails,
+    selectedHistoryFile,
+    selectedCommitFileDiff,
+    isLoadingCommitFileDiff,
   } = useRepositoryStore();
 
   if (!selectedCommit) {
     return (
       <div className="ghd-diff-panel">
         <div className="ghd-empty-state">
-          <GitCommit size={48} className="ghd-empty-state-icon" />
+          <FileCode size={48} className="ghd-empty-state-icon" />
           <div className="ghd-empty-state-title">No commit selected</div>
           <div className="ghd-empty-state-description">
             Select a commit from the list to view its details
@@ -28,161 +29,147 @@ export function CommitDetails() {
     );
   }
 
-  if (isLoadingCommitDetails) {
+  if (!selectedHistoryFile) {
     return (
       <div className="ghd-diff-panel">
-        <CommitHeader commit={selectedCommit} />
-        <div className="ghd-loading" style={{ flex: 1 }}>
+        <div className="ghd-empty-state">
+          <FileCode size={48} className="ghd-empty-state-icon" />
+          <div className="ghd-empty-state-title">No file selected</div>
+          <div className="ghd-empty-state-description">
+            Select a file from the commit to view its diff
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingCommitFileDiff) {
+    return (
+      <div className="ghd-diff-panel">
+        <DiffHeader path={selectedHistoryFile} />
+        <div className="ghd-loading">
           <div className="ghd-spinner" />
         </div>
       </div>
     );
   }
 
-  const details = selectedCommitDetails || selectedCommit;
-  // Type guard for files - only CommitDetails has files array
-  const hasFiles = (d: typeof details): d is CommitDetailsType =>
-    d !== null && 'files' in d && Array.isArray((d as CommitDetailsType).files);
-
-  return (
-    <div className="ghd-commit-details">
-      <CommitHeader commit={details} />
-      <div className="ghd-commit-details-body">
-        {/* Full message */}
-        {details.message && String(details.message) !== details.summary && (
-          <div className="ghd-commit-details-message">
-            {String(details.message)}
+  if (!selectedCommitFileDiff) {
+    return (
+      <div className="ghd-diff-panel">
+        <DiffHeader path={selectedHistoryFile} />
+        <div className="ghd-empty-state">
+          <div className="ghd-empty-state-description">
+            Unable to load diff for this file
           </div>
-        )}
-
-        {/* Files changed */}
-        {hasFiles(details) && details.files.length > 0 && (
-          <div className="ghd-commit-details-files">
-            <div className="ghd-commit-details-files-header">
-              Files changed ({details.files.length})
-            </div>
-            {details.files.map((file: CommitFile) => (
-              <CommitFileItem key={file.path} file={file} />
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ============================================================================
-// Sub-components
-// ============================================================================
-
-interface CommitHeaderProps {
-  commit: {
-    summary: string;
-    hash?: string;
-    shortHash: string;
-    author?: {
-      name: string;
-      email: string;
-      date?: string;
-    };
-    timestamp?: number;
-  };
-}
-
-function CommitHeader({ commit }: CommitHeaderProps) {
-  // Format date
-  const formatDate = (timestamp?: number, dateStr?: string) => {
-    if (timestamp) {
-      return new Date(timestamp).toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
-    if (dateStr) {
-      return new Date(dateStr).toLocaleDateString('en-US', {
-        weekday: 'short',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      });
-    }
-    return 'Unknown date';
-  };
-
-  return (
-    <div className="ghd-commit-details-header">
-      <div className="ghd-commit-details-title">
-        {commit.summary}
-      </div>
-      <div className="ghd-commit-details-meta">
-        {commit.author && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <User size={14} />
-            <span>{commit.author.name}</span>
-            <span style={{ color: 'var(--ghd-text-muted)' }}>
-              &lt;{commit.author.email}&gt;
-            </span>
-          </div>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Calendar size={14} />
-          <span>{formatDate(commit.timestamp, commit.author?.date)}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <GitCommit size={14} />
-          <span style={{ fontFamily: 'var(--ghd-font-mono)' }}>
-            {commit.shortHash}
-          </span>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-interface CommitFileItemProps {
-  file: CommitFile;
-}
-
-function CommitFileItem({ file }: CommitFileItemProps) {
-  const statusColors: Record<string, string> = {
-    new: 'var(--ghd-status-new)',
-    modified: 'var(--ghd-status-modified)',
-    deleted: 'var(--ghd-status-deleted)',
-    renamed: 'var(--ghd-status-renamed)',
-  };
+  if (selectedCommitFileDiff.isBinary) {
+    return (
+      <div className="ghd-diff-panel">
+        <DiffHeader path={selectedHistoryFile} />
+        <div className="ghd-empty-state">
+          <div className="ghd-empty-state-title">Binary file</div>
+          <div className="ghd-empty-state-description">
+            Cannot display diff for binary files
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div
-      className="ghd-file-item"
-      style={{ cursor: 'default' }}
-    >
-      <FileText
-        size={14}
-        style={{ color: statusColors[file.status] || 'var(--ghd-text-muted)' }}
+    <div className="ghd-diff-panel">
+      <DiffHeader
+        path={selectedHistoryFile}
+        additions={selectedCommitFileDiff.additions}
+        deletions={selectedCommitFileDiff.deletions}
       />
-      <div className="ghd-file-path" title={file.path}>
-        {file.path}
+      <div className="ghd-diff-content">
+        {selectedCommitFileDiff.hunks.map((hunk, hunkIndex) => (
+          <DiffHunk key={hunkIndex} hunk={hunk} />
+        ))}
       </div>
-      <div style={{
-        fontSize: 'var(--ghd-font-size-xs)',
-        color: 'var(--ghd-text-muted)',
-        display: 'flex',
-        gap: '8px',
-      }}>
-        {file.additions > 0 && (
-          <span style={{ color: 'var(--ghd-diff-add-text)' }}>
-            +{file.additions}
+    </div>
+  );
+}
+
+// ============================================================================
+// Sub-components (mirrored from DiffViewer)
+// ============================================================================
+
+interface DiffHeaderProps {
+  path: string;
+  additions?: number;
+  deletions?: number;
+}
+
+function DiffHeader({ path, additions, deletions }: DiffHeaderProps) {
+  return (
+    <div className="ghd-diff-header">
+      <div className="ghd-diff-filepath">
+        {path}
+        {additions !== undefined && deletions !== undefined && (
+          <span style={{ marginLeft: '12px', fontSize: 'var(--ghd-font-size-xs)' }}>
+            <span style={{ color: 'var(--ghd-diff-add-text)' }}>+{additions}</span>
+            {' / '}
+            <span style={{ color: 'var(--ghd-diff-del-text)' }}>-{deletions}</span>
           </span>
         )}
-        {file.deletions > 0 && (
-          <span style={{ color: 'var(--ghd-diff-del-text)' }}>
-            -{file.deletions}
-          </span>
-        )}
+      </div>
+      <div className="ghd-diff-actions">
+        <button className="ghd-diff-action-btn" title="Diff options">
+          <Settings size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+interface DiffHunkProps {
+  hunk: FileDiff['hunks'][0];
+}
+
+function DiffHunk({ hunk }: DiffHunkProps) {
+  return (
+    <div className="ghd-diff-hunk">
+      <div className="ghd-diff-hunk-header">
+        {hunk.header}
+      </div>
+      {hunk.lines.map((line, lineIndex) => (
+        <DiffLineRow key={lineIndex} line={line} />
+      ))}
+    </div>
+  );
+}
+
+interface DiffLineRowProps {
+  line: DiffLine;
+}
+
+function DiffLineRow({ line }: DiffLineRowProps) {
+  if (line.type === 'hunk') {
+    return null;
+  }
+
+  return (
+    <div className={`ghd-diff-line ${line.type}`}>
+      <div className="ghd-diff-line-gutter">
+        <div className="ghd-diff-line-number old">
+          {line.type !== 'add' ? line.oldLineNumber || '' : ''}
+        </div>
+        <div className="ghd-diff-line-number new">
+          {line.type !== 'delete' ? line.newLineNumber || '' : ''}
+        </div>
+      </div>
+      <div className="ghd-diff-line-content">
+        {line.type === 'add' && '+'}
+        {line.type === 'delete' && '-'}
+        {line.type === 'context' && ' '}
+        {line.content}
       </div>
     </div>
   );

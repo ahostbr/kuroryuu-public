@@ -84,6 +84,11 @@ interface RepositoryState {
   isLoadingHistory: boolean;
   isLoadingCommitDetails: boolean;
 
+  // History file diff state
+  selectedHistoryFile: string | null;
+  selectedCommitFileDiff: FileDiff | null;
+  isLoadingCommitFileDiff: boolean;
+
   // UI state
   activeTab: ActiveTab;
   filterText: string;
@@ -127,6 +132,8 @@ interface RepositoryState {
   loadHistory: (limit?: number) => Promise<void>;
   selectCommit: (commit: Commit | null) => void;
   loadCommitDetails: (hash: string) => Promise<void>;
+  selectHistoryFile: (path: string | null) => void;
+  loadCommitFileDiff: (hash: string, filePath: string) => Promise<void>;
 
   // Initialize
   initialize: () => void;
@@ -254,6 +261,9 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
   selectedCommitDetails: null,
   isLoadingHistory: false,
   isLoadingCommitDetails: false,
+  selectedHistoryFile: null,
+  selectedCommitFileDiff: null,
+  isLoadingCommitFileDiff: false,
 
   activeTab: 'changes',
   filterText: '',
@@ -659,7 +669,12 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
   },
 
   selectCommit: (commit) => {
-    set({ selectedCommit: commit, selectedCommitDetails: null });
+    set({
+      selectedCommit: commit,
+      selectedCommitDetails: null,
+      selectedHistoryFile: null,
+      selectedCommitFileDiff: null,
+    });
     if (commit) {
       get().loadCommitDetails(commit.hash);
     }
@@ -702,6 +717,30 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
     } catch (error) {
       console.error('Failed to load commit details:', error);
       set({ selectedCommitDetails: null, isLoadingCommitDetails: false });
+    }
+  },
+
+  // History file diff actions
+  selectHistoryFile: (path) => {
+    set({ selectedHistoryFile: path, selectedCommitFileDiff: null });
+  },
+
+  loadCommitFileDiff: async (hash, filePath) => {
+    set({ selectedHistoryFile: filePath, isLoadingCommitFileDiff: true, selectedCommitFileDiff: null });
+    try {
+      const result = await (window.electronAPI?.git as {
+        diffCommit?: (hash: string, filePath: string) => Promise<{ diff?: string; error?: string }>;
+      })?.diffCommit?.(hash, filePath);
+
+      if (result?.diff) {
+        const diff = parseDiff(result.diff, filePath);
+        set({ selectedCommitFileDiff: diff, isLoadingCommitFileDiff: false });
+      } else {
+        set({ selectedCommitFileDiff: null, isLoadingCommitFileDiff: false });
+      }
+    } catch (error) {
+      console.error('Failed to load commit file diff:', error);
+      set({ selectedCommitFileDiff: null, isLoadingCommitFileDiff: false });
     }
   },
 

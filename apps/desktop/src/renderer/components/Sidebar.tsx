@@ -41,6 +41,19 @@ import { RecordingIndicator } from './capture/RecordingIndicator';
 import pillarVertical from '../assets/themes/kuroryuu/borders/pillar-vertical.png';
 import kuroryuuDragon from '../assets/shared/logos/kuroryuu-dragon.png';
 
+// Claude Code ASCII mascot icon
+//  ▐▛███▜▌
+// ▝▜█████▛▘
+//   ▘▘ ▝▝
+const ClaudeCodeIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <rect x="5" y="2" width="14" height="7" rx="2" />
+    <rect x="3" y="8" width="18" height="9" rx="2" />
+    <rect x="5.5" y="19" width="4" height="3" rx="1" />
+    <rect x="14.5" y="19" width="4" height="3" rx="1" />
+  </svg>
+);
+
 // Sidebar with collapse/expand functionality - v2
 
 export type View =
@@ -92,7 +105,6 @@ const navGroups: NavGroup[] = [
     label: 'Plan',
     icon: ClipboardList,
     items: [
-      { id: 'claude-tasks', label: 'Claude Plugin', icon: Sparkles, shortcut: 'C' },
       { id: 'scheduler', label: 'Scheduler', icon: Calendar, shortcut: 'S' },
       { id: 'dojo', label: 'Dojo', icon: Swords, shortcut: 'D' },
       { id: 'kanban', label: 'Kanban', icon: LayoutGrid, shortcut: 'K' },
@@ -390,17 +402,34 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
               </div>
             </div>
 
-            {/* Bottom section: Settings cog */}
-            <button
-              onClick={() => openDialog('app')}
-              className={`p-1.5 rounded transition-colors ${isKuroryuu
-                  ? 'text-primary/50 hover:text-primary hover:bg-primary/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                }`}
-              title="Settings"
-            >
-              <Settings className="w-4 h-4" />
-            </button>
+            {/* Bottom section: Claude Plugin + Settings cog */}
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => {
+                  setCollapsed(false);
+                  onSelectView('claude-tasks');
+                }}
+                className={`p-1.5 rounded transition-colors ${activeView === 'claude-tasks'
+                    ? isKuroryuu ? 'text-primary bg-primary/20' : 'text-primary bg-secondary'
+                    : isKuroryuu
+                      ? 'text-primary/50 hover:text-primary hover:bg-primary/10'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                title="Claude Plugin"
+              >
+                <ClaudeCodeIcon className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => openDialog('app')}
+                className={`p-1.5 rounded transition-colors ${isKuroryuu
+                    ? 'text-primary/50 hover:text-primary hover:bg-primary/10'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                  }`}
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
@@ -499,6 +528,20 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
           >
             <Cpu className="w-4 h-4" />
             <span className="text-sm">Domain Config</span>
+          </button>
+
+          <button
+            onClick={() => onSelectView('claude-tasks')}
+            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 ${activeView === 'claude-tasks'
+              ? 'bg-secondary text-primary'
+              : 'text-muted-foreground hover:bg-secondary/50 hover:text-foreground'
+            }`}
+          >
+            <ClaudeCodeIcon className="w-4 h-4" />
+            <span className="text-sm">Claude Plugin</span>
+            <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto opacity-0 group-hover:opacity-100">
+              C
+            </span>
           </button>
 
           <button

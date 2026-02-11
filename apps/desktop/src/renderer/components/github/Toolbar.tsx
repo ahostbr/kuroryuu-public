@@ -212,13 +212,13 @@ function RepoInfoPopover({ repoPath, repoName, onClose }: { repoPath: string; re
   useEffect(() => {
     (async () => {
       try {
-        const isConnected = await window.electronAPI?.github?.isConnected?.();
+        const isConnected = await window.electronAPI?.auth?.github?.isConnected?.();
         setConnected(!!isConnected);
         if (!isConnected) { setLoading(false); return; }
 
         const [user, repoList] = await Promise.all([
-          window.electronAPI?.github?.getUser?.(),
-          window.electronAPI?.github?.listRepos?.({ sort: 'full_name', per_page: 100 }),
+          window.electronAPI?.auth?.github?.getUser?.(),
+          window.electronAPI?.auth?.github?.listRepos?.({ sort: 'full_name', per_page: 100 }),
         ]);
 
         if (user?.login) setUsername(user.login);
