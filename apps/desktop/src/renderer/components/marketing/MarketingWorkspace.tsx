@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMarketingStore } from '../../stores/marketing-store';
 import { MarketingHeader } from './MarketingHeader';
 import { MarketingTerminal } from './MarketingTerminal';
@@ -11,6 +11,7 @@ export function MarketingWorkspace() {
   const showToolsPanel = useMarketingStore((s) => s.showToolsPanel);
   const toolsPanelTab = useMarketingStore((s) => s.toolsPanelTab);
   const layoutMode = useMarketingStore((s) => s.layoutMode);
+  const termWrapperRef = useRef<HTMLDivElement>(null);
 
   // Window mode state (drag + resize)
   const [win, setWin] = useState({ x: 20, y: 20, width: 700, height: 450 });
@@ -60,14 +61,31 @@ export function MarketingWorkspace() {
     document.addEventListener('mouseup', onUp);
   }, [win]);
 
+  // Force terminal ResizeObserver to fire after layout mode changes.
+  // Briefly toggle 1px padding on the wrapper — this guarantees the observed
+  // element's dimensions change, even if the grid layout settles to similar
+  // pixel values as the previous mode.
+  useEffect(() => {
+    const el = termWrapperRef.current;
+    if (!el) return;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      el.style.paddingRight = '1px';
+      raf2 = requestAnimationFrame(() => {
+        el.style.paddingRight = '';
+      });
+    });
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+  }, [layoutMode, showSkillsSidebar, showToolsPanel]);
+
   // Compute container styles based on layout mode
   const isWindow = layoutMode === 'window';
 
-  const containerStyle: React.CSSProperties | undefined = isWindow
+  const containerStyle: React.CSSProperties = isWindow
     ? { position: 'absolute', left: win.x, top: win.y, width: win.width, height: win.height, zIndex: 10 }
     : layoutMode === 'splitter'
       ? { flex: '1 1 100%', minWidth: 200, height: '100%' }
-      : undefined;
+      : { width: '100%', height: '100%' };
 
   const containerClass = isWindow
     ? `rounded-lg overflow-hidden flex flex-col shadow-lg border-2 transition-colors ${resizing ? 'border-primary/60' : 'border-border'}`
@@ -109,7 +127,7 @@ export function MarketingWorkspace() {
             </div>
 
             {/* Terminal content — always at same tree position for stable ResizeObserver */}
-            <div className="flex-1 min-h-0">
+            <div ref={termWrapperRef} className="flex-1 min-h-0 overflow-hidden relative">
               <MarketingTerminal />
             </div>
 
