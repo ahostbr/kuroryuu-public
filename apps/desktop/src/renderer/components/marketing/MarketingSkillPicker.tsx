@@ -1,15 +1,15 @@
 import { useMarketingStore } from '../../stores/marketing-store';
-import { Search, Lightbulb, Target, FileText, Mail, Globe, DollarSign, TrendingUp } from 'lucide-react';
+import { Lightbulb, Target, FileText, Mail, Globe, DollarSign, TrendingUp } from 'lucide-react';
 
+// File names must match actual files in ai/skills/marketing/
 const SKILLS = [
-  { id: 'research', label: 'Research', icon: Search, file: 'research.md' },
   { id: 'positioning', label: 'Positioning', icon: Target, file: 'positioning.md' },
   { id: 'copywriting', label: 'Copywriting', icon: FileText, file: 'copywriting.md' },
-  { id: 'seo', label: 'SEO', icon: Globe, file: 'seo.md' },
-  { id: 'lead-magnet', label: 'Lead Magnet', icon: Mail, file: 'lead-magnet.md' },
-  { id: 'ads', label: 'Ads', icon: DollarSign, file: 'ads.md' },
-  { id: 'landing-page', label: 'Landing Page', icon: Lightbulb, file: 'landing-page.md' },
-  { id: 'keywords', label: 'Keywords', icon: TrendingUp, file: 'keywords.md' },
+  { id: 'seo-content', label: 'SEO Content', icon: Globe, file: 'seo_content.md' },
+  { id: 'lead-magnet', label: 'Lead Magnet', icon: Mail, file: 'lead_magnet.md' },
+  { id: 'ad-creative', label: 'Ad Creative', icon: DollarSign, file: 'ad_creative.md' },
+  { id: 'landing-page', label: 'Landing Page', icon: Lightbulb, file: 'landing_page.md' },
+  { id: 'keyword-research', label: 'Keyword Research', icon: TrendingUp, file: 'keyword_research.md' },
 ];
 
 export function MarketingSkillPicker() {
@@ -17,7 +17,7 @@ export function MarketingSkillPicker() {
 
   const handleSkillClick = (file: string) => {
     if (!terminalPtyId) return;
-    // Send skill reference to terminal
+    // Send file reference to Claude Code CLI — @filepath loads the skill as context
     window.electronAPI.pty.write(terminalPtyId, `/skill @ai/skills/marketing/${file}\n`);
   };
 
