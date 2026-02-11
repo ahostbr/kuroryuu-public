@@ -142,5 +142,5 @@ ai/hooks/task_id_map.json
 /ai/team-history
 /.agents
 
-# Standalone app (not part of Kuroryuu)
+# Standalone app's (not part of Kuroryuu but instead built with it via its agents system and ignored for development purposes)
 /apps/gen_swap_UI/
