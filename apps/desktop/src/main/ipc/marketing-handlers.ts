@@ -276,7 +276,14 @@ export function registerMarketingHandlers(): void {
           installedSomething = true;
         }
 
-        if (hasRequirements) {
+        if (hasRequirements && !hasPyProject) {
+          // uv pip install requires a venv — create one if missing
+          const venvPath = path.join(dir, '.venv');
+          if (!fs.existsSync(venvPath)) {
+            console.log(`[Marketing] uv venv in ${dir}`);
+            const venvResult = await runCommand('uv', ['venv'], dir);
+            if (!venvResult.ok) return { ok: false, error: `uv venv failed in ${path.basename(dir)}: ${venvResult.error}` };
+          }
           console.log(`[Marketing] pip install -r requirements.txt in ${dir}`);
           const result = await runCommand('uv', ['pip', 'install', '-r', 'requirements.txt'], dir);
           if (!result.ok) return { ok: false, error: `pip install failed in ${path.basename(dir)}: ${result.error}` };

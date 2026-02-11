@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   FileText,
@@ -6,6 +6,10 @@ import {
   Code2,
   Package,
   Loader2,
+  Copy,
+  Check,
+  BookOpen,
+  Terminal,
 } from 'lucide-react';
 import { useLLMAppsStore } from '../../stores/llm-apps-store';
 import type { LLMApp } from '../../types/llm-apps';
@@ -91,8 +95,11 @@ export function LLMAppDetail({ app, onBack }: LLMAppDetailProps) {
         )}
       </div>
 
-      {/* README Content */}
+      {/* Quick Start + README Content */}
       <div className="flex-1 overflow-auto p-6">
+        {/* Quick Start Card */}
+        <QuickStartCard app={app} />
+
         {readmeLoading ? (
           <div className="flex items-center justify-center h-32">
             <Loader2 className="w-5 h-5 animate-spin text-amber-500" />
@@ -122,6 +129,90 @@ export function LLMAppDetail({ app, onBack }: LLMAppDetailProps) {
         ) : (
           <p className="text-zinc-500 text-sm">No README available for this app.</p>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Quick Start card with copy-to-clipboard commands */
+function QuickStartCard({ app }: { app: LLMApp }) {
+  const [copied, setCopied] = useState(false);
+
+  const REPO_URL = 'https://github.com/Shubhamsaboo/awesome-llm-apps';
+
+  const lines = [
+    `git clone ${REPO_URL}.git`,
+    `cd awesome-llm-apps/${app.path}`,
+  ];
+  if (app.hasRequirements) lines.push('pip install -r requirements.txt');
+  if (app.runCommand) lines.push(app.runCommand);
+
+  const commandBlock = lines.join('\n');
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(commandBlock);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard may not be available */ }
+  };
+
+  return (
+    <div className="max-w-3xl mb-6">
+      <div className="bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-700">
+          <div className="flex items-center gap-2">
+            <Terminal className="w-4 h-4 text-amber-500" />
+            <span className="text-sm font-medium text-zinc-200">Quick Start</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {app.tutorialUrl && (
+              <button
+                onClick={() => window.electronAPI.shell.openExternal(app.tutorialUrl!)}
+                className="px-2.5 py-1 bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded text-xs transition-colors flex items-center gap-1.5"
+              >
+                <BookOpen className="w-3 h-3" />
+                Tutorial
+              </button>
+            )}
+            <button
+              onClick={handleCopy}
+              className="px-2.5 py-1 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded text-xs transition-colors flex items-center gap-1.5"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3 h-3 text-green-400" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3 h-3" />
+                  Copy
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+        <pre className="px-4 py-3 text-sm font-mono text-zinc-300 overflow-x-auto leading-relaxed">
+          {lines.map((line, i) => (
+            <div key={i}>
+              <span className="text-zinc-600 select-none">$ </span>
+              {line}
+            </div>
+          ))}
+        </pre>
+        <div className="px-4 py-2 border-t border-zinc-700/50 flex items-center gap-3">
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              window.electronAPI.shell.openExternal(REPO_URL);
+            }}
+            className="text-[11px] text-zinc-500 hover:text-amber-500 hover:underline cursor-pointer"
+          >
+            {REPO_URL}
+          </a>
+        </div>
       </div>
     </div>
   );

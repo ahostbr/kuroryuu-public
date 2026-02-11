@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Loader2, Download, Settings2, Rocket, Terminal } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Download, Settings2, Rocket, Terminal } from 'lucide-react';
 import type { ToolStatus } from '../../types/marketing';
 
 interface MarketingSetupWizardProps {
@@ -388,16 +388,15 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-300">Tools Ready</span>
+                <span className="text-sm text-zinc-300">Tool Repos (optional)</span>
                 {allToolsReady ? (
                   <div className="flex items-center gap-2 text-green-500 text-sm">
                     <CheckCircle2 className="w-4 h-4" />
-                    {tools.filter((t) => t.depsInstalled).length} / {TOOLS.length}
+                    {tools.filter((t) => t.depsInstalled).length} / {TOOLS.length} installed
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-amber-500 text-sm">
-                    <Loader2 className="w-4 h-4" />
-                    {tools.filter((t) => t.depsInstalled).length} / {TOOLS.length}
+                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                    {tools.filter((t) => t.depsInstalled).length} / {TOOLS.length} installed
                   </div>
                 )}
               </div>

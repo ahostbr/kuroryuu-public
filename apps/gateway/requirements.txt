@@ -18,3 +18,9 @@ anthropic>=0.40.0  # Claude SDK
 
 # Optional: Streaming utilities
 sse-starlette>=1.8.0  # If using SSE package instead of StreamingResponse
+
+# Marketing module
+duckduckgo-search>=7.0.0  # Research engine (web search)
+playwright>=1.40.0        # Web scraper (headless browser)
+readability-lxml>=0.8.0   # Web scraper (content extraction)
+markdownify>=0.11.0       # Web scraper (HTML→Markdown)

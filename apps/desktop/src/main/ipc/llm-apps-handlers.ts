@@ -145,6 +145,18 @@ function extractDescription(readmeContent: string): string {
   return '';
 }
 
+/** Extract tutorial URL from README (theunwindai.com pattern) */
+function extractTutorialUrl(content: string): string | null {
+  const match = content.match(/https:\/\/www\.theunwindai\.com\/p\/[a-z0-9-]+/);
+  return match ? match[0] : null;
+}
+
+/** Extract run command from README (streamlit run / python3) */
+function extractRunCommand(content: string): string | null {
+  const match = content.match(/(?:streamlit run|python3?) [a-z_0-9]+\.py/i);
+  return match ? match[0] : null;
+}
+
 /** Parse requirements.txt to extract package names */
 function parseTechStack(reqContent: string): string[] {
   const packages: string[] = [];
@@ -171,6 +183,8 @@ interface AppEntry {
   techStack: string[];
   entryPoint: string | null;
   pyFileCount: number;
+  tutorialUrl: string | null;
+  runCommand: string | null;
 }
 
 interface CategoryEntry {
@@ -202,6 +216,8 @@ function findApps(baseDir: string): AppEntry[] {
 
       let description = '';
       let hasReadme = false;
+      let tutorialUrl: string | null = null;
+      let runCommand: string | null = null;
       const readmeCandidates = ['README.md', 'README.MD', 'readme.md', 'Readme.md'];
       for (const name of readmeCandidates) {
         const readmePath = path.join(dir, name);
@@ -210,6 +226,8 @@ function findApps(baseDir: string): AppEntry[] {
           try {
             const content = fs.readFileSync(readmePath, 'utf-8');
             description = extractDescription(content);
+            tutorialUrl = extractTutorialUrl(content);
+            runCommand = extractRunCommand(content);
           } catch { /* ignore read errors */ }
           break;
         }
@@ -239,6 +257,8 @@ function findApps(baseDir: string): AppEntry[] {
         techStack,
         entryPoint: pyFiles[0]?.name || null,
         pyFileCount: pyFiles.length,
+        tutorialUrl,
+        runCommand,
       });
     }
 

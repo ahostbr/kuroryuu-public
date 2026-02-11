@@ -67,15 +67,16 @@ export function LLMAppsSetupWizard({ onComplete }: LLMAppsSetupWizardProps) {
     setIndexing(true);
     setError(null);
     try {
-      const res = await fetch('http://127.0.0.1:8200/v1/llm-apps/catalog');
-      if (res.ok) {
+      // RAG indexing is handled on-demand by Claude via k_rag MCP tool.
+      // This step just confirms the catalog exists so Claude can reference it.
+      const result = await window.electronAPI.llmApps.getCatalog();
+      if (result.ok) {
         setIndexed(true);
       } else {
-        // RAG indexing is optional — just skip on failure
+        // Catalog not built yet — still mark as done (optional step)
         setIndexed(true);
       }
     } catch {
-      // Gateway may not be running — skip
       setIndexed(true);
     } finally {
       setIndexing(false);

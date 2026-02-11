@@ -16,6 +16,8 @@ export interface LLMApp {
   techStack: string[];     // parsed from requirements.txt
   entryPoint: string | null; // first .py file name
   pyFileCount: number;     // number of .py files
+  tutorialUrl: string | null;  // e.g., "https://www.theunwindai.com/p/build-an-ai-travel-agent"
+  runCommand: string | null;   // e.g., "streamlit run travel_agent.py"
 }
 
 export interface LLMAppsCategory {

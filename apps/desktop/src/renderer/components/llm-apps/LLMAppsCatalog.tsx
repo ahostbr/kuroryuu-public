@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter, RefreshCw, Loader2, ChevronRight, Layers } from 'lucide-react';
+import { Search, Filter, RefreshCw, Loader2, ChevronRight, Layers, BookOpen } from 'lucide-react';
 import { useLLMAppsStore } from '../../stores/llm-apps-store';
 import { LLMAppDetail } from './LLMAppDetail';
 import type { LLMApp } from '../../types/llm-apps';
@@ -142,9 +142,17 @@ function AppCard({ app, onClick }: { app: LLMApp; onClick: () => void }) {
         <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-amber-500 transition-colors flex-shrink-0 mt-0.5" />
       </div>
 
-      <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500/80 mb-2">
-        {app.category}
-      </span>
+      <div className="flex items-center gap-1.5 mb-2">
+        <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500/80">
+          {app.category}
+        </span>
+        {app.tutorialUrl && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-violet-500/10 text-violet-400" title="Has step-by-step tutorial">
+            <BookOpen className="w-2.5 h-2.5" />
+            Tutorial
+          </span>
+        )}
+      </div>
 
       {app.description && (
         <p className="text-xs text-zinc-500 mb-3 line-clamp-2 leading-relaxed">
