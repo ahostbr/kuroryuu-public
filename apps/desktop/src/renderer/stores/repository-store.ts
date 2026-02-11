@@ -94,9 +94,15 @@ interface RepositoryState {
   setFilterText: (text: string) => void;
   setSidebarWidth: (width: number) => void;
 
+  // Push/Pull state
+  isPushing: boolean;
+  isPulling: boolean;
+
   // Repository actions
   loadRepository: () => Promise<void>;
   fetchOrigin: () => Promise<void>;
+  pushOrigin: () => Promise<void>;
+  pullOrigin: () => Promise<void>;
 
   // Changes actions
   refreshStatus: () => Promise<void>;
@@ -240,6 +246,8 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
   isCommitting: false,
   isSummarizing: false,
   commitError: null,
+  isPushing: false,
+  isPulling: false,
 
   commits: [],
   selectedCommit: null,
@@ -286,11 +294,53 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
     try {
       await window.electronAPI?.git?.fetch?.();
       set({ lastFetched: new Date(), isFetching: false });
-      // Refresh status after fetch
+      // Refresh status and branch info after fetch
       get().refreshStatus();
+      get().loadRepository();
     } catch (error) {
       console.error('Failed to fetch:', error);
       set({ isFetching: false });
+    }
+  },
+
+  pushOrigin: async () => {
+    set({ isPushing: true });
+    try {
+      const result = await window.electronAPI?.git?.push?.();
+      if (result?.ok) {
+        // Refresh branch info to update ahead/behind counts
+        get().loadRepository();
+        get().refreshStatus();
+      } else {
+        console.error('Push failed:', result?.error);
+        set({ commitError: result?.error || 'Push failed' });
+      }
+    } catch (error) {
+      console.error('Failed to push:', error);
+      set({ commitError: String(error) });
+    } finally {
+      set({ isPushing: false });
+    }
+  },
+
+  pullOrigin: async () => {
+    set({ isPulling: true });
+    try {
+      const result = await window.electronAPI?.git?.pull?.();
+      if (result?.ok) {
+        // Refresh everything after pull
+        get().loadRepository();
+        get().refreshStatus();
+        get().loadHistory();
+      } else {
+        console.error('Pull failed:', result?.error);
+        set({ commitError: result?.error || 'Pull failed' });
+      }
+    } catch (error) {
+      console.error('Failed to pull:', error);
+      set({ commitError: String(error) });
+    } finally {
+      set({ isPulling: false });
     }
   },
 
@@ -474,6 +524,8 @@ export const useRepositoryStore = create<RepositoryState>((set, get) => ({
         });
         await refreshStatus();
         await loadHistory();
+        // Refresh branch info so ahead count updates → Push button appears
+        get().loadRepository();
         return true;
       } else {
         set({ commitError: result?.error || 'Commit failed', isCommitting: false });
