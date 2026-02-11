@@ -553,6 +553,16 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
             </span>
           </button>
 
+          {/* Launch Tray Companion - Shift+click for debug mode (shows terminal) */}
+          <button
+            onClick={(e) => window.electronAPI?.app?.launchTrayCompanion?.({ debug: e.shiftKey })}
+            title="Launch Tray Companion (Shift+click for debug mode)"
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
+          >
+            <Bot className="w-4 h-4" />
+            <span className="text-sm">Tray Companion</span>
+          </button>
+
           <button
             onClick={() => openDialog('app')}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
@@ -562,16 +572,6 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
             <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto">
               Ctrl+,
             </span>
-          </button>
-
-          {/* Launch Tray Companion - Shift+click for debug mode (shows terminal) */}
-          <button
-            onClick={(e) => window.electronAPI?.app?.launchTrayCompanion?.({ debug: e.shiftKey })}
-            title="Launch Tray Companion (Shift+click for debug mode)"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-          >
-            <Bot className="w-4 h-4" />
-            <span className="text-sm">Tray Companion</span>
           </button>
 
           <button
