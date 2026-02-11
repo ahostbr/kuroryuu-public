@@ -1860,16 +1860,18 @@ function setupKuroConfigIpc(): void {
         const useSmartTts = config.tts.smartSummaries;
         // ElevenLabs always uses smart_tts.py (it reads provider from config and routes)
         const isElevenLabs = config.tts.provider === 'elevenlabs';
-        const ttsTimeout = isElevenLabs ? 90000 : 30000;
+        // Timeout is in seconds (Claude Code multiplies by 1000 internally)
+        const ttsTimeout = isElevenLabs ? 90 : 30;
 
-        // When teams are active, TTS comes from global hooks — don't write TTS to project hooks
-        // User preference flags (ttsOnStop etc.) are preserved regardless
-        const skipProjectTts = prevTeamTtsActive;
+        // Always include TTS in project hooks — the double-fire prevention in
+        // smart_tts.py's should_skip_global() checks for actual hook commands,
+        // and the TTS lock (tts_queue.py) prevents simultaneous playback as a safety net.
+        const skipProjectTts = false;
 
         // Observability: Python script via uv run (PowerShell corrupts Windows console input mode)
         const obsScript = (eventType: string) =>
           `${uvPath} run .claude/plugins/kuro/hooks/observability/send_event.py "${eventType}"`;
-        const obsTimeout = 5000;
+        const obsTimeout = 5;
 
         // Update Stop hooks - always keep session log + transcript export, only toggle TTS
         {

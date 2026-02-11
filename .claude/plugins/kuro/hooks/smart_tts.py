@@ -75,7 +75,9 @@ def should_skip_global(source_arg=""):
     if source != "global":
         return False  # Not running from global hooks
 
-    # Check if cwd is in a project with local TTS enabled
+    # Check if cwd is in a project that actually has TTS hook commands installed
+    # (not just the preference flag — the flag means "user wants TTS" but the
+    # commands may be absent when _teamTtsActive causes skipProjectTts)
     current = Path.cwd()
     while current != current.parent:
         settings_path = current / ".claude" / "settings.json"
@@ -83,11 +85,13 @@ def should_skip_global(source_arg=""):
             try:
                 with open(settings_path) as f:
                     settings = json.load(f)
-                    hooks = settings.get("kuroPlugin", {}).get("hooks", {})
-                    if (hooks.get("ttsOnStop") or
-                        hooks.get("ttsOnSubagentStop") or
-                        hooks.get("ttsOnNotification")):
-                        return True  # Local hooks will handle it
+                    hooks_config = settings.get("hooks", {})
+                    for event in ("Stop", "SubagentStop", "Notification"):
+                        for group in hooks_config.get(event, []):
+                            for hook in group.get("hooks", []):
+                                cmd = hook.get("command", "")
+                                if "smart_tts.py" in cmd or "edge_tts.py" in cmd:
+                                    return True  # TTS is actually in project hooks
             except Exception:
                 pass
         current = current.parent
