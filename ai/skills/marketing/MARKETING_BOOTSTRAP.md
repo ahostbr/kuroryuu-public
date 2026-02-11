@@ -36,17 +36,23 @@ curl -X POST http://127.0.0.1:8200/v1/marketing/research \
   -d '{"query": "SaaS pricing page best practices 2026"}'
 ```
 
-## Sub-Skills Reference
+## Sub-Skills (MUST LOAD — HARD RULE)
 
-Load specialized skills with `@` file references:
+Each phase has a dedicated sub-skill file containing proven frameworks, templates, and quality checklists. **You MUST Read the sub-skill file before executing that phase.** Do not work from general knowledge — follow the codified frameworks.
 
-- `@ai/skills/marketing/positioning.md` - Positioning and angle development
-- `@ai/skills/marketing/copywriting.md` - Direct response copywriting
-- `@ai/skills/marketing/seo_content.md` - SEO content creation
-- `@ai/skills/marketing/lead_magnet.md` - Lead magnet concepts
-- `@ai/skills/marketing/ad_creative.md` - DTC ad frameworks
-- `@ai/skills/marketing/landing_page.md` - Landing page optimization
-- `@ai/skills/marketing/keyword_research.md` - Keyword discovery
+| Phase | Sub-Skill File | Key Frameworks |
+|-------|---------------|----------------|
+| Positioning | `ai/skills/marketing/positioning.md` | Schwarz awareness levels, category creation, unique mechanism, Big Idea, competitive landscape |
+| Copywriting | `ai/skills/marketing/copywriting.md` | Hopkins scientific advertising, 4U/PAS/AIDA headlines, anti-AI-slop rules, founder story structure |
+| Keyword Research | `ai/skills/marketing/keyword_research.md` | Seed expansion, intent classification, long-tail discovery, competitor gap analysis, programmatic SEO |
+| SEO Content | `ai/skills/marketing/seo_content.md` | EEAT signals, featured snippets, internal linking, hub-and-spoke, content at scale |
+| Lead Magnet | `ai/skills/marketing/lead_magnet.md` | Calculators, audits, PDF guides, 7-email welcome sequence, tripwire offers, content upgrades |
+| Ad Creative | `ai/skills/marketing/ad_creative.md` | Hook-Story-Offer, static/video formats, platform-specific (Meta/Google/TikTok/YouTube), A/B testing |
+| Landing Page | `ai/skills/marketing/landing_page.md` | Above-fold structure, CTA optimization, mobile-first design, page speed, objection handling |
+
+**How to load:** Use `Read` tool on the file path before starting each phase. For `@` references in conversation, use `@ai/skills/marketing/{skill}.md`.
+
+**Research and Traffic phases** have no dedicated sub-skill file — use WebSearch, Gateway tools, and general strategy knowledge for these.
 
 ## Orchestration Rules
 
@@ -95,13 +101,16 @@ ai/artifacts/marketing/keyword_research/{niche}_keywords.md
 1. Greet user and explain the 8 phases
 2. Ask: "Which phase would you like to work on? Or should I recommend a workflow?"
 3. If user provides product/company context, route to Research first
-4. If user specifies a phase, load that sub-skill
+4. If user specifies a phase, **Read the sub-skill file FIRST**, then execute
 
-### During Execution
-- Reference sub-skills as needed with `@ai/skills/marketing/{skill}.md`
-- Use Gateway tools for research, scraping, image/video generation
-- Save all deliverables to `ai/artifacts/marketing/`
-- Create tasks for major deliverables
+### During Execution (CRITICAL)
+1. **Before each phase:** `Read` the matching sub-skill file from the table above
+2. **Follow the frameworks** in the sub-skill (headline formulas, templates, checklists)
+3. **Use the output artifact template** defined in each sub-skill's "Output Artifact" section
+4. **Run the quality checklist** at the end of each sub-skill before delivering
+5. Use Gateway tools for research, scraping, image/video generation (fall back to WebSearch if Gateway unavailable)
+6. Save all deliverables to `ai/artifacts/marketing/`
+7. Create tasks for major deliverables
 
 ### Phase Transitions
 When a phase completes:
@@ -122,9 +131,10 @@ When routing to a phase:
 ```markdown
 ## Phase: {Phase Name}
 
-Loading skill: @ai/skills/marketing/{skill}.md
+> Read: ai/skills/marketing/{skill}.md (MUST load before executing)
 
 **Objective:** {What this phase will deliver}
+**Frameworks:** {Key frameworks from the sub-skill being used}
 **Artifacts:** {Files that will be created}
 **Tasks:** {Tasks that will be tracked}
 ```
@@ -146,7 +156,9 @@ Response:
 ```markdown
 ## Phase: Research
 
-Loading skill: @ai/skills/marketing/positioning.md
+> Research has no dedicated sub-skill — using WebSearch + Gateway tools.
+
+**Objective:** Understand market, competitors, and audience for PM SaaS.
 
 I'll start with market research to understand:
 1. Competitive landscape (existing PM tools)
@@ -156,4 +168,16 @@ I'll start with market research to understand:
 Using Gateway research tool to gather intelligence...
 ```
 
-Then proceed with `/v1/marketing/research` calls and synthesize findings.
+Then proceed with `/v1/marketing/research` calls (or WebSearch fallback) and synthesize findings.
+
+When transitioning to Positioning:
+```markdown
+## Phase: Positioning
+
+> Read: ai/skills/marketing/positioning.md
+
+**Frameworks:** Schwarz awareness levels, category creation, unique mechanism, Big Idea
+**Artifact:** ai/artifacts/marketing/positioning/{company}_angles.md
+
+Loading sub-skill and applying frameworks to research findings...
+```
