@@ -70,7 +70,7 @@ export const useDialogStore = create<DialogState>((set, get) => ({
 // Helper functions for common dialog types
 export function showConfirm(
   title: string,
-  message: string,
+  message: string | React.ReactNode,
   options?: { confirmLabel?: string; cancelLabel?: string }
 ): Promise<boolean> {
   return useDialogStore.getState().showDialog({
@@ -83,7 +83,7 @@ export function showConfirm(
 
 export function showAlert(
   title: string,
-  message: string,
+  message: string | React.ReactNode,
   options?: { confirmLabel?: string }
 ): Promise<boolean> {
   return useDialogStore.getState().showDialog({
@@ -96,7 +96,7 @@ export function showAlert(
 
 export function showDestructive(
   title: string,
-  message: string,
+  message: string | React.ReactNode,
   options?: { confirmLabel?: string; cancelLabel?: string }
 ): Promise<boolean> {
   return useDialogStore.getState().showDialog({

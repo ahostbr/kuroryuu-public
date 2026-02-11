@@ -2002,6 +2002,14 @@ const api = {
     deleteBranch: (branchName: string, force?: boolean): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('git:deleteBranch', branchName, force),
 
+    /** Rename a branch */
+    renameBranch: (oldName: string, newName: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('git:renameBranch', oldName, newName),
+
+    /** Delete a remote branch */
+    deleteRemoteBranch: (branchName: string, remote?: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('git:deleteRemoteBranch', branchName, remote),
+
     /** Get file content at specific revision (for diff view) */
     getFileAtRevision: (filePath: string, revision?: string): Promise<{
       ok: boolean;

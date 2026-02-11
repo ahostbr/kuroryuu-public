@@ -4390,6 +4390,34 @@ app.whenReady().then(async () => {
     }
   });
 
+  // Git rename branch
+  ipcMain.handle('git:renameBranch', async (_, oldName: string, newName: string) => {
+    try {
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      await execAsync(`git branch -m "${oldName}" "${newName}"`, { cwd: gitProjectRoot });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+
+  // Git delete remote branch
+  ipcMain.handle('git:deleteRemoteBranch', async (_, branchName: string, remote: string = 'origin') => {
+    try {
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      await execAsync(`git push "${remote}" --delete "${branchName}"`, { cwd: gitProjectRoot });
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+
   // Get file content at specific revision (for diff view)
   ipcMain.handle('git:getFileAtRevision', async (_, filePath: string, revision: string = 'HEAD') => {
     try {
