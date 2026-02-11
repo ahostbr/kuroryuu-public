@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter, RefreshCw, Loader2, ChevronRight, Layers, BookOpen } from 'lucide-react';
+import { Search, Filter, RefreshCw, Loader2, ChevronRight, Layers, BookOpen, Download } from 'lucide-react';
 import { useLLMAppsStore } from '../../stores/llm-apps-store';
 import { LLMAppDetail } from './LLMAppDetail';
 import type { LLMApp } from '../../types/llm-apps';
@@ -16,6 +16,8 @@ export function LLMAppsCatalog() {
   const setSelectedApp = useLLMAppsStore((s) => s.setSelectedApp);
   const filteredApps = useLLMAppsStore((s) => s.filteredApps);
   const [rebuilding, setRebuilding] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!catalog) loadCatalog();
@@ -30,6 +32,32 @@ export function LLMAppsCatalog() {
       console.error('[LLM Apps] Rebuild failed:', err);
     } finally {
       setRebuilding(false);
+    }
+  };
+
+  const handleCheckUpdates = async () => {
+    setUpdating(true);
+    setUpdateMsg(null);
+    try {
+      const result = await window.electronAPI.llmApps.pullUpdates();
+      if (result.ok) {
+        await loadCatalog();
+        const delta = result.newApps ?? 0;
+        if (delta > 0) {
+          setUpdateMsg(`Updated! ${delta} new app${delta !== 1 ? 's' : ''} found`);
+        } else if (delta < 0) {
+          setUpdateMsg(`Updated! ${Math.abs(delta)} app${Math.abs(delta) !== 1 ? 's' : ''} removed`);
+        } else {
+          setUpdateMsg('Already up to date');
+        }
+      } else {
+        setUpdateMsg(`Update failed: ${result.error}`);
+      }
+    } catch {
+      setUpdateMsg('Update failed — check network connection');
+    } finally {
+      setUpdating(false);
+      setTimeout(() => setUpdateMsg(null), 5000);
     }
   };
 
@@ -55,19 +83,39 @@ export function LLMAppsCatalog() {
               </span>
             )}
           </div>
-          <button
-            onClick={handleRebuild}
-            disabled={rebuilding}
-            className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-300 rounded text-xs transition-colors flex items-center gap-1.5"
-            title="Re-scan repository"
-          >
-            {rebuilding ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-2">
+            {updateMsg && (
+              <span className={`text-[11px] px-2 py-1 rounded ${updateMsg.startsWith('Updated') || updateMsg === 'Already up to date' ? 'text-emerald-400 bg-emerald-500/10' : 'text-red-400 bg-red-500/10'}`}>
+                {updateMsg}
+              </span>
             )}
-            Re-scan
-          </button>
+            <button
+              onClick={handleCheckUpdates}
+              disabled={updating}
+              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-300 rounded text-xs transition-colors flex items-center gap-1.5"
+              title="Fetch upstream changes and rebuild catalog"
+            >
+              {updating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              Check for Updates
+            </button>
+            <button
+              onClick={handleRebuild}
+              disabled={rebuilding}
+              className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800 disabled:text-zinc-600 text-zinc-300 rounded text-xs transition-colors flex items-center gap-1.5"
+              title="Re-scan local repository"
+            >
+              {rebuilding ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="w-3.5 h-3.5" />
+              )}
+              Re-scan
+            </button>
+          </div>
         </div>
 
         {/* Search + Filter */}

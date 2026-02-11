@@ -2551,6 +2551,8 @@ const api = {
       ipcRenderer.invoke('llm-apps:getSetupState'),
     saveSetup: (state: unknown): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('llm-apps:saveSetup', state),
+    pullUpdates: (): Promise<{ ok: boolean; catalog?: unknown; newApps?: number; totalApps?: number; error?: string }> =>
+      ipcRenderer.invoke('llm-apps:pullUpdates'),
   },
 };
 

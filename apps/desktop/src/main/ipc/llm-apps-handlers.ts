@@ -193,6 +193,37 @@ interface CategoryEntry {
   appCount: number;
 }
 
+/** Build catalog JSON from the local repo and write it to disk. Returns the catalog object. */
+function buildCatalogFromDisk(): { apps: AppEntry[]; categories: CategoryEntry[]; generatedAt: string; repoPath: string; totalApps: number } {
+  const apps = findApps(REPO_DIR);
+
+  const catMap = new Map<string, { label: string; count: number }>();
+  for (const app of apps) {
+    const existing = catMap.get(app.categoryId);
+    if (existing) existing.count++;
+    else catMap.set(app.categoryId, { label: app.category, count: 1 });
+  }
+
+  const categories: CategoryEntry[] = Array.from(catMap.entries())
+    .map(([id, { label, count }]) => ({ id, label, appCount: count }))
+    .sort((a, b) => b.appCount - a.appCount);
+
+  const catalog = {
+    apps,
+    categories,
+    generatedAt: new Date().toISOString(),
+    repoPath: REPO_DIR,
+    totalApps: apps.length,
+  };
+
+  const catalogDir = path.dirname(CATALOG_FILE);
+  if (!fs.existsSync(catalogDir)) fs.mkdirSync(catalogDir, { recursive: true });
+  fs.writeFileSync(CATALOG_FILE, JSON.stringify(catalog, null, 2), 'utf-8');
+  console.log(`[LLM Apps] Catalog written: ${apps.length} apps in ${categories.length} categories`);
+
+  return catalog;
+}
+
 /** Recursively walk the repo and find all app directories */
 function findApps(baseDir: string): AppEntry[] {
   const apps: AppEntry[] = [];
@@ -303,42 +334,49 @@ export function registerLLMAppsHandlers(): void {
       if (!fs.existsSync(REPO_DIR)) {
         return { ok: false, error: 'Repository not cloned yet. Clone first.' };
       }
-
       console.log('[LLM Apps] Building catalog from:', REPO_DIR);
-      const apps = findApps(REPO_DIR);
+      const catalog = buildCatalogFromDisk();
+      return { ok: true, catalog };
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
 
-      // Build category summary
-      const catMap = new Map<string, { label: string; count: number }>();
-      for (const app of apps) {
-        const existing = catMap.get(app.categoryId);
-        if (existing) {
-          existing.count++;
-        } else {
-          catMap.set(app.categoryId, { label: app.category, count: 1 });
+  // Pull upstream updates (git fetch + reset) then rebuild catalog
+  ipcMain.handle('llm-apps:pullUpdates', async () => {
+    try {
+      if (!fs.existsSync(REPO_DIR)) {
+        return { ok: false, error: 'Repository not cloned yet.' };
+      }
+
+      // Get current app count for delta comparison
+      let oldCount = 0;
+      if (fs.existsSync(CATALOG_FILE)) {
+        try { oldCount = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf-8')).totalApps; } catch { /* ignore */ }
+      }
+
+      console.log('[LLM Apps] Fetching upstream updates...');
+
+      // Shallow fetch + hard reset works on --depth 1 clones
+      let fetchResult = await runCommand('git', ['fetch', '--depth', '1', 'origin', 'main'], REPO_DIR);
+      if (!fetchResult.ok) {
+        // Try 'master' branch if 'main' fails
+        fetchResult = await runCommand('git', ['fetch', '--depth', '1', 'origin', 'master'], REPO_DIR);
+        if (!fetchResult.ok) {
+          return { ok: false, error: `Fetch failed: ${fetchResult.error}` };
         }
       }
 
-      const categories: CategoryEntry[] = Array.from(catMap.entries())
-        .map(([id, { label, count }]) => ({ id, label, appCount: count }))
-        .sort((a, b) => b.appCount - a.appCount);
-
-      const catalog = {
-        apps,
-        categories,
-        generatedAt: new Date().toISOString(),
-        repoPath: REPO_DIR,
-        totalApps: apps.length,
-      };
-
-      // Write catalog to disk
-      const catalogDir = path.dirname(CATALOG_FILE);
-      if (!fs.existsSync(catalogDir)) {
-        fs.mkdirSync(catalogDir, { recursive: true });
+      const resetResult = await runCommand('git', ['reset', '--hard', 'FETCH_HEAD'], REPO_DIR);
+      if (!resetResult.ok) {
+        return { ok: false, error: `Reset failed: ${resetResult.error}` };
       }
-      fs.writeFileSync(CATALOG_FILE, JSON.stringify(catalog, null, 2), 'utf-8');
-      console.log(`[LLM Apps] Catalog written: ${apps.length} apps in ${categories.length} categories`);
 
-      return { ok: true, catalog };
+      console.log('[LLM Apps] Rebuilding catalog after update...');
+      const catalog = buildCatalogFromDisk();
+      const newApps = catalog.totalApps - oldCount;
+
+      return { ok: true, catalog, newApps, totalApps: catalog.totalApps };
     } catch (err) {
       return { ok: false, error: String(err) };
     }
