@@ -33,7 +33,7 @@ const isLanguage = (v: unknown): v is Language => isString(v) && ['en', 'ja', 'p
 const isTerminalFont = (v: unknown): v is TerminalFont => isString(v) && ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Monaco', 'Menlo', 'Consolas'].includes(v);
 const isGraphitiRetention = (v: unknown): v is GraphitiRetentionPeriod => isString(v) && ['7d', '30d', '90d', 'forever'].includes(v);
 
-type SettingsDialog = 'app' | 'project' | 'claude-profiles' | 'model-config' | 'domain-config' | 'integrations' | null;
+type SettingsDialog = 'app' | 'project' | 'claude-profiles' | 'model-config' | 'domain-config' | 'integrations' | 'about' | null;
 
 interface SettingsState {
   // Dialog state

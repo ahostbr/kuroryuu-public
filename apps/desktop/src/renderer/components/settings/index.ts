@@ -9,6 +9,7 @@ export { ModelConfigDialog } from './ModelConfigDialog';
 export { DomainConfigDialog } from './DomainConfigDialog';
 export { GroupedModelSelect } from './GroupedModelSelect';
 export { IntegrationsDialog } from './IntegrationsDialog';
+export { AboutDialog } from './AboutDialog';
 export { CLIProxySection } from './CLIProxySection';
 export { CLIProxyWizard } from './CLIProxyWizard';
 export { useSettingsStore } from '../../stores/settings-store';

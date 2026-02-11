@@ -6,11 +6,18 @@ import { MarketingSkillPicker } from './MarketingSkillPicker';
 import { MarketingToolPanel } from './MarketingToolPanel';
 import { MarketingAssetGallery } from './MarketingAssetGallery';
 
-function FloatingTerminalWindow() {
+export function MarketingWorkspace() {
+  const showSkillsSidebar = useMarketingStore((s) => s.showSkillsSidebar);
+  const showToolsPanel = useMarketingStore((s) => s.showToolsPanel);
+  const toolsPanelTab = useMarketingStore((s) => s.toolsPanelTab);
+  const layoutMode = useMarketingStore((s) => s.layoutMode);
+
+  // Window mode state (drag + resize)
   const [win, setWin] = useState({ x: 20, y: 20, width: 700, height: 450 });
   const [resizing, setResizing] = useState(false);
 
   const handleDrag = useCallback((e: React.MouseEvent) => {
+    if (layoutMode !== 'window') return;
     if (!(e.target as HTMLElement).closest('.window-drag-handle')) return;
     e.preventDefault();
     const startX = e.clientX, startY = e.clientY;
@@ -28,7 +35,7 @@ function FloatingTerminalWindow() {
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [win]);
+  }, [win, layoutMode]);
 
   const handleResize = useCallback((e: React.MouseEvent, dir: string) => {
     e.preventDefault();
@@ -53,51 +60,28 @@ function FloatingTerminalWindow() {
     document.addEventListener('mouseup', onUp);
   }, [win]);
 
-  return (
-    <div
-      onMouseDown={handleDrag}
-      style={{
-        position: 'absolute',
-        left: win.x,
-        top: win.y,
-        width: win.width,
-        height: win.height,
-        zIndex: 10,
-      }}
-      className={`rounded-lg overflow-hidden flex flex-col shadow-lg border-2 transition-colors ${
-        resizing ? 'border-primary/60' : 'border-border'
-      }`}
-    >
-      {/* Title bar / drag handle */}
-      <div className="window-drag-handle flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-card/90 border-b border-border cursor-move select-none">
-        <span className="text-xs text-muted-foreground">Marketing Terminal</span>
-        <span className="text-[10px] text-muted-foreground/50">drag to move · edges to resize</span>
-      </div>
+  // Compute container styles based on layout mode
+  const isWindow = layoutMode === 'window';
 
-      {/* Terminal content — explicit dimensions for FitAddon */}
-      <div className="flex-1 min-h-0">
-        <MarketingTerminal />
-      </div>
+  const containerStyle: React.CSSProperties | undefined = isWindow
+    ? { position: 'absolute', left: win.x, top: win.y, width: win.width, height: win.height, zIndex: 10 }
+    : layoutMode === 'splitter'
+      ? { flex: '1 1 100%', minWidth: 200, height: '100%' }
+      : undefined;
 
-      {/* Resize handles — wider hit targets, always subtly visible */}
-      <div className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/5 hover:bg-primary/30 z-20" onMouseDown={(e) => handleResize(e, 'e')} />
-      <div className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize bg-primary/5 hover:bg-primary/30 z-20" onMouseDown={(e) => handleResize(e, 's')} />
-      <div className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-primary/15 hover:bg-primary/40 z-30 rounded-tl" onMouseDown={(e) => handleResize(e, 'se')} />
-    </div>
-  );
-}
+  const containerClass = isWindow
+    ? `rounded-lg overflow-hidden flex flex-col shadow-lg border-2 transition-colors ${resizing ? 'border-primary/60' : 'border-border'}`
+    : 'rounded-lg border-2 border-primary/60 overflow-hidden flex flex-col shadow-[0_0_30px_rgba(201,162,39,0.3)] ring-1 ring-primary/20';
 
-export function MarketingWorkspace() {
-  const showSkillsSidebar = useMarketingStore((s) => s.showSkillsSidebar);
-  const showToolsPanel = useMarketingStore((s) => s.showToolsPanel);
-  const toolsPanelTab = useMarketingStore((s) => s.toolsPanelTab);
-  const layoutMode = useMarketingStore((s) => s.layoutMode);
+  const headerClass = isWindow
+    ? 'window-drag-handle flex-shrink-0 flex items-center justify-between px-3 py-1.5 bg-card/90 border-b border-border cursor-move select-none'
+    : 'flex-shrink-0 flex items-center justify-between px-3 py-2 bg-card/90 border-b border-primary/60 bg-gradient-to-r from-primary/10 via-card to-primary/10 shadow-[0_2px_12px_rgba(201,162,39,0.25)]';
 
   return (
     <div className="w-full h-full flex flex-col bg-zinc-900">
       <MarketingHeader />
       <div className="flex-1 flex overflow-hidden">
-        {/* Left sidebar — Skills (fly-in, like FileExplorer) */}
+        {/* Left sidebar — Skills */}
         {showSkillsSidebar && (
           <div className="w-56 flex-shrink-0 border-r border-zinc-700 bg-zinc-800 overflow-y-auto">
             <MarketingSkillPicker />
@@ -110,27 +94,37 @@ export function MarketingWorkspace() {
           layoutMode === 'splitter' ? 'flex flex-row gap-1 p-1' :
           'relative p-4'
         }`}>
-          {layoutMode === 'window' ? (
-            <FloatingTerminalWindow />
-          ) : (
-            /* Grid/Splitter: terminal fills the area */
-            <div className="rounded-lg border-2 border-primary/60 overflow-hidden flex flex-col
-                            shadow-[0_0_30px_rgba(201,162,39,0.3)] ring-1 ring-primary/20"
-                 style={layoutMode === 'splitter' ? { flex: '1 1 100%', minWidth: 200, height: '100%' } : undefined}>
-              <div className="flex-shrink-0 flex items-center justify-between px-3 py-2
-                              bg-card/90 border-b border-primary/60
-                              bg-gradient-to-r from-primary/10 via-card to-primary/10
-                              shadow-[0_2px_12px_rgba(201,162,39,0.25)]">
-                <span className="text-xs font-medium text-muted-foreground">Marketing Terminal</span>
-              </div>
-              <div className="flex-1 min-h-0">
-                <MarketingTerminal />
-              </div>
+          {/* Single terminal container — always same tree position, styling changes per mode */}
+          <div
+            onMouseDown={isWindow ? handleDrag : undefined}
+            style={containerStyle}
+            className={containerClass}
+          >
+            {/* Header */}
+            <div className={headerClass}>
+              <span className="text-xs font-medium text-muted-foreground">Marketing Terminal</span>
+              {isWindow && (
+                <span className="text-[10px] text-muted-foreground/50">drag to move · edges to resize</span>
+              )}
             </div>
-          )}
+
+            {/* Terminal content — always at same tree position for stable ResizeObserver */}
+            <div className="flex-1 min-h-0">
+              <MarketingTerminal />
+            </div>
+
+            {/* Resize handles (window mode only) */}
+            {isWindow && (
+              <>
+                <div className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-primary/5 hover:bg-primary/30 z-20" onMouseDown={(e) => handleResize(e, 'e')} />
+                <div className="absolute left-0 right-0 bottom-0 h-2 cursor-ns-resize bg-primary/5 hover:bg-primary/30 z-20" onMouseDown={(e) => handleResize(e, 's')} />
+                <div className="absolute right-0 bottom-0 w-4 h-4 cursor-nwse-resize bg-primary/15 hover:bg-primary/40 z-30 rounded-tl" onMouseDown={(e) => handleResize(e, 'se')} />
+              </>
+            )}
+          </div>
         </div>
 
-        {/* Right sidebar — Tools/Gallery (fly-in from right) */}
+        {/* Right sidebar — Tools/Gallery */}
         {showToolsPanel && (
           <div className="w-80 flex-shrink-0 border-l border-zinc-700 bg-zinc-800 overflow-y-auto">
             {toolsPanelTab === 'tools' && <MarketingToolPanel />}

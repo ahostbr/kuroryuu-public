@@ -41,6 +41,7 @@ import {
   ModelConfigDialog,
   DomainConfigDialog,
   IntegrationsDialog,
+  AboutDialog,
 } from './components/settings';
 import { InitializeProjectDialog } from './components/project';
 import { UpdateNotification } from './components/UpdateNotification';
@@ -453,6 +454,7 @@ export function App() {
           <ModelConfigDialog />
           <DomainConfigDialog />
           <IntegrationsDialog />
+          <AboutDialog />
 
           {/* Project Initialization Dialog */}
           <InitializeProjectDialog />

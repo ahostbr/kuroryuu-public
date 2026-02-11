@@ -31,6 +31,7 @@ import {
   Users,
   Calendar,
   Megaphone,
+  Info,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
 import { useDomainConfigStore } from '../stores/domain-config-store';
@@ -571,6 +572,14 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
           >
             <Bot className="w-4 h-4" />
             <span className="text-sm">Tray Companion</span>
+          </button>
+
+          <button
+            onClick={() => openDialog('about')}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
+          >
+            <Info className="w-4 h-4" />
+            <span className="text-sm">About</span>
           </button>
         </div>
       </div>
