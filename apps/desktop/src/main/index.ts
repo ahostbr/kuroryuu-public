@@ -3597,7 +3597,7 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    title: `Kuroryuu v${getGitVersion()}`,
+    title: `Kuroryuu v${getGitVersion()} - kuroryuu.com`,
     icon: appIcon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
