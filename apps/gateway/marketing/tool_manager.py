@@ -33,19 +33,19 @@ TOOL_REGISTRY = [
     {
         "id": "google-image-gen",
         "name": "Google Image Generation",
-        "description": "Image generation via Google's Imagen API",
-        "repo_url": "https://github.com/google/imagen-research/tree/main/google-image-gen-api-starter",
+        "description": "Image generation via Google Gemini API (styles, aspect ratios, ref images)",
+        "repo_url": "https://github.com/AI-Engineer-Skool/google-image-gen-api-starter",
         "path": "google-image-gen-api-starter",
-        "entry_point": "generate.py",
+        "entry_point": "main.py",
         "optional": False,
     },
     {
         "id": "video-toolkit",
         "name": "Claude Code Video Toolkit",
-        "description": "Voiceover (ElevenLabs), music, and video rendering (Remotion)",
-        "repo_url": "https://github.com/anthropics/claude-code-video-toolkit",
+        "description": "Video ads (Remotion), voiceover (ElevenLabs), music, SFX, image editing, upscale",
+        "repo_url": "https://github.com/digitalsamba/claude-code-video-toolkit",
         "path": "claude-code-video-toolkit",
-        "entry_point": None,  # Multiple entry points
+        "entry_point": None,  # Multiple entry points in tools/
         "optional": False,
     },
 ]

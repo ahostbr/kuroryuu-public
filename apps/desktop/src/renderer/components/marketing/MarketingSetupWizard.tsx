@@ -10,15 +10,15 @@ const TOOLS: Array<{ id: string; name: string; description: string; repoUrl: str
   {
     id: 'google-image-gen',
     name: 'Google Image Generator',
-    description: 'Generate images using Google Gemini AI',
-    repoUrl: 'https://github.com/kuroryuu/google-image-gen',
-    targetDir: 'tools/marketing/google-image-gen',
+    description: 'Generate images using Google Gemini AI (styles, aspect ratios, ref images)',
+    repoUrl: 'https://github.com/AI-Engineer-Skool/google-image-gen-api-starter',
+    targetDir: 'tools/marketing/google-image-gen-api-starter',
   },
   {
     id: 'video-toolkit',
     name: 'Claude Code Video Toolkit',
-    description: 'Video, voiceover, and music generation',
-    repoUrl: 'https://github.com/kuroryuu/claude-code-video-toolkit',
+    description: 'Video ads (Remotion), voiceover (ElevenLabs), music, SFX, image editing, upscale',
+    repoUrl: 'https://github.com/digitalsamba/claude-code-video-toolkit',
     targetDir: 'tools/marketing/claude-code-video-toolkit',
   },
 ];

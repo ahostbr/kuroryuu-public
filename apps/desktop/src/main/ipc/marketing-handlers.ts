@@ -16,14 +16,16 @@ const TOOL_DEFINITIONS = [
     id: 'google-image-gen',
     name: 'Google Image Generator',
     description: 'Generate images using Google Gemini AI',
-    repoUrl: 'https://github.com/kuroryuu/google-image-gen',
+    repoUrl: 'https://github.com/AI-Engineer-Skool/google-image-gen-api-starter',
+    dirName: 'google-image-gen-api-starter',
     optional: false,
   },
   {
     id: 'video-toolkit',
     name: 'Claude Code Video Toolkit',
     description: 'Video, voiceover, and music generation',
-    repoUrl: 'https://github.com/kuroryuu/claude-code-video-toolkit',
+    repoUrl: 'https://github.com/digitalsamba/claude-code-video-toolkit',
+    dirName: 'claude-code-video-toolkit',
     optional: false,
   },
 ];
@@ -151,7 +153,7 @@ export function registerMarketingHandlers(): void {
   ipcMain.handle('marketing:getToolStatus', async () => {
     try {
       const tools: ToolStatus[] = TOOL_DEFINITIONS.map((def) => {
-        const toolPath = path.join(TOOLS_DIR, def.id);
+        const toolPath = path.join(TOOLS_DIR, def.dirName);
         const installed = fs.existsSync(toolPath);
 
         return {

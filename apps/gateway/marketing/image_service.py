@@ -59,20 +59,28 @@ async def generate_image(
     yield json.dumps({"type": "progress", "progress": 10, "message": "Initializing image generation..."})
 
     try:
-        # Build command (assuming the repo has a Python CLI)
-        # Adjust this based on actual repo structure
+        # google-image-gen-api-starter CLI:
+        #   uv run python main.py <output> <prompt> [--style <file>] [--aspect <ratio>]
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_filename = f"image_{timestamp}.png"
         output_path = OUTPUT_DIR / output_filename
 
         cmd = [
-            "python",
-            str(IMAGE_GEN_DIR / "generate.py"),  # Adjust based on actual entry point
-            "--prompt", prompt,
-            "--style", style,
-            "--aspect-ratio", aspect_ratio,
-            "--output", str(output_path),
+            "uv", "run", "python",
+            str(IMAGE_GEN_DIR / "main.py"),
+            str(output_path),
+            prompt,
         ]
+
+        # Add style template if not default
+        if style and style != "photorealistic":
+            style_file = IMAGE_GEN_DIR / "styles" / f"{style}.md"
+            if style_file.exists():
+                cmd.extend(["--style", str(style_file)])
+
+        # Add aspect ratio
+        if aspect_ratio:
+            cmd.extend(["--aspect", aspect_ratio])
 
         yield json.dumps({"type": "progress", "progress": 30, "message": "Calling image generation API..."})
 
@@ -121,4 +129,4 @@ async def generate_image(
 
 def is_installed() -> bool:
     """Check if google-image-gen-api-starter is installed."""
-    return IMAGE_GEN_DIR.exists() and (IMAGE_GEN_DIR / "generate.py").exists()
+    return IMAGE_GEN_DIR.exists() and (IMAGE_GEN_DIR / "main.py").exists()

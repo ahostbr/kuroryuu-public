@@ -57,14 +57,15 @@ async def generate_voiceover(
         output_filename = f"voiceover_{timestamp}.mp3"
         output_path = OUTPUT_DIR / output_filename
 
-        # Adjust command based on actual toolkit structure
+        # claude-code-video-toolkit: tools/voiceover.py
         cmd = [
-            "python",
-            str(VIDEO_TOOLKIT_DIR / "tools" / "voiceover.py"),  # Adjust path
-            "--text", text,
-            "--voice-id", voice_id,
+            "uv", "run", "python",
+            str(VIDEO_TOOLKIT_DIR / "tools" / "voiceover.py"),
+            "--script", text,
             "--output", str(output_path),
         ]
+        if voice_id and voice_id != "default":
+            cmd.extend(["--voice", voice_id])
 
         yield json.dumps({"type": "progress", "progress": 30, "message": "Calling ElevenLabs API..."})
 
@@ -132,9 +133,10 @@ async def generate_music(
         output_filename = f"music_{timestamp}.mp3"
         output_path = OUTPUT_DIR / output_filename
 
+        # claude-code-video-toolkit: tools/music.py
         cmd = [
-            "python",
-            str(VIDEO_TOOLKIT_DIR / "tools" / "music.py"),  # Adjust path
+            "uv", "run", "python",
+            str(VIDEO_TOOLKIT_DIR / "tools" / "music.py"),
             "--prompt", prompt,
             "--duration", str(duration),
             "--output", str(output_path),
@@ -209,17 +211,19 @@ async def render_video(
         output_filename = f"video_{timestamp}.mp4"
         output_path = OUTPUT_DIR / output_filename
 
-        # Write props to temp JSON
+        # Write props to temp JSON for Remotion
         props_path = OUTPUT_DIR / f"props_{timestamp}.json"
         with open(props_path, "w") as f:
             json.dump(props, f)
 
+        # claude-code-video-toolkit uses Remotion for video rendering
+        # npx remotion render <entry> <composition> --output <file> --props <json>
         cmd = [
-            "python",
-            str(VIDEO_TOOLKIT_DIR / "tools" / "render.py"),  # Adjust path
-            "--template", template,
-            "--props", str(props_path),
+            "npx", "remotion", "render",
+            "src/index.ts",
+            template,
             "--output", str(output_path),
+            "--props", str(props_path),
         ]
 
         yield json.dumps({"type": "progress", "progress": 30, "message": "Rendering video with Remotion..."})
@@ -265,4 +269,4 @@ async def render_video(
 
 def is_installed() -> bool:
     """Check if claude-code-video-toolkit is installed."""
-    return VIDEO_TOOLKIT_DIR.exists()
+    return VIDEO_TOOLKIT_DIR.exists() and (VIDEO_TOOLKIT_DIR / "tools" / "voiceover.py").exists()
