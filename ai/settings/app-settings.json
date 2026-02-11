@@ -34,5 +34,14 @@
 		"trayCompanion": {
 			"launchOnStartup": true
 		}
+	},
+	"githubWorkflow": {
+		"enabled": false,
+		"autoCreateWorktree": true,
+		"autoCreatePR": true,
+		"requireReviewBeforeMerge": true,
+		"defaultBaseBranch": "master",
+		"branchPrefix": "task/",
+		"autoDeleteBranchAfterMerge": true
 	}
 }

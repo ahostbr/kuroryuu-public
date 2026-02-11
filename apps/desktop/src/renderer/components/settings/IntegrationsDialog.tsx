@@ -796,6 +796,11 @@ export function IntegrationsDialog() {
                   </button>
                 )}
 
+                {/* GitHub Workflow (inside Source Control) */}
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <GitHubWorkflowSection />
+                </div>
+
               </div>
             </div>
 
@@ -876,14 +881,6 @@ export function IntegrationsDialog() {
                   <FullDesktopSection />
                 </div>
               </div>
-            </div>
-
-            {/* Row: Workflow */}
-            <div className="bg-card/30 rounded-lg p-3 border border-border/50">
-              <h2 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                Workflow
-              </h2>
-              <GitHubWorkflowSection />
             </div>
 
             {/* Row 3: Optional Services */}
