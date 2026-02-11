@@ -31,6 +31,7 @@ import { ClaudeTeams } from './components/claude-teams';  // Claude Code Agent T
 import { KuroryuuAgents } from './components/kuroryuu-agents';  // Kuroryuu Agents (rebranded coding-agents)
 import { SchedulerPanel } from './components/scheduler';  // Job scheduler
 import { MarketingPanel } from './components/marketing';  // Marketing workflow
+import { LLMAppsPanel } from './components/llm-apps';  // LLM Apps catalog browser
 // BackupManagerPage opened as dialog from IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
@@ -405,6 +406,9 @@ export function App() {
 
                 {/* Marketing - Research, positioning, copy, ads workflow */}
                 {activeView === 'marketing' && <MarketingPanel />}
+
+                {/* LLM Apps - Browse awesome-llm-apps catalog */}
+                {activeView === 'llm-apps' && <LLMAppsPanel />}
 
               </ErrorBoundary>
             </main>

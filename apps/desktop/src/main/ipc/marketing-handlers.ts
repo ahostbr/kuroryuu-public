@@ -177,11 +177,14 @@ const TOOL_DEFINITIONS = [
   },
 ];
 
+const DEPS_MARKER = '.kuroryuu-deps-installed';
+
 interface ToolStatus {
   id: string;
   name: string;
   description: string;
-  installed: boolean;
+  installed: boolean;       // repo directory exists (cloned)
+  depsInstalled: boolean;   // deps marker file exists (fully set up)
   path: string | null;
   version: string | null;
   repoUrl: string;
@@ -191,7 +194,6 @@ interface ToolStatus {
 interface SetupState {
   complete: boolean;
   tools: ToolStatus[];
-  googleApiKey?: string;
 }
 
 export function registerMarketingHandlers(): void {
@@ -218,6 +220,7 @@ export function registerMarketingHandlers(): void {
   });
 
   // Install dependencies for a tool
+  // Scans root + immediate subdirectories for package.json / pyproject.toml / requirements.txt
   ipcMain.handle('marketing:installDeps', async (_event, toolDir: string) => {
     try {
       const fullPath = path.join(PROJECT_ROOT, toolDir);
@@ -226,37 +229,80 @@ export function registerMarketingHandlers(): void {
         return { ok: false, error: 'Tool directory not found' };
       }
 
-      const hasPackageJson = fs.existsSync(path.join(fullPath, 'package.json'));
-      const hasPyProject = fs.existsSync(path.join(fullPath, 'pyproject.toml'));
-      const hasRequirementsTxt = fs.existsSync(path.join(fullPath, 'requirements.txt'));
-
-      if (!hasPackageJson && !hasPyProject && !hasRequirementsTxt) {
-        return { ok: false, error: 'No package.json, pyproject.toml, or requirements.txt found' };
+      // Collect all install targets: root + first-level subdirs
+      const dirsToCheck = [fullPath];
+      try {
+        const entries = fs.readdirSync(fullPath, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+            dirsToCheck.push(path.join(fullPath, entry.name));
+          }
+        }
+      } catch {
+        // Can't read dir — proceed with root only
       }
 
-      // Python deps need uv — ensure it's installed first
-      if (hasPyProject || hasRequirementsTxt) {
+      let installedSomething = false;
+      let needsUv = false;
+
+      // First pass: check if any Python deps exist so we can ensure uv once
+      for (const dir of dirsToCheck) {
+        if (
+          fs.existsSync(path.join(dir, 'pyproject.toml')) ||
+          fs.existsSync(path.join(dir, 'requirements.txt'))
+        ) {
+          needsUv = true;
+          break;
+        }
+      }
+
+      if (needsUv) {
         const uvResult = await ensureUv();
         if (!uvResult.ok) {
           return { ok: false, error: uvResult.error };
         }
       }
 
-      // Install Python deps
-      if (hasPyProject) {
-        const result = await runCommand('uv', ['sync'], fullPath);
-        if (!result.ok) return result;
-      } else if (hasRequirementsTxt) {
-        // Some repos only have requirements.txt (e.g. video-toolkit/tools/)
-        const result = await runCommand('uv', ['pip', 'install', '-r', 'requirements.txt'], fullPath);
-        if (!result.ok) return result;
+      // Second pass: install deps in each directory that has manifest files
+      for (const dir of dirsToCheck) {
+        const hasPyProject = fs.existsSync(path.join(dir, 'pyproject.toml'));
+        const hasRequirements = fs.existsSync(path.join(dir, 'requirements.txt'));
+        const hasPackageJson = fs.existsSync(path.join(dir, 'package.json'));
+
+        if (hasPyProject) {
+          console.log(`[Marketing] uv sync in ${dir}`);
+          const result = await runCommand('uv', ['sync'], dir);
+          if (!result.ok) return { ok: false, error: `uv sync failed in ${path.basename(dir)}: ${result.error}` };
+          installedSomething = true;
+        }
+
+        if (hasRequirements) {
+          console.log(`[Marketing] pip install -r requirements.txt in ${dir}`);
+          const result = await runCommand('uv', ['pip', 'install', '-r', 'requirements.txt'], dir);
+          if (!result.ok) return { ok: false, error: `pip install failed in ${path.basename(dir)}: ${result.error}` };
+          installedSomething = true;
+        }
+
+        if (hasPackageJson) {
+          console.log(`[Marketing] npm install in ${dir}`);
+          const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+          const result = await runCommand(npmCmd, ['install'], dir);
+          if (!result.ok) return { ok: false, error: `npm install failed in ${path.basename(dir)}: ${result.error}` };
+          installedSomething = true;
+        }
       }
 
-      // Install Node deps (some repos have both — e.g. video-toolkit has Remotion templates)
-      if (hasPackageJson) {
-        const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-        const result = await runCommand(npmCmd, ['install'], fullPath);
-        if (!result.ok) return result;
+      if (!installedSomething) {
+        // No manifest files found but repo cloned OK — treat as success (some repos have no deps)
+        console.log(`[Marketing] No dependency manifests found in ${toolDir}, skipping install`);
+      }
+
+      // Write marker file so getToolStatus knows deps are installed
+      try {
+        fs.writeFileSync(path.join(fullPath, DEPS_MARKER), new Date().toISOString(), 'utf-8');
+        console.log(`[Marketing] Wrote deps marker: ${path.join(fullPath, DEPS_MARKER)}`);
+      } catch (markerErr) {
+        console.warn('[Marketing] Failed to write deps marker:', markerErr);
       }
 
       return { ok: true };
@@ -276,14 +322,16 @@ export function registerMarketingHandlers(): void {
       const tools: ToolStatus[] = TOOL_DEFINITIONS.map((def) => {
         const toolPath = path.join(TOOLS_DIR, def.dirName);
         const installed = fs.existsSync(toolPath);
+        const depsInstalled = installed && fs.existsSync(path.join(toolPath, DEPS_MARKER));
 
         return {
           id: def.id,
           name: def.name,
           description: def.description,
           installed,
+          depsInstalled,
           path: installed ? toolPath : null,
-          version: null, // TODO: Could parse package.json or pyproject.toml for version
+          version: null,
           repoUrl: def.repoUrl,
           optional: def.optional,
         };

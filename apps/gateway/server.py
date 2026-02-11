@@ -201,6 +201,9 @@ from .github import router as github_router
 # Marketing: Research engine, web scraper, asset generation
 from .marketing import router as marketing_router
 
+# LLM Apps: Catalog browser for awesome-llm-apps
+from .llm_apps import llm_apps_router
+
 # AG-UI Protocol: Human-in-the-loop interrupts
 from .agui import (
     get_interrupt_store,
@@ -443,6 +446,9 @@ app.include_router(github_router)
 
 # Marketing: Research engine, web scraper, asset generation
 app.include_router(marketing_router)
+
+# LLM Apps: Catalog browser for awesome-llm-apps collection
+app.include_router(llm_apps_router)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

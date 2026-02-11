@@ -81,6 +81,7 @@ export type View =
   | 'kuroryuu-agents'
   | 'genui'
   | 'scheduler'
+  | 'llm-apps'
   | 'marketing';
 
 interface SidebarProps {
@@ -125,6 +126,7 @@ const navGroups: NavGroup[] = [
       { id: 'claude-teams', label: 'Claude Teams', icon: Users, shortcut: 'A' },
       { id: 'kuroryuu-agents', label: 'Kuroryuu Agents', icon: Bot, shortcut: 'U' },
       { id: 'genui', label: 'Generative UI', icon: Sparkles, shortcut: 'G' },
+      { id: 'llm-apps', label: 'LLM Apps', icon: Layers, shortcut: 'X' },
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
     ],
   },

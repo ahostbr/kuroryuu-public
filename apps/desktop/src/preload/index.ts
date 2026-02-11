@@ -2532,6 +2532,24 @@ const api = {
     saveSetup: (state: unknown): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('marketing:saveSetup', state),
   },
+  /**
+   * LLM Apps API
+   * Catalog browsing and setup for awesome-llm-apps collection
+   */
+  llmApps: {
+    cloneRepo: (): Promise<{ ok: boolean; error?: string; alreadyExists?: boolean }> =>
+      ipcRenderer.invoke('llm-apps:cloneRepo'),
+    buildCatalog: (): Promise<{ ok: boolean; catalog?: unknown; error?: string }> =>
+      ipcRenderer.invoke('llm-apps:buildCatalog'),
+    getCatalog: (): Promise<{ ok: boolean; catalog?: unknown; error?: string }> =>
+      ipcRenderer.invoke('llm-apps:getCatalog'),
+    getAppReadme: (appPath: string): Promise<{ ok: boolean; content?: string; error?: string }> =>
+      ipcRenderer.invoke('llm-apps:getAppReadme', appPath),
+    getSetupState: (): Promise<{ complete: boolean }> =>
+      ipcRenderer.invoke('llm-apps:getSetupState'),
+    saveSetup: (state: unknown): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('llm-apps:saveSetup', state),
+  },
 };
 
 export type ElectronAPI = typeof api;

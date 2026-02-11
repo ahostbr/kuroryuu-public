@@ -30,7 +30,8 @@ export interface ToolStatus {
   id: string;
   name: string;
   description: string;
-  installed: boolean;
+  installed: boolean;       // repo directory exists (cloned)
+  depsInstalled: boolean;   // dependency marker exists (fully set up)
   path: string | null;
   version: string | null;
   repoUrl: string;

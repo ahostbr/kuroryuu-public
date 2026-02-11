@@ -32,7 +32,7 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
   const [uvInstalling, setUvInstalling] = useState(false);
   const [gatewayOnline, setGatewayOnline] = useState(false);
   const [cliProxyConnected, setCliProxyConnected] = useState(false);
-  const [googleApiKey, setGoogleApiKey] = useState('');
+
 
   // Load tool status on mount
   useEffect(() => {
@@ -137,7 +137,7 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
     }
   };
 
-  const allToolsInstalled = TOOLS.every((t) => tools.find((ts) => ts.id === t.id)?.installed);
+  const allToolsReady = TOOLS.every((t) => tools.find((ts) => ts.id === t.id)?.depsInstalled);
 
   return (
     <div className="w-full h-full bg-zinc-900 text-zinc-100 overflow-auto p-8">
@@ -179,7 +179,7 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               <div className="flex items-center gap-2">
                 <button
                   onClick={installAll}
-                  disabled={installing !== null || allToolsInstalled}
+                  disabled={installing !== null || allToolsReady}
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-zinc-700 disabled:text-zinc-500 text-zinc-900 rounded text-sm font-medium transition-colors flex items-center gap-2"
                 >
                   {installing ? (
@@ -187,7 +187,7 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Installing...
                     </>
-                  ) : allToolsInstalled ? (
+                  ) : allToolsReady ? (
                     <>
                       <CheckCircle2 className="w-4 h-4" />
                       All Installed
@@ -255,7 +255,8 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               {TOOLS.map((tool) => {
                 const status = tools.find((t) => t.id === tool.id);
                 const isInstalling = installing === tool.id;
-                const isInstalled = status?.installed || false;
+                const isCloned = status?.installed || false;
+                const isReady = status?.depsInstalled || false;
 
                 return (
                   <div key={tool.id} className="bg-zinc-800 rounded-lg p-4 border border-zinc-700">
@@ -263,7 +264,12 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-medium">{tool.name}</h3>
-                          {isInstalled && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                          {isReady && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                          {isCloned && !isReady && !isInstalling && (
+                            <span className="text-xs text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                              Cloned — needs deps
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-zinc-400 mb-2">{tool.description}</p>
                         <a
@@ -279,18 +285,29 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
                       </div>
                       <button
                         onClick={() => installTool(tool.id)}
-                        disabled={isInstalling || isInstalled}
-                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-zinc-700 disabled:text-zinc-500 text-zinc-900 rounded text-sm font-medium transition-colors flex items-center gap-2"
+                        disabled={isInstalling || isReady}
+                        className={`px-3 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-2 ${
+                          isReady
+                            ? 'bg-zinc-700 text-zinc-500 cursor-default'
+                            : isCloned && !isInstalling
+                              ? 'bg-amber-600 hover:bg-amber-700 text-zinc-900'
+                              : 'bg-amber-500 hover:bg-amber-600 disabled:bg-zinc-700 disabled:text-zinc-500 text-zinc-900'
+                        }`}
                       >
                         {isInstalling ? (
                           <>
                             <Loader2 className="w-3 h-3 animate-spin" />
                             Installing
                           </>
-                        ) : isInstalled ? (
+                        ) : isReady ? (
                           <>
                             <CheckCircle2 className="w-3 h-3" />
                             Installed
+                          </>
+                        ) : isCloned ? (
+                          <>
+                            <Download className="w-3 h-3" />
+                            Install Deps
                           </>
                         ) : (
                           <>
@@ -371,44 +388,27 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-sm text-zinc-300">Tools Installed</span>
-                {allToolsInstalled ? (
+                <span className="text-sm text-zinc-300">Tools Ready</span>
+                {allToolsReady ? (
                   <div className="flex items-center gap-2 text-green-500 text-sm">
                     <CheckCircle2 className="w-4 h-4" />
-                    {tools.filter((t) => t.installed).length} / {TOOLS.length}
+                    {tools.filter((t) => t.depsInstalled).length} / {TOOLS.length}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-amber-500 text-sm">
                     <Loader2 className="w-4 h-4" />
-                    {tools.filter((t) => t.installed).length} / {TOOLS.length}
+                    {tools.filter((t) => t.depsInstalled).length} / {TOOLS.length}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Optional API key */}
+            {/* CLI Proxy note */}
             <div className="bg-zinc-800 rounded-lg p-4 border border-zinc-700">
-              <h3 className="font-medium mb-2">Google AI API Key (Optional)</h3>
-              <p className="text-sm text-zinc-400 mb-3">
-                Required for Google Image Generator. Get your key from{' '}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    window.electronAPI.shell.openExternal('https://makersuite.google.com/app/apikey');
-                  }}
-                  className="text-amber-500 hover:underline cursor-pointer"
-                >
-                  Google AI Studio
-                </a>
+              <h3 className="font-medium mb-2">Image Generation</h3>
+              <p className="text-sm text-zinc-400">
+                Image generation routes through CLI Proxy (Gemini OAuth). No separate API key needed.
               </p>
-              <input
-                type="password"
-                value={googleApiKey}
-                onChange={(e) => setGoogleApiKey(e.target.value)}
-                placeholder="AIza..."
-                className="w-full bg-zinc-900 border border-zinc-700 rounded px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-amber-500"
-              />
             </div>
 
             <div className="flex items-center justify-between pt-4">
@@ -421,7 +421,7 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               <button
                 onClick={async () => {
                   // Save setup state
-                  await window.electronAPI.marketing.saveSetup({ complete: true, googleApiKey });
+                  await window.electronAPI.marketing.saveSetup({ complete: true });
                   onComplete();
                 }}
                 className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-900 rounded font-medium transition-colors flex items-center gap-2"
