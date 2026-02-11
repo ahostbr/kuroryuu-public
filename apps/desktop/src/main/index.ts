@@ -4066,7 +4066,7 @@ app.whenReady().then(async () => {
   configureWorktrees({
     enabled: true,
     repoPath: projectRoot,
-    basePath: join(projectRoot, '.auto-claude', 'worktrees', 'tasks'),
+    basePath: join(projectRoot, 'ai', 'worktrees', 'tasks'),
   });
 
   // Configure git service for GitHub Desktop clone
