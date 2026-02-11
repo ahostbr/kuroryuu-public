@@ -2103,6 +2103,26 @@ const api = {
         config?: { binaryPath: string; configPath: string; port: number; dataDir: string };
         error?: string;
       }> => ipcRenderer.invoke('cliproxy:native:config'),
+      /** Check for updates against GitHub releases */
+      checkUpdate: (): Promise<{
+        updateAvailable: boolean;
+        currentVersion: string | null;
+        latestVersion: string;
+        error?: string;
+      }> => ipcRenderer.invoke('cliproxy:native:check-update'),
+      /** Get pending update from auto-start check (null if none) */
+      pendingUpdate: (): Promise<{
+        updateAvailable: boolean;
+        currentVersion: string | null;
+        latestVersion: string;
+      } | null> => ipcRenderer.invoke('cliproxy:native:pending-update'),
+      /** Respond to update prompt: 'auto' downloads+restarts, 'manual' skips */
+      updateResponse: (choice: 'auto' | 'manual'): Promise<{
+        success: boolean;
+        version?: string;
+        skipped?: boolean;
+        error?: string;
+      }> => ipcRenderer.invoke('cliproxy:update-response', choice),
     },
   },
 

@@ -288,6 +288,50 @@ export function registerCLIProxyHandlers(): void {
     }
   });
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Update Check Handlers
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  ipcMain.handle('cliproxy:native:check-update', async () => {
+    try {
+      const manager = getCLIProxyNativeManager();
+      return await manager.checkForUpdate();
+    } catch (e) {
+      return {
+        updateAvailable: false,
+        currentVersion: null,
+        latestVersion: 'unknown',
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  });
+
+  ipcMain.handle('cliproxy:native:pending-update', () => {
+    return (global as Record<string, unknown>).cliproxyUpdatePending || null;
+  });
+
+  ipcMain.handle('cliproxy:update-response', async (_event, choice: 'auto' | 'manual') => {
+    (global as Record<string, unknown>).cliproxyUpdatePending = null;
+
+    if (choice === 'auto') {
+      try {
+        const manager = getCLIProxyNativeManager();
+        await manager.forceKillAll();
+        const provision = await manager.provision();
+        if (provision.success) {
+          const start = await manager.start();
+          return { success: start.success, version: provision.version };
+        }
+        return { success: false, error: provision.error };
+      } catch (e) {
+        return { success: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    }
+
+    // Manual — user will handle it
+    return { success: true, skipped: true };
+  });
+
   ipcMain.handle('cliproxy:native:config', async () => {
     try {
       const manager = getCLIProxyNativeManager();

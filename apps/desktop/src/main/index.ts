@@ -4125,12 +4125,31 @@ app.whenReady().then(async () => {
     const shouldAutoStart = (cliproxyEnabled && cliproxyAutoStart !== false) || cliproxyStatus.provisioned;
 
     if (shouldAutoStart && cliproxyStatus.provisioned && !cliproxyStatus.healthy) {
-      console.log('[Main] Auto-starting CLIProxyAPI (provisioned:', cliproxyStatus.provisioned, ', enabled:', cliproxyEnabled, ')...');
-      const result = await cliproxyManager.start();
-      if (result.success) {
-        console.log('[Main] CLIProxyAPI auto-started, PID:', result.pid);
-      } else {
-        console.log('[Main] CLIProxyAPI auto-start failed:', result.error);
+      // Check for updates BEFORE starting — never run outdated binaries
+      try {
+        const updateInfo = await cliproxyManager.checkForUpdate();
+        if (updateInfo.updateAvailable) {
+          console.log(`[Main] CLIProxyAPI update available: ${updateInfo.currentVersion} → ${updateInfo.latestVersion}`);
+          // Store for renderer to pick up — do NOT start old binary
+          (global as Record<string, unknown>).cliproxyUpdatePending = updateInfo;
+        } else {
+          console.log('[Main] CLIProxyAPI is up to date, starting...');
+          const result = await cliproxyManager.start();
+          if (result.success) {
+            console.log('[Main] CLIProxyAPI auto-started, PID:', result.pid);
+          } else {
+            console.log('[Main] CLIProxyAPI auto-start failed:', result.error);
+          }
+        }
+      } catch (updateErr) {
+        // GitHub API unreachable — start anyway rather than blocking
+        console.log('[Main] CLIProxyAPI update check failed (starting anyway):', updateErr);
+        const result = await cliproxyManager.start();
+        if (result.success) {
+          console.log('[Main] CLIProxyAPI auto-started (update check skipped), PID:', result.pid);
+        } else {
+          console.log('[Main] CLIProxyAPI auto-start failed:', result.error);
+        }
       }
     } else if (cliproxyStatus.healthy) {
       console.log('[Main] CLIProxyAPI already running');

@@ -26,9 +26,12 @@ import {
   SkipForward,
   Download,
   Box,
+  RefreshCw,
 } from 'lucide-react';
 import { ThemedFrame } from '../ui/ThemedFrame';
 import { useIsThemedStyle } from '../../hooks/useTheme';
+import { showConfirm, showAlert } from '../../stores/dialog-store';
+import { toast } from '../ui/toast';
 
 type WizardMode = 'docker' | 'native';
 type WizardStep = 'mode' | 'docker' | 'container' | 'provision' | 'gemini' | 'antigravity' | 'claude' | 'openai' | 'copilot' | 'kiro' | 'verify';
@@ -127,6 +130,9 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
     running: false,
     starting: false,
   });
+
+  // Update check
+  const [updateChecking, setUpdateChecking] = useState(false);
 
   // Verification
   const [totalModels, setTotalModels] = useState(0);
@@ -519,6 +525,61 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
     }
   };
 
+  const handleCheckUpdate = async () => {
+    setUpdateChecking(true);
+    try {
+      const result = await window.electronAPI?.cliproxy?.native?.checkUpdate?.();
+      if (!result) {
+        toast.error('Update check not available');
+        return;
+      }
+      if (result.error) {
+        toast.error(`Update check failed: ${result.error}`);
+        return;
+      }
+      if (!result.updateAvailable) {
+        toast.success(`Already up to date (v${result.currentVersion})`);
+        return;
+      }
+
+      // Update available — show global modal
+      const autoUpdate = await showConfirm(
+        'CLIProxyAPIPlus Update Available',
+        `Version ${result.latestVersion} is available (current: ${result.currentVersion || 'unknown'}).\n\nRunning outdated binaries is a security risk.`,
+        { confirmLabel: 'Auto Update', cancelLabel: 'Update Manually' }
+      );
+
+      if (autoUpdate) {
+        toast.info('Updating CLIProxyAPIPlus...');
+        // Stop, re-provision, restart
+        await window.electronAPI?.cliproxy?.native?.stop?.();
+        const provision = await window.electronAPI?.cliproxy?.native?.provision?.();
+        if (provision?.success) {
+          const start = await window.electronAPI?.cliproxy?.native?.start?.();
+          if (start?.success) {
+            toast.success(`Updated to v${provision.version}`);
+            setNative(prev => ({ ...prev, version: provision.version, running: true }));
+          } else {
+            toast.error(`Updated but failed to start: ${start?.error}`);
+            setNative(prev => ({ ...prev, version: provision.version, running: false }));
+          }
+        } else {
+          toast.error(`Update failed: ${provision?.error}`);
+        }
+      } else {
+        // Manual update chosen
+        await showAlert(
+          'Manual Update Instructions',
+          'To update manually:\n\n1. Shut down Kuroryuu Desktop\n2. Download the latest CLIProxyAPIPlus from GitHub releases\n3. Replace the binary in your .cliproxyapi/ directory\n4. Restart Kuroryuu',
+        );
+      }
+    } catch (e) {
+      toast.error(`Update check failed: ${String(e)}`);
+    } finally {
+      setUpdateChecking(false);
+    }
+  };
+
   const currentStepIndex = STEPS.findIndex(s => s.id === currentStep);
   const canGoNext = () => {
     switch (currentStep) {
@@ -661,8 +722,16 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
                   <span className="text-sm text-green-400">CLIProxyAPI is running on port 8317</span>
                 </div>
                 {native.version && (
-                  <div className="flex items-center gap-2 p-3 bg-secondary rounded-lg">
+                  <div className="flex items-center justify-between p-3 bg-secondary rounded-lg">
                     <span className="text-sm text-muted-foreground">Version: {native.version}</span>
+                    <button
+                      onClick={handleCheckUpdate}
+                      disabled={updateChecking}
+                      className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-foreground hover:text-primary bg-secondary border border-border rounded hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3 h-3 ${updateChecking ? 'animate-spin' : ''}`} />
+                      {updateChecking ? 'Checking...' : 'Check for Updates'}
+                    </button>
                   </div>
                 )}
               </div>
@@ -687,13 +756,23 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
                     <span className="text-sm text-red-400">{native.error}</span>
                   </div>
                 )}
-                <button
-                  onClick={startNative}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-black rounded-lg hover:bg-primary/80 text-sm font-medium"
-                >
-                  <Zap className="w-4 h-4" />
-                  Start CLIProxyAPI
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={startNative}
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-black rounded-lg hover:bg-primary/80 text-sm font-medium"
+                  >
+                    <Zap className="w-4 h-4" />
+                    Start CLIProxyAPI
+                  </button>
+                  <button
+                    onClick={handleCheckUpdate}
+                    disabled={updateChecking}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs text-foreground hover:text-primary bg-secondary border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${updateChecking ? 'animate-spin' : ''}`} />
+                    {updateChecking ? 'Checking...' : 'Check for Updates'}
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">

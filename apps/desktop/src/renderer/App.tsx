@@ -6,8 +6,8 @@ import { StatusBar } from './components/StatusBar';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskWizard } from './components/TaskWizard';
 import { ErrorBoundary } from './components/ui/error-boundary';
-import { ToastContainer } from './components/ui/toast';
-import { KuroryuuDialogProvider, showDestructive } from './components/ui/dialog';  // Genmu Spirit Dialog System
+import { ToastContainer, toast } from './components/ui/toast';
+import { KuroryuuDialogProvider, showDestructive, showConfirm, showAlert } from './components/ui/dialog';  // Genmu Spirit Dialog System
 import { Sidebar, View } from './components/Sidebar';
 import { WelcomeScreen } from './components/WelcomeScreen';
 import { CommandCenter } from './components/command-center';
@@ -150,6 +150,45 @@ export function App() {
       window.location.reload();
     });
     return () => { cleanup?.(); };
+  }, []);
+
+  // CLIProxyAPIPlus update check on startup
+  // If auto-start found a pending update, show global modal
+  useEffect(() => {
+    const checkPendingUpdate = async () => {
+      try {
+        const pending = await window.electronAPI?.cliproxy?.native?.pendingUpdate?.();
+        if (!pending?.updateAvailable) return;
+
+        const autoUpdate = await showConfirm(
+          'CLIProxyAPIPlus Update Available',
+          `Version ${pending.latestVersion} is available (current: ${pending.currentVersion || 'unknown'}).\n\nRunning outdated binaries is a security risk.`,
+          { confirmLabel: 'Auto Update', cancelLabel: 'Update Manually' }
+        );
+
+        if (autoUpdate) {
+          toast.info('Updating CLIProxyAPIPlus...');
+          const result = await window.electronAPI?.cliproxy?.native?.updateResponse?.('auto');
+          if (result?.success && !result.skipped) {
+            toast.success(`CLIProxyAPIPlus updated to v${result.version}`);
+          } else if (result?.error) {
+            toast.error(`Update failed: ${result.error}`);
+          }
+        } else {
+          await window.electronAPI?.cliproxy?.native?.updateResponse?.('manual');
+          await showAlert(
+            'Manual Update Instructions',
+            'To update CLIProxyAPIPlus manually:\n\n1. Shut down Kuroryuu Desktop\n2. Download the latest release from GitHub\n3. Replace the binary in .cliproxyapi/\n4. Restart Kuroryuu',
+          );
+        }
+      } catch (e) {
+        console.error('[App] CLIProxy update check failed:', e);
+      }
+    };
+
+    // Small delay to let the UI settle before showing modal
+    const timer = setTimeout(checkPendingUpdate, 2000);
+    return () => clearTimeout(timer);
   }, []);
 
   // Security alert state

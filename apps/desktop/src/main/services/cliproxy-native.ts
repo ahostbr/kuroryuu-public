@@ -150,9 +150,10 @@ export class CLIProxyNativeManager {
       throw new Error(`Failed to fetch release info: ${response.status}`);
     }
     const data = await response.json();
-    const version = data.tag_name?.replace(/^v/, '') || 'latest';
+    const tag = data.tag_name || 'latest';
+    const version = tag.replace(/^v/, '');
 
-    const url = `https://github.com/router-for-me/CLIProxyAPIPlus/releases/latest/download/CLIProxyAPIPlus_${version}_${os}_${archStr}.${archiveExt}`;
+    const url = `https://github.com/router-for-me/CLIProxyAPIPlus/releases/download/${tag}/CLIProxyAPIPlus_${version}_${os}_${archStr}.${archiveExt}`;
 
     return { url, archiveExt, version };
   }
@@ -216,6 +217,33 @@ export class CLIProxyNativeManager {
   }
 
   /**
+   * Check if a newer version is available on GitHub.
+   * Works for both project-local and global installs (reads from resolved dataDir).
+   */
+  async checkForUpdate(): Promise<{
+    updateAvailable: boolean;
+    currentVersion: string | null;
+    latestVersion: string;
+  }> {
+    // Read local version from whichever dataDir is active
+    const versionFile = path.join(this.config.dataDir, 'version.txt');
+    let currentVersion: string | null = null;
+    try {
+      currentVersion = (await fs.readFile(versionFile, 'utf-8')).trim();
+    } catch {
+      // No version file — treat as needing update
+    }
+
+    // Fetch latest from GitHub releases API
+    const { version: latestVersion } = await this.getVersionedDownloadUrl();
+
+    // Compare — if different or missing, update available
+    const updateAvailable = !currentVersion || currentVersion !== latestVersion;
+
+    return { updateAvailable, currentVersion, latestVersion };
+  }
+
+  /**
    * Check if binary exists and get version
    */
   async getBinaryVersion(): Promise<string | null> {
@@ -253,11 +281,21 @@ export class CLIProxyNativeManager {
    */
   private async findExtractedBinary(destDir: string): Promise<string | null> {
     const binaryName = this.getBinaryName();
+
+    // Known binary names across releases (filename has changed over time)
+    const candidateNames = new Set([
+      binaryName,
+      'CLIProxyAPIPlus',
+      'CLIProxyAPIPlus.exe',
+      'cli-proxy-api-plus',
+      'cli-proxy-api-plus.exe',
+    ]);
+
     const entries = await fs.readdir(destDir, { withFileTypes: true });
 
     // Check root level
     for (const entry of entries) {
-      if (entry.name === binaryName || entry.name === 'CLIProxyAPIPlus' || entry.name === 'CLIProxyAPIPlus.exe') {
+      if (candidateNames.has(entry.name)) {
         return path.join(destDir, entry.name);
       }
     }
@@ -268,7 +306,7 @@ export class CLIProxyNativeManager {
         const subPath = path.join(destDir, entry.name);
         const subEntries = await fs.readdir(subPath);
         for (const subEntry of subEntries) {
-          if (subEntry === binaryName || subEntry === 'CLIProxyAPIPlus' || subEntry === 'CLIProxyAPIPlus.exe') {
+          if (candidateNames.has(subEntry)) {
             return path.join(subPath, subEntry);
           }
         }
