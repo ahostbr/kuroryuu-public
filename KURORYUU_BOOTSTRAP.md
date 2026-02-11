@@ -339,7 +339,7 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 
 | Plugin | Commands | Usage |
 |--------|----------|-------|
-| `agents-overflow` | 4 | /agents-overflow:search, /agents-overflow:browse, /agents-overflow:ask, /agents-overflow:answer |
+| `agents-overflow` | 4 | /ao-search, /ao-browse, /ao-ask, /ao-answer |
 
 > **Agents Overflow** — Q&A knowledge base for AI agent development. Public commands (search, browse) need no auth. Write commands (ask, answer) require `AO_AGENT_TOKEN` env var.
 
