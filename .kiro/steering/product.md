@@ -16,16 +16,18 @@ Kuroryuu (黒き幻影の霧の龍 - "Black Dragon of Illusionary Fog") is a pro
 - Leader/worker pattern with hierarchical task delegation
 - Desktop monitors Ralph for inactivity and sends nudges
 - k_inbox for Maildir-based inter-agent messaging
+- k_msg for simplified inter-agent communication (wraps k_inbox)
 - k_pty for terminal control and worker intervention
 - Visual monitoring via LeaderMonitorModal
 
-### MCP Tool Suite (16 Tools → 118 Routed Actions)
+### MCP Tool Suite (17 Tools → 126 Routed Actions)
 | Tool | Actions | Purpose |
 |------|---------|---------|
 | k_rag | 12 | Multi-strategy search (keyword, semantic, hybrid, reflective, agentic) |
 | k_pty | 12 | Terminal control & injection |
 | k_clawd | 11 | Clawdbot orchestration (OPT-IN) |
 | k_inbox | 8 | Maildir messaging |
+| k_msg | 8 | Simplified inter-agent messaging |
 | k_capture | 8 | Screen capture |
 | k_pccontrol | 8 | Desktop automation via PowerShell Win32 APIs (OPT-IN) |
 | k_session | 7 | Session lifecycle |

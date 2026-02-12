@@ -23,6 +23,7 @@ cd <PROJECT_ROOT>\apps\mcp_core
 - RAG: `k_rag` - query, status, index
 - Repo Intel: `k_repo_intel` - status, run, get, list
 - Inbox: `k_inbox` - send, list, read, claim, complete
+- Messaging: `k_msg` - send, check, read, reply, complete, broadcast, list_agents (simplified k_inbox wrapper)
 - Checkpoints: `k_checkpoint` - save, list, load
 - Session: `k_session` - start, end, log, context
 - Memory: `k_memory` - get, set_goal, add_blocker

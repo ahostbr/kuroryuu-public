@@ -4,6 +4,8 @@ Multi-agent coordination patterns for complex workflows.
 
 ## Leader Delegation Pattern
 
+> **Tip:** Use `k_msg` for simplified messaging. Use `k_inbox` when you need claim/complete lifecycle.
+
 ```
 Leader                                    Worker
   │                                         │

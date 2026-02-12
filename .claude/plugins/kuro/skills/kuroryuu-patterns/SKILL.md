@@ -29,6 +29,7 @@ Kuroryuu is a multi-agent orchestration system enabling Claude Code instances to
 | `k_session` | Session lifecycle | start, status, end |
 | `k_checkpoint` | State persistence | save, load, list |
 | `k_inbox` | Message queue | send, list, read, claim, complete |
+| `k_msg` | Simplified messaging | send, check, read, reply, complete, broadcast, list_agents |
 | `k_rag` | Semantic search | search, index |
 | `k_memory` | Working memory | write, read, list |
 | `k_pty` | PTY control (all agents) | spawn_cli, talk, send_line |

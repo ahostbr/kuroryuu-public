@@ -71,6 +71,8 @@ Workers use checkpoints for task continuity:
    k_inbox(action="list", filter="to:me,status:new")
    ```
 
+   Note: `k_msg` is available as a simplified alternative for send/check operations.
+
 7. **Confirm worker status**:
    Output: `WORKER role assumed. Session: {session_id}. Polling inbox.`
 

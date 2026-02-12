@@ -91,6 +91,7 @@ Commands use Kuroryuu MCP tools directly:
 - `k_session` - Session management
 - `k_checkpoint` - State persistence
 - `k_inbox` - Message queue
+- `k_msg` - Simplified messaging wrapper
 - `k_rag` - Semantic search
 - `k_memory` - Working memory
 

@@ -122,6 +122,7 @@ Each tool module exports a `register_*_tools()` function:
 - `tools_rag.py` → k_rag (12 actions)
 - `tools_pty.py` → k_pty (12 actions)
 - `tools_inbox.py` → k_inbox (8 actions)
+- `tools_msg.py` → k_msg (8 actions — simplified wrapper for k_inbox)
 - Action routing via `action` parameter prevents tool bloat
 
 ### Desktop Screens (16)

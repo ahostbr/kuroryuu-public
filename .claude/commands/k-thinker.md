@@ -48,6 +48,7 @@ As thinker, you:
 **Communication:**
 - `k_thinker_channel` - Real-time with other thinker (send_line, read)
 - `k_inbox` - Async messaging and escalation
+- `k_msg` - Simplified messaging wrapper (wraps k_inbox)
 
 **Research:**
 - `k_rag` - Codebase search

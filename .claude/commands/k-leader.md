@@ -90,6 +90,7 @@ All agents can use `k_pty` for terminal operations. The leader role is tracked f
 
 - **k_pty** - PTY operations (all agents can use, leader coordinates workers)
 - **k_inbox** - Send tasks to workers
+- **k_msg** - Simplified messaging wrapper (send, check, reply, broadcast)
 - **k_collective** - Record outcomes at finalization (REQUIRED)
 - **Orchestration endpoints** - Create/manage tasks
 

@@ -113,6 +113,35 @@ k_inbox(
 # Returns: { "ok": true, "completed": true }
 ```
 
+## k_msg — Simplified Inter-Agent Messaging
+
+Wraps k_inbox with a streamlined API. Use k_msg for common messaging; use k_inbox for advanced operations (claim, mark_read, stats).
+
+### Send Message
+```python
+k_msg(action="send", to="worker-1", subject="Review PR", body="Please review PR #42", from_agent="leader")
+```
+
+### Check Inbox
+```python
+k_msg(action="check", agent_id="my-agent-id", limit=10)
+```
+
+### Reply
+```python
+k_msg(action="reply", id="msg-uuid", body="Done!", from_agent="my-agent")
+```
+
+### Broadcast
+```python
+k_msg(action="broadcast", subject="Deploy", body="Deploying to staging", from_agent="leader")
+```
+
+### List Agents
+```python
+k_msg(action="list_agents")  # Discovers registered agents via Gateway
+```
+
 ## k_rag - Semantic Search
 
 ### Search

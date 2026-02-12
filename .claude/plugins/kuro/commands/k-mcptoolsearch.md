@@ -82,6 +82,7 @@ Returns:
 | "check function symbols" | k_repo_intel | Symbol analysis |
 | "save a checkpoint" | k_checkpoint | Persistence |
 | "send message to worker" | k_inbox | Agent messaging |
+| "message agent" | k_msg | Simplified agent messaging |
 | "get project dependencies" | k_repo_intel | Dependency report |
 | "create a terminal" | k_pty | PTY creation |
 
@@ -103,7 +104,7 @@ k_help(tool="k_rag")
 - **analysis**: k_repo_intel (symbols, routes, deps)
 - **files**: k_files (read, write, list)
 - **persistence**: k_checkpoint (save/load state)
-- **messaging**: k_inbox, k_thinker_channel
+- **messaging**: k_inbox, k_msg, k_thinker_channel
 - **lifecycle**: k_session (agent lifecycle)
 - **state**: k_memory (working memory)
 - **terminal**: k_pty (PTY control)
