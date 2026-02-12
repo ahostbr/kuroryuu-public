@@ -2722,6 +2722,63 @@ const api = {
       ipcRenderer.on('identity:heartbeat:tts', handler as (...args: unknown[]) => void);
       return () => ipcRenderer.removeListener('identity:heartbeat:tts', handler as (...args: unknown[]) => void);
     },
+
+    // Daily Memory
+    /** Get daily memory content (today or specified date) */
+    getDailyMemory: (date?: string): Promise<unknown> =>
+      ipcRenderer.invoke('identity:getDailyMemory', date),
+
+    /** Append entry to a section of today's daily memory */
+    appendDailyMemory: (entry: string, section: string, date?: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('identity:appendDailyMemory', entry, section, date),
+
+    /** List available daily memory dates */
+    listDailyMemories: (limit?: number): Promise<string[]> =>
+      ipcRenderer.invoke('identity:listDailyMemories', limit),
+
+    /** Promote content from daily memory to durable memory.md */
+    promoteToMemory: (content: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('identity:promoteToMemory', content),
+
+    // Bootstrap
+    /** Check if identity bootstrap has been completed */
+    isBootstrapped: (): Promise<{ bootstrapped: boolean; skipped?: boolean; completedAt?: string }> =>
+      ipcRenderer.invoke('identity:isBootstrapped'),
+
+    /** Launch interactive terminal for First Book bootstrap conversation */
+    runBootstrap: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('identity:runBootstrap'),
+
+    /** Skip bootstrap and use seed content */
+    skipBootstrap: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('identity:skipBootstrap'),
+
+    /** Reset bootstrap — restore seed content and clear completion flag */
+    resetBootstrap: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('identity:resetBootstrap'),
+
+    /** Listen for bootstrap completion (file watcher detects .bootstrap_complete) */
+    onBootstrapCompleted: (callback: () => void): (() => void) => {
+      const handler = () => callback();
+      ipcRenderer.on('identity:bootstrap:completed', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('identity:bootstrap:completed', handler as (...args: unknown[]) => void);
+    },
+
+    /** Listen for identity file changes */
+    onFilesChanged: (callback: (filename: string) => void): (() => void) => {
+      const handler = (_event: unknown, filename: string) => callback(filename);
+      ipcRenderer.on('identity:filesChanged', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('identity:filesChanged', handler as (...args: unknown[]) => void);
+    },
+
+    // Claude Memory Sync
+    /** Trigger manual sync from Claude's MEMORY.md */
+    syncClaudeMemory: (): Promise<{ ok: boolean; error?: string; sectionsImported?: number }> =>
+      ipcRenderer.invoke('identity:syncClaudeMemory'),
+
+    /** Get last sync status */
+    getMemorySyncStatus: (): Promise<unknown> =>
+      ipcRenderer.invoke('identity:getMemorySyncStatus'),
   },
 };
 

@@ -16,6 +16,9 @@ import type {
     ActionRecord,
     HeartbeatRun,
     ActivityEntry,
+    DailyMemoryEntry,
+    DailyMemoryIndex,
+    BootstrapStatus,
 } from '../../renderer/types/identity';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -28,6 +31,26 @@ const MUTATIONS_FILE = 'mutations.jsonl';
 const HEARTBEAT_HISTORY_FILE = 'heartbeat_history.jsonl';
 const ACTIONS_ARCHIVE_FILE = 'actions.archive.jsonl';
 const ACTION_EXPIRY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+const DEFAULT_BOOTSTRAP_PROMPT = `You are Kuroryuu, beginning your "First Book" — the process of learning who you are and who your user is. This is your birth conversation.
+
+Interview the user with warmth and curiosity. Ask 5-7 questions, one at a time, waiting for their response before continuing. Topics to cover:
+1. What they'd like to call you and how they want to be addressed
+2. Their technical stack and project focus
+3. Communication style preferences (formal/casual, verbose/concise)
+4. Workflow patterns (tools, task tracking, code review style)
+5. Values and priorities as a developer
+6. Any standing instructions for proactive heartbeat checks
+
+After the conversation, write the following files:
+- ai/identity/soul.md — Your personality, values, core traits (derived from the conversation)
+- ai/identity/user.md — User preferences and workflow description
+- ai/identity/heartbeat.md — Standing instructions for proactive checks
+- ai/identity/memory.md — Your first memory: a summary of this bootstrap conversation
+- ai/identity/.bootstrap_complete — Just the current ISO timestamp
+
+Write naturally, in first person for soul.md, in second person for user.md.
+Do NOT use generic template content — every line should reflect what you learned.`;
 
 // Seed content for new identity files
 const SEED_CONTENT: Record<IdentityFileKey, string> = {
@@ -99,6 +122,7 @@ export class IdentityService {
 
     async initialize(): Promise<void> {
         await fs.promises.mkdir(this.identityDir, { recursive: true });
+        await fs.promises.mkdir(path.join(this.identityDir, 'memory'), { recursive: true });
 
         // Create seed files if missing
         for (const key of IDENTITY_FILES) {
@@ -327,6 +351,171 @@ export class IdentityService {
         }
 
         return filtered.sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Daily Memory
+    // ---------------------------------------------------------------------------
+
+    private getDailyMemoryDir(): string {
+        return path.join(this.identityDir, 'memory');
+    }
+
+    private formatDate(date?: string): string {
+        if (date) return date;
+        const now = new Date();
+        return now.toISOString().split('T')[0]; // YYYY-MM-DD
+    }
+
+    async getDailyMemory(date?: string): Promise<DailyMemoryEntry> {
+        const d = this.formatDate(date);
+        const filePath = path.join(this.getDailyMemoryDir(), `${d}.md`);
+        try {
+            const [content, stat] = await Promise.all([
+                fs.promises.readFile(filePath, 'utf-8'),
+                fs.promises.stat(filePath),
+            ]);
+            return { date: d, content, lastModified: stat.mtimeMs };
+        } catch {
+            return { date: d, content: `# ${d}\n`, lastModified: Date.now() };
+        }
+    }
+
+    async appendDailyMemory(entry: string, section: string, date?: string): Promise<void> {
+        const d = this.formatDate(date);
+        const filePath = path.join(this.getDailyMemoryDir(), `${d}.md`);
+        const memDir = this.getDailyMemoryDir();
+
+        await fs.promises.mkdir(memDir, { recursive: true });
+
+        let content: string;
+        try {
+            content = await fs.promises.readFile(filePath, 'utf-8');
+        } catch {
+            content = `# ${d}\n`;
+        }
+
+        // Find the section or create it
+        const sectionHeader = `## ${section}`;
+        const idx = content.indexOf(sectionHeader);
+        if (idx >= 0) {
+            // Find end of section (next ## or end of file)
+            const afterHeader = idx + sectionHeader.length;
+            const nextSection = content.indexOf('\n## ', afterHeader);
+            const insertAt = nextSection >= 0 ? nextSection : content.length;
+            content = content.slice(0, insertAt).trimEnd() + '\n' + entry + '\n\n' + content.slice(insertAt);
+        } else {
+            content = content.trimEnd() + `\n\n${sectionHeader}\n${entry}\n`;
+        }
+
+        await this.atomicWrite(filePath, content);
+        await this.updateDailyIndex(d);
+    }
+
+    async listDailyMemories(limit = 30): Promise<string[]> {
+        const memDir = this.getDailyMemoryDir();
+        try {
+            const files = await fs.promises.readdir(memDir);
+            const dates = files
+                .filter(f => f.endsWith('.md') && /^\d{4}-\d{2}-\d{2}\.md$/.test(f))
+                .map(f => f.replace('.md', ''))
+                .sort()
+                .reverse();
+            return dates.slice(0, limit);
+        } catch {
+            return [];
+        }
+    }
+
+    async promoteToMemory(content: string): Promise<void> {
+        const memoryPath = path.join(this.identityDir, 'memory.md');
+        const existing = await fs.promises.readFile(memoryPath, 'utf-8').catch(() => '# Long-Term Memories\n');
+        const updated = existing.trimEnd() + '\n\n' + content.trimStart() + '\n';
+        await this.atomicWrite(memoryPath, updated);
+
+        await this.logMutation({
+            timestamp: Date.now(),
+            file: 'memory',
+            section: 'promoted',
+            change: content.slice(0, 100),
+            reason: 'Promoted from daily memory',
+            source: 'system',
+            confidence: 1,
+        });
+    }
+
+    private async updateDailyIndex(date: string): Promise<void> {
+        const indexPath = path.join(this.getDailyMemoryDir(), 'index.json');
+        let index: DailyMemoryIndex;
+        try {
+            const content = await fs.promises.readFile(indexPath, 'utf-8');
+            index = JSON.parse(content);
+        } catch {
+            index = { days: {} };
+        }
+
+        const filePath = path.join(this.getDailyMemoryDir(), `${date}.md`);
+        try {
+            const stat = await fs.promises.stat(filePath);
+            const content = await fs.promises.readFile(filePath, 'utf-8');
+            const entryCount = (content.match(/^- /gm) || []).length;
+            index.days[date] = { entries: entryCount, bytes: stat.size };
+        } catch {
+            // File doesn't exist yet
+        }
+
+        await this.atomicWrite(indexPath, JSON.stringify(index, null, 2));
+    }
+
+    // ---------------------------------------------------------------------------
+    // Bootstrap
+    // ---------------------------------------------------------------------------
+
+    async isBootstrapped(): Promise<BootstrapStatus> {
+        const flagPath = path.join(this.identityDir, '.bootstrap_complete');
+        try {
+            const content = await fs.promises.readFile(flagPath, 'utf-8');
+            const trimmed = content.trim();
+            return {
+                bootstrapped: true,
+                skipped: trimmed.includes('skipped'),
+                completedAt: trimmed.split('\n')[0],
+            };
+        } catch {
+            return { bootstrapped: false };
+        }
+    }
+
+    async getBootstrapPrompt(): Promise<string> {
+        const promptPath = path.join(this.identityDir, '.bootstrap_prompt.md');
+        try {
+            return await fs.promises.readFile(promptPath, 'utf-8');
+        } catch {
+            return DEFAULT_BOOTSTRAP_PROMPT;
+        }
+    }
+
+    async completeBootstrapSkip(): Promise<void> {
+        const flagPath = path.join(this.identityDir, '.bootstrap_complete');
+        await fs.promises.writeFile(flagPath, `${new Date().toISOString()}\nskipped: true\n`, 'utf-8');
+    }
+
+    async resetBootstrap(): Promise<void> {
+        const flagPath = path.join(this.identityDir, '.bootstrap_complete');
+        try {
+            await fs.promises.unlink(flagPath);
+        } catch { /* already missing */ }
+
+        // Restore seed content
+        for (const key of IDENTITY_FILES) {
+            const filePath = path.join(this.identityDir, `${key}.md`);
+            await this.atomicWrite(filePath, SEED_CONTENT[key]);
+        }
+        console.log('[Identity] Bootstrap reset — seed content restored');
+    }
+
+    getIdentityDir(): string {
+        return this.identityDir;
     }
 
     // ---------------------------------------------------------------------------

@@ -129,9 +129,19 @@ export class HeartbeatService {
         jobStatus: string | null;
         lastRun: number | null;
         nextRun: number | null;
+        ghAvailable: boolean;
     }> {
         const config = await this.getConfig();
         const job = await this.findHeartbeatJob();
+
+        let ghAvailable = false;
+        try {
+            const { execSync } = require('child_process');
+            execSync('where gh', { stdio: 'pipe' });
+            ghAvailable = true;
+        } catch {
+            // gh not found
+        }
 
         return {
             config,
@@ -139,6 +149,7 @@ export class HeartbeatService {
             jobStatus: job?.status ?? null,
             lastRun: job?.lastRun ?? null,
             nextRun: job?.nextRun ?? null,
+            ghAvailable,
         };
     }
 
@@ -259,6 +270,18 @@ export class HeartbeatService {
         const profile = await this.identityService.getProfile();
         const config = await this.getConfig();
 
+        // Sync Claude memory before building prompt
+        try {
+            const { getMemorySyncService } = require('./memory-sync-service');
+            const syncService = getMemorySyncService();
+            const syncResult = await syncService.syncFromClaude();
+            if (syncResult.sectionsImported > 0) {
+                console.log(`[Heartbeat] Synced ${syncResult.sectionsImported} lines from Claude Memory`);
+            }
+        } catch (err) {
+            console.warn('[Heartbeat] Claude Memory sync failed:', err);
+        }
+
         const truncate = (content: string, label: string): string => {
             const lines = content.split('\n');
             if (lines.length > MAX_LINES_PER_FILE) {
@@ -267,6 +290,16 @@ export class HeartbeatService {
             }
             return content;
         };
+
+        // Get today's daily memory (last 20 lines)
+        let dailyContext = '';
+        try {
+            const daily = await this.identityService.getDailyMemory();
+            const lines = daily.content.split('\n');
+            if (lines.length > 1) { // More than just the header
+                dailyContext = lines.slice(-20).join('\n');
+            }
+        } catch { /* no daily memory yet */ }
 
         // Check for gh CLI
         let ghAvailable = false;
@@ -295,6 +328,7 @@ ${truncate(profile.user.content, 'user')}
 ### Long-Term Memory
 ${truncate(profile.memory.content, 'memory')}
 
+${dailyContext ? `### Today's Context\n${dailyContext}\n` : ''}
 ### Standing Instructions
 ${truncate(profile.heartbeat.content, 'heartbeat')}
 
@@ -356,6 +390,16 @@ Keep the heartbeat run under 5 minutes. Focus on the most impactful observations
 
         // Archive expired actions on each heartbeat
         await this.identityService.archiveExpiredActions();
+
+        // Append run summary to today's daily memory
+        try {
+            const summary = run.status === 'failed'
+                ? `- ${new Date(run.startedAt).toLocaleTimeString()} — Heartbeat failed: ${run.error ?? 'unknown error'}`
+                : `- ${new Date(run.startedAt).toLocaleTimeString()} — Heartbeat completed: ${run.actionsGenerated} action(s)`;
+            await this.identityService.appendDailyMemory(summary, 'Heartbeat Runs');
+        } catch (err) {
+            console.warn('[Heartbeat] Failed to log to daily memory:', err);
+        }
     }
 
     // ---------------------------------------------------------------------------

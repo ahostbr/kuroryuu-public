@@ -12,8 +12,12 @@ import type {
     ActivityEntry,
     HeartbeatRun,
     HeartbeatConfig,
+    HeartbeatNotificationMode,
     ActionType,
     ActionExecutionMode,
+    DailyMemoryEntry,
+    BootstrapStatus,
+    MemorySyncStatus,
 } from '../types/identity';
 import { toast } from '../components/ui/toast';
 
@@ -35,6 +39,7 @@ interface IdentityStore {
         jobStatus: string | null;
         lastRun: number | null;
         nextRun: number | null;
+        ghAvailable: boolean;
     } | null;
     activeView: ActiveView;
     activeFile: IdentityFileKey;
@@ -45,6 +50,18 @@ interface IdentityStore {
     error: string | null;
     newActionCount: number;
 
+    // Daily Memory state
+    dailyMemory: DailyMemoryEntry | null;
+    dailyMemoryDates: string[];
+    dailySelectedDate: string | null;
+
+    // Bootstrap state
+    bootstrapStatus: BootstrapStatus | null;
+    bootstrapRunning: boolean;
+
+    // Memory Sync state
+    memorySyncStatus: MemorySyncStatus | null;
+
     // Profile Actions
     loadProfile: () => Promise<void>;
     loadFile: (key: IdentityFileKey) => Promise<void>;
@@ -53,10 +70,25 @@ interface IdentityStore {
     // Activity Actions
     loadActivity: (timeWindow?: ActivityTimeWindow) => Promise<void>;
 
+    // Daily Memory Actions
+    loadDailyMemory: (date?: string) => Promise<void>;
+    loadDailyMemoryDates: () => Promise<void>;
+
+    // Bootstrap Actions
+    checkBootstrap: () => Promise<void>;
+    runBootstrap: () => Promise<void>;
+    skipBootstrap: () => Promise<void>;
+    resetBootstrap: () => Promise<void>;
+
+    // Memory Sync Actions
+    syncClaudeMemory: () => Promise<void>;
+    loadMemorySyncStatus: () => Promise<void>;
+
     // Heartbeat Actions
     loadHeartbeatConfig: () => Promise<void>;
     setHeartbeatEnabled: (enabled: boolean) => Promise<void>;
     setHeartbeatInterval: (minutes: number) => Promise<void>;
+    setNotificationMode: (mode: HeartbeatNotificationMode) => Promise<void>;
     setPerActionMode: (type: ActionType, mode: ActionExecutionMode) => Promise<void>;
     runHeartbeatNow: () => Promise<void>;
 
@@ -101,6 +133,12 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
     isLoading: false,
     error: null,
     newActionCount: 0,
+    dailyMemory: null,
+    dailyMemoryDates: [],
+    dailySelectedDate: null,
+    bootstrapStatus: null,
+    bootstrapRunning: false,
+    memorySyncStatus: null,
 
     // ---------------------------------------------------------------------------
     // Profile
@@ -191,6 +229,7 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
                 jobStatus: string | null;
                 lastRun: number | null;
                 nextRun: number | null;
+                ghAvailable: boolean;
             };
             if (status) {
                 set({
@@ -200,6 +239,7 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
                         jobStatus: status.jobStatus,
                         lastRun: status.lastRun,
                         nextRun: status.nextRun,
+                        ghAvailable: status.ghAvailable,
                     },
                 });
             }
@@ -250,6 +290,26 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
         }
     },
 
+    setNotificationMode: async (mode) => {
+        const { heartbeatConfig } = get();
+        if (heartbeatConfig) {
+            set({ heartbeatConfig: { ...heartbeatConfig, notificationMode: mode } });
+        }
+        try {
+            const result = await window.electronAPI.identity.heartbeat.configure({ notificationMode: mode });
+            if (!result.ok) {
+                if (heartbeatConfig) set({ heartbeatConfig });
+                toast.error(`Failed to set notification mode: ${result.error}`);
+                return;
+            }
+            toast.success(`Notification mode: ${mode}`);
+        } catch (err) {
+            if (heartbeatConfig) set({ heartbeatConfig });
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to set notification mode: ${msg}`);
+        }
+    },
+
     setPerActionMode: async (type, mode) => {
         try {
             const result = await window.electronAPI.identity.heartbeat.configure({
@@ -280,6 +340,118 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
             const msg = err instanceof Error ? err.message : String(err);
             toast.error(`Heartbeat failed: ${msg}`);
         }
+    },
+
+    // ---------------------------------------------------------------------------
+    // Daily Memory
+    // ---------------------------------------------------------------------------
+
+    loadDailyMemory: async (date) => {
+        try {
+            const daily = await window.electronAPI.identity.getDailyMemory(date) as DailyMemoryEntry;
+            set({ dailyMemory: daily, dailySelectedDate: date ?? null });
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to load daily memory: ${msg}`);
+        }
+    },
+
+    loadDailyMemoryDates: async () => {
+        try {
+            const dates = await window.electronAPI.identity.listDailyMemories();
+            set({ dailyMemoryDates: dates });
+        } catch { /* ignore */ }
+    },
+
+    // ---------------------------------------------------------------------------
+    // Bootstrap
+    // ---------------------------------------------------------------------------
+
+    checkBootstrap: async () => {
+        try {
+            const status = await window.electronAPI.identity.isBootstrapped();
+            set({ bootstrapStatus: status });
+        } catch { /* ignore */ }
+    },
+
+    runBootstrap: async () => {
+        set({ bootstrapRunning: true });
+        try {
+            const result = await window.electronAPI.identity.runBootstrap();
+            if (!result.ok) {
+                toast.error(`Bootstrap failed: ${result.error}`);
+                set({ bootstrapRunning: false });
+            }
+            // bootstrapRunning stays true until onBootstrapCompleted fires
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Bootstrap failed: ${msg}`);
+            set({ bootstrapRunning: false });
+        }
+    },
+
+    skipBootstrap: async () => {
+        try {
+            const result = await window.electronAPI.identity.skipBootstrap();
+            if (result.ok) {
+                set({ bootstrapStatus: { bootstrapped: true, skipped: true } });
+                toast.success('Bootstrap skipped — using default identity');
+            } else {
+                toast.error(`Skip failed: ${result.error}`);
+            }
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Skip failed: ${msg}`);
+        }
+    },
+
+    resetBootstrap: async () => {
+        try {
+            const result = await window.electronAPI.identity.resetBootstrap();
+            if (result.ok) {
+                set({ bootstrapStatus: { bootstrapped: false } });
+                toast.success('Bootstrap reset — identity files restored to seeds');
+                await get().loadProfile();
+            } else {
+                toast.error(`Reset failed: ${result.error}`);
+            }
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Reset failed: ${msg}`);
+        }
+    },
+
+    // ---------------------------------------------------------------------------
+    // Claude Memory Sync
+    // ---------------------------------------------------------------------------
+
+    syncClaudeMemory: async () => {
+        try {
+            const result = await window.electronAPI.identity.syncClaudeMemory();
+            if (result.ok) {
+                const count = result.sectionsImported ?? 0;
+                if (count > 0) {
+                    toast.success(`Synced ${count} lines from Claude Memory`);
+                } else {
+                    toast.success('Claude Memory already in sync');
+                }
+                await get().loadMemorySyncStatus();
+            } else {
+                toast.error(`Sync failed: ${result.error}`);
+            }
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Sync failed: ${msg}`);
+        }
+    },
+
+    loadMemorySyncStatus: async () => {
+        try {
+            const status = await window.electronAPI.identity.getMemorySyncStatus() as MemorySyncStatus | null;
+            if (status) {
+                set({ memorySyncStatus: status });
+            }
+        } catch { /* ignore */ }
     },
 
     // ---------------------------------------------------------------------------

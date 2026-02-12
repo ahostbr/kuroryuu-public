@@ -4,11 +4,12 @@
 
 import { useEffect } from 'react';
 import {
-    Heart, Play, Settings, Clock, CheckCircle, XCircle,
-    Zap, Shield, BookOpen, Calendar,
+    Heart, Play, Settings, Clock, CheckCircle,
+    Zap, Shield, BookOpen, Calendar, Bell, Github, RefreshCw, RotateCcw,
 } from 'lucide-react';
 import { useIdentityStore } from '../../stores/identity-store';
-import type { ActionType, ActionExecutionMode } from '../../types/identity';
+import { BootstrapWelcome } from './BootstrapWelcome';
+import type { ActionType, ActionExecutionMode, HeartbeatNotificationMode } from '../../types/identity';
 
 const ACTION_TYPE_INFO: { type: ActionType; label: string; icon: typeof Zap; description: string }[] = [
     { type: 'create_task', label: 'Create Task', icon: Zap, description: 'Create new tasks in ai/todo.md' },
@@ -18,6 +19,13 @@ const ACTION_TYPE_INFO: { type: ActionType; label: string; icon: typeof Zap; des
 ];
 
 const INTERVAL_OPTIONS = [5, 10, 15, 30, 60, 120, 360, 720, 1440];
+
+const NOTIFICATION_MODES: { value: HeartbeatNotificationMode; label: string; description: string }[] = [
+    { value: 'toast', label: 'Toast', description: 'In-app toast notification' },
+    { value: 'none', label: 'None', description: 'Silent — no notification' },
+    { value: 'os', label: 'OS', description: 'System notification' },
+    { value: 'tts', label: 'TTS', description: 'Text-to-speech announcement' },
+];
 
 function formatInterval(minutes: number): string {
     if (minutes < 60) return `${minutes}m`;
@@ -30,18 +38,32 @@ export function AssistantDashboard() {
         heartbeatConfig,
         heartbeatStatus,
         profile,
+        bootstrapStatus,
+        memorySyncStatus,
         loadHeartbeatConfig,
         loadProfile,
+        checkBootstrap,
+        resetBootstrap,
         setHeartbeatEnabled,
         setHeartbeatInterval,
+        setNotificationMode,
         setPerActionMode,
         runHeartbeatNow,
+        syncClaudeMemory,
+        loadMemorySyncStatus,
     } = useIdentityStore();
 
     useEffect(() => {
+        checkBootstrap();
         loadHeartbeatConfig();
+        loadMemorySyncStatus();
         if (!profile) loadProfile();
-    }, [loadHeartbeatConfig, loadProfile, profile]);
+    }, [checkBootstrap, loadHeartbeatConfig, loadMemorySyncStatus, loadProfile, profile]);
+
+    // Show bootstrap welcome if not yet bootstrapped
+    if (bootstrapStatus && !bootstrapStatus.bootstrapped) {
+        return <BootstrapWelcome />;
+    }
 
     const config = heartbeatConfig;
     const status = heartbeatStatus;
@@ -49,7 +71,7 @@ export function AssistantDashboard() {
     return (
         <div className="h-full overflow-y-auto p-4 space-y-4">
             {/* Status Overview */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-3">
                 <div className="p-3 rounded-lg border border-border bg-card">
                     <div className="flex items-center gap-2 mb-2">
                         <Heart className={`w-4 h-4 ${config?.enabled ? 'text-green-400' : 'text-muted-foreground'}`} />
@@ -78,6 +100,15 @@ export function AssistantDashboard() {
                     </div>
                     <span className="text-lg font-bold text-foreground">
                         {status?.jobStatus ?? 'No job'}
+                    </span>
+                </div>
+                <div className="p-3 rounded-lg border border-border bg-card">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Github className={`w-4 h-4 ${status?.ghAvailable ? 'text-green-400' : 'text-muted-foreground'}`} />
+                        <span className="text-xs font-medium text-muted-foreground">GitHub CLI</span>
+                    </div>
+                    <span className={`text-lg font-bold ${status?.ghAvailable ? 'text-green-400' : 'text-yellow-400'}`}>
+                        {status?.ghAvailable ? 'Ready' : 'N/A'}
                     </span>
                 </div>
             </div>
@@ -137,6 +168,28 @@ export function AssistantDashboard() {
                     </select>
                 </div>
 
+                {/* Notification Mode */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <span className="text-sm text-foreground flex items-center gap-1.5">
+                            <Bell className="w-3.5 h-3.5" />
+                            Notification Mode
+                        </span>
+                        <p className="text-[10px] text-muted-foreground">
+                            How to notify when heartbeat completes with actions
+                        </p>
+                    </div>
+                    <select
+                        value={config?.notificationMode ?? 'toast'}
+                        onChange={e => setNotificationMode(e.target.value as HeartbeatNotificationMode)}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
+                    >
+                        {NOTIFICATION_MODES.map(m => (
+                            <option key={m.value} value={m.value}>{m.label}</option>
+                        ))}
+                    </select>
+                </div>
+
                 {/* Run Now */}
                 <button
                     onClick={runHeartbeatNow}
@@ -181,6 +234,34 @@ export function AssistantDashboard() {
                 })}
             </div>
 
+            {/* Claude Memory Sync */}
+            <div className="p-4 rounded-lg border border-border bg-card space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                        <RefreshCw className="w-4 h-4 text-primary" />
+                        Claude Memory Sync
+                    </h3>
+                    <button
+                        onClick={syncClaudeMemory}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-secondary hover:bg-secondary/80 transition-colors text-foreground"
+                    >
+                        <RefreshCw className="w-3 h-3" />
+                        Sync Now
+                    </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                    Import new content from Claude's auto-memory into today's daily memory.
+                </p>
+                {memorySyncStatus && (
+                    <div className="text-xs text-muted-foreground">
+                        {memorySyncStatus.lastSyncAt
+                            ? `Last synced: ${new Date(memorySyncStatus.lastSyncAt).toLocaleString()}`
+                            : 'Never synced'
+                        }
+                    </div>
+                )}
+            </div>
+
             {/* Identity Files Summary */}
             {profile && (
                 <div className="p-4 rounded-lg border border-border bg-card space-y-2">
@@ -203,6 +284,25 @@ export function AssistantDashboard() {
                     })}
                 </div>
             )}
+
+            {/* Reset First Book */}
+            <div className="p-4 rounded-lg border border-border/50 bg-card/50 space-y-2">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <span className="text-xs text-muted-foreground">Reset First Book</span>
+                        <p className="text-[10px] text-muted-foreground/70">
+                            Restore seed content and re-run the bootstrap interview
+                        </p>
+                    </div>
+                    <button
+                        onClick={resetBootstrap}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                        <RotateCcw className="w-3 h-3" />
+                        Reset
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }

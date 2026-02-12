@@ -122,3 +122,42 @@ export interface HeartbeatActivity extends ActivityEntryBase {
 }
 
 export type ActivityEntry = MutationActivity | ActionActivity | HeartbeatActivity;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Daily Memory
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface DailyMemoryEntry {
+    date: string;       // YYYY-MM-DD
+    content: string;
+    lastModified: number;
+}
+
+export interface DailyMemoryIndexDay {
+    entries: number;
+    bytes: number;
+}
+
+export interface DailyMemoryIndex {
+    days: Record<string, DailyMemoryIndexDay>;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Bootstrap
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface BootstrapStatus {
+    bootstrapped: boolean;
+    skipped?: boolean;
+    completedAt?: string;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Claude Memory Sync
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface MemorySyncStatus {
+    lastSyncAt: number | null;
+    lastHash: string | null;
+    sectionsImported: number;
+}
