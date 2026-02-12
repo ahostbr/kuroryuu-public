@@ -367,6 +367,27 @@ def _init_catalog() -> None:
         leader_only=True,
     )
 
+    # k_msg - Inter-agent messaging
+    register_tool_metadata(
+        name="k_msg",
+        description="Simplified inter-agent messaging - send, check, reply, broadcast between agents",
+        keywords=[
+            "message", "send", "agent", "communication", "chat", "reply",
+            "broadcast", "inbox", "check", "messaging", "inter-agent",
+            "direct message", "dm", "notify"
+        ],
+        actions=["help", "send", "check", "read", "reply", "complete",
+                 "broadcast", "list_agents"],
+        examples=[
+            "k_msg(action='send', to='worker-1', body='Please review PR #42')",
+            "k_msg(action='check', agent_id='my-agent')",
+            "k_msg(action='reply', id='msg_123', body='Done!')",
+            "k_msg(action='broadcast', body='Deploying to staging')",
+            "k_msg(action='list_agents')",
+        ],
+        category="messaging",
+    )
+
     # k_help - Tool help system
     register_tool_metadata(
         name="k_help",
