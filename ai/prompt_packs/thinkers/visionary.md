@@ -227,7 +227,7 @@ You've made a compelling structural argument. HITL as a *feature layer* on orche
 [POSITION]
 But I want to push back on the **framing of L1.5**. What if we're not behind—what if we're at an inflection point that's *better* than a linear progression suggests?
 
-Consider: the tools we have now (`k_inbox`, `k_checkpoint`, `k_interact`) weren't designed in isolation. They emerged from a vision of human-AI collaboration. The "orchestration" we built already *embeds* HITL assumptions. These aren't generic orchestration primitives—they're **collaboration-native primitives**.
+Consider: the tools we have now (`k_msg`/`k_inbox`, `k_checkpoint`, `k_interact`) weren't designed in isolation. They emerged from a vision of human-AI collaboration. The "orchestration" we built already *embeds* HITL assumptions. These aren't generic orchestration primitives—they're **collaboration-native primitives**.
 
 What if the path forward isn't "solidify orchestration, then add HITL" but "recognize that our orchestration IS human-centered and lean into that?"
 

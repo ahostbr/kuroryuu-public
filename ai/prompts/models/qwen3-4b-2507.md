@@ -205,6 +205,7 @@ All MCP tools use a routed pattern with `action` parameter:
 | `k_files` | help, read, write, list | File operations |
 | `k_memory` | help, get, set_goal, add_blocker, clear_blockers, set_steps, reset | Working memory |
 | `k_inbox` | help, send, list, read, claim, complete | Message queue |
+| `k_msg` | help, send, check, read, reply, complete, broadcast, list_agents | Simplified inter-agent messaging |
 | `k_checkpoint` | help, save, list, load | Persistence |
 | `k_rag` | help, query, status, index | Search |
 | `k_pty` | help, list, create, write, read, talk, resize, kill | PTY control |

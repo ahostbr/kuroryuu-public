@@ -138,7 +138,7 @@ k_pty(action="talk", command="cat {log_file_path}", sentinel=true)
 
 #### 3a. Provide Context/Hint
 ```
-Send via k_inbox (preferred):
+Send via k_msg (preferred, or k_inbox for advanced features):
 {
   "title": "Hint for T042",
   "payload": {

@@ -161,9 +161,10 @@ Load `ai/prompts/leader/leader_breakdown.md` to convert plan into subtasks:
 ```
 1. Parse plan phases and tasks
 
-2. Create subtasks via k_inbox (PREFERRED):
-   k_inbox(action="send", to_agent="worker_id", subject="T054: Subtask title",
-           body="Full context injection with files, criteria, etc.")
+2. Create subtasks via k_msg (or k_inbox for advanced features):
+   # Simplified: k_msg(action="send", to="worker_id", subject="T054: Subtask title", body="Full context...")
+   # Advanced: k_inbox(action="send", to_agent="worker_id", subject="T054: Subtask title",
+   #            body="Full context injection with files, criteria, etc.")
 
 3. Set dependencies (document in task description)
 
@@ -349,6 +350,7 @@ k_interact(
 | `k_rag` | query, status, index, hybrid, semantic, agentic... | 12 | Multi-strategy code search |
 | `k_pty` | list, term_read, send_line, talk, resolve, spawn_cli... | 12 | PTY control (all agents) |
 | `k_inbox` | send, list, read, claim, complete, stats... | 8 | Maildir messaging |
+| `k_msg` | send, check, read, reply, complete, broadcast, list_agents, help | 8 | Simplified inter-agent messaging |
 | `k_capture` | start, stop, screenshot, poll, get_latest... | 8 | Screen capture |
 | `k_pccontrol` | click, type, launch, find_element... | 8 | WinAppDriver (OPT-IN) |
 | `k_session` | start, end, pre_tool, post_tool, log, context... | 7 | Session lifecycle |
@@ -637,6 +639,7 @@ LEADER ACTIONS:
 | `k_rag` | Code search |
 | `k_files` | File read operations |
 | `k_inbox` | Worker messaging (unified canonical inbox) |
+| `k_msg` | Simplified agent messaging (wraps k_inbox) |
 
 ---
 
@@ -667,6 +670,8 @@ k_pty(
 **Example - Inbox Fallback:**
 ```python
 # Use inbox when PTY unavailable or for batch task queuing
+# Simplified: k_msg(action="send", to="worker_agent_id", subject="T054: Implement feature X", body="Full task description...")
+# Advanced: k_inbox with full metadata
 k_inbox(
     action="send",
     from_agent="leader_agent_id",

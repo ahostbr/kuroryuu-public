@@ -11,7 +11,7 @@ PTY is not “chat.” It is a privileged I/O bridge into a terminal session. Tr
 - evidence packs (audit trail)
 
 ## Standing constraints (copy into every prompt if needed)
-- **All agents can use PTY**: workers prefer k_inbox for coordination, PTY for leader dialogue. Thinkers use PTY for debate.
+- **All agents can use PTY**: workers prefer k_msg (or k_inbox) for coordination, PTY for leader dialogue. Thinkers use PTY for debate.
 - **Evidence pack** for every PTY action (recommended).
 - **Sentinel completion**: every command ends with a unique DONE marker.
 - **Correct line endings** (PowerShell/Windows uses CRLF `\r\n`).

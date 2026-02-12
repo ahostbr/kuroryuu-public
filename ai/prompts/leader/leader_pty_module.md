@@ -13,8 +13,8 @@
 | Direction | Channel | Method |
 |-----------|---------|--------|
 | Leader → Worker | **PTY (PRIMARY)** | `k_pty(action="send_line", ...)` |
-| Leader → Worker | Inbox (fallback) | `k_inbox(action="send", ...)` |
-| Worker → Leader | **Inbox (ALWAYS)** | `k_inbox(action="send", ...)` |
+| Leader → Worker | Messaging (fallback) | `k_msg(action="send", ...)` or `k_inbox(action="send", ...)` |
+| Worker → Leader | **Messaging (ALWAYS)** | `k_msg(action="send", ...)` or `k_inbox(action="send", ...)` |
 | Thinker ↔ Thinker | PTY | `k_thinker_channel` |
 
 ---

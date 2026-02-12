@@ -5,7 +5,7 @@ You are writing a practical cookbook for operating PTY as a Leader controlling W
 
 ### Constraints
 - Inter-agent only.
-- All agents can use PTY (workers prefer k_inbox for coordination).
+- All agents can use PTY (workers prefer k_msg (or k_inbox) for coordination).
 - Evidence pack recommended for PTY interventions.
 - Sentinel completion markers required for all injected commands.
 

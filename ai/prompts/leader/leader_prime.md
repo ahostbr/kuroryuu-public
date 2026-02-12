@@ -160,6 +160,9 @@ k_pty(action="send_line", session_id=worker_pty["session_id"], data="task descri
 ```python
 # Workers report via inbox
 k_inbox(action="send", to_agent="leader", subject="DONE: T053", body="<promise>DONE</promise>...")
+
+# Preferred: k_msg (simplified wrapper over k_inbox)
+k_msg(action="send", to="leader", subject="DONE: T053", body="<promise>DONE</promise>...")
 ```
 
 ### Step 6: Initialize Visual Monitoring

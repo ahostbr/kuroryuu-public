@@ -169,7 +169,7 @@ MONITORING STRATEGY:
 
 PTY ACCESS:
 - All agents can use k_pty for terminal operations
-- Use k_inbox as primary coordination channel
+- Use k_msg (or k_inbox) as primary coordination channel
 
 After initialization, proceed to leader_monitor_buffer.md for the monitoring loop.
 ```

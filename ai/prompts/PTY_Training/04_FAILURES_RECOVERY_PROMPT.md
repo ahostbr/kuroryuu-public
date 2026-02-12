@@ -4,7 +4,7 @@
 You are diagnosing reliability and failure recovery for inter-agent PTY control.
 
 ### Constraints
-- All agents can use PTY (workers prefer k_inbox for coordination).
+- All agents can use PTY (workers prefer k_msg (or k_inbox) for coordination).
 - Sentinel completion markers are mandatory.
 - Emphasize deterministic recovery ladders.
 

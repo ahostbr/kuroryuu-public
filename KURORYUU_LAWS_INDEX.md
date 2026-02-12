@@ -3,7 +3,7 @@
 > **This is an INDEX.** Full laws file: `KURORYUU_LAWS.md`
 > Use `k_files(action="read", path="KURORYUU_LAWS.md", start_line=X, end_line=Y)` to load specific sections.
 
-**Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 16 MCP tools → 118 actions
+**Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 17 MCP tools → 126 actions
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@
 | 4 | L89-L137 | PTY GOVERNANCE (OPEN ACCESS) |
 | 5 | L140-L162 | TODO MANAGEMENT |
 | 6 | L165-L187 | LEADER-FOLLOWER SYSTEM |
-| 7 | L190-L220 | MCP TOOLS REFERENCE (16 Tools → 118 Actions) |
+| 7 | L190-L220 | MCP TOOLS REFERENCE (17 Tools → 126 Actions) |
 | 8 | L223-L310 | RAG & REPO INTEL (includes §8.0 Search Priority) |
 | 9 | L313-L365 | FILE LOCATIONS |
 | 10 | L368-L380 | LIFECYCLE EVENTS |
@@ -55,7 +55,7 @@
 - Ralph orchestration with Desktop monitoring
 
 ### §7 MCP TOOLS REFERENCE
-- **16 tools with 118 total actions**
+- **17 tools with 126 total actions**
 - All tools use routed pattern: `tool(action="...", ...)`
 - OPT-IN tools: k_pccontrol (PowerShell Win32 APIs, use 100% DPI), k_clawd (Clawdbot)
 

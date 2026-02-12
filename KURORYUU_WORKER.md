@@ -78,9 +78,9 @@ Load `ai/prompts/worker_loop.md` for the full lifecycle.
 
 ### 2.2 Responding to Leader
 
-**Workers ALWAYS use k_inbox to communicate back to leader.**
+**Workers ALWAYS use k_msg (or k_inbox) to communicate back to leader.**
 
-> **CRITICAL:** You CANNOT write to the leader's terminal. Always use k_inbox.
+> **CRITICAL:** You CANNOT write to the leader's terminal. Always use k_msg or k_inbox.
 
 ```python
 # Report completion
@@ -91,12 +91,14 @@ k_inbox(
     body="<promise>DONE</promise>\n\nSummary: Implemented feature X...",
     message_type="reply",
 )
+
+# Simplified: k_msg(action="send", to="leader", body="<promise>DONE</promise>\n\nSummary: Implemented feature X...")
 ```
 
 **Communication Flow:**
 ```
 LEADER ──[k_pty send_line]──► WORKER (terminal)
-WORKER ──[k_inbox send]──────► LEADER (inbox)
+WORKER ──[k_msg send]────────► LEADER (inbox)
 ```
 
 ### 2.3 Inbox Polling (Fallback)
@@ -332,6 +334,7 @@ Workers have access to most MCP tools except human-in-the-loop.
 | `k_rag` | query, status, index, hybrid, semantic... | 12 | Multi-strategy code search |
 | `k_pty` | list, term_read, send_line, talk, resolve... | 12 | PTY control (all agents) |
 | `k_inbox` | send, list, read, claim, complete, stats... | 8 | Maildir messaging |
+| `k_msg` | send, check, read, reply, complete, broadcast, list_agents | 8 | Simplified inter-agent messaging |
 | `k_capture` | start, stop, screenshot, poll... | 8 | Screen capture |
 | `k_session` | start, end, pre_tool, post_tool, log... | 7 | Session lifecycle |
 | `k_memory` | get, set_goal, add_blocker, set_steps... | 7 | Working memory |

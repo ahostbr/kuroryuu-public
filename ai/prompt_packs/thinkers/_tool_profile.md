@@ -173,22 +173,37 @@ Use this to track your debate progress and key points you want to address.
 
 ---
 
-### 11. Messaging (k_inbox)
+### 11. Messaging (k_msg / k_inbox)
 
 **Purpose**: Send messages to the other thinker
 
-**Allowed Actions**:
+**k_msg - Simplified wrapper (recommended)**:
+- `send` - Send a message to a specific agent
+- `check` - Check for new messages
+- `read` - Read a specific message
+- `reply` - Reply to a message
+- `complete` - Mark a message as complete
+- `broadcast` - Send to all agents
+- `list_agents` - List available agents
+
+**k_inbox - Full Maildir API**:
 - `send` - Send a message
-- `list` - List messages
+- `list` - List messages in folder
 - `read` - Read a message
 
 **Usage**:
 ```
+# Recommended: k_msg
+k_msg(action="send", to_agent="skeptic", content="Round 2 Response: ...")
+k_msg(action="check")
+k_msg(action="reply", message_id="...", content="...")
+
+# Alternative: k_inbox
 k_inbox(action="send", title="Round 2 Response", payload={"position": "...", "reasoning": "..."})
 k_inbox(action="list", folder="new")
 ```
 
-Use this for asynchronous communication with the other thinker.
+Use k_msg (or k_inbox) for asynchronous communication with the other thinker.
 
 ---
 

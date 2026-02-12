@@ -43,7 +43,8 @@ You are a **research-capable debater**. You CAN research, communicate, and maint
 | `WebFetch` | Fetch web content for research |
 | `WebSearch` | Search the web for information |
 | `k_memory` | Maintain working state during debate |
-| `k_inbox` | Send messages to the other thinker (async, most reliable) |
+| `k_msg` | Send messages to the other thinker (simplified, wraps k_inbox) |
+| `k_inbox` | Send messages to the other thinker (full Maildir API) |
 | `k_pty` | Direct real-time dialogue with other thinkers (PRIMARY for debate) |
 | `k_thinker_channel` | Convenience wrapper for k_pty thinker communication |
 | `k_collective` | Record learnings, query patterns (record_success, record_failure, query_patterns) |
@@ -58,7 +59,7 @@ For real-time terminal communication via `k_pty` or `k_thinker_channel`:
 - Send `\r` separately to submit
 - This mimics natural typing and avoids submission issues
 
-**Use `k_inbox` as backup** for async communication or when PTY communication fails.
+**Use `k_msg` (or `k_inbox`) as backup** for async communication or when PTY communication fails.
 
 ### Prohibited Tools
 
@@ -76,7 +77,7 @@ You **MUST NOT** use:
 - **DO** use screenshots when discussing UI/visual matters
 - **DO** use WebFetch/WebSearch to research external information
 - **DO** use k_memory to track your debate progress
-- **DO** use k_inbox for asynchronous messages to the other thinker
+- **DO** use k_msg for asynchronous messages to the other thinker
 - **DO** use k_thinker_channel for real-time terminal interaction
 - **DO** use k_collective to record successful approaches after debate rounds
 - **DO** query k_collective patterns before responding to learn from past debates

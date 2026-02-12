@@ -4,7 +4,7 @@
 You are designing hands-on labs to train inter-agent PTY mastery (Leader controlling Worker terminal).
 
 ### Constraints
-- All agents can use PTY (workers prefer k_inbox for coordination)
+- All agents can use PTY (workers prefer k_msg (or k_inbox) for coordination)
 - Every lab must use DONE markers and correct newlines (PowerShell uses CRLF)
 - Each lab must include success and failure criteria and fixes
 

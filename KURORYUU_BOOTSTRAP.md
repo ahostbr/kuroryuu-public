@@ -146,6 +146,7 @@ parser.mark_task_done(task_id, "Summary of what was done")
 **Step 2:** Report to leader via inbox:
 ```python
 k_inbox(action="send", to_agent="leader", subject="DONE: T053", body="<promise>DONE</promise>...")
+# Simplified alternative: k_msg(action="send", to="leader", subject="DONE: T053", body="...")
 ```
 
 ### "I'm finalizing a task" (Leader Finalization)
@@ -325,13 +326,14 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 
 ---
 
-## Tool Quick Ref (16 Tools → 118 Actions)
+## Tool Quick Ref (17 Tools → 126 Actions)
 
 | Tool | Actions | Key Actions |
 |------|---------|-------------|
 | `k_rag` | 12 | query, index, status, hybrid, semantic, agentic |
 | `k_pty` | 12 | list, term_read, send_line, talk, resolve, spawn_cli |
 | `k_inbox` | 8 | send, list, claim, complete, stats |
+| `k_msg` | 8 | send, check, read, reply, complete, broadcast, list_agents |
 | `k_capture` | 8 | start, stop, screenshot, poll, get_latest |
 | `k_pccontrol` | 8 | click, type, launch, find_element (OPT-IN) |
 | `k_session` | 7 | start, end, log, context |
@@ -456,7 +458,7 @@ The following files have been removed from the canonical harness specification:
 1. **Stack**: `.\run_all.ps1` / `.\kill_all.ps1` only
 2. **Indexes**: Check freshness before search
 3. **Evidence**: No silent claims
-4. **PTY**: All agents (k_inbox for coordination)
+4. **PTY**: All agents (k_msg or k_inbox for coordination)
 5. **Conflicts**: LAWS wins
 6. **Deprecated files**: NEVER use progress.md or feature_list.json
 

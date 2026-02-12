@@ -45,6 +45,7 @@ k_pty(action="send_line", session_id=worker_pty["session_id"],
 **FALLBACK - Use inbox if PTY unavailable:**
 ```python
 k_inbox(action="send", to_agent="worker_abc", subject="Hint: Fix import", body="...")
+# Or use k_msg(action="send", to="worker_abc", subject="Hint: Fix import", body="...")
 ```
 
 - Hint message with file:line references

@@ -6,7 +6,7 @@
 This file is the **canonical authority** for all Kuroryuu governance.
 For quick start, see: `KURORYUU_BOOTSTRAP.md`
 
-**Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 16 MCP tools → 118 actions
+**Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 17 MCP tools → 126 actions
 
 ---
 
@@ -106,7 +106,7 @@ The leader role is still tracked for UI purposes but does not restrict k_pty acc
 |-----------|---------------------|
 | Quick command execution | `k_pty(action="talk")` |
 | Cross-agent messaging | `k_pty(action="send_line_to_agent")` |
-| k_pty unavailable | Use `k_inbox` as backup |
+| k_pty unavailable | Use `k_msg` or `k_inbox` as backup |
 | Complex coordination | Leader can use escalation ladder below |
 
 ### 4.3 Escalation Ladder (Optional)
@@ -199,7 +199,7 @@ Workers receive instant notifications via Direct Context Injection - no polling.
 
 ---
 
-## 7. MCP TOOLS REFERENCE (16 Tools → 118 Actions)
+## 7. MCP TOOLS REFERENCE (17 Tools → 126 Actions)
 
 All tools use routed pattern: `tool(action="...", ...)` to prevent tool bloat.
 
@@ -208,6 +208,7 @@ All tools use routed pattern: `tool(action="...", ...)` to prevent tool bloat.
 | `k_rag` | query, status, index, hybrid, semantic, agentic, reflective... | 12 | Multi-strategy code search |
 | `k_pty` | list, create, send_line, talk, term_read, resolve, spawn_cli... | 12 | PTY control (all agents) |
 | `k_inbox` | send, list, read, claim, complete, stats, archive, delete | 8 | Maildir messaging |
+| `k_msg` | send, check, read, reply, complete, broadcast, list_agents, help | 8 | Simplified inter-agent messaging |
 | `k_capture` | start, stop, screenshot, poll, get_latest, list, delete, configure | 8 | Screen capture |
 | `k_pccontrol` | click, doubleclick, rightclick, type, keypress, launch_app, get_windows, status | 8 | PowerShell/Win32 desktop automation (OPT-IN) |
 | `k_session` | start, end, pre_tool, post_tool, log, context, list | 7 | Session lifecycle |

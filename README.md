@@ -250,7 +250,7 @@ This project was built using [Kiro CLI](https://kiro.dev) for AI-powered develop
 4. `@code-review` - Ensure quality before commit
 5. Update steering docs - Maintain knowledge base
 
-### MCP Tools (15 Tools → 107 Routed Actions)
+### MCP Tools (16 Tools → 115 Routed Actions)
 
 Kiro CLI connects directly to Kuroryuu's MCP server, providing access to:
 
@@ -259,6 +259,7 @@ Kiro CLI connects directly to Kuroryuu's MCP server, providing access to:
 | **k_rag** | 12 | Multi-strategy search (keyword, semantic, hybrid, reflective, agentic) |
 | **k_pty** | 12 | Terminal control & injection |
 | **k_inbox** | 8 | Maildir messaging |
+| **k_msg** | 8 | Simplified inter-agent messaging (send, check, read, reply, broadcast) |
 | **k_capture** | 8 | Screen capture |
 | **k_pccontrol** | 8 | Desktop automation via PowerShell/Win32 APIs (OPT-IN) |
 | **k_session** | 7 | Session lifecycle |

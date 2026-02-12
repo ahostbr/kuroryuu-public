@@ -4,7 +4,7 @@
 You are designing a lightweight, reliable **inter‑agent terminal protocol** that runs over PTY I/O. The Leader injects commands into a Worker’s terminal and reads output until completion.
 
 ### Constraints
-- All agents can use PTY (workers prefer k_inbox for coordination).
+- All agents can use PTY (workers prefer k_msg (or k_inbox) for coordination).
 - Every command MUST have deterministic completion detection.
 - Commands must be safe-by-default: verify before mutate.
 - Design for PowerShell and bash/zsh differences (quoting + newlines).

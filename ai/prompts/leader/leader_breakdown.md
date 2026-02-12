@@ -132,13 +132,14 @@ if patterns["successes"] or patterns["failures"]:
             data=f"Read ai/collective/patterns_{worker_id}.md for relevant approaches from past work before starting"
         )
     else:
-        # FALLBACK: Use inbox if PTY unavailable
+        # FALLBACK: Use inbox if PTY unavailable (or use k_msg for simpler syntax)
         k_inbox(
             action="send",
             to_agent=worker_id,
             subject="Read patterns before starting",
             body=f"Read ai/collective/patterns_{worker_id}.md for relevant approaches from past work"
         )
+        # Or use k_msg(action="send", to=worker_id, subject="...", body="...")
 ```
 
 **Pattern Query Guidelines:**

@@ -99,6 +99,7 @@ When you see worker at ≤20% context:
 │  9. REASSIGN TASK via inbox (worker does NOT auto-continue):      │
 │     k_inbox(action="send", to_agent="worker_A",                   │
 │             subject="Continue task", body="Resume <task>...")     │
+│     # Or use k_msg(action="send", to="worker_A", ...)             │
 └──────────────────────────────────────────────────────────────────┘
 ```
 

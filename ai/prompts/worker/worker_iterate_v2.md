@@ -264,9 +264,17 @@ You MUST end your response with exactly ONE promise tag:
 
 ## Reporting to Leader
 
-**Workers ALWAYS use k_inbox to report to leader.** You cannot write to the leader's terminal.
+**Workers ALWAYS use k_msg (or k_inbox) to report to leader.** You cannot write to the leader's terminal.
 
 ```python
+# Preferred: k_msg (simplified wrapper)
+k_msg(
+    to_agent="leader",
+    subject="DONE: T053 - Feature X implemented",
+    body="<promise>DONE</promise>\n\nSummary: ..."
+)
+
+# Alternative: k_inbox (full control)
 k_inbox(
     action="send",
     to_agent="leader",

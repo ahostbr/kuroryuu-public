@@ -4,7 +4,7 @@
 You are a senior agent-systems educator. Teach me the PTY daemon **as an inter‑agent control channel** (Leader ↔ Worker terminals). Keep this inter‑agent-only: assume humans do not type commands; the Leader injects and reads programmatically.
 
 ### Constraints
-- PTY is available to **all agents** (workers prefer k_inbox for coordination).
+- PTY is available to **all agents** (workers prefer k_msg (or k_inbox) for coordination).
 - Every action should be auditable with an evidence pack.
 - Every injected command must end with a unique sentinel marker: `__KR_DONE_<id>__`.
 - Use correct line endings; on PowerShell/Windows use `\r\n`.

@@ -144,6 +144,7 @@ When worker at ≤20% context:
 │  9. REASSIGN TASK via inbox:                                      │
 │     k_inbox(action="send", to_agent="worker_A",                   │
 │             subject="Continue task", body="Resume <task>...")     │
+│     # Or use k_msg(action="send", to="worker_A", ...)             │
 │                                                                   │
 │  10. Register NEW delta marker (fresh session):                   │
 │      result = k_pty(action="term_read", mode="delta",            │
@@ -220,7 +221,7 @@ FALLBACK: Vision via k_capture + latest.jpg
 PTY ACCESS:
 - All agents can use k_pty for terminal operations
 - Buffer access default: on (toggle via Desktop UI)
-- Use k_inbox as primary coordination channel
+- Use k_msg (or k_inbox) as primary coordination channel
 
 MONITORING LOOP (every 5-15s):
 1. For each worker: read delta buffer (new output since last check)

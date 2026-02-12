@@ -107,6 +107,10 @@ Let user select which RAG results to keep before using them.
 - JSON indexes: `.index/by_agent.json`, `.index/by_thread.json`
 - Environment override: `KURORYUU_INBOX_ROOT` (optional)
 
+**Messaging Tool:** Use `k_msg` for simplified inter-agent messaging (wraps k_inbox).
+- `k_msg(action="send", to="agent_id", subject="...", body="...")`
+- `k_msg(action="check", agent_id="my_id")` to poll for messages
+
 ---
 
 ## Claude Task Evidence (Linking Worklogs)

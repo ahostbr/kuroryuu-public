@@ -30,6 +30,7 @@
       {"tool": "WebSearch", "actions": ["*"]},
       {"tool": "k_memory", "actions": ["get", "set_goal", "add_blocker", "clear_blockers", "set_steps", "reset"]},
       {"tool": "k_inbox", "actions": ["send", "list", "read"]},
+      {"tool": "k_msg", "actions": ["send", "check", "read", "reply", "complete", "broadcast", "list_agents"]},
       {"tool": "k_thinker_channel", "actions": ["help", "send_line", "read"]}
     ],
     "prohibited_tools": [

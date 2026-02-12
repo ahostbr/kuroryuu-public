@@ -27,10 +27,10 @@ Workers are stateless execution agents that:
 ```
 LEADER ──[k_pty send_line]──► WORKER terminal (PRIMARY)
 LEADER ──[k_inbox send]──────► WORKER inbox (FALLBACK)
-WORKER ──[k_inbox send]──────► LEADER inbox (ALWAYS)
+WORKER ──[k_msg send]────────► LEADER inbox (ALWAYS)
 ```
 
-> **CRITICAL:** Workers CANNOT write to leader's terminal. Always use k_inbox to report.
+> **CRITICAL:** Workers CANNOT write to leader's terminal. Always use k_msg (or k_inbox) to report.
 
 ## Worker Lifecycle
 
@@ -247,7 +247,7 @@ WORKER LOOP:
 4. UPDATE ai/todo.md:
    - mark_task_in_progress(task_id) when starting
    - mark_task_done(task_id) when complete
-5. REPORT result to leader via k_inbox
+5. REPORT result to leader via k_msg
 6. Handle promise:
    - DONE → Update todo.md, poll for next
    - PROGRESS → Update status in todo.md, continue or escalate
@@ -265,7 +265,7 @@ IMPORTANT:
 PTY ACCESS:
 - Workers CAN use k_pty for terminal operations
 - Use PTY to communicate with LEADER (for real-time dialogue)
-- Use k_inbox for worker-to-worker communication and task coordination
+- Use k_msg for worker-to-worker communication and task coordination
 
 If you receive a leader hint, prioritize that guidance.
 ```
