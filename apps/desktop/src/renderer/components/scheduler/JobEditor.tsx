@@ -17,6 +17,9 @@ import {
     Save,
     Plus,
     Tag,
+    ChevronDown,
+    ChevronRight,
+    Settings,
 } from 'lucide-react';
 import { useSchedulerStore } from '../../stores/scheduler-store';
 import type {
@@ -94,6 +97,24 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
         job?.action?.type === 'script' ? job.action.timeoutMinutes ?? 60 : 60
     );
 
+    // Advanced SDK options (for prompt actions)
+    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [systemPrompt, setSystemPrompt] = useState(
+        job?.action?.type === 'prompt' ? (job.action as { systemPrompt?: string }).systemPrompt ?? '' : ''
+    );
+    const [permissionMode, setPermissionMode] = useState(
+        job?.action?.type === 'prompt' ? (job.action as { permissionMode?: string }).permissionMode ?? 'bypassPermissions' : 'bypassPermissions'
+    );
+    const [maxTurns, setMaxTurns] = useState(
+        job?.action?.type === 'prompt' ? (job.action as { maxTurns?: number }).maxTurns ?? 0 : 0
+    );
+    const [maxBudgetUsd, setMaxBudgetUsd] = useState(
+        job?.action?.type === 'prompt' ? (job.action as { maxBudgetUsd?: number }).maxBudgetUsd ?? 0 : 0
+    );
+    const [promptTimeoutMinutes, setPromptTimeoutMinutes] = useState(
+        job?.action?.type === 'prompt' ? (job.action as { timeoutMinutes?: number }).timeoutMinutes ?? 60 : 60
+    );
+
     // Notification state
     const [notifyOnStart, setNotifyOnStart] = useState(job?.notifyOnStart ?? false);
     const [notifyOnComplete, setNotifyOnComplete] = useState(job?.notifyOnComplete ?? true);
@@ -122,7 +143,12 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                 type: 'prompt',
                 prompt,
                 workdir: workdir || undefined,
-                executionMode
+                executionMode,
+                systemPrompt: systemPrompt || undefined,
+                permissionMode: permissionMode !== 'bypassPermissions' ? permissionMode as 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' : undefined,
+                maxTurns: maxTurns > 0 ? maxTurns : undefined,
+                maxBudgetUsd: maxBudgetUsd > 0 ? maxBudgetUsd : undefined,
+                timeoutMinutes: promptTimeoutMinutes !== 60 ? promptTimeoutMinutes : undefined,
             };
         }
         if (actionType === 'team') {
@@ -408,6 +434,94 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                                             <span className="text-[10px] opacity-80">Visible & Stays Open</span>
                                         </button>
                                     </div>
+                                </div>
+
+                                {/* Advanced SDK Options */}
+                                <div className="border border-border/50 rounded-md">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowAdvanced(!showAdvanced)}
+                                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        {showAdvanced ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                        <Settings className="w-3.5 h-3.5" />
+                                        Advanced Options
+                                    </button>
+                                    {showAdvanced && (
+                                        <div className="px-3 pb-3 space-y-3 border-t border-border/50">
+                                            <div className="pt-3">
+                                                <label className="block text-sm text-muted-foreground mb-1.5">
+                                                    System Prompt (appended)
+                                                </label>
+                                                <textarea
+                                                    value={systemPrompt}
+                                                    onChange={(e) => setSystemPrompt(e.target.value)}
+                                                    placeholder="Additional instructions for the agent..."
+                                                    rows={2}
+                                                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none font-mono text-xs"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm text-muted-foreground mb-1.5">
+                                                    Permission Mode
+                                                </label>
+                                                <select
+                                                    value={permissionMode}
+                                                    onChange={(e) => setPermissionMode(e.target.value)}
+                                                    className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 text-sm"
+                                                >
+                                                    <option value="bypassPermissions">Bypass Permissions (auto)</option>
+                                                    <option value="acceptEdits">Accept Edits</option>
+                                                    <option value="default">Default (ask)</option>
+                                                    <option value="plan">Plan Mode</option>
+                                                </select>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3">
+                                                <div>
+                                                    <label className="block text-xs text-muted-foreground mb-1">
+                                                        Max Turns
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        value={maxTurns}
+                                                        onChange={(e) => setMaxTurns(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                                        placeholder="0 = no limit"
+                                                        className="w-full px-2 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs text-muted-foreground mb-1">
+                                                        Budget (USD)
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        step={0.1}
+                                                        value={maxBudgetUsd}
+                                                        onChange={(e) => setMaxBudgetUsd(Math.max(0, parseFloat(e.target.value) || 0))}
+                                                        placeholder="0 = no limit"
+                                                        className="w-full px-2 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs text-muted-foreground mb-1">
+                                                        Timeout (min)
+                                                    </label>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        value={promptTimeoutMinutes}
+                                                        onChange={(e) => setPromptTimeoutMinutes(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                                                        className="w-full px-2 py-1.5 rounded-md border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground/70">
+                                                0 = unlimited. Background jobs use Claude Agent SDK natively.
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

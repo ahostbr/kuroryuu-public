@@ -124,6 +124,16 @@ export async function setupSchedulerIpc(): Promise<void> {
     // Job Control
     // ---------------------------------------------------------------------------
 
+    ipcMain.handle('scheduler:cancelJob', async (_event, id: string): Promise<{ ok: boolean; error?: string }> => {
+        if (!scheduler) return { ok: false, error: 'Scheduler not initialized' };
+        try {
+            await scheduler.cancelJob(id);
+            return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err instanceof Error ? err.message : 'Failed to cancel job' };
+        }
+    });
+
     ipcMain.handle('scheduler:runNow', async (_event, id: string): Promise<{ ok: boolean; error?: string }> => {
         if (!scheduler) return { ok: false, error: 'Scheduler not initialized' };
         const result = await scheduler.runJobNow(id);
@@ -201,6 +211,7 @@ export async function cleanupSchedulerIpc(): Promise<void> {
         'scheduler:createEvent',
         'scheduler:updateEvent',
         'scheduler:deleteEvent',
+        'scheduler:cancelJob',
         'scheduler:runNow',
         'scheduler:pause',
         'scheduler:resume',

@@ -42,11 +42,21 @@ export interface PromptAction {
     model?: string;
     /**
      * Execution mode:
-     * - 'background': Run invisibly, auto-kill when done (for automated scheduled jobs)
+     * - 'background': Run invisibly via Agent SDK (for automated scheduled jobs)
      * - 'interactive': Show visible window, leave CLI alive after completion for user interaction
      * Default: 'background'
      */
     executionMode?: ExecutionMode;
+    /** Custom system prompt (appended to Claude Code preset) */
+    systemPrompt?: string;
+    /** Permission mode for SDK execution. Default: 'bypassPermissions' for background */
+    permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+    /** Max conversation turns before stopping */
+    maxTurns?: number;
+    /** Max budget in USD */
+    maxBudgetUsd?: number;
+    /** Timeout in minutes (0 = no timeout). Default: 60 */
+    timeoutMinutes?: number;
 }
 
 export interface TeamAction {
@@ -125,6 +135,12 @@ export interface JobRun {
     output?: string;
     error?: string;
     triggeredBy: 'schedule' | 'manual';
+    /** SDK session ID (for background prompt jobs) */
+    sessionId?: string;
+    /** Total cost in USD (from SDK result) */
+    costUsd?: number;
+    /** Token usage (from SDK result) */
+    usage?: { inputTokens: number; outputTokens: number };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

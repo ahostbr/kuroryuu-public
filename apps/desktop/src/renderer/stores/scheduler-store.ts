@@ -48,6 +48,7 @@ interface SchedulerStore {
 
     // Job Control Actions
     runJobNow: (id: string) => Promise<boolean>;
+    cancelJob: (id: string) => Promise<boolean>;
     pauseJob: (id: string) => Promise<boolean>;
     resumeJob: (id: string) => Promise<boolean>;
 
@@ -295,6 +296,23 @@ export const useSchedulerStore = create<SchedulerStore>((set, get) => ({
         } catch (err) {
             const errorMsg = err instanceof Error ? err.message : String(err);
             toast.error(`Failed to run job: ${errorMsg}`);
+            return false;
+        }
+    },
+
+    cancelJob: async (id) => {
+        try {
+            const result = await window.electronAPI.scheduler.cancelJob(id);
+            if (!result.ok) {
+                toast.error(`Failed to cancel job: ${result.error}`);
+                return false;
+            }
+            toast.success('Job cancelled');
+            await get().loadJobs();
+            return true;
+        } catch (err) {
+            const errorMsg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to cancel job: ${errorMsg}`);
             return false;
         }
     },

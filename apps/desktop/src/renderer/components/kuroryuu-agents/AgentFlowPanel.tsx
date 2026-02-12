@@ -1,6 +1,6 @@
 /**
  * Agent Flow Panel - Main visualization component for Kuroryuu Agents flow
- * Shows a network graph of coding agent sessions
+ * Shows a network graph of SDK agent sessions
  */
 import React, { useEffect, useCallback, useMemo, useState } from 'react';
 import {
@@ -15,7 +15,7 @@ import {
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Bot, Activity, CheckCircle, XCircle, Play } from 'lucide-react';
+import { Activity, CheckCircle, XCircle, Play } from 'lucide-react';
 
 import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
 import { useAgentFlowStore, type AgentFlowTheme } from '../../stores/agent-flow-store';
@@ -24,13 +24,11 @@ import { agentNodeTypes } from './AgentNodes';
 import { AgentFlowControls } from './AgentFlowControls';
 import { AgentsEmptyState } from './AgentsEmptyState';
 import { SpawnAgentDialog } from './SpawnAgentDialog';
-import { SessionLogViewer } from './SessionLogViewer';
+import { SdkMessageRenderer } from './SdkMessageRenderer';
 import { SessionManagerModal } from './SessionManagerModal';
+import type { SDKAgentConfig } from '../../types/sdk-agent';
 import type { ThemeId } from '../../types/settings';
 import '../../styles/agent-flow.css';
-
-// Gateway MCP endpoint
-const GATEWAY_MCP_URL = 'http://127.0.0.1:8200/v1/mcp/call';
 
 // Map global ThemeId to AgentFlowTheme
 const GLOBAL_TO_AGENT_THEME: Partial<Record<ThemeId, AgentFlowTheme>> = {
@@ -71,12 +69,13 @@ interface AgentFlowPanelProps {
 }
 
 export function AgentFlowPanel(_props: AgentFlowPanelProps) {
-  // Kuroryuu agents store
+  // Kuroryuu agents store (SDK-based)
   const sessions = useKuroryuuAgentsStore((s) => s.sessions);
   const loadSessions = useKuroryuuAgentsStore((s) => s.loadSessions);
-  const killSession = useKuroryuuAgentsStore((s) => s.killSession);
-  const startPolling = useKuroryuuAgentsStore((s) => s.startPolling);
-  const stopPolling = useKuroryuuAgentsStore((s) => s.stopPolling);
+  const stopAgent = useKuroryuuAgentsStore((s) => s.stopAgent);
+  const startAgent = useKuroryuuAgentsStore((s) => s.startAgent);
+  const subscribe = useKuroryuuAgentsStore((s) => s.subscribe);
+  const unsubscribe = useKuroryuuAgentsStore((s) => s.unsubscribe);
 
   // Local session selection state (self-contained, no tab switching)
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -115,14 +114,14 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
     }
   }, [globalTheme, theme, setTheme]);
 
-  // Start polling on mount
+  // Subscribe to SDK events on mount
   useEffect(() => {
-    startPolling(5000);
+    subscribe();
     setConnected(true);
     return () => {
-      stopPolling();
+      unsubscribe();
     };
-  }, [startPolling, stopPolling, setConnected]);
+  }, [subscribe, unsubscribe, setConnected]);
 
   // Rebuild graph when sessions change
   useEffect(() => {
@@ -167,21 +166,21 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
     }
   }, []);
 
-  // Kill session handler
-  const handleKill = useCallback(async (sessionId: string) => {
-    await killSession(sessionId);
+  // Stop session handler
+  const handleStop = useCallback(async (sessionId: string) => {
+    await stopAgent(sessionId);
     if (selectedSessionId === sessionId) {
       setSelectedSessionId(null);
     }
-  }, [killSession, selectedSessionId]);
+  }, [stopAgent, selectedSessionId]);
 
-  // Kill ALL running sessions
-  const handleKillAll = useCallback(async () => {
-    const runningSessions = sessions.filter((s) => s.running);
-    await Promise.all(runningSessions.map((s) => killSession(s.id)));
+  // Stop ALL running sessions
+  const handleStopAll = useCallback(async () => {
+    const runningSessions = sessions.filter((s) => s.status === 'starting' || s.status === 'running');
+    await Promise.all(runningSessions.map((s) => stopAgent(s.id)));
     setSelectedSessionId(null);
     setShowSessionManager(false);
-  }, [sessions, killSession]);
+  }, [sessions, stopAgent]);
 
   // Reconnect handler
   const handleReconnect = useCallback(() => {
@@ -189,43 +188,22 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
     setConnected(true);
   }, [loadSessions, setConnected]);
 
-  // Spawn agent handler - calls k_bash via Gateway MCP
-  const handleSpawn = useCallback(async (command: string, workdir: string, pty: boolean) => {
-    try {
-      const response = await fetch(GATEWAY_MCP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tool: 'k_bash',
-          arguments: {
-            command,
-            workdir: workdir || undefined,
-            background: true,
-            pty,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Gateway error: ${response.status}`);
-      }
-
-      // Refresh sessions to show the new agent
-      setTimeout(() => loadSessions(), 1000);
-      setShowSpawnDialog(false);
-    } catch (error) {
-      console.error('Failed to spawn agent:', error);
-      throw error;
+  // Spawn agent handler - uses SDK service
+  const handleSpawn = useCallback(async (config: SDKAgentConfig) => {
+    const sessionId = await startAgent(config);
+    if (sessionId) {
+      setSelectedSessionId(sessionId);
     }
-  }, [loadSessions]);
+    setShowSpawnDialog(false);
+  }, [startAgent]);
 
   // Stats display
   const statsDisplay = useMemo(() => {
     return {
       total: sessions.length,
-      running: sessions.filter((s) => s.running).length,
-      completed: sessions.filter((s) => !s.running && s.exit_code === 0).length,
-      failed: sessions.filter((s) => !s.running && s.exit_code !== 0 && s.exit_code !== null).length,
+      running: sessions.filter((s) => s.status === 'starting' || s.status === 'running').length,
+      completed: sessions.filter((s) => s.status === 'completed').length,
+      failed: sessions.filter((s) => s.status === 'error').length,
     };
   }, [sessions]);
 
@@ -279,7 +257,7 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
               viewMode={viewMode}
               onViewModeChange={setViewMode}
               onSpawnAgent={() => setShowSpawnDialog(true)}
-              onKillAll={handleKillAll}
+              onKillAll={handleStopAll}
               runningCount={statsDisplay.running}
             />
           </div>
@@ -287,7 +265,7 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
           {sessions.length === 0 ? (
             <AgentsEmptyState
               message="No Kuroryuu agent sessions"
-              hint="Use k_bash with background=true to spawn agents"
+              hint="Click Spawn to start an SDK agent"
             />
           ) : (
             <ReactFlow
@@ -328,14 +306,45 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
           )}
         </div>
 
-        {/* Log viewer panel - embedded when session selected */}
+        {/* SDK Message viewer panel - embedded when session selected */}
         {selectedSession && (
-          <div className="w-1/2 border-l border-border bg-card">
-            <SessionLogViewer
-              session={selectedSession}
-              onKill={() => handleKill(selectedSession.id)}
-              onClose={() => setSelectedSessionId(null)}
-            />
+          <div className="w-1/2 border-l border-border bg-card flex flex-col">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-sm text-primary">{selectedSession.id.slice(0, 12)}</span>
+                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                  selectedSession.status === 'running' || selectedSession.status === 'starting'
+                    ? 'bg-green-500/20 text-green-400'
+                    : selectedSession.status === 'completed'
+                      ? 'bg-blue-500/20 text-blue-400'
+                      : 'bg-red-500/20 text-red-400'
+                }`}>
+                  {selectedSession.status}
+                </span>
+                {selectedSession.role && (
+                  <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-xs">
+                    {selectedSession.role}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {(selectedSession.status === 'running' || selectedSession.status === 'starting') && (
+                  <button
+                    onClick={() => handleStop(selectedSession.id)}
+                    className="p-1.5 rounded hover:bg-red-500/20 transition-colors text-red-400 text-xs"
+                  >
+                    Stop
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedSessionId(null)}
+                  className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground text-xs"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+            <SdkMessageRenderer sessionId={selectedSession.id} />
           </div>
         )}
       </div>
@@ -352,8 +361,8 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
         isOpen={showSessionManager}
         onClose={() => setShowSessionManager(false)}
         sessions={sessions}
-        onKillSession={handleKill}
-        onKillAll={handleKillAll}
+        onStopSession={handleStop}
+        onStopAll={handleStopAll}
         onSpawnAgent={() => {
           setShowSessionManager(false);
           setShowSpawnDialog(true);

@@ -41,6 +41,8 @@ import { setupOrchestrationIpc } from './orchestration-client';
 import { mainLogger } from './utils/file-logger';
 import { restartService, getServiceHealth, checkPtyDaemonHealth, stopService } from './service-manager';
 import { registerBootstrapHandlers, launchTrayCompanion } from './ipc/bootstrap-handlers';
+import { registerSdkAgentHandlers } from './ipc/sdk-agent-handlers';
+import { getClaudeSDKService } from './services/claude-sdk-service';
 import { getLeaderMonitor, configureLeaderMonitor, setupLeaderMonitorIpc } from './services/leader-monitor';
 import { registerTTSHandlers } from './ipc/tts-handlers';
 import { registerSpeechHandlers } from './ipc/speech-handlers';
@@ -4207,6 +4209,7 @@ app.whenReady().then(async () => {
 
   createWindow();
   setupClaudeTeamsIpc(mainWindow!);
+  registerSdkAgentHandlers(mainWindow!);
 
   // === CodeEditor Window IPC ===
   ipcMain.handle('code-editor:open', () => {
@@ -4631,6 +4634,11 @@ async function performShutdownSequence(win: BrowserWindow) {
       name: 'Finalizing cleanup...',
       fn: async () => {
         console.log('[Main] Step 8/8: Finalizing cleanup');
+        try {
+          getClaudeSDKService().shutdown();
+        } catch (e) {
+          console.log('[Main] SDK service shutdown skipped:', e);
+        }
         await new Promise(resolve => setTimeout(resolve, 200));
       },
       progress: 100

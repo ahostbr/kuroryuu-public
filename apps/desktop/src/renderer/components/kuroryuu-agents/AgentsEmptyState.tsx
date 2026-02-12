@@ -197,7 +197,7 @@ export function AgentsEmptyState({ message, hint }: AgentsEmptyStateProps = {}) 
             className="font-mono tracking-wider"
             style={{ fontSize: '10px', color: 'rgba(201,162,39,0.35)' }}
           >
-            {hint ?? <>Spawn agents via k_bash &middot; Monitor via k_process</>}
+            {hint ?? <>Click Spawn to start an SDK agent</>}
           </p>
         </motion.div>
       </div>

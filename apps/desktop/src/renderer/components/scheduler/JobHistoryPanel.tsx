@@ -13,6 +13,8 @@ import {
     Clock,
     AlertCircle,
     Play,
+    DollarSign,
+    Copy,
 } from 'lucide-react';
 import { useSchedulerStore } from '../../stores/scheduler-store';
 import type { JobRun, JobRunStatus } from '../../types/scheduler';
@@ -61,6 +63,17 @@ function formatDuration(start: number, end?: number): string {
 
 function RunItem({ run }: { run: JobRun }) {
     const [expanded, setExpanded] = React.useState(false);
+    const [showFullOutput, setShowFullOutput] = React.useState(false);
+
+    const costUsd = run.costUsd;
+    const sessionId = run.sessionId;
+    const usage = run.usage;
+
+    const copySessionId = () => {
+        if (sessionId) {
+            navigator.clipboard.writeText(sessionId);
+        }
+    };
 
     return (
         <div className="border border-border rounded-lg overflow-hidden">
@@ -84,28 +97,66 @@ function RunItem({ run }: { run: JobRun }) {
                     </span>
                 </div>
 
-                <span
-                    className={`px-2 py-0.5 rounded text-xs capitalize ${run.status === 'completed'
-                            ? 'bg-green-500/20 text-green-400'
-                            : run.status === 'failed'
-                                ? 'bg-red-500/20 text-red-400'
-                                : run.status === 'running'
-                                    ? 'bg-blue-500/20 text-blue-400'
-                                    : 'bg-yellow-500/20 text-yellow-400'
-                        }`}
-                >
-                    {run.status}
-                </span>
+                <div className="flex items-center gap-2">
+                    {costUsd != null && costUsd > 0 && (
+                        <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px]">
+                            <DollarSign className="w-3 h-3" />
+                            {costUsd.toFixed(4)}
+                        </span>
+                    )}
+                    <span
+                        className={`px-2 py-0.5 rounded text-xs capitalize ${run.status === 'completed'
+                                ? 'bg-green-500/20 text-green-400'
+                                : run.status === 'failed'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : run.status === 'running'
+                                        ? 'bg-blue-500/20 text-blue-400'
+                                        : 'bg-yellow-500/20 text-yellow-400'
+                            }`}
+                    >
+                        {run.status}
+                    </span>
+                </div>
             </button>
 
-            {expanded && (run.output || run.error) && (
+            {expanded && (
                 <div className="px-4 pb-3 pt-1 border-t border-border/50 space-y-2">
+                    {/* SDK metadata */}
+                    {(sessionId || usage) && (
+                        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
+                            {sessionId && (
+                                <button
+                                    onClick={copySessionId}
+                                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                                    title="Copy session ID"
+                                >
+                                    <Copy className="w-3 h-3" />
+                                    Session: {sessionId.slice(0, 8)}...
+                                </button>
+                            )}
+                            {usage && (
+                                <span>
+                                    Tokens: {usage.inputTokens.toLocaleString()} in / {usage.outputTokens.toLocaleString()} out
+                                </span>
+                            )}
+                        </div>
+                    )}
+
                     {run.output && (
                         <div>
                             <span className="text-xs text-muted-foreground">Output:</span>
-                            <pre className="mt-1 p-2 rounded bg-background text-xs text-foreground overflow-x-auto font-mono max-h-40">
-                                {run.output}
+                            <pre className={`mt-1 p-2 rounded bg-background text-xs text-foreground overflow-x-auto font-mono ${showFullOutput ? '' : 'max-h-40'}`}>
+                                {showFullOutput ? run.output : run.output.slice(0, 500)}
+                                {!showFullOutput && run.output.length > 500 && '...'}
                             </pre>
+                            {run.output.length > 500 && (
+                                <button
+                                    onClick={() => setShowFullOutput(!showFullOutput)}
+                                    className="text-[10px] text-primary hover:underline mt-1"
+                                >
+                                    {showFullOutput ? 'Show less' : 'Show more'}
+                                </button>
+                            )}
                         </div>
                     )}
                     {run.error && (
@@ -115,6 +166,9 @@ function RunItem({ run }: { run: JobRun }) {
                                 {run.error}
                             </pre>
                         </div>
+                    )}
+                    {!run.output && !run.error && (
+                        <p className="text-xs text-muted-foreground italic">No output captured</p>
                     )}
                 </div>
             )}

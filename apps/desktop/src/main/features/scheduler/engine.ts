@@ -146,7 +146,8 @@ export class SchedulerEngine extends EventEmitter {
     private isRunning = false;
 
     // Job execution callback (set by scheduler.ts)
-    public executeJobAction: ((job: ScheduledJob) => Promise<void>) | null = null;
+    // Returns optional output/metadata to merge into the JobRun record
+    public executeJobAction: ((job: ScheduledJob) => Promise<{ output?: string; metadata?: Record<string, unknown> } | void>) | null = null;
 
     // ---------------------------------------------------------------------------
     // Lifecycle
@@ -250,7 +251,12 @@ export class SchedulerEngine extends EventEmitter {
         try {
             // Execute the action
             if (this.executeJobAction) {
-                await this.executeJobAction(job);
+                const result = await this.executeJobAction(job);
+                // Merge returned output/metadata into the run record
+                if (result) {
+                    if (result.output) run.output = result.output;
+                    if (result.metadata) run.metadata = result.metadata;
+                }
             } else {
                 console.warn('[Scheduler] No job executor configured');
             }

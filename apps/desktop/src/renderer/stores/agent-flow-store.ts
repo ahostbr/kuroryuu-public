@@ -3,7 +3,30 @@
  * Builds a network graph from coding agent sessions for ReactFlow rendering
  */
 import { create } from 'zustand';
-import type { CodingAgentSession } from './coding-agents-store';
+import type { SDKAgentSessionSummary } from '../types/sdk-agent';
+
+/** Legacy session format used by the graph builder and coding-agents store */
+export interface CodingAgentSession {
+  id: string;
+  command: string;
+  workdir: string;
+  running: boolean;
+  exit_code: number | null;
+  output_lines: number;
+  started_at: string;
+  pty: boolean;
+  wave_id?: string;
+  dependency_ids?: string[];
+  // Optional SDK-enriched fields
+  model?: string;
+  role?: string;
+  cwd?: string;
+  prompt?: string;
+  totalCostUsd?: number;
+  numTurns?: number;
+  currentTool?: string;
+  toolCallCount?: number;
+}
 
 // Types for the flow visualization
 export type AgentFlowTheme = 'cyberpunk' | 'kuroryuu' | 'retro' | 'default';
@@ -34,6 +57,13 @@ export interface AgentSessionNodeData {
   exitCode: number | null;
   pty: boolean;
   waveId?: string;
+  // SDK-enriched fields
+  model?: string;
+  role?: string;
+  totalCostUsd?: number;
+  numTurns?: number;
+  currentTool?: string;
+  toolCallCount?: number;
 }
 
 export interface WaveGroupNodeData {
@@ -64,7 +94,8 @@ interface AgentFlowState {
   isConnected: boolean;
 
   // Actions
-  buildGraphFromSessions: (sessions: CodingAgentSession[]) => void;
+  buildGraphFromSessions: (sessions: CodingAgentSession[] | SDKAgentSessionSummary[] | readonly CodingAgentSession[]) => void;
+  buildGraphFromSdkSessions: (sessions: SDKAgentSessionSummary[]) => void;
   setTheme: (theme: AgentFlowTheme) => void;
   togglePause: () => void;
   setConnected: (connected: boolean) => void;
@@ -195,10 +226,15 @@ function buildGraph(
       status = 'failed';
     }
 
-    // Extract short command label
-    const cmdParts = session.command.split(' ');
-    const shortCmd = cmdParts[0].split('/').pop() || cmdParts[0];
-    const label = shortCmd.length > 12 ? shortCmd.substring(0, 12) + '...' : shortCmd;
+    // Use role as label if available, else extract from command
+    let label: string;
+    if (session.role) {
+      label = session.role.length > 12 ? session.role.substring(0, 12) + '...' : session.role;
+    } else {
+      const cmdParts = session.command.split(' ');
+      const shortCmd = cmdParts[0].split('/').pop() || cmdParts[0];
+      label = shortCmd.length > 12 ? shortCmd.substring(0, 12) + '...' : shortCmd;
+    }
 
     nodes.push({
       id: `session-${session.id}`,
@@ -208,12 +244,18 @@ function buildGraph(
         label,
         sessionId: session.id,
         command: session.command,
-        workdir: session.workdir,
+        workdir: session.cwd || session.workdir || '',
         status,
         outputLines: session.output_lines,
         duration: calculateDuration(session.started_at),
         exitCode: session.exit_code,
         pty: session.pty,
+        model: session.model,
+        role: session.role,
+        totalCostUsd: session.totalCostUsd,
+        numTurns: session.numTurns,
+        currentTool: session.currentTool,
+        toolCallCount: session.toolCallCount,
       },
     });
 
@@ -452,6 +494,22 @@ function buildWaveGraph(
   return { nodes, edges };
 }
 
+/**
+ * Adapt SDK session summaries to the legacy format used by graph builders
+ */
+export function adaptSdkSessions(sessions: SDKAgentSessionSummary[]): CodingAgentSession[] {
+  return sessions.map(s => ({
+    ...s,
+    command: s.prompt,
+    workdir: s.cwd,
+    running: s.status === 'starting' || s.status === 'running',
+    exit_code: s.status === 'completed' ? 0 : s.status === 'error' ? 1 : null,
+    output_lines: s.numTurns,
+    started_at: new Date(s.startedAt).toISOString(),
+    pty: false,
+  }));
+}
+
 // Create the store
 export const useAgentFlowStore = create<AgentFlowState>((set, get) => ({
   nodes: [],
@@ -460,13 +518,28 @@ export const useAgentFlowStore = create<AgentFlowState>((set, get) => ({
   isPaused: false,
   isConnected: true,
 
-  buildGraphFromSessions: (sessions: CodingAgentSession[]) => {
+  buildGraphFromSessions: (sessions: CodingAgentSession[] | SDKAgentSessionSummary[] | readonly CodingAgentSession[]) => {
     if (get().isPaused) return;
+
+    // Check if these are SDK sessions (have 'prompt' field but no 'command') and adapt
+    const adapted = (sessions.length > 0 && 'prompt' in sessions[0] && !('command' in sessions[0]))
+      ? adaptSdkSessions(sessions as SDKAgentSessionSummary[])
+      : [...sessions] as CodingAgentSession[];
 
     // Debounce graph rebuilding
     if (graphRebuildTimer) clearTimeout(graphRebuildTimer);
     graphRebuildTimer = setTimeout(() => {
-      const { nodes, edges } = buildGraph(sessions, get().theme);
+      const { nodes, edges } = buildGraph(adapted, get().theme);
+      set({ nodes, edges });
+    }, GRAPH_REBUILD_DEBOUNCE_MS);
+  },
+
+  buildGraphFromSdkSessions: (sessions: SDKAgentSessionSummary[]) => {
+    if (get().isPaused) return;
+    const adapted = adaptSdkSessions(sessions);
+    if (graphRebuildTimer) clearTimeout(graphRebuildTimer);
+    graphRebuildTimer = setTimeout(() => {
+      const { nodes, edges } = buildGraph(adapted, get().theme);
       set({ nodes, edges });
     }, GRAPH_REBUILD_DEBOUNCE_MS);
   },

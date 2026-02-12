@@ -132,7 +132,7 @@ export const AgentSessionNode = React.memo(function AgentSessionNode({
   const { label, status, outputLines, duration, exitCode, pty, command, workdir } = data.data;
   const colors = useThemeColors();
   const theme = useAgentFlowStore((s) => s.theme);
-  const killSession = useKuroryuuAgentsStore((s) => s.killSession);
+  const stopAgent = useKuroryuuAgentsStore((s) => s.stopAgent);
 
   // Extract session ID from node ID (format: "session-{id}")
   const sessionId = id.replace('session-', '');
@@ -151,8 +151,8 @@ export const AgentSessionNode = React.memo(function AgentSessionNode({
   // Kill handler - stop propagation to prevent node selection
   const handleKill = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    killSession(sessionId);
-  }, [killSession, sessionId]);
+    stopAgent(sessionId);
+  }, [stopAgent, sessionId]);
 
   return (
     <div

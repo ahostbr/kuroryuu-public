@@ -2,17 +2,27 @@
  * Kuroryuu Agents Persistence - IndexedDB storage for session archival
  * Archives completed sessions so they survive app restart
  */
-import type { KuroryuuAgentSession } from './kuroryuu-agents-store';
-
 const DB_NAME = 'kuroryuu-coding-agents';
 const DB_VERSION = 1;
 const SESSIONS_STORE = 'sessions';
 
 let dbInstance: IDBDatabase | null = null;
 
+/** Legacy session format stored in IndexedDB archives */
+export interface ArchivedSessionData {
+  id: string;
+  command: string;
+  workdir: string;
+  pty: boolean;
+  running: boolean;
+  started_at: string;
+  exit_code: number | null;
+  output_lines: number;
+}
+
 export interface ArchivedSession {
   id: string;
-  session: KuroryuuAgentSession;
+  session: ArchivedSessionData;
   logs: string;
   archived_at: string;
 }
@@ -71,7 +81,7 @@ async function getDB(): Promise<IDBDatabase> {
  * Archive a completed session with its logs
  */
 export async function archiveSession(
-  session: KuroryuuAgentSession,
+  session: ArchivedSessionData,
   logs: string
 ): Promise<void> {
   try {

@@ -24,7 +24,7 @@ const SCHEDULER_DIR = path.join(os.homedir(), '.claude', 'kuroryuu');
 const SCHEDULER_FILE = path.join(SCHEDULER_DIR, 'schedules.json');
 const BACKUP_DIR = path.join(SCHEDULER_DIR, 'schedule_backups');
 const MAX_BACKUPS = 10;
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Storage Class
@@ -55,6 +55,18 @@ export class SchedulerStorage {
         // Ensure directories exist
         await fs.promises.mkdir(SCHEDULER_DIR, { recursive: true });
         await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
+
+        // One-time cleanup of legacy PID directory (replaced by SDK AbortController)
+        const pidsDir = path.join(SCHEDULER_DIR, 'pids');
+        try {
+            const pidFiles = await fs.promises.readdir(pidsDir);
+            if (pidFiles.length >= 0) {
+                await fs.promises.rm(pidsDir, { recursive: true, force: true });
+                console.log('[Scheduler] Cleaned up legacy pids/ directory');
+            }
+        } catch {
+            // Directory doesn't exist, nothing to clean up
+        }
 
         // Load existing data
         await this.load();
@@ -168,7 +180,7 @@ export class SchedulerStorage {
     // ---------------------------------------------------------------------------
 
     private migrate(data: SchedulerData): SchedulerData {
-        // Future migrations go here
+        // v1 → v2: Schema is additive (new optional fields on PromptAction/JobRun), no data migration needed
         return {
             ...data,
             version: CURRENT_VERSION,

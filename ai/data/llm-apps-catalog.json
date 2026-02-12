@@ -17,7 +17,9 @@
         "streamlit"
       ],
       "entryPoint": "ai_3dpygame_r1.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-3d-pygame-visualizer-with-deepseek-r1",
+      "runCommand": "streamlit run ai_3dpygame_r1.py"
     },
     {
       "id": "advanced_ai_agents/autonomous_game_playing_agent_apps/ai_chess_agent",
@@ -37,7 +39,9 @@
         "pillow"
       ],
       "entryPoint": "ai_chess_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-multi-agent-chess-game",
+      "runCommand": "streamlit run ai_chess_agent.py"
     },
     {
       "id": "advanced_ai_agents/autonomous_game_playing_agent_apps/ai_tic_tac_toe_agent",
@@ -130,7 +134,9 @@
         "wheel"
       ],
       "entryPoint": "agents.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_competitor_intelligence_agent_team",
@@ -149,7 +155,9 @@
         "streamlit"
       ],
       "entryPoint": "competitor_agent_team.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-competitor-intelligence-agent-team",
+      "runCommand": "streamlit run ai_competitor_analyser.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_finance_agent_team",
@@ -169,7 +177,9 @@
         "sqlalchemy"
       ],
       "entryPoint": "finance_agent_team.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python3 finance_agent_team.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_game_design_agent_team",
@@ -186,7 +196,9 @@
         "autogen"
       ],
       "entryPoint": "game_design_agent_team.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-game-design-agent-team",
+      "runCommand": "streamlit run game_design_agent_team.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_legal_agent_team",
@@ -207,7 +219,9 @@
         "duckduckgo-search"
       ],
       "entryPoint": "legal_agent_team.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-legal-team-run-by-ai-agents",
+      "runCommand": "streamlit run legal_agent_team.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_legal_agent_team/local_ai_legal_agent_team",
@@ -226,7 +240,9 @@
         "ollama"
       ],
       "entryPoint": "local_legal_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_real_estate_agent_team",
@@ -249,7 +265,9 @@
         "googlesearch-python"
       ],
       "entryPoint": "ai_real_estate_agent_team.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-real-estate-agent-team",
+      "runCommand": "streamlit run real_estate_agent_team.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_recruitment_agent_team",
@@ -274,7 +292,9 @@
         "python-dateutil"
       ],
       "entryPoint": "ai_recruitment_agent_team.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_recruitment_agent_team.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_sales_intelligence_agent_team",
@@ -291,7 +311,9 @@
         "google-genai"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_seo_audit_team",
@@ -308,7 +330,9 @@
         "pydantic"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-seo-audit-team-with-gemini",
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_services_agency",
@@ -326,7 +350,9 @@
         "streamlit"
       ],
       "entryPoint": "agency.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run agency.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_teaching_agent_team",
@@ -350,7 +376,9 @@
         "google-search-results"
       ],
       "entryPoint": "teaching_agent_team.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-teaching-agent-team",
+      "runCommand": "streamlit run teaching_agent_team.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend",
@@ -364,7 +392,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "broswer.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/agents",
@@ -378,7 +408,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "budget.py",
-      "pyFileCount": 8
+      "pyFileCount": 8,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/api",
@@ -392,7 +424,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "app.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/config",
@@ -406,7 +440,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "llm.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/models",
@@ -420,7 +456,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "flight.py",
-      "pyFileCount": 5
+      "pyFileCount": 5,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/repository",
@@ -434,7 +472,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "plan_task_repository.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/router",
@@ -448,7 +488,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "plan.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/services",
@@ -462,7 +504,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "db_service.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_travel_planner_agent_team/backend/tools",
@@ -476,7 +520,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "google_flight.py",
-      "pyFileCount": 4
+      "pyFileCount": 4,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/ai_vc_due_diligence_agent_team",
@@ -495,7 +541,9 @@
         "matplotlib"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/multimodal_coding_agent_team",
@@ -514,7 +562,9 @@
         "pillow"
       ],
       "entryPoint": "ai_coding_agent_o3.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_coding_agent_o3.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/multimodal_design_agent_team",
@@ -534,7 +584,9 @@
         "duckduckgo-search"
       ],
       "entryPoint": "design_agent_team.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-multimodal-ai-agent-design-team",
+      "runCommand": "streamlit run design_agent_team.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/agent_teams/multimodal_uiux_feedback_agent_team",
@@ -552,7 +604,9 @@
         "pydantic"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-ui-ux-feedback-agent-team-with-nano-banana",
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_aqi_analysis_agent",
@@ -573,7 +627,9 @@
         "dataclasses"
       ],
       "entryPoint": "ai_aqi_analysis_agent_gradio.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-aqi-analysis-agent",
+      "runCommand": "python ai_aqi_analysis_agent.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_domain_deep_research_agent",
@@ -593,7 +649,9 @@
         "together"
       ],
       "entryPoint": "ai_domain_deep_research_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-domain-deep-research-agent",
+      "runCommand": "streamlit run ai_domain_deep_research_agent.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_email_gtm_outreach_agent",
@@ -613,7 +671,9 @@
         "exa_py"
       ],
       "entryPoint": "ai_email_gtm_outreach_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-email-gtm-outreach-agent-team",
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_financial_coach_agent",
@@ -636,7 +696,9 @@
         "asyncio"
       ],
       "entryPoint": "ai_financial_coach_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-multi-agent-personal-finance-coach",
+      "runCommand": "streamlit run ai_financial_coach_agent.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_home_renovation_agent",
@@ -654,7 +716,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-home-renovation-planner-agent-using-nano-banana",
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_mental_wellbeing_agent",
@@ -673,7 +737,9 @@
         "streamlit"
       ],
       "entryPoint": "ai_mental_wellbeing_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_mental_wellbeing_agent.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_negotiation_battle_simulator/backend",
@@ -695,7 +761,9 @@
         "pydantic"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_negotiation_battle_simulator/backend/agents",
@@ -709,7 +777,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "buyer_agent.py",
-      "pyFileCount": 4
+      "pyFileCount": 4,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_negotiation_battle_simulator/backend/config",
@@ -723,7 +793,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "personalities.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong",
@@ -974,7 +1046,9 @@
         "zstandard"
       ],
       "entryPoint": "bootstrap_demo.py",
-      "pyFileCount": 6
+      "pyFileCount": 6,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/agents",
@@ -988,7 +1062,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "audio_generate_agent.py",
-      "pyFileCount": 5
+      "pyFileCount": 5,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/db",
@@ -1002,7 +1078,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent_config_v2.py",
-      "pyFileCount": 9
+      "pyFileCount": 9,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/integrations/slack",
@@ -1016,7 +1094,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "chat.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/models",
@@ -1030,7 +1110,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "article_schemas.py",
-      "pyFileCount": 8
+      "pyFileCount": 8,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/processors",
@@ -1044,7 +1126,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "ai_analysis_processor.py",
-      "pyFileCount": 9
+      "pyFileCount": 9,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/routers",
@@ -1058,7 +1142,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "article_router.py",
-      "pyFileCount": 8
+      "pyFileCount": 8,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/services",
@@ -1072,7 +1158,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "article_service.py",
-      "pyFileCount": 13
+      "pyFileCount": 13,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/tests",
@@ -1086,7 +1174,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent_agno_test.py",
-      "pyFileCount": 6
+      "pyFileCount": 6,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/tools",
@@ -1100,7 +1190,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "browser_crawler.py",
-      "pyFileCount": 12
+      "pyFileCount": 12,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/tools/pipeline",
@@ -1114,7 +1206,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "image_generate_agent.py",
-      "pyFileCount": 4
+      "pyFileCount": 4,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/tools/social",
@@ -1128,7 +1222,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "browser.py",
-      "pyFileCount": 10
+      "pyFileCount": 10,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_news_and_podcast_agents/beifong/utils",
@@ -1142,7 +1238,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "crawl_url.py",
-      "pyFileCount": 10
+      "pyFileCount": 10,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_Self-Evolving_agent",
@@ -1201,7 +1299,9 @@
         "jwt"
       ],
       "entryPoint": "ai_Self-Evolving_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_speech_trainer_agent/backend",
@@ -1215,7 +1315,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "main.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_speech_trainer_agent/backend/agents",
@@ -1229,7 +1331,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "content_analysis_agent.py",
-      "pyFileCount": 5
+      "pyFileCount": 5,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_speech_trainer_agent/backend/agents/tools",
@@ -1243,7 +1347,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "facial_expression_tool.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_speech_trainer_agent/frontend",
@@ -1257,7 +1363,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "Home.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/ai_speech_trainer_agent/frontend/pages",
@@ -1271,7 +1379,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "1 - Feedback.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/multi_agent_researcher",
@@ -1289,7 +1399,9 @@
         "openai"
       ],
       "entryPoint": "research_agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-multi-agent-llm-app-with-gpt-4o",
+      "runCommand": "streamlit run research_agent.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/multi_agent_trust_layer",
@@ -1305,7 +1417,9 @@
         "openai"
       ],
       "entryPoint": "multi_agent_trust_layer.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python multi_agent_trust_layer.py"
     },
     {
       "id": "advanced_ai_agents/multi_agent_apps/product_launch_intelligence_agent",
@@ -1323,7 +1437,9 @@
         "firecrawl"
       ],
       "entryPoint": "product_launch_intelligence_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-multi-agent-product-launch-intelligence-app",
+      "runCommand": "streamlit run product_launch_intelligence_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_agent_governance",
@@ -1340,7 +1456,9 @@
         "pyyaml"
       ],
       "entryPoint": "ai_agent_governance.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python ai_agent_governance.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_consultant_agent",
@@ -1359,7 +1477,9 @@
         "pydantic"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-consultant-agent-with-gemini-2-5-flash",
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_customer_support_agent",
@@ -1377,7 +1497,9 @@
         "mem0ai"
       ],
       "entryPoint": "customer_support_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-customer-support-agent-with-memory",
+      "runCommand": "streamlit run customer_support_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_deep_research_agent",
@@ -1396,7 +1518,9 @@
         "firecrawl-py"
       ],
       "entryPoint": "deep_research_openai.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-deep-research-agent-with-openai-agents-sdk-and-firecrawl",
+      "runCommand": "streamlit run deep_research_openai.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_email_gtm_reachout_agent",
@@ -1415,7 +1539,9 @@
         "openai"
       ],
       "entryPoint": "ai_email_gtm_reachout.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-email-gtm-outreach-agent-team",
+      "runCommand": "streamlit run ai_email_gtm_reachout.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_health_fitness_agent",
@@ -1433,7 +1559,9 @@
         "agno"
       ],
       "entryPoint": "health_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-personal-health-and-fitness-ai-agent-using-google-gemini",
+      "runCommand": "streamlit run health_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_investment_agent",
@@ -1451,7 +1579,9 @@
         "yfinance"
       ],
       "entryPoint": "investment_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-ai-investment-agent-with-gpt-4o",
+      "runCommand": "python investment_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_journalist_agent",
@@ -1472,7 +1602,9 @@
         "lxml_html_clean"
       ],
       "entryPoint": "journalist_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run journalist_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_meeting_agent",
@@ -1491,7 +1623,9 @@
         "openai"
       ],
       "entryPoint": "meeting_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-multi-agent-ai-meeting-preparation-assistant",
+      "runCommand": "streamlit run meeting_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_movie_production_agent",
@@ -1510,7 +1644,9 @@
         "lxml_html_clean"
       ],
       "entryPoint": "movie_production_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-movie-production-agent-with-claude-3-5-sonnet",
+      "runCommand": "streamlit run movie_production_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_personal_finance_agent",
@@ -1529,7 +1665,9 @@
         "google-search-results"
       ],
       "entryPoint": "finance_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run finance_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_recipe_meal_planning_agent",
@@ -1549,7 +1687,9 @@
         "duckduckgo-search"
       ],
       "entryPoint": "ai_recipe_meal_planning_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_recipe_meal_planning_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_startup_insight_fire1_agent",
@@ -1568,7 +1708,9 @@
         "openai"
       ],
       "entryPoint": "ai_startup_insight_fire1_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_startup_insight_fire1_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/ai_system_architect_r1",
@@ -1587,7 +1729,9 @@
         "agno"
       ],
       "entryPoint": "ai_system_architect_r1.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_system_architect_r1.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/research_agent_gemini_interaction_api",
@@ -1604,7 +1748,9 @@
         "streamlit"
       ],
       "entryPoint": "research_planner_executor_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run research_planner_executor_agent.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent",
@@ -1618,7 +1764,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "main.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python main.py"
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent/windows_use",
@@ -1632,7 +1780,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "__init__.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent/windows_use/agent",
@@ -1646,7 +1796,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "service.py",
-      "pyFileCount": 4
+      "pyFileCount": 4,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent/windows_use/agent/prompt",
@@ -1660,7 +1812,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "service.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent/windows_use/agent/registry",
@@ -1674,7 +1828,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "service.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent/windows_use/agent/tools",
@@ -1688,7 +1844,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "service.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent/windows_use/desktop",
@@ -1702,7 +1860,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "config.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_ai_agents/single_agent_apps/windows_use_autonomous_agent/windows_use/tree",
@@ -1716,7 +1876,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "config.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_llm_apps/chat-with-tarots",
@@ -1737,7 +1899,9 @@
         "ollama"
       ],
       "entryPoint": "app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "advanced_llm_apps/chat-with-tarots/helpers",
@@ -1751,7 +1915,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "help_func.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_llm_apps/chat_with_X_tutorials/chat_with_github",
@@ -1768,7 +1934,9 @@
         "embedchain"
       ],
       "entryPoint": "chat_github.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run chat_github.py"
     },
     {
       "id": "advanced_llm_apps/chat_with_X_tutorials/chat_with_gmail",
@@ -1785,7 +1953,9 @@
         "embedchain"
       ],
       "entryPoint": "chat_gmail.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-rag-app-to-chat-with-your-gmail-inbox",
+      "runCommand": "streamlit run chat_gmail.py"
     },
     {
       "id": "advanced_llm_apps/chat_with_X_tutorials/chat_with_pdf",
@@ -1803,7 +1973,9 @@
         "streamlit-chat"
       ],
       "entryPoint": "chat_pdf.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-llm-app-with-rag-using-llama-3-2-running-locally",
+      "runCommand": "streamlit run chat_pdf.py"
     },
     {
       "id": "advanced_llm_apps/chat_with_X_tutorials/chat_with_research_papers",
@@ -1823,7 +1995,9 @@
         "pypdf"
       ],
       "entryPoint": "chat_arxiv.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run chat_arxiv.py"
     },
     {
       "id": "advanced_llm_apps/chat_with_X_tutorials/chat_with_substack",
@@ -1840,7 +2014,9 @@
         "embedchain"
       ],
       "entryPoint": "chat_substack.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run chat_substack.py"
     },
     {
       "id": "advanced_llm_apps/chat_with_X_tutorials/chat_with_youtube_videos",
@@ -1858,7 +2034,9 @@
         "youtube-transcript-api"
       ],
       "entryPoint": "chat_youtube.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-llm-app-with-rag-to-chat-with-youtube-videos",
+      "runCommand": "streamlit run chat_youtube.py"
     },
     {
       "id": "advanced_llm_apps/cursor_ai_experiments",
@@ -1880,7 +2058,9 @@
         "ollama"
       ],
       "entryPoint": "ai_web_scrapper.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_llm_apps/cursor_ai_experiments/llm_router_app",
@@ -1897,7 +2077,9 @@
         "routellm"
       ],
       "entryPoint": "llm_router.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run llm_router.py"
     },
     {
       "id": "advanced_llm_apps/cursor_ai_experiments/local_chatgpt_clone",
@@ -1914,7 +2096,9 @@
         "openai"
       ],
       "entryPoint": "chatgpt_clone_llama3.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run chatgpt_clone_llama3.py"
     },
     {
       "id": "advanced_llm_apps/gpt_oss_critique_improvement_loop",
@@ -1931,7 +2115,9 @@
         "groq"
       ],
       "entryPoint": "streamlit_app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run streamlit_app.py"
     },
     {
       "id": "advanced_llm_apps/llm_apps_with_memory_tutorials/ai_arxiv_agent_memory",
@@ -1950,7 +2136,9 @@
         "multion"
       ],
       "entryPoint": "ai_arxiv_agent_memory.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-ai-research-agent-with-memory-to-search-academic-papers",
+      "runCommand": "streamlit run ai_arxiv_agent_memory.py"
     },
     {
       "id": "advanced_llm_apps/llm_apps_with_memory_tutorials/ai_travel_agent_memory",
@@ -1968,7 +2156,9 @@
         "mem0ai"
       ],
       "entryPoint": "travel_agent_memory.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run travel_agent_memory.py"
     },
     {
       "id": "advanced_llm_apps/llm_apps_with_memory_tutorials/llama3_stateful_chat",
@@ -1985,7 +2175,9 @@
         "openai"
       ],
       "entryPoint": "local_llama3_chat.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "advanced_llm_apps/llm_apps_with_memory_tutorials/llm_app_personalized_memory",
@@ -2003,7 +2195,9 @@
         "mem0ai"
       ],
       "entryPoint": "llm_app_memory.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run llm_app_memory.py"
     },
     {
       "id": "advanced_llm_apps/llm_apps_with_memory_tutorials/local_chatgpt_with_memory",
@@ -2022,7 +2216,9 @@
         "litellm"
       ],
       "entryPoint": "local_chatgpt_memory.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run local_chatgpt_memory.py"
     },
     {
       "id": "advanced_llm_apps/llm_apps_with_memory_tutorials/multi_llm_memory",
@@ -2041,7 +2237,9 @@
         "litellm"
       ],
       "entryPoint": "multi_llm_memory.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run multi_llm_memory.py"
     },
     {
       "id": "advanced_llm_apps/llm_finetuning_tutorials/gemma3_finetuning",
@@ -2062,7 +2260,9 @@
         "unsloth_zoo"
       ],
       "entryPoint": "finetune_gemma3.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python finetune_gemma3.py"
     },
     {
       "id": "advanced_llm_apps/llm_finetuning_tutorials/llama3.2_finetuning",
@@ -2082,7 +2282,9 @@
         "trl"
       ],
       "entryPoint": "finetune_llama3.2.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/fine-tune-llama-3-2-for-free-in-30-lines-of-python-code",
+      "runCommand": null
     },
     {
       "id": "advanced_llm_apps/llm_optimization_tools/headroom_context_optimization",
@@ -2100,7 +2302,9 @@
         "anthropic"
       ],
       "entryPoint": "headroom_demo.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python headroom_demo.py"
     },
     {
       "id": "advanced_llm_apps/llm_optimization_tools/toonify_token_optimization",
@@ -2121,7 +2325,9 @@
         "tiktoken"
       ],
       "entryPoint": "quick_test.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": "python toonify_demo.py"
     },
     {
       "id": "advanced_llm_apps/resume_job_matcher",
@@ -2139,7 +2345,9 @@
         "pymupdf"
       ],
       "entryPoint": "app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/1_starter_agent/creative_writing_agent",
@@ -2153,7 +2361,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/2_model_agnostic_agent/2_1_openai_adk_agent",
@@ -2167,7 +2377,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/2_model_agnostic_agent/2_2_anthropic_adk_agent",
@@ -2181,7 +2393,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/3_structured_output_agent/3_1_customer_support_ticket_agent/customer_support_agent",
@@ -2195,7 +2409,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/3_structured_output_agent/3_2_email_agent/email_generator_agent",
@@ -2209,7 +2425,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_1_builtin_tools/code_exec_agent",
@@ -2223,7 +2441,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_1_builtin_tools/search_agent",
@@ -2237,7 +2457,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_2_function_tools/calculator_agent",
@@ -2251,7 +2473,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_2_function_tools/utility_agent",
@@ -2265,7 +2489,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_3_thirdparty_tools/crewai_agent",
@@ -2279,7 +2505,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_3_thirdparty_tools/langchain_agent",
@@ -2293,7 +2521,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_4_mcp_tools/filesystem_agent",
@@ -2307,7 +2537,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/4_tool_using_agent/4_4_mcp_tools/firecrawl_agent",
@@ -2321,7 +2553,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/5_memory_agent/5_1_in_memory_conversation_agent",
@@ -2340,7 +2574,9 @@
         "asyncio"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/5_memory_agent/5_2_persistent_conversation_agent",
@@ -2360,7 +2596,9 @@
         "asyncio"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/6_callbacks/6_1_agent_lifecycle_callbacks",
@@ -2378,7 +2616,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/6_callbacks/6_2_llm_interaction_callbacks",
@@ -2396,7 +2636,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/6_callbacks/6_3_tool_execution_callbacks",
@@ -2414,7 +2656,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/7_plugins",
@@ -2433,7 +2677,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/8_simple_multi_agent/multi_agent_researcher",
@@ -2447,7 +2693,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/9_multi_agent_patterns/9_1_sequential_agent",
@@ -2466,7 +2714,9 @@
         "pydantic"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/9_multi_agent_patterns/9_2_loop_agent",
@@ -2480,7 +2730,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/9_multi_agent_patterns/9_3_parallel_agent",
@@ -2499,7 +2751,9 @@
         "pydantic"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/google_adk_crash_course/adk_yaml_examples/multi_agent_web_research_team/multi_agent_web_researcher",
@@ -2513,7 +2767,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "__init__.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/10_tracing_observability",
@@ -2531,7 +2787,9 @@
         "python-dotenv"
       ],
       "entryPoint": "custom_tracing.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python default_tracing.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/10_tracing_observability/10_1_default_tracing",
@@ -2545,7 +2803,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/10_tracing_observability/10_2_custom_tracing",
@@ -2559,7 +2819,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/11_voice",
@@ -2573,7 +2835,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "__init__.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/11_voice/realtime",
@@ -2590,7 +2854,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/11_voice/static",
@@ -2611,7 +2877,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": "python agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/11_voice/streamed",
@@ -2632,7 +2900,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": "python agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/1_starter_agent",
@@ -2650,7 +2920,9 @@
         "python-dotenv"
       ],
       "entryPoint": "app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/1_starter_agent/1_personal_assistant_agent",
@@ -2664,7 +2936,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/2_structured_output_agent",
@@ -2683,7 +2957,9 @@
         "pydantic"
       ],
       "entryPoint": "product_review_agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python support_ticket_agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/2_structured_output_agent/2_1_support_ticket_agent",
@@ -2697,7 +2973,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/2_structured_output_agent/2_2_product_review_agent",
@@ -2711,7 +2989,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/3_tool_using_agent",
@@ -2725,7 +3005,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "calculator_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python calculator_agent.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/3_tool_using_agent/3_1_function_tools",
@@ -2739,7 +3021,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/3_tool_using_agent/3_2_builtin_tools",
@@ -2753,7 +3037,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/3_tool_using_agent/3_3_agents_as_tools",
@@ -2767,7 +3053,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "advanced_agent.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/4_running_agents",
@@ -2785,7 +3073,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agent_runner.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/4_running_agents/4_1_execution_methods",
@@ -2799,7 +3089,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/4_running_agents/4_2_conversation_management",
@@ -2813,7 +3105,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/4_running_agents/4_3_run_configuration",
@@ -2827,7 +3121,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/4_running_agents/4_4_streaming_events",
@@ -2841,7 +3137,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/5_context_management",
@@ -2855,7 +3153,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/6_guardrails_validation",
@@ -2869,7 +3169,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/7_sessions",
@@ -2887,7 +3189,9 @@
         "python-dotenv"
       ],
       "entryPoint": "streamlit_sessions_app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run streamlit_sessions_app.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/7_sessions/7_1_basic_sessions",
@@ -2901,7 +3205,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/7_sessions/7_2_memory_operations",
@@ -2915,7 +3221,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/7_sessions/7_3_multi_sessions",
@@ -2929,7 +3237,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/8_handoffs_delegation",
@@ -2948,7 +3258,9 @@
         "pydantic"
       ],
       "entryPoint": "advanced_handoffs.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python basic_handoffs.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/8_handoffs_delegation/8_1_basic_handoffs",
@@ -2962,7 +3274,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/8_handoffs_delegation/8_2_advanced_handoffs",
@@ -2976,7 +3290,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/9_multi_agent_orchestration",
@@ -2994,7 +3310,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agents_as_tools.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python parallel_execution.py"
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/9_multi_agent_orchestration/9_1_parallel_execution",
@@ -3008,7 +3326,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "ai_agent_framework_crash_course/openai_sdk_crash_course/9_multi_agent_orchestration/9_2_agents_as_tools",
@@ -3022,7 +3342,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "mcp_ai_agents/ai_travel_planner_mcp_agent_team",
@@ -3042,7 +3364,9 @@
         "google-search-results"
       ],
       "entryPoint": "app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "mcp_ai_agents/browser_mcp_agent",
@@ -3061,7 +3385,9 @@
         "asyncio"
       ],
       "entryPoint": "main.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run main.py"
     },
     {
       "id": "mcp_ai_agents/github_mcp_agent",
@@ -3081,7 +3407,9 @@
         "asyncio"
       ],
       "entryPoint": "github_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-mcp-github-agent-in-less-than-50-lines-of-code",
+      "runCommand": "streamlit run github_agent.py"
     },
     {
       "id": "mcp_ai_agents/multi_mcp_agent",
@@ -3100,7 +3428,9 @@
         "python-dotenv"
       ],
       "entryPoint": "multi_mcp_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python multi_mcp_agent.py"
     },
     {
       "id": "mcp_ai_agents/notion_mcp_agent",
@@ -3120,7 +3450,9 @@
         "sqlalchemy"
       ],
       "entryPoint": "notion_mcp_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-terminal-based-notion-agent-with-mcp",
+      "runCommand": "python notion_mcp_agent.py"
     },
     {
       "id": "rag_tutorials/agentic_rag_embedding_gemma",
@@ -3140,7 +3472,9 @@
         "pypdf"
       ],
       "entryPoint": "agentic_rag_embeddinggemma.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-local-agentic-rag-app-with-google-embeddinggemma",
+      "runCommand": "streamlit run agentic_rag_embeddinggemma.py"
     },
     {
       "id": "rag_tutorials/agentic_rag_gpt5",
@@ -3160,7 +3494,9 @@
         "python-dotenv"
       ],
       "entryPoint": "agentic_rag_gpt5.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-agentic-rag-with-openai-gpt-5",
+      "runCommand": "streamlit run agentic_rag_gpt5.py"
     },
     {
       "id": "rag_tutorials/agentic_rag_math_agent/app",
@@ -3174,7 +3510,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "benchmark.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "rag_tutorials/agentic_rag_math_agent/data",
@@ -3188,7 +3526,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "load_gsm8k_data.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "rag_tutorials/agentic_rag_math_agent/rag",
@@ -3202,7 +3542,9 @@
       "hasRequirements": false,
       "techStack": [],
       "entryPoint": "guardrails.py",
-      "pyFileCount": 3
+      "pyFileCount": 3,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "rag_tutorials/agentic_rag_with_reasoning",
@@ -3222,7 +3564,9 @@
         "python-dotenv"
       ],
       "entryPoint": "rag_reasoning_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-agentic-rag-app-with-reasoning",
+      "runCommand": "streamlit run rag_reasoning_agent.py"
     },
     {
       "id": "rag_tutorials/ai_blog_search",
@@ -3247,7 +3591,9 @@
         "python-dotenv"
       ],
       "entryPoint": "app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "rag_tutorials/autonomous_rag",
@@ -3272,7 +3618,9 @@
         "nest_asyncio"
       ],
       "entryPoint": "autorag.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-autonomous-rag-app-using-gpt-4o-and-vector-database",
+      "runCommand": "streamlit run autorag.py"
     },
     {
       "id": "rag_tutorials/contextualai_rag_agent",
@@ -3291,7 +3639,9 @@
         "pydantic"
       ],
       "entryPoint": "contextualai_rag_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run contextualai_rag_agent.py"
     },
     {
       "id": "rag_tutorials/corrective_rag",
@@ -3323,7 +3673,9 @@
         "nest-asyncio"
       ],
       "entryPoint": "corrective_rag.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run corrective_rag.py"
     },
     {
       "id": "rag_tutorials/deepseek_local_rag_agent",
@@ -3345,7 +3697,9 @@
         "ollama"
       ],
       "entryPoint": "deepseek_rag_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-local-rag-reasoning-agent-with-deepseek-r1",
+      "runCommand": "streamlit run deepseek_rag_agent.py"
     },
     {
       "id": "rag_tutorials/gemini_agentic_rag",
@@ -3366,7 +3720,9 @@
         "streamlit"
       ],
       "entryPoint": "agentic_rag_gemini.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run agentic_rag_gemini.py"
     },
     {
       "id": "rag_tutorials/hybrid_search_rag",
@@ -3393,7 +3749,9 @@
         "anthropic"
       ],
       "entryPoint": "main.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run main.py"
     },
     {
       "id": "rag_tutorials/llama3.1_local_rag",
@@ -3413,7 +3771,9 @@
         "langchain_ollama"
       ],
       "entryPoint": "llama3.1_local_rag.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "rag_tutorials/local_hybrid_search_rag",
@@ -3443,7 +3803,9 @@
         "tqdm"
       ],
       "entryPoint": "local_main.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run local_main.py"
     },
     {
       "id": "rag_tutorials/local_rag_agent",
@@ -3462,7 +3824,9 @@
         "pypdf"
       ],
       "entryPoint": "local_rag_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-local-rag-agent",
+      "runCommand": "python local_rag_agent.py"
     },
     {
       "id": "rag_tutorials/qwen_local_rag",
@@ -3485,7 +3849,9 @@
         "ollama"
       ],
       "entryPoint": "qwen_local_rag_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run qwen_local_rag_agent.py"
     },
     {
       "id": "rag_tutorials/rag-as-a-service",
@@ -3503,7 +3869,9 @@
         "requests"
       ],
       "entryPoint": "rag_app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run rag_app.py"
     },
     {
       "id": "rag_tutorials/rag_agent_cohere",
@@ -3532,7 +3900,9 @@
         "langgraph"
       ],
       "entryPoint": "rag_agent_cohere.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run rag_agent_cohere.py"
     },
     {
       "id": "rag_tutorials/rag_chain",
@@ -3556,7 +3926,9 @@
         "python-dotenv"
       ],
       "entryPoint": "app.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run app.py"
     },
     {
       "id": "rag_tutorials/rag_database_routing",
@@ -3582,7 +3954,9 @@
         "duckduckgo-search"
       ],
       "entryPoint": "rag_database_routing.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-rag-agent-with-database-routing",
+      "runCommand": "streamlit run rag_database_routing.py"
     },
     {
       "id": "rag_tutorials/vision_rag",
@@ -3605,7 +3979,9 @@
         "pymupdf"
       ],
       "entryPoint": "vision_rag.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run vision_rag.py"
     },
     {
       "id": "starter_ai_agents/ai_blog_to_podcast_agent",
@@ -3626,7 +4002,9 @@
         "elevenlabs"
       ],
       "entryPoint": "blog_to_podcast_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run blog_to_podcast_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_breakup_recovery_agent",
@@ -3646,7 +4024,9 @@
         "duckduckgo-search"
       ],
       "entryPoint": "ai_breakup_recovery_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-breakup-recovery-agent-team-f29b",
+      "runCommand": "streamlit run ai_breakup_recovery_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_data_analysis_agent",
@@ -3667,7 +4047,9 @@
         "agno"
       ],
       "entryPoint": "ai_data_analyst.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-data-analysis-agent",
+      "runCommand": "streamlit run ai_data_analyst.py"
     },
     {
       "id": "starter_ai_agents/ai_data_visualisation_agent",
@@ -3689,7 +4071,9 @@
         "matplotlib"
       ],
       "entryPoint": "ai_data_visualisation_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-data-visualization-agent",
+      "runCommand": "streamlit run ai_data_visualisation_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_life_insurance_advisor_agent",
@@ -3709,7 +4093,9 @@
         "openai"
       ],
       "entryPoint": "life_insurance_advisor_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run life_insurance_advisor_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_medical_imaging_agent",
@@ -3729,7 +4115,9 @@
         "google-generativeai"
       ],
       "entryPoint": "ai_medical_imaging.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_medical_imaging.py"
     },
     {
       "id": "starter_ai_agents/ai_meme_generator_agent_browseruse",
@@ -3750,7 +4138,9 @@
         "asyncio"
       ],
       "entryPoint": "ai_meme_generator_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run ai_meme_generator_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_music_generator_agent",
@@ -3769,7 +4159,9 @@
         "openai"
       ],
       "entryPoint": "music_generator_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run models_lab_music_generator_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_reasoning_agent",
@@ -3788,7 +4180,9 @@
         "uvicorn"
       ],
       "entryPoint": "local_ai_reasoning_agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "python local_ai_reasoning_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_startup_trend_analysis_agent",
@@ -3808,7 +4202,9 @@
         "lxml_html_clean"
       ],
       "entryPoint": "startup_trends_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-an-ai-startup-trend-analysis-agent-using-claude-3-5-sonnet",
+      "runCommand": "streamlit run startup_trends_agent.py"
     },
     {
       "id": "starter_ai_agents/ai_travel_agent",
@@ -3828,7 +4224,9 @@
         "icalendar"
       ],
       "entryPoint": "local_travel_agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run travel_agent.py"
     },
     {
       "id": "starter_ai_agents/mixture_of_agents",
@@ -3846,7 +4244,9 @@
         "together"
       ],
       "entryPoint": "mixture-of-agents.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": null
     },
     {
       "id": "starter_ai_agents/multimodal_ai_agent",
@@ -3864,7 +4264,9 @@
         "streamlit"
       ],
       "entryPoint": "multimodal_reasoning_agent.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run multimodal_agent.py"
     },
     {
       "id": "starter_ai_agents/opeani_research_agent",
@@ -3886,7 +4288,9 @@
         "asyncio"
       ],
       "entryPoint": "research_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "streamlit run openai_researcher_agent.py"
     },
     {
       "id": "starter_ai_agents/web_scrapping_ai_agent",
@@ -3904,7 +4308,9 @@
         "playwright"
       ],
       "entryPoint": "ai_scrapper.py",
-      "pyFileCount": 2
+      "pyFileCount": 2,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-web-scraping-ai-agent-with-llama-3-2-running-locally",
+      "runCommand": "streamlit run ai_scrapper.py"
     },
     {
       "id": "starter_ai_agents/xai_finance_agent",
@@ -3922,7 +4328,9 @@
         "yfinance"
       ],
       "entryPoint": "xai_finance_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": null,
+      "runCommand": "python xai_finance_agent.py"
     },
     {
       "id": "voice_ai_agents/ai_audio_tour_agent",
@@ -3944,7 +4352,9 @@
         "streamlit"
       ],
       "entryPoint": "agent.py",
-      "pyFileCount": 4
+      "pyFileCount": 4,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-self-guided-ai-audio-tour-agent",
+      "runCommand": "streamlit run ai_audio_tour_agent.py"
     },
     {
       "id": "voice_ai_agents/customer_support_voice_agent",
@@ -3966,7 +4376,9 @@
         "openai-agents"
       ],
       "entryPoint": "customer_support_voice_agent.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-customer-support-voice-agent",
+      "runCommand": "streamlit run ai_voice_agent_docs.py"
     },
     {
       "id": "voice_ai_agents/voice_rag_openaisdk",
@@ -3990,7 +4402,9 @@
         "langchain-text-splitters"
       ],
       "entryPoint": "rag_voice.py",
-      "pyFileCount": 1
+      "pyFileCount": 1,
+      "tutorialUrl": "https://www.theunwindai.com/p/build-a-voice-rag-agent",
+      "runCommand": "streamlit run rag_voice.py"
     }
   ],
   "categories": [
@@ -4070,7 +4484,7 @@
       "appCount": 2
     }
   ],
-  "generatedAt": "2026-02-11T17:17:06.413Z",
+  "generatedAt": "2026-02-12T01:58:22.457Z",
   "repoPath": "E:\\SAS\\CLONE\\Kuroryuu-master\\tools\\llm-apps\\awesome-llm-apps",
   "totalApps": 207
 }

@@ -874,6 +874,10 @@ const api = {
     deleteEvent: (id: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('scheduler:deleteEvent', id),
 
+    /** Cancel a running job (stops SDK session) */
+    cancelJob: (id: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('scheduler:cancelJob', id),
+
     /** Run a job immediately */
     runNow: (id: string): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('scheduler:runNow', id),
@@ -2556,6 +2560,97 @@ const api = {
       ipcRenderer.invoke('llm-apps:saveSetup', state),
     pullUpdates: (): Promise<{ ok: boolean; catalog?: unknown; newApps?: number; totalApps?: number; error?: string }> =>
       ipcRenderer.invoke('llm-apps:pullUpdates'),
+  },
+
+  /**
+   * SDK Agent API
+   * Claude Agent SDK integration — spawn, stream, stop agents programmatically
+   */
+  sdkAgent: {
+    /** Start a new agent session */
+    start: (config: {
+      prompt: string;
+      role?: string;
+      model?: string;
+      cwd?: string;
+      permissionMode?: string;
+      allowedTools?: string[];
+      disallowedTools?: string[];
+      maxTurns?: number;
+      maxBudgetUsd?: number;
+      systemPrompt?: string;
+      appendSystemPrompt?: string;
+      useClaudeCodePreset?: boolean;
+      agents?: Record<string, unknown>;
+      agent?: string;
+      mcpServers?: Record<string, unknown>;
+      resumeSessionId?: string;
+    }): Promise<{ ok: boolean; sessionId?: string; error?: string }> =>
+      ipcRenderer.invoke('sdk-agent:start', config),
+
+    /** Stop / cancel a running agent */
+    stop: (sessionId: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('sdk-agent:stop', sessionId),
+
+    /** Resume a previous session with a new prompt */
+    resume: (sessionId: string, prompt: string): Promise<{ ok: boolean; sessionId?: string; error?: string }> =>
+      ipcRenderer.invoke('sdk-agent:resume', sessionId, prompt),
+
+    /** List all sessions (summary view) */
+    list: (): Promise<Array<{
+      id: string;
+      sdkSessionId?: string;
+      role?: string;
+      status: string;
+      prompt: string;
+      model: string;
+      cwd: string;
+      startedAt: number;
+      completedAt?: number;
+      totalCostUsd: number;
+      numTurns: number;
+      currentTool?: string;
+      subagentCount: number;
+      toolCallCount: number;
+      lastMessage?: string;
+    }>> => ipcRenderer.invoke('sdk-agent:list'),
+
+    /** Get full session details */
+    get: (sessionId: string): Promise<unknown | null> =>
+      ipcRenderer.invoke('sdk-agent:get', sessionId),
+
+    /** Get messages with pagination */
+    getMessages: (sessionId: string, offset?: number, limit?: number): Promise<unknown[]> =>
+      ipcRenderer.invoke('sdk-agent:messages', sessionId, offset, limit),
+
+    /** Get message count for a session */
+    getMessageCount: (sessionId: string): Promise<number> =>
+      ipcRenderer.invoke('sdk-agent:messageCount', sessionId),
+
+    /** Get available agent roles */
+    getRoles: (): Promise<Record<string, unknown>> =>
+      ipcRenderer.invoke('sdk-agent:roles'),
+
+    /** Subscribe to real-time SDK messages */
+    onMessage: (callback: (sessionId: string, message: unknown) => void): (() => void) => {
+      const handler = (_event: unknown, sid: string, msg: unknown) => callback(sid, msg);
+      ipcRenderer.on('sdk-agent:message', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('sdk-agent:message', handler as (...args: unknown[]) => void);
+    },
+
+    /** Subscribe to session completion events */
+    onCompleted: (callback: (sessionId: string, result: unknown) => void): (() => void) => {
+      const handler = (_event: unknown, sid: string, result: unknown) => callback(sid, result);
+      ipcRenderer.on('sdk-agent:completed', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('sdk-agent:completed', handler as (...args: unknown[]) => void);
+    },
+
+    /** Subscribe to status change events */
+    onStatusChange: (callback: (sessionId: string, status: string) => void): (() => void) => {
+      const handler = (_event: unknown, sid: string, status: string) => callback(sid, status);
+      ipcRenderer.on('sdk-agent:status-change', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('sdk-agent:status-change', handler as (...args: unknown[]) => void);
+    },
   },
 };
 

@@ -4,14 +4,14 @@
  */
 import React from 'react';
 import { X, Cpu, Plus, Skull, Play, CheckCircle, XCircle, Square } from 'lucide-react';
-import type { KuroryuuAgentSession } from '../../stores/kuroryuu-agents-store';
+import type { SDKAgentSessionSummary } from '../../types/sdk-agent';
 
 interface SessionManagerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  sessions: KuroryuuAgentSession[];
-  onKillSession: (id: string) => void;
-  onKillAll: () => void;
+  sessions: SDKAgentSessionSummary[];
+  onStopSession: (id: string) => void;
+  onStopAll: () => void;
   onSpawnAgent: () => void;
   onSelectSession: (id: string) => void;
 }
@@ -36,16 +36,17 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 // Session row component
 function SessionRow({
   session,
-  onKill,
+  onStop,
   onSelect,
 }: {
-  session: KuroryuuAgentSession;
-  onKill?: (id: string) => void;
+  session: SDKAgentSessionSummary;
+  onStop?: (id: string) => void;
   onSelect: (id: string) => void;
 }) {
-  const commandPreview = session.command.length > 50
-    ? session.command.substring(0, 50) + '...'
-    : session.command;
+  const isRunning = session.status === 'starting' || session.status === 'running';
+  const promptPreview = session.prompt.length > 50
+    ? session.prompt.substring(0, 50) + '...'
+    : session.prompt;
 
   return (
     <div
@@ -54,41 +55,53 @@ function SessionRow({
     >
       {/* Session ID */}
       <code className="text-xs font-mono text-primary/80 w-16 shrink-0">
-        {session.id}
+        {session.id.slice(0, 8)}
       </code>
 
-      {/* Command */}
-      <span className="flex-1 text-sm text-gray-300 truncate" title={session.command}>
-        {commandPreview}
+      {/* Prompt */}
+      <span className="flex-1 text-sm text-gray-300 truncate" title={session.prompt}>
+        {promptPreview}
       </span>
 
-      {/* Status */}
-      {session.running ? (
-        <span className="flex items-center gap-1.5 text-xs text-green-400">
-          <Play className="w-3 h-3 animate-pulse" />
-          Running
-        </span>
-      ) : session.exit_code === 0 ? (
-        <span className="flex items-center gap-1.5 text-xs text-blue-400">
-          <CheckCircle className="w-3 h-3" />
-          Exit 0
-        </span>
-      ) : (
-        <span className="flex items-center gap-1.5 text-xs text-red-400">
-          <XCircle className="w-3 h-3" />
-          Exit {session.exit_code}
+      {/* Role badge */}
+      {session.role && (
+        <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px]">
+          {session.role}
         </span>
       )}
 
-      {/* Kill button - only for running sessions */}
-      {session.running && onKill && (
+      {/* Status */}
+      {isRunning ? (
+        <span className="flex items-center gap-1.5 text-xs text-green-400">
+          <Play className="w-3 h-3 animate-pulse" />
+          {session.status === 'starting' ? 'Starting' : 'Running'}
+        </span>
+      ) : session.status === 'completed' ? (
+        <span className="flex items-center gap-1.5 text-xs text-blue-400">
+          <CheckCircle className="w-3 h-3" />
+          Completed
+        </span>
+      ) : session.status === 'error' ? (
+        <span className="flex items-center gap-1.5 text-xs text-red-400">
+          <XCircle className="w-3 h-3" />
+          Error
+        </span>
+      ) : (
+        <span className="flex items-center gap-1.5 text-xs text-yellow-400">
+          <Square className="w-3 h-3" />
+          Cancelled
+        </span>
+      )}
+
+      {/* Stop button - only for running sessions */}
+      {isRunning && onStop && (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onKill(session.id);
+            onStop(session.id);
           }}
           className="px-2.5 py-1 text-xs bg-red-500/20 border border-red-500/50 text-red-400 rounded hover:bg-red-500/40 transition-colors"
-          title="Kill session"
+          title="Stop session"
         >
           <Square className="w-3 h-3" />
         </button>
@@ -101,12 +114,12 @@ function SessionRow({
 function SessionGroup({
   title,
   sessions,
-  onKill,
+  onStop,
   onSelect,
 }: {
   title: string;
-  sessions: KuroryuuAgentSession[];
-  onKill?: (id: string) => void;
+  sessions: SDKAgentSessionSummary[];
+  onStop?: (id: string) => void;
   onSelect: (id: string) => void;
 }) {
   if (sessions.length === 0) return null;
@@ -126,7 +139,7 @@ function SessionGroup({
           <SessionRow
             key={session.id}
             session={session}
-            onKill={onKill}
+            onStop={onStop}
             onSelect={onSelect}
           />
         ))}
@@ -139,16 +152,16 @@ export function SessionManagerModal({
   isOpen,
   onClose,
   sessions,
-  onKillSession,
-  onKillAll,
+  onStopSession,
+  onStopAll,
   onSpawnAgent,
   onSelectSession,
 }: SessionManagerModalProps) {
   if (!isOpen) return null;
 
-  const running = sessions.filter((s) => s.running);
-  const completed = sessions.filter((s) => !s.running && s.exit_code === 0);
-  const failed = sessions.filter((s) => !s.running && s.exit_code !== 0 && s.exit_code !== null);
+  const running = sessions.filter((s) => s.status === 'starting' || s.status === 'running');
+  const completed = sessions.filter((s) => s.status === 'completed');
+  const failed = sessions.filter((s) => s.status === 'error' || s.status === 'cancelled');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -198,7 +211,7 @@ export function SessionManagerModal({
               <SessionGroup
                 title="Running"
                 sessions={running}
-                onKill={onKillSession}
+                onStop={onStopSession}
                 onSelect={onSelectSession}
               />
               <SessionGroup
@@ -222,11 +235,11 @@ export function SessionManagerModal({
           <div>
             {running.length > 0 && (
               <button
-                onClick={onKillAll}
+                onClick={onStopAll}
                 className="flex items-center gap-2 px-4 py-2 text-sm bg-red-500/20 border border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/40 transition-colors"
               >
                 <Skull className="w-4 h-4" />
-                Kill All ({running.length})
+                Stop All ({running.length})
               </button>
             )}
           </div>

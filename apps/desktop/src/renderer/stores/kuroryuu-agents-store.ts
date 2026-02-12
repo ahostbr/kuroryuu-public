@@ -1,7 +1,7 @@
 /**
- * Kuroryuu Agents Store - Manages background coding agent sessions
+ * Kuroryuu Agents Store - Manages SDK-based coding agent sessions
  *
- * Polls k_process(action="list") to get session state from MCP server.
+ * Replaced k_process polling with Claude Agent SDK IPC event subscriptions.
  * Archives completed sessions to IndexedDB for persistence across restarts.
  */
 import { create } from 'zustand';
@@ -11,67 +11,45 @@ import {
   deleteArchivedSession,
   pruneOldSessions,
   type ArchivedSession,
+  type ArchivedSessionData,
 } from './kuroryuu-agents-persistence';
+import type {
+  SDKAgentConfig,
+  SDKAgentSessionSummary,
+  SDKAgentSession,
+  SerializedSDKMessage,
+  SDKSessionStatus,
+} from '../types/sdk-agent';
 
-export interface KuroryuuAgentSession {
-  id: string;
-  command: string;
-  workdir: string;
-  pty: boolean;
-  running: boolean;
-  started_at: string;
-  exit_code: number | null;
-  output_lines: number;
-  // Wave metadata for /max-subagents-parallel grouping
-  wave_id?: string;
-  dependency_ids?: string[];
-}
+// Re-export legacy type name for components that still import it
+export type { SDKAgentSessionSummary as KuroryuuAgentSession };
 
 interface KuroryuuAgentsState {
-  sessions: KuroryuuAgentSession[];
+  sessions: SDKAgentSessionSummary[];
   archivedSessions: ArchivedSession[];
   selectedSessionId: string | null;
   isLoading: boolean;
   error: string | null;
-  pollingInterval: NodeJS.Timeout | null;
-  previousSessionIds: Set<string>; // Track running sessions to detect completion
+  subscribed: boolean;
 
   // Actions
   loadSessions: () => Promise<void>;
   loadArchivedSessions: () => Promise<void>;
   selectSession: (id: string | null) => void;
-  killSession: (id: string) => Promise<boolean>;
-  sendInput: (id: string, data: string) => Promise<boolean>;
-  getSessionLog: (id: string, offset?: number, limit?: number) => Promise<string>;
-  getArchivedLog: (id: string) => string | null;
+  startAgent: (config: SDKAgentConfig) => Promise<string | null>;
+  stopAgent: (sessionId: string) => Promise<boolean>;
+  resumeAgent: (sessionId: string, prompt: string) => Promise<string | null>;
+  getSession: (sessionId: string) => Promise<SDKAgentSession | null>;
+  getMessages: (sessionId: string, offset?: number, limit?: number) => Promise<SerializedSDKMessage[]>;
+  getMessageCount: (sessionId: string) => Promise<number>;
+  getRoles: () => Promise<Record<string, unknown>>;
   deleteArchived: (id: string) => Promise<void>;
-  startPolling: (intervalMs?: number) => void;
-  stopPolling: () => void;
+  subscribe: () => void;
+  unsubscribe: () => void;
 }
 
-// Gateway proxy endpoint for MCP calls
-const GATEWAY_MCP_URL = 'http://127.0.0.1:8200/v1/mcp/call';
-
-async function mcpCall(toolName: string, args: Record<string, unknown>): Promise<unknown> {
-  const response = await fetch(GATEWAY_MCP_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tool: toolName,
-      arguments: args,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Gateway error: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  // Gateway returns { result: "..." } where result is JSON string
-  const result = typeof data.result === 'string' ? JSON.parse(data.result) : data.result;
-  return result;
-}
+// Store cleanup functions for IPC event subscriptions
+let cleanupFns: Array<() => void> = [];
 
 export const useKuroryuuAgentsStore = create<KuroryuuAgentsState>((set, get) => ({
   sessions: [],
@@ -79,66 +57,17 @@ export const useKuroryuuAgentsStore = create<KuroryuuAgentsState>((set, get) => 
   selectedSessionId: null,
   isLoading: false,
   error: null,
-  pollingInterval: null,
-  previousSessionIds: new Set<string>(),
+  subscribed: false,
 
   loadSessions: async () => {
     set({ isLoading: true, error: null });
     try {
-      const result = await mcpCall('k_process', { action: 'list' }) as {
-        ok: boolean;
-        sessions: KuroryuuAgentSession[];
-        error?: string;
-      };
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        list: () => Promise<SDKAgentSessionSummary[]>;
+      }}}).electronAPI.sdkAgent;
 
-      if (!result.ok) {
-        throw new Error(result.error || 'Failed to load sessions');
-      }
-
-      const liveSessions = result.sessions || [];
-      const { previousSessionIds, archivedSessions } = get();
-
-      // Detect sessions that just completed (were running, now stopped)
-      const currentIds = new Set(liveSessions.map(s => s.id));
-      const completedSessions = liveSessions.filter(s =>
-        !s.running && previousSessionIds.has(s.id) &&
-        !archivedSessions.some(a => a.id === s.id)
-      );
-
-      // Archive newly completed sessions
-      for (const session of completedSessions) {
-        try {
-          // Fetch final logs before archiving
-          const logResult = await mcpCall('k_process', {
-            action: 'log',
-            sessionId: session.id,
-            offset: 0,
-            limit: 5000,
-          }) as { ok: boolean; output?: string };
-
-          const logs = logResult.ok ? (logResult.output || '') : '';
-          await archiveSession(session, logs);
-          console.log(`[KuroryuuAgentsStore] Auto-archived session: ${session.id}`);
-        } catch (archiveErr) {
-          console.error('[KuroryuuAgentsStore] Failed to archive session:', archiveErr);
-        }
-      }
-
-      // Update previous IDs for next comparison (only running sessions)
-      const runningIds = new Set(liveSessions.filter(s => s.running).map(s => s.id));
-
-      // Reload archived sessions if we archived anything
-      if (completedSessions.length > 0) {
-        await get().loadArchivedSessions();
-        // Prune old sessions
-        await pruneOldSessions(100);
-      }
-
-      set({
-        sessions: liveSessions,
-        isLoading: false,
-        previousSessionIds: runningIds,
-      });
+      const sessions = await api.list();
+      set({ sessions, isLoading: false });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       set({ error: message, isLoading: false });
@@ -159,70 +88,120 @@ export const useKuroryuuAgentsStore = create<KuroryuuAgentsState>((set, get) => 
     set({ selectedSessionId: id });
   },
 
-  killSession: async (id) => {
+  startAgent: async (config) => {
     try {
-      const result = await mcpCall('k_process', { action: 'kill', sessionId: id }) as {
-        ok: boolean;
-        error?: string;
-      };
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        start: (config: SDKAgentConfig) => Promise<{ ok: boolean; sessionId?: string; error?: string }>;
+      }}}).electronAPI.sdkAgent;
 
+      const result = await api.start(config);
       if (!result.ok) {
-        console.error('[KuroryuuAgentsStore] killSession error:', result.error);
-        return false;
+        set({ error: result.error || 'Failed to start agent' });
+        return null;
       }
 
       // Refresh sessions list
       await get().loadSessions();
-      return true;
+      return result.sessionId || null;
     } catch (err) {
-      console.error('[KuroryuuAgentsStore] killSession error:', err);
-      return false;
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      set({ error: message });
+      console.error('[KuroryuuAgentsStore] startAgent error:', err);
+      return null;
     }
   },
 
-  sendInput: async (id, data) => {
+  stopAgent: async (sessionId) => {
     try {
-      const result = await mcpCall('k_process', {
-        action: 'submit',
-        sessionId: id,
-        data
-      }) as { ok: boolean; error?: string };
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        stop: (id: string) => Promise<{ ok: boolean; error?: string }>;
+      }}}).electronAPI.sdkAgent;
 
+      const result = await api.stop(sessionId);
       if (!result.ok) {
-        console.error('[KuroryuuAgentsStore] sendInput error:', result.error);
+        console.error('[KuroryuuAgentsStore] stopAgent error:', result.error);
         return false;
       }
+
+      await get().loadSessions();
       return true;
     } catch (err) {
-      console.error('[KuroryuuAgentsStore] sendInput error:', err);
+      console.error('[KuroryuuAgentsStore] stopAgent error:', err);
       return false;
     }
   },
 
-  getSessionLog: async (id, offset = 0, limit = 500) => {
+  resumeAgent: async (sessionId, prompt) => {
     try {
-      const result = await mcpCall('k_process', {
-        action: 'log',
-        sessionId: id,
-        offset,
-        limit,
-      }) as { ok: boolean; output?: string; error?: string };
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        resume: (id: string, prompt: string) => Promise<{ ok: boolean; sessionId?: string; error?: string }>;
+      }}}).electronAPI.sdkAgent;
 
+      const result = await api.resume(sessionId, prompt);
       if (!result.ok) {
-        console.error('[KuroryuuAgentsStore] getSessionLog error:', result.error);
-        return '';
+        set({ error: result.error || 'Failed to resume agent' });
+        return null;
       }
-      return result.output || '';
+
+      await get().loadSessions();
+      return result.sessionId || null;
     } catch (err) {
-      console.error('[KuroryuuAgentsStore] getSessionLog error:', err);
-      return '';
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      set({ error: message });
+      return null;
     }
   },
 
-  getArchivedLog: (id) => {
-    const { archivedSessions } = get();
-    const archived = archivedSessions.find(a => a.id === id);
-    return archived?.logs || null;
+  getSession: async (sessionId) => {
+    try {
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        get: (id: string) => Promise<SDKAgentSession | null>;
+      }}}).electronAPI.sdkAgent;
+
+      return await api.get(sessionId);
+    } catch (err) {
+      console.error('[KuroryuuAgentsStore] getSession error:', err);
+      return null;
+    }
+  },
+
+  getMessages: async (sessionId, offset = 0, limit = 100) => {
+    try {
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        getMessages: (id: string, offset?: number, limit?: number) => Promise<SerializedSDKMessage[]>;
+      }}}).electronAPI.sdkAgent;
+
+      return await api.getMessages(sessionId, offset, limit) as SerializedSDKMessage[];
+    } catch (err) {
+      console.error('[KuroryuuAgentsStore] getMessages error:', err);
+      return [];
+    }
+  },
+
+  getMessageCount: async (sessionId) => {
+    try {
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        getMessageCount: (id: string) => Promise<number>;
+      }}}).electronAPI.sdkAgent;
+
+      return await api.getMessageCount(sessionId);
+    } catch (err) {
+      console.error('[KuroryuuAgentsStore] getMessageCount error:', err);
+      return 0;
+    }
+  },
+
+  getRoles: async () => {
+    try {
+      const api = (window as unknown as { electronAPI: { sdkAgent: {
+        getRoles: () => Promise<Record<string, unknown>>;
+      }}}).electronAPI.sdkAgent;
+
+      return await api.getRoles();
+    } catch (err) {
+      console.error('[KuroryuuAgentsStore] getRoles error:', err);
+      return {};
+    }
   },
 
   deleteArchived: async (id) => {
@@ -235,30 +214,61 @@ export const useKuroryuuAgentsStore = create<KuroryuuAgentsState>((set, get) => 
     }
   },
 
-  startPolling: (intervalMs = 5000) => {
-    const { pollingInterval, loadSessions, loadArchivedSessions } = get();
+  subscribe: () => {
+    if (get().subscribed) return;
 
-    // Clear existing interval if any
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-    }
+    const sdkAgent = (window as unknown as { electronAPI: { sdkAgent: {
+      onMessage: (cb: (sid: string, msg: unknown) => void) => () => void;
+      onCompleted: (cb: (sid: string, result: unknown) => void) => () => void;
+      onStatusChange: (cb: (sid: string, status: string) => void) => () => void;
+    }}}).electronAPI.sdkAgent;
 
-    // Initial load - archived first, then live
-    loadArchivedSessions().then(() => loadSessions());
+    // Load initial data
+    get().loadArchivedSessions().then(() => get().loadSessions());
 
-    // Start polling
-    const interval = setInterval(() => {
-      loadSessions();
-    }, intervalMs);
+    // Subscribe to status changes to keep sessions list updated
+    const offStatus = sdkAgent.onStatusChange((_sid: string, _status: string) => {
+      // Refresh sessions on any status change
+      get().loadSessions();
+    });
 
-    set({ pollingInterval: interval });
+    // Subscribe to completion events for auto-archival
+    const offCompleted = sdkAgent.onCompleted(async (sid: string, _result: unknown) => {
+      console.log(`[KuroryuuAgentsStore] Session completed: ${sid}`);
+      await get().loadSessions();
+
+      // Auto-archive completed sessions
+      const session = get().sessions.find(s => s.id === sid);
+      if (session) {
+        try {
+          // Archive with a simple summary since SDK messages are in memory
+          const archivedData: ArchivedSessionData = {
+            id: session.id,
+            command: session.prompt,
+            workdir: session.cwd,
+            pty: false,
+            running: false,
+            started_at: new Date(session.startedAt).toISOString(),
+            exit_code: session.status === 'completed' ? 0 : 1,
+            output_lines: session.numTurns,
+          };
+          const logs = session.lastMessage || `Session ${session.status}. Cost: $${session.totalCostUsd.toFixed(4)}, Turns: ${session.numTurns}`;
+          await archiveSession(archivedData, logs);
+          await get().loadArchivedSessions();
+          await pruneOldSessions(100);
+        } catch (err) {
+          console.error('[KuroryuuAgentsStore] Auto-archive failed:', err);
+        }
+      }
+    });
+
+    cleanupFns = [offStatus, offCompleted];
+    set({ subscribed: true });
   },
 
-  stopPolling: () => {
-    const { pollingInterval } = get();
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
-      set({ pollingInterval: null });
-    }
+  unsubscribe: () => {
+    cleanupFns.forEach(fn => fn());
+    cleanupFns = [];
+    set({ subscribed: false });
   },
 }));

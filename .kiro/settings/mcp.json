@@ -1,8 +1,11 @@
 {
   "mcpServers": {
     "KURORYUU_MCP": {
-      "command": "~/.kiro/kuroryuu-mcp-wrapper.sh",
-      "env": {}
+      "command": "python",
+      "args": ["apps/mcp_stdio_bridge/main.py"],
+      "env": {
+        "KURORYUU_MCP_URL": "http://127.0.0.1:8100/mcp"
+      }
     }
   }
 }

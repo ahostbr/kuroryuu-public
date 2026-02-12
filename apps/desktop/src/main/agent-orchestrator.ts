@@ -8,48 +8,60 @@
 import { ipcMain } from 'electron';
 import { EventEmitter } from 'events';
 
-// Agent role definitions
+// Agent role definitions (SDK-native)
 export const AGENT_ROLES = {
   spec_gatherer: {
     name: 'Spec Gatherer',
     description: 'Collects requirements and context from user',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     tools: [],
+    allowedTools: ['Read', 'Glob', 'Grep', 'WebSearch', 'WebFetch'],
+    permissionMode: 'default' as const,
     systemPrompt: 'You gather specifications and requirements from the user. Ask clarifying questions to ensure complete understanding.',
   },
   spec_writer: {
     name: 'Spec Writer',
     description: 'Writes detailed technical specifications',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     tools: [],
+    allowedTools: ['Read', 'Write', 'Glob', 'Grep'],
+    permissionMode: 'acceptEdits' as const,
     systemPrompt: 'You write detailed technical specifications based on gathered requirements. Be thorough and precise.',
   },
   planner: {
     name: 'Planner',
     description: 'Creates task breakdown and execution plan',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     tools: ['inbox', 'rag'],
+    allowedTools: ['Read', 'Glob', 'Grep', 'WebSearch'],
+    permissionMode: 'plan' as const,
     systemPrompt: 'You create detailed execution plans and task breakdowns. Consider dependencies and optimal ordering.',
   },
   coder: {
     name: 'Coder',
     description: 'Implements code changes',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     tools: ['inbox', 'rag', 'checkpoint'],
+    allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep'],
+    permissionMode: 'acceptEdits' as const,
     systemPrompt: 'You implement code changes according to specifications. Write clean, well-documented code.',
   },
   reviewer: {
     name: 'Reviewer',
     description: 'Reviews code and provides feedback',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     tools: ['rag'],
+    allowedTools: ['Read', 'Glob', 'Grep'],
+    permissionMode: 'default' as const,
     systemPrompt: 'You review code for quality, correctness, and adherence to specifications. Provide constructive feedback.',
   },
   tester: {
     name: 'Tester',
     description: 'Creates and runs tests',
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5-20250929',
     tools: ['inbox', 'rag'],
+    allowedTools: ['Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep'],
+    permissionMode: 'acceptEdits' as const,
     systemPrompt: 'You create comprehensive tests and verify implementation correctness. Report any issues found.',
   },
 } as const;

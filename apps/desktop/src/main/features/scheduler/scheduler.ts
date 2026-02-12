@@ -24,6 +24,7 @@ import {
 } from './types';
 import { getSchedulerStorage, SchedulerStorage } from './storage';
 import { getSchedulerEngine, SchedulerEngine, calculateNextRun } from './engine';
+import { getClaudeSDKService } from '../../services/claude-sdk-service';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Module Metadata
@@ -63,6 +64,8 @@ export class SchedulerFeature implements IFeatureModule {
     private _isInitialized = false;
     private storage: SchedulerStorage;
     private engine: SchedulerEngine;
+    /** Maps jobId → SDK sessionId for running background jobs */
+    private sdkSessions = new Map<string, string>();
 
     constructor() {
         this.storage = getSchedulerStorage();
@@ -107,6 +110,15 @@ export class SchedulerFeature implements IFeatureModule {
 
     async shutdown(): Promise<FeatureResponse<void>> {
         try {
+            // Cancel all running SDK sessions
+            for (const [jobId, sessionId] of this.sdkSessions.entries()) {
+                console.log(`[Scheduler] Shutdown: cancelling SDK session ${sessionId} for job ${jobId}`);
+                try {
+                    await getClaudeSDKService().stopAgent(sessionId);
+                } catch { /* best-effort */ }
+            }
+            this.sdkSessions.clear();
+
             await this.engine.stop();
             this._isInitialized = false;
             return { ok: true };
@@ -270,9 +282,9 @@ export class SchedulerFeature implements IFeatureModule {
 
     async deleteJob(id: string): Promise<FeatureResponse<boolean>> {
         try {
-            // Kill any running background process first
-            await this.killBackgroundJob(id);
-            
+            // Cancel any running SDK session first
+            await this.cancelJob(id);
+
             const deleted = await this.storage.deleteJob(id);
             return { ok: true, result: deleted };
         } catch (err) {
@@ -408,9 +420,9 @@ export class SchedulerFeature implements IFeatureModule {
 
     async pauseJob(id: string): Promise<FeatureResponse<boolean>> {
         try {
-            // Kill any running background process first
-            await this.killBackgroundJob(id);
-            
+            // Cancel any running SDK session first
+            await this.cancelJob(id);
+
             const job = await this.storage.updateJob(id, { status: 'paused' });
             return { ok: true, result: !!job };
         } catch (err) {
@@ -521,253 +533,194 @@ export class SchedulerFeature implements IFeatureModule {
     // ---------------------------------------------------------------------------
 
     /**
-     * Kill a background job process if it's currently running
+     * Cancel a running SDK background job
      */
-    private async killBackgroundJob(jobId: string): Promise<void> {
-        const os = await import('os');
-        const fs = await import('fs/promises');
-        const path = await import('path');
-        const { exec } = await import('child_process');
-        const { promisify } = await import('util');
-        const execAsync = promisify(exec);
-
-        const pidDir = path.join(os.homedir(), '.claude', 'kuroryuu', 'pids');
-        const pidFile = path.join(pidDir, `job_${jobId}.pid`);
-
-        try {
-            // Check if PID file exists
-            const pidStr = await fs.readFile(pidFile, 'utf-8');
-            const pid = parseInt(pidStr.trim(), 10);
-
-            if (isNaN(pid)) {
-                console.log(`[Scheduler] Invalid PID in file for job ${jobId}`);
-                await fs.unlink(pidFile).catch(() => {});
-                return;
+    async cancelJob(jobId: string): Promise<void> {
+        const sessionId = this.sdkSessions.get(jobId);
+        if (sessionId) {
+            console.log(`[Scheduler] Cancelling SDK session ${sessionId} for job ${jobId}`);
+            try {
+                await getClaudeSDKService().stopAgent(sessionId);
+            } catch (err) {
+                console.log(`[Scheduler] SDK session may already be stopped:`, err);
             }
-
-            console.log(`[Scheduler] Attempting to kill background job ${jobId} with PID ${pid}`);
-
-            const isWindows = os.platform() === 'win32';
-
-            if (isWindows) {
-                // Windows: Use taskkill to terminate process tree
-                try {
-                    await execAsync(`taskkill /F /T /PID ${pid}`);
-                    console.log(`[Scheduler] Successfully killed job ${jobId} (PID ${pid})`);
-                } catch (killErr) {
-                    // Process might already be dead
-                    console.log(`[Scheduler] Process ${pid} may already be terminated`);
-                }
-            } else {
-                // Unix: Try to kill the process
-                try {
-                    process.kill(pid, 'SIGTERM');
-                    console.log(`[Scheduler] Sent SIGTERM to job ${jobId} (PID ${pid})`);
-                    
-                    // Wait a bit, then force kill if still alive
-                    setTimeout(() => {
-                        try {
-                            process.kill(pid, 'SIGKILL');
-                            console.log(`[Scheduler] Sent SIGKILL to job ${jobId} (PID ${pid})`);
-                        } catch {
-                            // Process already dead
-                        }
-                    }, 2000);
-                } catch (killErr) {
-                    console.log(`[Scheduler] Process ${pid} may already be terminated`);
-                }
-            }
-
-            // Clean up PID file
-            await fs.unlink(pidFile).catch(() => {});
-        } catch (err) {
-            // PID file doesn't exist or can't be read - job not running
-            if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-                console.error(`[Scheduler] Error killing background job ${jobId}:`, err);
-            }
+            this.sdkSessions.delete(jobId);
         }
     }
 
-    private async executeJobAction(job: ScheduledJob): Promise<void> {
+    private async executeJobAction(job: ScheduledJob): Promise<{ output?: string; metadata?: Record<string, unknown> } | void> {
         const action = job.action;
 
         switch (action.type) {
             case 'prompt':
-                await this.executePromptAction(job, action);
-                break;
+                return this.executePromptAction(job, action);
             case 'team':
-                await this.executeTeamAction(job, action);
-                break;
+                return this.executeTeamAction(job, action);
             case 'script':
                 await this.executeScriptAction(job, action);
-                break;
+                return;
             default:
                 throw new Error(`Unknown action type: ${(action as { type: string }).type}`);
         }
     }
 
-    private async executePromptAction(job: ScheduledJob, action: { type: 'prompt'; prompt: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive' }): Promise<void> {
+    private async executePromptAction(
+        job: ScheduledJob,
+        action: { type: 'prompt'; prompt: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive'; systemPrompt?: string; permissionMode?: string; maxTurns?: number; maxBudgetUsd?: number; timeoutMinutes?: number },
+    ): Promise<{ output?: string; metadata?: Record<string, unknown> } | void> {
         console.log(`[Scheduler] Executing prompt for job ${job.id}: "${action.prompt.substring(0, 50)}..."`);
 
-        const { exec, spawn } = await import('child_process');
         const os = await import('os');
-        const fs = await import('fs/promises');
-        const path = await import('path');
-
         const workdir = action.workdir || os.homedir();
-        const isWindows = os.platform() === 'win32';
         const executionMode = action.executionMode || 'background';
 
-        // PID file location
-        const pidDir = path.join(os.homedir(), '.claude', 'kuroryuu', 'pids');
-        const pidFile = path.join(pidDir, `job_${job.id}.pid`);
+        if (executionMode === 'interactive') {
+            // INTERACTIVE MODE: Visible terminal window with CLI (SDK has no terminal UI)
+            await this.executePromptInteractive(job, action, workdir);
+            return;
+        }
 
-        // Ensure PID directory exists
-        await fs.mkdir(pidDir, { recursive: true });
+        // BACKGROUND MODE: Use Claude Agent SDK
+        console.log(`[Scheduler] Running SDK BACKGROUND mode for job ${job.id}`);
+
+        const sdk = getClaudeSDKService();
+        const timeoutMinutes = action.timeoutMinutes ?? 60;
+
+        const sessionId = await sdk.startAgent({
+            prompt: action.prompt,
+            model: action.model || 'claude-sonnet-4-5-20250929',
+            cwd: workdir,
+            permissionMode: (action.permissionMode as 'bypassPermissions' | 'acceptEdits' | 'default' | 'plan') || 'bypassPermissions',
+            maxTurns: action.maxTurns,
+            maxBudgetUsd: action.maxBudgetUsd,
+            appendSystemPrompt: action.systemPrompt,
+            persistSession: false,
+        });
+
+        // Track SDK session for cancellation
+        this.sdkSessions.set(job.id, sessionId);
+        console.log(`[Scheduler] SDK session ${sessionId} started for job ${job.id}`);
+
+        // Wait for completion with optional timeout
+        const result = await new Promise<{ output?: string; metadata?: Record<string, unknown> }>((resolve, reject) => {
+            let timeoutHandle: NodeJS.Timeout | null = null;
+
+            const checkCompletion = () => {
+                const session = sdk.getSession(sessionId);
+                if (!session) {
+                    cleanup();
+                    reject(new Error('SDK session disappeared'));
+                    return;
+                }
+
+                if (session.status === 'completed' || session.status === 'error' || session.status === 'cancelled') {
+                    cleanup();
+
+                    if (session.status === 'error') {
+                        reject(new Error(session.errors?.join('; ') || 'SDK agent failed'));
+                        return;
+                    }
+
+                    resolve({
+                        output: session.result || `Agent completed in ${session.numTurns} turns`,
+                        metadata: {
+                            sessionId,
+                            costUsd: session.totalCostUsd,
+                            usage: session.usage,
+                            numTurns: session.numTurns,
+                            stopReason: session.stopReason,
+                        },
+                    });
+                }
+            };
+
+            const pollTimer = setInterval(checkCompletion, 2000);
+
+            const cleanup = () => {
+                clearInterval(pollTimer);
+                if (timeoutHandle) clearTimeout(timeoutHandle);
+                this.sdkSessions.delete(job.id);
+            };
+
+            // Timeout
+            if (timeoutMinutes > 0) {
+                timeoutHandle = setTimeout(async () => {
+                    console.log(`[Scheduler] Job ${job.id} timed out after ${timeoutMinutes} minutes`);
+                    try {
+                        await sdk.stopAgent(sessionId);
+                    } catch { /* may already be done */ }
+                    cleanup();
+                    reject(new Error(`SDK agent timed out after ${timeoutMinutes} minute(s)`));
+                }, timeoutMinutes * 60 * 1000);
+            }
+
+            // Immediate check in case it completed very fast
+            checkCompletion();
+        });
+
+        return result;
+    }
+
+    /**
+     * Interactive mode: Spawn visible terminal window with CLI (preserved from legacy)
+     */
+    private async executePromptInteractive(
+        job: ScheduledJob,
+        action: { prompt: string; workdir?: string; model?: string },
+        workdir: string,
+    ): Promise<void> {
+        const { exec, spawn } = await import('child_process');
+        const os = await import('os');
+        const isWindows = os.platform() === 'win32';
 
         if (isWindows) {
-            if (executionMode === 'interactive') {
-                // INTERACTIVE MODE: Visible PowerShell window, stays alive after completion
-                // Proper PowerShell escaping for special characters
-                const escapePowerShell = (str: string): string => {
-                    return str
-                        .replace(/'/g, "''")
-                        .replace(/`/g, "``")
-                        .replace(/\$/g, "`$")
-                        .replace(/\r?\n/g, "`n");
-                };
+            const escapePowerShell = (str: string): string => {
+                return str
+                    .replace(/'/g, "''")
+                    .replace(/`/g, "``")
+                    .replace(/\$/g, "`$")
+                    .replace(/\r?\n/g, "`n");
+            };
 
-                const escapedPrompt = escapePowerShell(action.prompt);
-                const escapedWorkdir = escapePowerShell(workdir);
-                const escapedJobName = escapePowerShell(job.name);
-                const modelCmd = action.model ? `--model ${action.model} ` : '';
+            const escapedPrompt = escapePowerShell(action.prompt);
+            const escapedWorkdir = escapePowerShell(workdir);
+            const escapedJobName = escapePowerShell(job.name);
+            const modelCmd = action.model ? `--model ${action.model} ` : '';
 
-                const cmd = `cmd /c start powershell -NoExit -Command "cd '${escapedWorkdir}'; Write-Host '=== Kuroryuu Scheduler ===' -ForegroundColor Cyan; Write-Host 'Job: ${escapedJobName}' -ForegroundColor Yellow; Write-Host 'Mode: Interactive' -ForegroundColor Gray; Start-Sleep -Seconds 1; claude '${escapedPrompt}' ${modelCmd}--dangerously-skip-permissions; Write-Host ''; Write-Host '=== Job Complete ===' -ForegroundColor Green; Write-Host 'CLI is still active - you can continue working' -ForegroundColor Gray"`;
+            const cmd = `cmd /c start powershell -NoExit -Command "cd '${escapedWorkdir}'; Write-Host '=== Kuroryuu Scheduler ===' -ForegroundColor Cyan; Write-Host 'Job: ${escapedJobName}' -ForegroundColor Yellow; Write-Host 'Mode: Interactive' -ForegroundColor Gray; Start-Sleep -Seconds 1; claude '${escapedPrompt}' ${modelCmd}--dangerously-skip-permissions; Write-Host ''; Write-Host '=== Job Complete ===' -ForegroundColor Green; Write-Host 'CLI is still active - you can continue working' -ForegroundColor Gray"`;
 
-                console.log(`[Scheduler] Running INTERACTIVE mode for job ${job.id}`);
+            console.log(`[Scheduler] Running INTERACTIVE mode for job ${job.id}`);
 
-                return new Promise<void>((resolve, reject) => {
-                    exec(cmd, { cwd: workdir }, (error) => {
-                        if (error) {
-                            console.error(`[Scheduler] exec error:`, error);
-                            reject(error);
-                            return;
-                        }
-                        console.log(`[Scheduler] Interactive PowerShell spawned for job ${job.id}`);
-                        resolve();
-                    });
-                });
-            } else {
-                // BACKGROUND MODE: Spawn Claude properly
-                // On Windows, claude.ps1 needs to be called via PowerShell
-                // Build argument array properly
-                const promptArgs = [action.prompt, '--dangerously-skip-permissions'];
-                if (action.model) {
-                    promptArgs.push('--model', action.model);
-                }
-
-                console.log(`[Scheduler] Running BACKGROUND mode for job ${job.id}`);
-                console.log(`[Scheduler] Args:`, promptArgs);
-
-                return new Promise<void>((resolve, reject) => {
-                    // Spawn via PowerShell to properly execute .ps1 scripts
-                    // Use -Command with & to invoke the script
-                    const psArgs = ['-NoProfile', '-Command', '&', 'claude', ...promptArgs];
-                    
-                    const proc = spawn('powershell.exe', psArgs, {
-                        cwd: workdir,
-                        detached: true,
-                        stdio: 'ignore',
-                        windowsHide: true,
-                    });
-
-                    const pid = proc.pid;
-                    if (pid) {
-                        // Write PID file for tracking and later termination
-                        fs.writeFile(pidFile, pid.toString(), 'utf-8').then(() => {
-                            console.log(`[Scheduler] Background job ${job.id} started with PID: ${pid}`);
-                        }).catch(err => {
-                            console.error(`[Scheduler] Failed to write PID file:`, err);
-                        });
+            return new Promise<void>((resolve, reject) => {
+                exec(cmd, { cwd: workdir }, (error) => {
+                    if (error) {
+                        console.error(`[Scheduler] exec error:`, error);
+                        reject(error);
+                        return;
                     }
-
-                    proc.unref();
-
-                    // Clean up PID file when process exits
-                    proc.on('exit', (code) => {
-                        console.log(`[Scheduler] Background job ${job.id} exited with code: ${code}`);
-                        fs.unlink(pidFile).catch(() => { });
-                    });
-
-                    proc.on('error', (err) => {
-                        console.error(`[Scheduler] Failed to spawn background job:`, err);
-                        fs.unlink(pidFile).catch(() => { });
-                        reject(err);
-                    });
-
-                    // Resolve immediately after spawn (don't wait for completion)
+                    console.log(`[Scheduler] Interactive PowerShell spawned for job ${job.id}`);
                     resolve();
                 });
-            }
+            });
         } else {
-            // Unix: run in background or foreground based on mode
-            if (executionMode === 'interactive') {
-                // Open new terminal window (try common terminals)
-                const args = [action.prompt, '--dangerously-skip-permissions'];
-                if (action.model) {
-                    args.push('--model', action.model);
-                }
-                
-                // Escape for shell
-                const escapedArgs = args.map(arg => `'${arg.replace(/'/g, "'\\''")}''`).join(' ');
-                const terminalCmd = `gnome-terminal -- bash -c "claude ${escapedArgs}; exec bash" || xterm -e "claude ${escapedArgs}; exec bash" || open -a Terminal.app "claude ${escapedArgs}"`;
+            const args = [action.prompt, '--dangerously-skip-permissions'];
+            if (action.model) {
+                args.push('--model', action.model);
+            }
 
-                return new Promise<void>((resolve, reject) => {
-                    exec(terminalCmd, { cwd: workdir }, (error) => {
-                        if (error) {
-                            console.error(`[Scheduler] exec error:`, error);
-                            reject(error);
-                            return;
-                        }
-                        resolve();
-                    });
-                });
-            } else {
-                // Background mode - direct spawn
-                const args = [action.prompt, '--dangerously-skip-permissions'];
-                if (action.model) {
-                    args.push('--model', action.model);
-                }
+            const escapedArgs = args.map(arg => `'${arg.replace(/'/g, "'\\''")}''`).join(' ');
+            const terminalCmd = `gnome-terminal -- bash -c "claude ${escapedArgs}; exec bash" || xterm -e "claude ${escapedArgs}; exec bash" || open -a Terminal.app "claude ${escapedArgs}"`;
 
-                return new Promise<void>((resolve, reject) => {
-                    const proc = spawn('claude', args, {
-                        cwd: workdir,
-                        detached: true,
-                        stdio: 'ignore',
-                    });
-
-                    const pid = proc.pid;
-                    if (pid) {
-                        // Write PID file
-                        fs.writeFile(pidFile, String(pid), 'utf-8').then(() => {
-                            console.log(`[Scheduler] Background job ${job.id} started with PID: ${pid}`);
-                        }).catch(() => { });
+            return new Promise<void>((resolve, reject) => {
+                exec(terminalCmd, { cwd: workdir }, (error) => {
+                    if (error) {
+                        console.error(`[Scheduler] exec error:`, error);
+                        reject(error);
+                        return;
                     }
-
-                    proc.unref();
-
-                    proc.on('exit', async () => {
-                        await fs.unlink(pidFile).catch(() => { });
-                    });
-
-                    proc.on('error', (err) => {
-                        fs.unlink(pidFile).catch(() => { });
-                        reject(err);
-                    });
-
                     resolve();
                 });
-            }
+            });
         }
     }
 
@@ -775,7 +728,7 @@ export class SchedulerFeature implements IFeatureModule {
 
 
 
-    private async executeTeamAction(job: ScheduledJob, action: { type: 'team'; teamId: string; taskIds?: string[]; executionStrategy?: 'direct' | 'prompt'; prompt?: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive' }): Promise<void> {
+    private async executeTeamAction(job: ScheduledJob, action: { type: 'team'; teamId: string; taskIds?: string[]; executionStrategy?: 'direct' | 'prompt'; prompt?: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive' }): Promise<{ output?: string; metadata?: Record<string, unknown> } | void> {
         const strategy = action.executionStrategy || 'prompt';
         console.log(`[Scheduler] Executing team ${action.teamId} for job ${job.id} (strategy: ${strategy})`);
 
@@ -805,7 +758,7 @@ export class SchedulerFeature implements IFeatureModule {
                 || `/k-spawnteam ${action.teamId}${taskList}`;
 
             // Delegate to executePromptAction with the team prompt
-            await this.executePromptAction(job, {
+            return this.executePromptAction(job, {
                 type: 'prompt',
                 prompt: teamPrompt,
                 workdir: action.workdir,

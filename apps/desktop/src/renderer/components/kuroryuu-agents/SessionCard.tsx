@@ -1,30 +1,47 @@
 /**
- * SessionCard - Displays a single coding agent session
+ * SessionCard - Displays a single SDK agent session summary
  */
-import { Square, Play, Trash2, Terminal, Clock, FolderOpen } from 'lucide-react';
-import type { KuroryuuAgentSession } from '../../stores/kuroryuu-agents-store';
+import { Square, Play, StopCircle, Clock, FolderOpen, DollarSign, Cpu, Wrench } from 'lucide-react';
+import type { SDKAgentSessionSummary } from '../../types/sdk-agent';
 
 interface SessionCardProps {
-  session: KuroryuuAgentSession;
+  session: SDKAgentSessionSummary;
   isSelected: boolean;
   onSelect: () => void;
-  onKill: () => void;
+  onStop: () => void;
 }
 
-export function SessionCard({ session, isSelected, onSelect, onKill }: SessionCardProps) {
-  const formatTime = (isoString: string) => {
+export function SessionCard({ session, isSelected, onSelect, onStop }: SessionCardProps) {
+  const formatTime = (ts: number) => {
     try {
-      const date = new Date(isoString);
-      return date.toLocaleTimeString();
+      return new Date(ts).toLocaleTimeString();
     } catch {
-      return isoString;
+      return '';
     }
   };
 
-  const truncateCommand = (cmd: string, maxLen = 60) => {
-    if (cmd.length <= maxLen) return cmd;
-    return cmd.slice(0, maxLen) + '...';
-  };
+  const isRunning = session.status === 'starting' || session.status === 'running';
+  const isError = session.status === 'error';
+
+  const statusColor = isRunning
+    ? 'text-green-400'
+    : isError
+      ? 'text-red-400'
+      : session.status === 'cancelled'
+        ? 'text-yellow-400'
+        : 'text-blue-400';
+
+  const statusLabel = session.status === 'starting'
+    ? 'Starting'
+    : session.status === 'running'
+      ? 'Running'
+      : session.status === 'completed'
+        ? 'Completed'
+        : session.status === 'error'
+          ? 'Error'
+          : 'Cancelled';
+
+  const truncate = (s: string, max = 80) => s.length <= max ? s : s.slice(0, max) + '...';
 
   return (
     <div
@@ -37,66 +54,84 @@ export function SessionCard({ session, isSelected, onSelect, onKill }: SessionCa
         }
       `}
     >
-      {/* Header: Status + ID */}
+      {/* Header: Status + Role */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          {session.running ? (
-            <span className="flex items-center gap-1 text-green-400 text-xs font-medium">
+          {isRunning ? (
+            <span className={`flex items-center gap-1 ${statusColor} text-xs font-medium`}>
               <Play className="w-3 h-3 fill-current" />
-              Running
+              {statusLabel}
             </span>
           ) : (
-            <span className={`flex items-center gap-1 text-xs font-medium ${
-              session.exit_code === 0 ? 'text-blue-400' : 'text-red-400'
-            }`}>
+            <span className={`flex items-center gap-1 ${statusColor} text-xs font-medium`}>
               <Square className="w-3 h-3 fill-current" />
-              {session.exit_code === 0 ? 'Completed' : `Exit ${session.exit_code}`}
+              {statusLabel}
+            </span>
+          )}
+          {session.role && (
+            <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-medium">
+              {session.role}
             </span>
           )}
         </div>
-        <span className="text-xs text-muted-foreground font-mono">
-          {session.id}
+        <span className="text-[10px] text-muted-foreground font-mono">
+          {session.id.slice(0, 8)}
         </span>
       </div>
 
-      {/* Command */}
-      <div className="flex items-start gap-2 mb-3">
-        <Terminal className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-        <code className="text-sm text-foreground break-all">
-          {truncateCommand(session.command)}
-        </code>
+      {/* Prompt */}
+      <div className="text-sm text-foreground mb-2 break-words">
+        {truncate(session.prompt)}
       </div>
 
+      {/* Current tool */}
+      {isRunning && session.currentTool && (
+        <div className="flex items-center gap-1.5 mb-2 text-xs text-cyan-400">
+          <Wrench className="w-3 h-3" />
+          <span className="font-mono">{session.currentTool}</span>
+        </div>
+      )}
+
       {/* Metadata row */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1" title={session.workdir}>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+        <span className="flex items-center gap-1" title={session.cwd}>
           <FolderOpen className="w-3 h-3" />
-          {session.workdir.split(/[/\\]/).pop()}
+          {session.cwd.split(/[/\\]/).pop()}
         </span>
         <span className="flex items-center gap-1">
           <Clock className="w-3 h-3" />
-          {formatTime(session.started_at)}
+          {formatTime(session.startedAt)}
         </span>
-        {session.pty && (
-          <span className="px-1.5 py-0.5 rounded bg-secondary text-xs">PTY</span>
+        <span className="flex items-center gap-1">
+          <Cpu className="w-3 h-3" />
+          {session.numTurns}t
+        </span>
+        {session.totalCostUsd > 0 && (
+          <span className="flex items-center gap-1">
+            <DollarSign className="w-3 h-3" />
+            ${session.totalCostUsd.toFixed(3)}
+          </span>
         )}
-        <span className="ml-auto">
-          {session.output_lines} lines
-        </span>
+        {session.toolCallCount > 0 && (
+          <span className="flex items-center gap-1">
+            <Wrench className="w-3 h-3" />
+            {session.toolCallCount}
+          </span>
+        )}
       </div>
 
-      {/* Actions */}
-      {session.running && (
+      {/* Stop button */}
+      {isRunning && (
         <div className="mt-3 pt-3 border-t border-border/50">
           <button
             onClick={(e) => {
               e.stopPropagation();
-              onKill();
+              onStop();
             }}
             className="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-red-400 hover:bg-red-400/10 transition-colors"
           >
-            <Trash2 className="w-3 h-3" />
-            Kill
+            <StopCircle className="w-3 h-3" />
+            Stop
           </button>
         </div>
       )}

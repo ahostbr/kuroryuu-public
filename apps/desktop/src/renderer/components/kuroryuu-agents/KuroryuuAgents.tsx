@@ -1,18 +1,20 @@
 /**
- * KuroryuuAgents - Main panel for monitoring background coding agent sessions
+ * KuroryuuAgents - Main panel for monitoring SDK-based coding agent sessions
  *
- * Shows sessions spawned via k_bash and monitored via k_process.
- * Features two views: Sessions (list) and Agent Flow (graph)
+ * Shows sessions managed by Claude Agent SDK via IPC.
+ * Features three views: Sessions (list), Agent Flow (graph), Terminal Agents
  */
 import { useEffect, useState } from 'react';
-import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users } from 'lucide-react';
+import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users, Plus } from 'lucide-react';
 import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
 import { SessionCard } from './SessionCard';
-import { SessionLogViewer } from './SessionLogViewer';
+import { SdkMessageRenderer } from './SdkMessageRenderer';
 import { AgentFlowPanel } from './AgentFlowPanel';
 import { FindingsToTasksModal } from './FindingsToTasksModal';
 import { AgentsEmptyState } from './AgentsEmptyState';
 import { AgentsTab } from '../command-center/tabs/AgentsTab';
+import { SpawnAgentDialog } from './SpawnAgentDialog';
+import type { SDKAgentConfig } from '../../types/sdk-agent';
 
 type ViewTab = 'sessions' | 'flow' | 'terminal-agents';
 
@@ -25,36 +27,47 @@ export function KuroryuuAgents() {
     error,
     loadSessions,
     selectSession,
-    killSession,
+    stopAgent,
+    startAgent,
     deleteArchived,
-    startPolling,
-    stopPolling,
+    subscribe,
+    unsubscribe,
   } = useKuroryuuAgentsStore();
 
   // Tab state
   const [activeTab, setActiveTab] = useState<ViewTab>('sessions');
 
+  // Spawn dialog state
+  const [showSpawnDialog, setShowSpawnDialog] = useState(false);
+
   // Findings modal state
   const [findingsModalOpen, setFindingsModalOpen] = useState(false);
 
-  // Start polling on mount, stop on unmount
+  // Subscribe to SDK events on mount, unsubscribe on unmount
   useEffect(() => {
-    startPolling(5000);
-    return () => stopPolling();
-  }, [startPolling, stopPolling]);
+    subscribe();
+    return () => unsubscribe();
+  }, [subscribe, unsubscribe]);
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
   const selectedArchived = archivedSessions.find((a) => a.id === selectedSessionId);
-  const runningSessions = sessions.filter((s) => s.running);
-  const stoppedSessions = sessions.filter((s) => !s.running);
+  const runningSessions = sessions.filter((s) => s.status === 'starting' || s.status === 'running');
+  const completedSessions = sessions.filter((s) => s.status !== 'starting' && s.status !== 'running');
   // Filter archived sessions that aren't in the live sessions list
   const liveSessionIds = new Set(sessions.map(s => s.id));
   const displayedArchived = archivedSessions.filter(a => !liveSessionIds.has(a.id));
 
-  const handleKill = async (sessionId: string) => {
-    await killSession(sessionId);
+  const handleStop = async (sessionId: string) => {
+    await stopAgent(sessionId);
     if (selectedSessionId === sessionId) {
       selectSession(null);
+    }
+  };
+
+  const handleSpawn = async (config: SDKAgentConfig) => {
+    const sessionId = await startAgent(config);
+    if (sessionId) {
+      selectSession(sessionId);
     }
   };
 
@@ -108,14 +121,23 @@ export function KuroryuuAgents() {
             </button>
           </div>
         </div>
-        <button
-          onClick={() => loadSessions()}
-          disabled={isLoading}
-          className="flex items-center gap-2 px-3 py-1.5 rounded bg-secondary hover:bg-secondary/80 transition-colors text-sm"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSpawnDialog(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Spawn
+          </button>
+          <button
+            onClick={() => loadSessions()}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-3 py-1.5 rounded bg-secondary hover:bg-secondary/80 transition-colors text-sm"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Error Banner */}
@@ -138,9 +160,9 @@ export function KuroryuuAgents() {
             {sessions.length === 0 && displayedArchived.length === 0 ? (
               <div className="text-center py-12">
                 <Bot className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground text-sm">No Kuroryuu agent sessions</p>
+                <p className="text-muted-foreground text-sm">No agent sessions</p>
                 <p className="text-muted-foreground/60 text-xs mt-2">
-                  Use k_bash with background=true to spawn agents
+                  Click "Spawn" to start an SDK agent
                 </p>
               </div>
             ) : (
@@ -158,34 +180,34 @@ export function KuroryuuAgents() {
                           session={session}
                           isSelected={selectedSessionId === session.id}
                           onSelect={() => selectSession(session.id)}
-                          onKill={() => handleKill(session.id)}
+                          onStop={() => handleStop(session.id)}
                         />
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Completed Sessions (live) */}
-                {stoppedSessions.length > 0 && (
+                {/* Completed Sessions */}
+                {completedSessions.length > 0 && (
                   <div>
                     <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
-                      Completed ({stoppedSessions.length})
+                      Completed ({completedSessions.length})
                     </h3>
                     <div className="space-y-2">
-                      {stoppedSessions.map((session) => (
+                      {completedSessions.map((session) => (
                         <SessionCard
                           key={session.id}
                           session={session}
                           isSelected={selectedSessionId === session.id}
                           onSelect={() => selectSession(session.id)}
-                          onKill={() => handleKill(session.id)}
+                          onStop={() => handleStop(session.id)}
                         />
                       ))}
                     </div>
                   </div>
                 )}
 
-                {/* Archived Sessions (persisted) */}
+                {/* Archived Sessions */}
                 {displayedArchived.length > 0 && (
                   <div>
                     <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
@@ -205,7 +227,7 @@ export function KuroryuuAgents() {
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-mono text-xs text-primary truncate flex-1">
-                              {archived.id}
+                              {archived.id.slice(0, 12)}
                             </span>
                             <button
                               onClick={(e) => {
@@ -227,7 +249,7 @@ export function KuroryuuAgents() {
                                 ? 'bg-blue-500/20 text-blue-400'
                                 : 'bg-red-500/20 text-red-400'
                             }`}>
-                              Exit {archived.session.exit_code}
+                              {archived.session.exit_code === 0 ? 'OK' : `Exit ${archived.session.exit_code}`}
                             </span>
                             <span className="text-[10px] text-muted-foreground">
                               {new Date(archived.archived_at).toLocaleDateString()}
@@ -242,37 +264,57 @@ export function KuroryuuAgents() {
             )}
           </div>
 
-          {/* Log Viewer */}
-          <div className="flex-1 p-4 overflow-hidden">
+          {/* Message Viewer */}
+          <div className="flex-1 overflow-hidden flex flex-col">
             {selectedSession ? (
-              <SessionLogViewer
-                session={selectedSession}
-                onKill={() => handleKill(selectedSession.id)}
-                onClose={() => selectSession(null)}
-              />
+              <div className="h-full flex flex-col bg-card rounded-lg border border-border m-4">
+                {/* Session Header */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-sm text-primary">{selectedSession.id.slice(0, 12)}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      selectedSession.status === 'running' || selectedSession.status === 'starting'
+                        ? 'bg-green-500/20 text-green-400'
+                        : selectedSession.status === 'completed'
+                          ? 'bg-blue-500/20 text-blue-400'
+                          : 'bg-red-500/20 text-red-400'
+                    }`}>
+                      {selectedSession.status}
+                    </span>
+                    {selectedSession.role && (
+                      <span className="px-2 py-0.5 rounded bg-primary/20 text-primary text-xs">
+                        {selectedSession.role}
+                      </span>
+                    )}
+                    {selectedSession.totalCostUsd > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        ${selectedSession.totalCostUsd.toFixed(4)}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => selectSession(null)}
+                    className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                {/* SDK Message Stream */}
+                <SdkMessageRenderer sessionId={selectedSession.id} />
+              </div>
             ) : selectedArchived ? (
               /* Archived Session Log Viewer */
-              <div className="h-full flex flex-col bg-card rounded-lg border border-border">
+              <div className="h-full flex flex-col bg-card rounded-lg border border-border m-4">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Archive className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-mono text-sm text-primary">{selectedArchived.id}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${
-                      selectedArchived.session.exit_code === 0
-                        ? 'bg-blue-500/20 text-blue-400'
-                        : 'bg-red-500/20 text-red-400'
-                    }`}>
-                      Exit {selectedArchived.session.exit_code}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      (Archived)
-                    </span>
+                    <span className="font-mono text-sm text-primary">{selectedArchived.id.slice(0, 12)}</span>
+                    <span className="text-xs text-muted-foreground">(Archived)</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setFindingsModalOpen(true)}
                       className="flex items-center gap-1.5 px-2.5 py-1 text-xs bg-primary/20 border border-primary/50 text-primary rounded hover:bg-primary/40 transition-colors"
-                      title="Convert findings to tasks"
                     >
                       <ClipboardList className="w-3.5 h-3.5" />
                       Tasks
@@ -280,14 +322,12 @@ export function KuroryuuAgents() {
                     <button
                       onClick={() => deleteArchived(selectedArchived.id)}
                       className="p-1.5 rounded hover:bg-red-500/20 transition-colors text-red-400"
-                      title="Delete archived session"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => selectSession(null)}
                       className="p-1.5 rounded hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-                      title="Close"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -305,11 +345,18 @@ export function KuroryuuAgents() {
           </div>
         </div>
       ) : (
-        /* Agent Flow Graph View - Self-contained with embedded log viewer */
+        /* Agent Flow Graph View */
         <div className="flex-1 overflow-hidden">
           <AgentFlowPanel />
         </div>
       )}
+
+      {/* Spawn Dialog */}
+      <SpawnAgentDialog
+        isOpen={showSpawnDialog}
+        onClose={() => setShowSpawnDialog(false)}
+        onSpawn={handleSpawn}
+      />
 
       {/* Findings to Tasks Modal */}
       {selectedArchived && (

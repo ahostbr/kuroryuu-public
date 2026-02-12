@@ -15,6 +15,7 @@ import {
     History,
     List,
     MapPin,
+    Square,
 } from 'lucide-react';
 import { useSchedulerStore } from '../../stores/scheduler-store';
 import type { ScheduledJob, ScheduledEvent, Schedule, JobAction } from '../../types/scheduler';
@@ -75,13 +76,14 @@ interface JobCardProps {
     job: ScheduledJob;
     onEdit: (job: ScheduledJob) => void;
     onRunNow: (id: string) => void;
+    onCancel: (id: string) => void;
     onPause: (id: string) => void;
     onResume: (id: string) => void;
     onDelete: (id: string) => void;
     onViewHistory: (id: string) => void;
 }
 
-function JobCard({ job, onEdit, onRunNow, onPause, onResume, onDelete, onViewHistory }: JobCardProps) {
+function JobCard({ job, onEdit, onRunNow, onCancel, onPause, onResume, onDelete, onViewHistory }: JobCardProps) {
     const statusColors = {
         idle: 'text-green-400',
         running: 'text-blue-400 animate-pulse',
@@ -172,6 +174,15 @@ function JobCard({ job, onEdit, onRunNow, onPause, onResume, onDelete, onViewHis
                     <Play className="w-3.5 h-3.5" />
                     Run Now
                 </button>
+                {job.status === 'running' && (
+                    <button
+                        onClick={() => onCancel(job.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm"
+                    >
+                        <Square className="w-3.5 h-3.5" />
+                        Cancel
+                    </button>
+                )}
                 {job.status === 'paused' ? (
                     <button
                         onClick={() => onResume(job.id)}
@@ -304,6 +315,7 @@ export function SchedulerPanel() {
         loadEvents,
         loadSettings,
         runJobNow,
+        cancelJob,
         pauseJob,
         resumeJob,
         deleteJob,
@@ -526,6 +538,7 @@ export function SchedulerPanel() {
                                                 job={job}
                                                 onEdit={openEditor}
                                                 onRunNow={runJobNow}
+                                                onCancel={cancelJob}
                                                 onPause={pauseJob}
                                                 onResume={resumeJob}
                                                 onDelete={handleDelete}
