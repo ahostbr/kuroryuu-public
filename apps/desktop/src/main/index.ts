@@ -50,6 +50,7 @@ import { registerCLIProxyHandlers } from './ipc/cliproxy-handlers';
 import { getCLIProxyNativeManager } from './services/cliproxy-native';
 import { registerTaskHandlers } from './ipc/task-handlers';
 import { setupSchedulerIpc, cleanupSchedulerIpc } from './ipc/scheduler-handlers';
+import { setupIdentityIpc, cleanupIdentityIpc } from './ipc/identity-handlers';
 import { registerBackupHandlers } from './ipc/backup-handlers';
 import { registerMarketingHandlers } from './ipc/marketing-handlers';
 import { registerLLMAppsHandlers } from './ipc/llm-apps-handlers';
@@ -4220,6 +4221,9 @@ app.whenReady().then(async () => {
 
   // Initialize scheduler feature module
   setupSchedulerIpc().catch(err => console.error('[Main] Scheduler init failed:', err));
+
+  // Initialize identity/personal assistant
+  setupIdentityIpc().catch(err => console.error('[Main] Identity init failed:', err));
 
   // Initialize task service with project root
   const taskServiceProjectRoot = process.env.KURORYUU_ROOT || join(__dirname, '../../../..');

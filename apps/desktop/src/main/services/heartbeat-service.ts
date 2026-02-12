@@ -1,0 +1,433 @@
+/**
+ * Heartbeat Service
+ *
+ * Manages the heartbeat lifecycle — creates/updates a scheduler job that
+ * periodically runs a prompt with identity context. Reads identity files,
+ * builds the prompt, and logs heartbeat runs + actions.
+ */
+
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import { BrowserWindow, Notification, ipcMain } from 'electron';
+import { getScheduler } from '../ipc/scheduler-handlers';
+import { getIdentityService } from './identity-service';
+import type { IdentityService } from './identity-service';
+import { isSuccess } from '../features/base';
+import type {
+    HeartbeatConfig,
+    HeartbeatRun,
+    HeartbeatNotificationMode,
+    ActionType,
+    ActionExecutionMode,
+} from '../../renderer/types/identity';
+import type { CreateJobParams, ScheduledJob } from '../features/scheduler/types';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Constants
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const HEARTBEAT_JOB_TAG = 'heartbeat-personal-assistant';
+const HEARTBEAT_JOB_NAME = 'Kuroryuu Personal Assistant Heartbeat';
+const MAX_LINES_PER_FILE = 50;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Config persistence
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const CONFIG_DIR = path.join(os.homedir(), '.claude', 'kuroryuu');
+const CONFIG_FILE = path.join(CONFIG_DIR, 'heartbeat-config.json');
+
+const DEFAULT_CONFIG: HeartbeatConfig = {
+    enabled: false,
+    intervalMinutes: 30,
+    notificationMode: 'toast',
+    perActionMode: {
+        create_task: 'proposal_first',
+        update_identity: 'direct',
+        memory_update: 'direct',
+        scheduler_job: 'proposal_first',
+    },
+};
+
+async function loadConfig(): Promise<HeartbeatConfig> {
+    try {
+        const content = await fs.promises.readFile(CONFIG_FILE, 'utf-8');
+        return JSON.parse(content) as HeartbeatConfig;
+    } catch {
+        return { ...DEFAULT_CONFIG };
+    }
+}
+
+async function saveConfig(config: HeartbeatConfig): Promise<void> {
+    await fs.promises.mkdir(CONFIG_DIR, { recursive: true });
+    const tempFile = CONFIG_FILE + '.tmp';
+    await fs.promises.writeFile(tempFile, JSON.stringify(config, null, 2), 'utf-8');
+    await fs.promises.rename(tempFile, CONFIG_FILE);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Service Class
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export class HeartbeatService {
+    private identityService: IdentityService;
+    private config: HeartbeatConfig | null = null;
+
+    constructor() {
+        this.identityService = getIdentityService();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Config
+    // ---------------------------------------------------------------------------
+
+    async getConfig(): Promise<HeartbeatConfig> {
+        if (!this.config) {
+            this.config = await loadConfig();
+        }
+        return { ...this.config };
+    }
+
+    async setEnabled(enabled: boolean): Promise<void> {
+        const config = await this.getConfig();
+        config.enabled = enabled;
+        this.config = config;
+        await saveConfig(config);
+        await this.syncJob();
+    }
+
+    async setInterval(minutes: number): Promise<void> {
+        const config = await this.getConfig();
+        config.intervalMinutes = Math.max(5, Math.min(1440, minutes));
+        this.config = config;
+        await saveConfig(config);
+        await this.syncJob();
+    }
+
+    async setNotificationMode(mode: HeartbeatNotificationMode): Promise<void> {
+        const config = await this.getConfig();
+        config.notificationMode = mode;
+        this.config = config;
+        await saveConfig(config);
+    }
+
+    async setPerActionMode(actionType: ActionType, mode: ActionExecutionMode): Promise<void> {
+        const config = await this.getConfig();
+        config.perActionMode[actionType] = mode;
+        this.config = config;
+        await saveConfig(config);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Status
+    // ---------------------------------------------------------------------------
+
+    async getStatus(): Promise<{
+        config: HeartbeatConfig;
+        jobExists: boolean;
+        jobStatus: string | null;
+        lastRun: number | null;
+        nextRun: number | null;
+    }> {
+        const config = await this.getConfig();
+        const job = await this.findHeartbeatJob();
+
+        return {
+            config,
+            jobExists: !!job,
+            jobStatus: job?.status ?? null,
+            lastRun: job?.lastRun ?? null,
+            nextRun: job?.nextRun ?? null,
+        };
+    }
+
+    // ---------------------------------------------------------------------------
+    // Scheduler Job Management
+    // ---------------------------------------------------------------------------
+
+    async syncJob(): Promise<void> {
+        const scheduler = getScheduler();
+        if (!scheduler) {
+            console.warn('[Heartbeat] Scheduler not available, cannot sync job');
+            return;
+        }
+
+        const config = await this.getConfig();
+        const existingJob = await this.findHeartbeatJob();
+
+        if (!config.enabled) {
+            if (existingJob && existingJob.enabled) {
+                await scheduler.updateJob({
+                    id: existingJob.id,
+                    enabled: false,
+                });
+                console.log('[Heartbeat] Disabled heartbeat job');
+            }
+            return;
+        }
+
+        const prompt = await this.buildHeartbeatPrompt();
+
+        if (existingJob) {
+            await scheduler.updateJob({
+                id: existingJob.id,
+                enabled: true,
+                schedule: {
+                    type: 'interval',
+                    every: config.intervalMinutes,
+                    unit: 'minutes',
+                },
+                action: {
+                    type: 'prompt',
+                    prompt,
+                    executionMode: 'background',
+                    permissionMode: 'default',
+                    maxTurns: 10,
+                    timeoutMinutes: 5,
+                },
+            });
+            console.log('[Heartbeat] Updated heartbeat job');
+        } else {
+            const params: CreateJobParams = {
+                name: HEARTBEAT_JOB_NAME,
+                description: 'Proactive personal assistant heartbeat — checks tasks, project health, and updates identity',
+                schedule: {
+                    type: 'interval',
+                    every: config.intervalMinutes,
+                    unit: 'minutes',
+                },
+                action: {
+                    type: 'prompt',
+                    prompt,
+                    executionMode: 'background',
+                    permissionMode: 'default',
+                    maxTurns: 10,
+                    timeoutMinutes: 5,
+                },
+                enabled: true,
+                tags: [HEARTBEAT_JOB_TAG, 'personal-assistant'],
+                notifyOnComplete: false,
+                notifyOnError: true,
+            };
+            await scheduler.createJob(params);
+            console.log('[Heartbeat] Created heartbeat job');
+        }
+    }
+
+    async runNow(): Promise<{ ok: boolean; error?: string }> {
+        const scheduler = getScheduler();
+        if (!scheduler) {
+            return { ok: false, error: 'Scheduler not available' };
+        }
+
+        let job = await this.findHeartbeatJob();
+        if (!job) {
+            await this.syncJob();
+            job = await this.findHeartbeatJob();
+            if (!job) {
+                return { ok: false, error: 'Failed to create heartbeat job' };
+            }
+        }
+
+        // Refresh prompt before running
+        const prompt = await this.buildHeartbeatPrompt();
+        await scheduler.updateJob({
+            id: job.id,
+            action: {
+                type: 'prompt',
+                prompt,
+                executionMode: 'background',
+                permissionMode: 'default',
+                maxTurns: 10,
+                timeoutMinutes: 5,
+            },
+        });
+
+        const result = await scheduler.runJobNow(job.id);
+        if (isSuccess(result) && result.result) {
+            return result.result;
+        }
+        return { ok: false, error: !isSuccess(result) ? result.error : 'Unknown error' };
+    }
+
+    // ---------------------------------------------------------------------------
+    // Prompt Building
+    // ---------------------------------------------------------------------------
+
+    async buildHeartbeatPrompt(): Promise<string> {
+        const profile = await this.identityService.getProfile();
+        const config = await this.getConfig();
+
+        const truncate = (content: string, label: string): string => {
+            const lines = content.split('\n');
+            if (lines.length > MAX_LINES_PER_FILE) {
+                console.warn(`[Heartbeat] Truncating ${label} from ${lines.length} to ${MAX_LINES_PER_FILE} lines`);
+                return lines.slice(0, MAX_LINES_PER_FILE).join('\n') + '\n\n[... truncated]';
+            }
+            return content;
+        };
+
+        // Check for gh CLI
+        let ghAvailable = false;
+        try {
+            const { execSync } = require('child_process');
+            execSync('where gh', { stdio: 'pipe' });
+            ghAvailable = true;
+        } catch {
+            // gh not found
+        }
+
+        const actionModes = Object.entries(config.perActionMode)
+            .map(([type, mode]) => `- ${type}: ${mode}`)
+            .join('\n');
+
+        return `You are the Kuroryuu Personal Assistant performing a scheduled heartbeat check.
+
+## Your Identity
+
+### Soul
+${truncate(profile.soul.content, 'soul')}
+
+### User Preferences
+${truncate(profile.user.content, 'user')}
+
+### Long-Term Memory
+${truncate(profile.memory.content, 'memory')}
+
+### Standing Instructions
+${truncate(profile.heartbeat.content, 'heartbeat')}
+
+## Execution Rules
+
+Action execution modes:
+${actionModes}
+
+- For "direct" actions: Execute immediately
+- For "proposal_first" actions: Log as proposals in ai/identity/actions.json but do not execute
+
+${ghAvailable ? '- GitHub CLI (gh) is available for repository checks' : '- GitHub CLI (gh) is NOT available — skip GitHub-related checks'}
+
+## Output Format
+
+After performing your checks, write your findings to:
+1. ai/identity/actions.json — any actions taken or proposed
+2. ai/identity/mutations.jsonl — any identity file updates (append JSONL)
+3. Update identity files directly if you have high-confidence improvements
+
+Keep the heartbeat run under 5 minutes. Focus on the most impactful observations.`;
+    }
+
+    // ---------------------------------------------------------------------------
+    // Heartbeat Run Logging
+    // ---------------------------------------------------------------------------
+
+    async logHeartbeatRun(run: HeartbeatRun): Promise<void> {
+        await this.identityService.addHeartbeatRun(run);
+
+        const config = await this.getConfig();
+        const hasActions = run.actionsGenerated > 0;
+        const isFailed = run.status === 'failed';
+
+        // Always send IPC event to renderer (for badge count)
+        if (hasActions || isFailed) {
+            const windows = BrowserWindow.getAllWindows();
+            for (const win of windows) {
+                if (!win.isDestroyed()) {
+                    win.webContents.send('identity:heartbeat:completed', {
+                        actionsCount: run.actionsGenerated,
+                        status: run.status,
+                    });
+                }
+            }
+        }
+
+        // Notification based on configured mode
+        if (hasActions || isFailed) {
+            const title = isFailed
+                ? 'Heartbeat: Error'
+                : `Heartbeat: ${run.actionsGenerated} action${run.actionsGenerated !== 1 ? 's' : ''}`;
+            const body = isFailed
+                ? run.error ?? 'Heartbeat failed'
+                : `${run.actionsGenerated} action${run.actionsGenerated !== 1 ? 's' : ''} executed`;
+
+            await this.sendNotification(config.notificationMode, title, body);
+        }
+
+        // Archive expired actions on each heartbeat
+        await this.identityService.archiveExpiredActions();
+    }
+
+    // ---------------------------------------------------------------------------
+    // Notification Dispatch
+    // ---------------------------------------------------------------------------
+
+    private async sendNotification(mode: HeartbeatNotificationMode, title: string, body: string): Promise<void> {
+        switch (mode) {
+            case 'none':
+                break;
+
+            case 'toast':
+                // Toast is handled renderer-side via the IPC event already sent above
+                // The renderer's onHeartbeatCompleted listener shows toast via the store
+                break;
+
+            case 'os':
+                try {
+                    const notification = new Notification({ title, body, urgency: 'normal' });
+                    notification.show();
+                } catch (err) {
+                    console.error('[Heartbeat] Failed to show OS notification:', err);
+                }
+                break;
+
+            case 'tts':
+                try {
+                    // Use the TTS IPC channel directly (same as renderer would)
+                    // ipcMain.handle is async, so we invoke the TTS module via the handler
+                    const { TTSModule } = require('../features/tts/module');
+                    // Access the global ttsModule if available
+                    const ttsResult = await new Promise<void>((resolve) => {
+                        // Fire and forget — trigger tts:speak through the IPC system
+                        const windows = BrowserWindow.getAllWindows();
+                        const win = windows.find(w => !w.isDestroyed());
+                        if (win) {
+                            win.webContents.send('identity:heartbeat:tts', `${title}. ${body}`);
+                        }
+                        resolve();
+                    });
+                } catch (err) {
+                    console.error('[Heartbeat] Failed to trigger TTS notification:', err);
+                }
+                break;
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+
+    private async findHeartbeatJob(): Promise<ScheduledJob | null> {
+        const scheduler = getScheduler();
+        if (!scheduler) return null;
+
+        const result = await scheduler.listJobs();
+        if (isSuccess(result) && result.result) {
+            return result.result.find(j => j.tags?.includes(HEARTBEAT_JOB_TAG)) ?? null;
+        }
+        return null;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Singleton
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let _heartbeat: HeartbeatService | null = null;
+
+export function getHeartbeatService(): HeartbeatService {
+    if (!_heartbeat) {
+        _heartbeat = new HeartbeatService();
+    }
+    return _heartbeat;
+}

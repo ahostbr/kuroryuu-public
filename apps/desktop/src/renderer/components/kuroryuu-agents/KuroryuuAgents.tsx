@@ -5,8 +5,9 @@
  * Features three views: Sessions (list), Agent Flow (graph), Terminal Agents
  */
 import { useEffect, useState } from 'react';
-import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users, Plus } from 'lucide-react';
+import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users, Plus, Brain } from 'lucide-react';
 import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
+import { useIdentityStore } from '../../stores/identity-store';
 import { SessionCard } from './SessionCard';
 import { SdkMessageRenderer } from './SdkMessageRenderer';
 import { AgentFlowPanel } from './AgentFlowPanel';
@@ -14,9 +15,11 @@ import { FindingsToTasksModal } from './FindingsToTasksModal';
 import { AgentsEmptyState } from './AgentsEmptyState';
 import { AgentsTab } from '../command-center/tabs/AgentsTab';
 import { SpawnAgentDialog } from './SpawnAgentDialog';
+import { AssistantPanel } from '../personal-assistant';
+import { toast } from '../ui/toast';
 import type { SDKAgentConfig } from '../../types/sdk-agent';
 
-type ViewTab = 'sessions' | 'flow' | 'terminal-agents';
+type ViewTab = 'sessions' | 'flow' | 'terminal-agents' | 'assistant';
 
 export function KuroryuuAgents() {
   const {
@@ -43,11 +46,45 @@ export function KuroryuuAgents() {
   // Findings modal state
   const [findingsModalOpen, setFindingsModalOpen] = useState(false);
 
+  // Assistant badge
+  const { newActionCount, incrementNewActionCount, clearNewActionCount } = useIdentityStore();
+
   // Subscribe to SDK events on mount, unsubscribe on unmount
   useEffect(() => {
     subscribe();
     return () => unsubscribe();
   }, [subscribe, unsubscribe]);
+
+  // Listen for heartbeat completion events (badge + toast)
+  useEffect(() => {
+    const unsubCompleted = window.electronAPI.identity.onHeartbeatCompleted((data) => {
+      if (data.actionsCount > 0) {
+        if (activeTab !== 'assistant') {
+          incrementNewActionCount(data.actionsCount);
+        }
+        // Show toast (toast mode is the default — main process sends this for all modes,
+        // but the renderer only shows toast when the user can see it)
+        toast.success(
+          `Heartbeat: ${data.actionsCount} action${data.actionsCount !== 1 ? 's' : ''} ${data.status === 'failed' ? 'failed' : 'executed'}`
+        );
+      } else if (data.status === 'failed') {
+        toast.error('Heartbeat failed');
+      }
+    });
+
+    // Listen for TTS notifications from heartbeat
+    const unsubTts = window.electronAPI.identity.onHeartbeatTts((text) => {
+      window.electronAPI.tts.speak({ text }).catch(() => {
+        // TTS unavailable, fall back to toast
+        toast.success(text);
+      });
+    });
+
+    return () => {
+      unsubCompleted();
+      unsubTts();
+    };
+  }, [activeTab, incrementNewActionCount]);
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
   const selectedArchived = archivedSessions.find((a) => a.id === selectedSessionId);
@@ -119,6 +156,25 @@ export function KuroryuuAgents() {
               <Users className="w-3.5 h-3.5" />
               Terminal Agents
             </button>
+            <button
+              onClick={() => {
+                setActiveTab('assistant');
+                clearNewActionCount();
+              }}
+              className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'assistant'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <Brain className="w-3.5 h-3.5" />
+              Assistant
+              {newActionCount > 0 && activeTab !== 'assistant' && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
+                  {newActionCount > 9 ? '9+' : newActionCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -149,7 +205,11 @@ export function KuroryuuAgents() {
       )}
 
       {/* Content */}
-      {activeTab === 'terminal-agents' ? (
+      {activeTab === 'assistant' ? (
+        <div className="flex-1 overflow-hidden">
+          <AssistantPanel />
+        </div>
+      ) : activeTab === 'terminal-agents' ? (
         <div className="flex-1 overflow-hidden">
           <AgentsTab />
         </div>

@@ -2652,6 +2652,77 @@ const api = {
       return () => ipcRenderer.removeListener('sdk-agent:status-change', handler as (...args: unknown[]) => void);
     },
   },
+
+  /**
+   * Identity / Personal Assistant API
+   * Manages identity files, mutations, actions, heartbeat, and activity timeline
+   */
+  identity: {
+    /** Get all 4 identity files as a profile */
+    getProfile: (): Promise<unknown> =>
+      ipcRenderer.invoke('identity:getProfile'),
+
+    /** Get a single identity file */
+    getFile: (key: string): Promise<unknown> =>
+      ipcRenderer.invoke('identity:getFile', key),
+
+    /** Update a single identity file */
+    updateFile: (key: string, content: string): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('identity:updateFile', key, content),
+
+    /** Get mutation log entries */
+    getMutations: (limit?: number, since?: number): Promise<unknown[]> =>
+      ipcRenderer.invoke('identity:getMutations', limit, since),
+
+    /** Get action records */
+    getActions: (limit?: number, since?: number): Promise<unknown[]> =>
+      ipcRenderer.invoke('identity:getActions', limit, since),
+
+    /** Get unified activity timeline */
+    getActivity: (since?: number, until?: number): Promise<unknown[]> =>
+      ipcRenderer.invoke('identity:getActivity', since, until),
+
+    /** Get heartbeat run history */
+    getHeartbeatHistory: (limit?: number): Promise<unknown[]> =>
+      ipcRenderer.invoke('identity:getHeartbeatHistory', limit),
+
+    /** Initialize identity files (create seeds if missing) */
+    initialize: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('identity:initialize'),
+
+    /** Heartbeat controls */
+    heartbeat: {
+      /** Get current heartbeat status */
+      status: (): Promise<unknown> =>
+        ipcRenderer.invoke('identity:heartbeat:status'),
+
+      /** Update heartbeat configuration */
+      configure: (config: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> =>
+        ipcRenderer.invoke('identity:heartbeat:configure', config),
+
+      /** Trigger immediate heartbeat run */
+      runNow: (): Promise<{ ok: boolean; error?: string }> =>
+        ipcRenderer.invoke('identity:heartbeat:runNow'),
+
+      /** Sync heartbeat job with scheduler */
+      syncJob: (): Promise<{ ok: boolean; error?: string }> =>
+        ipcRenderer.invoke('identity:heartbeat:syncJob'),
+    },
+
+    /** Subscribe to heartbeat completion events */
+    onHeartbeatCompleted: (callback: (data: { actionsCount: number; status: string }) => void): (() => void) => {
+      const handler = (_event: unknown, data: { actionsCount: number; status: string }) => callback(data);
+      ipcRenderer.on('identity:heartbeat:completed', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('identity:heartbeat:completed', handler as (...args: unknown[]) => void);
+    },
+
+    /** Subscribe to heartbeat TTS events (fires when notificationMode='tts') */
+    onHeartbeatTts: (callback: (text: string) => void): (() => void) => {
+      const handler = (_event: unknown, text: string) => callback(text);
+      ipcRenderer.on('identity:heartbeat:tts', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('identity:heartbeat:tts', handler as (...args: unknown[]) => void);
+    },
+  },
 };
 
 export type ElectronAPI = typeof api;
