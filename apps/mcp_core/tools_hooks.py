@@ -8,11 +8,17 @@ Actions: help, start, end, context, pre_tool, post_tool, log
 
 import os
 import re
+import logging
 from pathlib import Path
 from typing import Any, Dict
 
+import httpx
+
 from protocol import ToolRegistry
 from sessions import get_session_manager
+
+logger = logging.getLogger("kuroryuu.mcp_core.k_session")
+GATEWAY_URL = os.environ.get("KURORYUU_GATEWAY_URL", "http://127.0.0.1:8200")
 try:
     from .paths import get_ai_dir_or_env
 except ImportError:
@@ -90,9 +96,27 @@ def _action_start(
     mgr = get_session_manager()
     session = mgr.create(process_id, cli_type, agent_id, None)
     context = _build_context()
+
+    # Auto-register with Gateway agent registry (fire-and-forget)
+    gateway_registered = False
+    try:
+        resp = httpx.post(
+            f"{GATEWAY_URL}/v1/agents/register",
+            json={
+                "model_name": cli_type or "unknown",
+                "agent_id": agent_id,
+                "role": "worker",
+            },
+            timeout=5.0,
+        )
+        gateway_registered = resp.status_code == 200
+    except Exception as e:
+        logger.debug("Gateway registration failed (non-fatal): %s", e)
+
     return {
         "ok": True,
         "session_id": session.session_id,
+        "gateway_registered": gateway_registered,
         "context": context,
     }
 
@@ -111,6 +135,14 @@ def _action_end(
     session = mgr.end(session_id, exit_code)
     if not session:
         return {"ok": False, "error_code": "NOT_FOUND", "message": "Session not found"}
+
+    # Auto-deregister from Gateway (fire-and-forget)
+    agent_id = session.agent_id if hasattr(session, "agent_id") else ""
+    if agent_id:
+        try:
+            httpx.delete(f"{GATEWAY_URL}/v1/agents/{agent_id}", timeout=5.0)
+        except Exception as e:
+            logger.debug("Gateway deregister failed (non-fatal): %s", e)
 
     return {"ok": True, "session_id": session_id}
 
