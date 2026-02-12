@@ -575,7 +575,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
               {
                 type: 'command',
                 command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}" ${sourceArg}`,
-                timeout: 90,
+                timeout: 90000,
               },
             ],
           }];
@@ -586,7 +586,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
               {
                 type: 'command',
                 command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}" ${sourceArg}`,
-                timeout: 90,
+                timeout: 90000,
               },
             ],
           }];
@@ -597,7 +597,7 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
               {
                 type: 'command',
                 command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}" ${sourceArg}`,
-                timeout: 90,
+                timeout: 90000,
               },
             ],
           }];

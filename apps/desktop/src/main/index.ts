@@ -1664,6 +1664,7 @@ function setupKuroConfigIpc(): void {
             taskSync: false,
             transcriptExport: false,
             observability: false,
+            inboxPolling: false,
           },
           features: kuroPlugin.features || {
             ragInteractive: false,
@@ -1705,6 +1706,7 @@ function setupKuroConfigIpc(): void {
           taskSync: false,
           transcriptExport: false,
           observability: false,
+          inboxPolling: false,
         },
         features: {
           ragInteractive: false,
@@ -1780,11 +1782,14 @@ function setupKuroConfigIpc(): void {
         }
       }
 
-      // Parse UserPromptSubmit for transcript export
+      // Parse UserPromptSubmit for transcript export and inbox polling
       const promptHooks = hooks.UserPromptSubmit?.[0]?.hooks || [];
       for (const hook of promptHooks) {
         if (hook.command?.includes('export-transcript.ps1')) {
           config.hooks.transcriptExport = true;
+        }
+        if (hook.command?.includes('check_inbox_hook.py')) {
+          config.hooks.inboxPolling = true;
         }
       }
 
@@ -1833,6 +1838,7 @@ function setupKuroConfigIpc(): void {
       taskSync: boolean;
       transcriptExport: boolean;
       observability: boolean;
+      inboxPolling: boolean;
     };
     features: { ragInteractive: boolean; questionMode: boolean };
   }) => {
@@ -1873,8 +1879,8 @@ function setupKuroConfigIpc(): void {
         const useSmartTts = config.tts.smartSummaries;
         // ElevenLabs always uses smart_tts.py (it reads provider from config and routes)
         const isElevenLabs = config.tts.provider === 'elevenlabs';
-        // Timeout is in seconds (Claude Code multiplies by 1000 internally)
-        const ttsTimeout = isElevenLabs ? 90 : 30;
+        // Timeout is in milliseconds. Smart summaries need ~90s for AI summary + TTS + playback.
+        const ttsTimeout = (useSmartTts || isElevenLabs) ? 90000 : 30000;
 
         // Always include TTS in project hooks — the double-fire prevention in
         // smart_tts.py's should_skip_global() checks for actual hook commands,
@@ -1981,6 +1987,17 @@ function setupKuroConfigIpc(): void {
           postHooks.push({ matcher: '', hooks: [{ type: 'command', command: obsScript('PostToolUse'), timeout: obsTimeout }] });
         }
 
+        // Add inbox polling to PostToolUse catch-all (piggyback on existing or create new)
+        if (config.hooks.inboxPolling) {
+          const inboxCmd = { type: 'command', command: `${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 };
+          const catchAll = postHooks.find(h => h.matcher === '');
+          if (catchAll) {
+            catchAll.hooks.push(inboxCmd);
+          } else {
+            postHooks.push({ matcher: '', hooks: [inboxCmd] });
+          }
+        }
+
         hooks.PostToolUse = postHooks;
 
         // Update UserPromptSubmit hooks
@@ -1993,6 +2010,9 @@ function setupKuroConfigIpc(): void {
             // Only add observability if other UPS hooks exist — standalone arrays
             // break Windows terminal input in Claude Code v2.1.37
             upsHooks.push({ type: 'command', command: obsScript('UserPromptSubmit'), timeout: obsTimeout });
+          }
+          if (config.hooks.inboxPolling && upsHooks.length > 0) {
+            upsHooks.push({ type: 'command', command: `${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 });
           }
           if (upsHooks.length > 0) {
             hooks.UserPromptSubmit = [{ hooks: upsHooks }];

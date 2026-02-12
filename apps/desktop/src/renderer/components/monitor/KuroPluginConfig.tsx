@@ -80,6 +80,7 @@ interface KuroConfig {
     taskSync: boolean;
     transcriptExport: boolean;
     observability: boolean;
+    inboxPolling: boolean;
   };
   features: {
     ragInteractive: boolean;
@@ -117,6 +118,7 @@ const DEFAULT_CONFIG: KuroConfig = {
     taskSync: true,
     transcriptExport: true,
     observability: false,
+    inboxPolling: true,
   },
   features: {
     ragInteractive: false,
@@ -709,6 +711,7 @@ export function KuroPluginConfig() {
             taskSync: restored.hooks?.taskSync ?? DEFAULT_CONFIG.hooks.taskSync,
             transcriptExport: restored.hooks?.transcriptExport ?? DEFAULT_CONFIG.hooks.transcriptExport,
             observability: restored.hooks?.observability ?? DEFAULT_CONFIG.hooks.observability,
+            inboxPolling: restored.hooks?.inboxPolling ?? DEFAULT_CONFIG.hooks.inboxPolling,
           },
           features: {
             ragInteractive: restored.features?.ragInteractive ?? DEFAULT_CONFIG.features.ragInteractive,
@@ -1218,6 +1221,13 @@ export function KuroPluginConfig() {
               onChange={(checked) => updateConfig('hooks', { observability: checked })}
             />
           </FieldRow>
+
+          <FieldRow label="Inbox Polling" description="Auto-check inbox for new agent messages">
+            <Toggle
+              checked={config.hooks.inboxPolling}
+              onChange={(checked) => updateConfig('hooks', { inboxPolling: checked })}
+            />
+          </FieldRow>
         </CollapsibleSection>
 
         {/* Features */}
@@ -1434,6 +1444,14 @@ export function KuroPluginConfig() {
                                   <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
                                 )}
                                 <span className="text-xs">Observability</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.hooks?.inboxPolling ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Inbox Polling</span>
                               </div>
                             </div>
                           </div>
