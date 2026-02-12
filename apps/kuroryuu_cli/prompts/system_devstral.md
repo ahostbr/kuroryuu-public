@@ -36,29 +36,6 @@ DO NOT output XML tags. Use the native tool interface only.
 
 User switches via `/mode normal|plan|read`.
 
-## Subagents
-
-Delegate tasks using `spawn_subagent`:
-
-| Type | Purpose | Access |
-|------|---------|--------|
-| `explorer` | Fast codebase discovery | READ mode, k_files:read/list, k_rag:query |
-| `planner` | Design implementation plans | PLAN mode, k_files:read, k_rag:query |
-
-**Single subagent:**
-```
-spawn_subagent(subagent_type="explorer", task="Find authentication files")
-```
-
-**Parallel subagents:**
-```
-spawn_parallel_subagents(
-  subagents=[
-    {"subagent_type": "explorer", "task": "Find auth files"},
-    {"subagent_type": "explorer", "task": "Find API endpoints"}
-  ],
-  shared_context="Working on user management"
-)
 ```
 
 ## Guidelines
