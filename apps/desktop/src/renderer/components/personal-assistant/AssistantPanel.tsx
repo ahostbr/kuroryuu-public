@@ -1,17 +1,19 @@
 /**
- * AssistantPanel — container with 3 sub-view tabs (Dashboard, Editor, Activity)
+ * AssistantPanel — container with 4 sub-view tabs (Dashboard, Editor, Prompt, Activity)
  */
 
 import { useEffect } from 'react';
-import { LayoutDashboard, FileEdit, Clock } from 'lucide-react';
+import { LayoutDashboard, FileEdit, Clock, Terminal } from 'lucide-react';
 import { useIdentityStore } from '../../stores/identity-store';
 import { AssistantDashboard } from './AssistantDashboard';
 import { IdentityEditorView } from './IdentityEditorView';
+import { PromptPreview } from './PromptPreview';
 import { ActivityView } from './ActivityView';
 
 const VIEWS = [
     { key: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
     { key: 'editor' as const, label: 'Editor', icon: FileEdit },
+    { key: 'prompt' as const, label: 'Prompt', icon: Terminal },
     { key: 'activity' as const, label: 'Activity', icon: Clock },
 ];
 
@@ -49,6 +51,7 @@ export function AssistantPanel() {
             <div className="flex-1 overflow-hidden">
                 {activeView === 'dashboard' && <AssistantDashboard />}
                 {activeView === 'editor' && <IdentityEditorView />}
+                {activeView === 'prompt' && <PromptPreview />}
                 {activeView === 'activity' && <ActivityView />}
             </div>
         </div>

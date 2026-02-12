@@ -25,7 +25,7 @@ import { toast } from '../components/ui/toast';
 // Store Interface
 // ═══════════════════════════════════════════════════════════════════════════════
 
-type ActiveView = 'dashboard' | 'editor' | 'activity';
+type ActiveView = 'dashboard' | 'editor' | 'activity' | 'prompt';
 type ActivityTimeWindow = '24h' | '7d' | '30d';
 
 interface IdentityStore {
@@ -62,6 +62,9 @@ interface IdentityStore {
     // Memory Sync state
     memorySyncStatus: MemorySyncStatus | null;
 
+    // Prompt Preview state
+    heartbeatPromptPreview: string | null;
+
     // Profile Actions
     loadProfile: () => Promise<void>;
     loadFile: (key: IdentityFileKey) => Promise<void>;
@@ -90,6 +93,11 @@ interface IdentityStore {
     setHeartbeatInterval: (minutes: number) => Promise<void>;
     setNotificationMode: (mode: HeartbeatNotificationMode) => Promise<void>;
     setPerActionMode: (type: ActionType, mode: ActionExecutionMode) => Promise<void>;
+    setAgentName: (name: string) => Promise<void>;
+    setMaxLinesPerFile: (lines: number) => Promise<void>;
+    setMaxTurns: (turns: number) => Promise<void>;
+    setTimeoutMinutes: (minutes: number) => Promise<void>;
+    loadHeartbeatPrompt: () => Promise<void>;
     runHeartbeatNow: () => Promise<void>;
 
     // UI Actions
@@ -139,6 +147,7 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
     bootstrapStatus: null,
     bootstrapRunning: false,
     memorySyncStatus: null,
+    heartbeatPromptPreview: null,
 
     // ---------------------------------------------------------------------------
     // Profile
@@ -326,6 +335,94 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
         }
     },
 
+    setAgentName: async (name) => {
+        const { heartbeatConfig } = get();
+        if (heartbeatConfig) {
+            set({ heartbeatConfig: { ...heartbeatConfig, agentName: name } });
+        }
+        try {
+            const result = await window.electronAPI.identity.heartbeat.configure({ agentName: name });
+            if (!result.ok) {
+                if (heartbeatConfig) set({ heartbeatConfig });
+                toast.error(`Failed to set agent name: ${result.error}`);
+                return;
+            }
+            toast.success(`Agent name: ${name || 'Kuroryuu'}`);
+        } catch (err) {
+            if (heartbeatConfig) set({ heartbeatConfig });
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to set agent name: ${msg}`);
+        }
+    },
+
+    setMaxLinesPerFile: async (lines) => {
+        const { heartbeatConfig } = get();
+        if (heartbeatConfig) {
+            set({ heartbeatConfig: { ...heartbeatConfig, maxLinesPerFile: lines } });
+        }
+        try {
+            const result = await window.electronAPI.identity.heartbeat.configure({ maxLinesPerFile: lines });
+            if (!result.ok) {
+                if (heartbeatConfig) set({ heartbeatConfig });
+                toast.error(`Failed to set max lines: ${result.error}`);
+            }
+        } catch (err) {
+            if (heartbeatConfig) set({ heartbeatConfig });
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to set max lines: ${msg}`);
+        }
+    },
+
+    setMaxTurns: async (turns) => {
+        const { heartbeatConfig } = get();
+        if (heartbeatConfig) {
+            set({ heartbeatConfig: { ...heartbeatConfig, maxTurns: turns } });
+        }
+        try {
+            const result = await window.electronAPI.identity.heartbeat.configure({ maxTurns: turns });
+            if (!result.ok) {
+                if (heartbeatConfig) set({ heartbeatConfig });
+                toast.error(`Failed to set max turns: ${result.error}`);
+            }
+        } catch (err) {
+            if (heartbeatConfig) set({ heartbeatConfig });
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to set max turns: ${msg}`);
+        }
+    },
+
+    setTimeoutMinutes: async (minutes) => {
+        const { heartbeatConfig } = get();
+        if (heartbeatConfig) {
+            set({ heartbeatConfig: { ...heartbeatConfig, timeoutMinutes: minutes } });
+        }
+        try {
+            const result = await window.electronAPI.identity.heartbeat.configure({ timeoutMinutes: minutes });
+            if (!result.ok) {
+                if (heartbeatConfig) set({ heartbeatConfig });
+                toast.error(`Failed to set timeout: ${result.error}`);
+            }
+        } catch (err) {
+            if (heartbeatConfig) set({ heartbeatConfig });
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to set timeout: ${msg}`);
+        }
+    },
+
+    loadHeartbeatPrompt: async () => {
+        try {
+            const result = await window.electronAPI.identity.heartbeat.getPrompt() as { ok: boolean; prompt?: string; error?: string };
+            if (result.ok && result.prompt) {
+                set({ heartbeatPromptPreview: result.prompt });
+            } else {
+                toast.error(`Failed to load prompt: ${result.error ?? 'Unknown error'}`);
+            }
+        } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to load prompt: ${msg}`);
+        }
+    },
+
     runHeartbeatNow: async () => {
         try {
             toast.success('Starting heartbeat...');
@@ -463,6 +560,9 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
         if (view === 'activity') {
             set({ newActionCount: 0 });
             get().loadActivity();
+        }
+        if (view === 'prompt') {
+            get().loadHeartbeatPrompt();
         }
     },
 

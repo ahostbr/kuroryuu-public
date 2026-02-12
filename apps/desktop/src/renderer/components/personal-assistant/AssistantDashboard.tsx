@@ -2,10 +2,11 @@
  * AssistantDashboard — heartbeat config controls + status cards
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Heart, Play, Settings, Clock, CheckCircle,
     Zap, Shield, BookOpen, Calendar, Bell, Github, RefreshCw, RotateCcw,
+    User, Sliders,
 } from 'lucide-react';
 import { useIdentityStore } from '../../stores/identity-store';
 import { BootstrapWelcome } from './BootstrapWelcome';
@@ -19,6 +20,9 @@ const ACTION_TYPE_INFO: { type: ActionType; label: string; icon: typeof Zap; des
 ];
 
 const INTERVAL_OPTIONS = [5, 10, 15, 30, 60, 120, 360, 720, 1440];
+const MAX_LINES_OPTIONS = [10, 25, 50, 75, 100, 150, 200, 500];
+const MAX_TURNS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 50];
+const TIMEOUT_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30];
 
 const NOTIFICATION_MODES: { value: HeartbeatNotificationMode; label: string; description: string }[] = [
     { value: 'toast', label: 'Toast', description: 'In-app toast notification' },
@@ -48,10 +52,16 @@ export function AssistantDashboard() {
         setHeartbeatInterval,
         setNotificationMode,
         setPerActionMode,
+        setAgentName,
+        setMaxLinesPerFile,
+        setMaxTurns,
+        setTimeoutMinutes,
         runHeartbeatNow,
         syncClaudeMemory,
         loadMemorySyncStatus,
     } = useIdentityStore();
+
+    const [nameInput, setNameInput] = useState('');
 
     useEffect(() => {
         checkBootstrap();
@@ -59,6 +69,13 @@ export function AssistantDashboard() {
         loadMemorySyncStatus();
         if (!profile) loadProfile();
     }, [checkBootstrap, loadHeartbeatConfig, loadMemorySyncStatus, loadProfile, profile]);
+
+    // Sync name input with loaded config
+    useEffect(() => {
+        if (heartbeatConfig?.agentName && !nameInput) {
+            setNameInput(heartbeatConfig.agentName);
+        }
+    }, [heartbeatConfig?.agentName, nameInput]);
 
     // Show bootstrap welcome if not yet bootstrapped
     if (bootstrapStatus && !bootstrapStatus.bootstrapped) {
@@ -126,6 +143,42 @@ export function AssistantDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Agent Identity */}
+            <div className="p-4 rounded-lg border border-border bg-card space-y-3">
+                <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-semibold">Agent Identity</h3>
+                </div>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <span className="text-sm text-foreground">Agent Name</span>
+                        <p className="text-[10px] text-muted-foreground">
+                            Name used in heartbeat prompt. Set after First Book.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={nameInput}
+                            onChange={e => setNameInput(e.target.value)}
+                            onBlur={() => {
+                                if (nameInput !== (config?.agentName ?? 'Kuroryuu')) {
+                                    setAgentName(nameInput);
+                                }
+                            }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                    setAgentName(nameInput);
+                                    (e.target as HTMLInputElement).blur();
+                                }
+                            }}
+                            placeholder="Kuroryuu"
+                            className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground w-40"
+                        />
+                    </div>
+                </div>
+            </div>
 
             {/* Controls */}
             <div className="p-4 rounded-lg border border-border bg-card space-y-4">
@@ -232,6 +285,68 @@ export function AssistantDashboard() {
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Advanced Settings */}
+            <div className="p-4 rounded-lg border border-border bg-card space-y-3">
+                <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-primary" />
+                    <h3 className="text-sm font-semibold">Advanced Settings</h3>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                    Fine-tune heartbeat prompt construction and execution limits.
+                </p>
+
+                {/* Max Lines Per File */}
+                <div className="flex items-center justify-between py-1">
+                    <div>
+                        <span className="text-xs text-foreground">Max Lines Per File</span>
+                        <p className="text-[10px] text-muted-foreground">Identity file truncation limit in prompt</p>
+                    </div>
+                    <select
+                        value={config?.maxLinesPerFile ?? 50}
+                        onChange={e => setMaxLinesPerFile(Number(e.target.value))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
+                    >
+                        {MAX_LINES_OPTIONS.map(v => (
+                            <option key={v} value={v}>{v} lines</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Max Turns */}
+                <div className="flex items-center justify-between py-1">
+                    <div>
+                        <span className="text-xs text-foreground">Max Turns</span>
+                        <p className="text-[10px] text-muted-foreground">Maximum agent turns per heartbeat run</p>
+                    </div>
+                    <select
+                        value={config?.maxTurns ?? 10}
+                        onChange={e => setMaxTurns(Number(e.target.value))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
+                    >
+                        {MAX_TURNS_OPTIONS.map(v => (
+                            <option key={v} value={v}>{v} turns</option>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Timeout */}
+                <div className="flex items-center justify-between py-1">
+                    <div>
+                        <span className="text-xs text-foreground">Timeout</span>
+                        <p className="text-[10px] text-muted-foreground">Max execution time per heartbeat run</p>
+                    </div>
+                    <select
+                        value={config?.timeoutMinutes ?? 5}
+                        onChange={e => setTimeoutMinutes(Number(e.target.value))}
+                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
+                    >
+                        {TIMEOUT_OPTIONS.map(v => (
+                            <option key={v} value={v}>{v}m</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {/* Claude Memory Sync */}

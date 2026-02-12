@@ -82,6 +82,10 @@ export interface HeartbeatConfig {
     intervalMinutes: number;
     notificationMode: HeartbeatNotificationMode;
     perActionMode: Record<ActionType, ActionExecutionMode>;
+    agentName: string;
+    maxLinesPerFile: number;
+    maxTurns: number;
+    timeoutMinutes: number;
 }
 
 export const DEFAULT_HEARTBEAT_CONFIG: HeartbeatConfig = {
@@ -94,6 +98,10 @@ export const DEFAULT_HEARTBEAT_CONFIG: HeartbeatConfig = {
         memory_update: 'direct',
         scheduler_job: 'proposal_first',
     },
+    agentName: 'Kuroryuu',
+    maxLinesPerFile: 50,
+    maxTurns: 10,
+    timeoutMinutes: 5,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

@@ -122,6 +122,10 @@ export async function setupIdentityIpc(): Promise<void> {
         intervalMinutes: number;
         notificationMode: string;
         perActionMode: Record<string, string>;
+        agentName: string;
+        maxLinesPerFile: number;
+        maxTurns: number;
+        timeoutMinutes: number;
     }>) => {
         if (!heartbeat) return { ok: false, error: 'Heartbeat service not initialized' };
         try {
@@ -139,7 +143,29 @@ export async function setupIdentityIpc(): Promise<void> {
                     await heartbeat.setPerActionMode(type as ActionType, mode as ActionExecutionMode);
                 }
             }
+            if (config.agentName !== undefined) {
+                await heartbeat.setAgentName(config.agentName);
+            }
+            if (config.maxLinesPerFile !== undefined) {
+                await heartbeat.setMaxLinesPerFile(config.maxLinesPerFile);
+            }
+            if (config.maxTurns !== undefined) {
+                await heartbeat.setMaxTurns(config.maxTurns);
+            }
+            if (config.timeoutMinutes !== undefined) {
+                await heartbeat.setTimeoutMinutes(config.timeoutMinutes);
+            }
             return { ok: true };
+        } catch (err) {
+            return { ok: false, error: err instanceof Error ? err.message : String(err) };
+        }
+    });
+
+    ipcMain.handle('identity:heartbeat:getPrompt', async () => {
+        if (!heartbeat) return { ok: false, error: 'Heartbeat service not initialized' };
+        try {
+            const prompt = await heartbeat.buildHeartbeatPrompt();
+            return { ok: true, prompt };
         } catch (err) {
             return { ok: false, error: err instanceof Error ? err.message : String(err) };
         }
@@ -348,6 +374,7 @@ export async function cleanupIdentityIpc(): Promise<void> {
         'identity:initialize',
         'identity:heartbeat:status',
         'identity:heartbeat:configure',
+        'identity:heartbeat:getPrompt',
         'identity:heartbeat:runNow',
         'identity:heartbeat:syncJob',
         'identity:getDailyMemory',

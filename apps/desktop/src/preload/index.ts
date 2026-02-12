@@ -2700,6 +2700,10 @@ const api = {
       configure: (config: Record<string, unknown>): Promise<{ ok: boolean; error?: string }> =>
         ipcRenderer.invoke('identity:heartbeat:configure', config),
 
+      /** Get the rendered heartbeat prompt (for preview) */
+      getPrompt: (): Promise<{ ok: boolean; prompt?: string; error?: string }> =>
+        ipcRenderer.invoke('identity:heartbeat:getPrompt'),
+
       /** Trigger immediate heartbeat run */
       runNow: (): Promise<{ ok: boolean; error?: string }> =>
         ipcRenderer.invoke('identity:heartbeat:runNow'),

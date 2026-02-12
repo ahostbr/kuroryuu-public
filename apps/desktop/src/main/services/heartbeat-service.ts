@@ -29,7 +29,6 @@ import type { CreateJobParams, ScheduledJob } from '../features/scheduler/types'
 
 const HEARTBEAT_JOB_TAG = 'heartbeat-personal-assistant';
 const HEARTBEAT_JOB_NAME = 'Kuroryuu Personal Assistant Heartbeat';
-const MAX_LINES_PER_FILE = 50;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Config persistence
@@ -48,6 +47,10 @@ const DEFAULT_CONFIG: HeartbeatConfig = {
         memory_update: 'direct',
         scheduler_job: 'proposal_first',
     },
+    agentName: 'Kuroryuu',
+    maxLinesPerFile: 50,
+    maxTurns: 10,
+    timeoutMinutes: 5,
 };
 
 async function loadConfig(): Promise<HeartbeatConfig> {
@@ -117,6 +120,36 @@ export class HeartbeatService {
         config.perActionMode[actionType] = mode;
         this.config = config;
         await saveConfig(config);
+    }
+
+    async setAgentName(name: string): Promise<void> {
+        const config = await this.getConfig();
+        config.agentName = name.trim() || 'Kuroryuu';
+        this.config = config;
+        await saveConfig(config);
+    }
+
+    async setMaxLinesPerFile(lines: number): Promise<void> {
+        const config = await this.getConfig();
+        config.maxLinesPerFile = Math.max(10, Math.min(500, lines));
+        this.config = config;
+        await saveConfig(config);
+    }
+
+    async setMaxTurns(turns: number): Promise<void> {
+        const config = await this.getConfig();
+        config.maxTurns = Math.max(1, Math.min(50, turns));
+        this.config = config;
+        await saveConfig(config);
+        await this.syncJob();
+    }
+
+    async setTimeoutMinutes(minutes: number): Promise<void> {
+        const config = await this.getConfig();
+        config.timeoutMinutes = Math.max(1, Math.min(30, minutes));
+        this.config = config;
+        await saveConfig(config);
+        await this.syncJob();
     }
 
     // ---------------------------------------------------------------------------
@@ -194,8 +227,8 @@ export class HeartbeatService {
                     prompt,
                     executionMode: 'background',
                     permissionMode: 'default',
-                    maxTurns: 10,
-                    timeoutMinutes: 5,
+                    maxTurns: config.maxTurns ?? 10,
+                    timeoutMinutes: config.timeoutMinutes ?? 5,
                 },
             });
             console.log('[Heartbeat] Updated heartbeat job');
@@ -213,8 +246,8 @@ export class HeartbeatService {
                     prompt,
                     executionMode: 'background',
                     permissionMode: 'default',
-                    maxTurns: 10,
-                    timeoutMinutes: 5,
+                    maxTurns: config.maxTurns ?? 10,
+                    timeoutMinutes: config.timeoutMinutes ?? 5,
                 },
                 enabled: true,
                 tags: [HEARTBEAT_JOB_TAG, 'personal-assistant'],
@@ -242,6 +275,7 @@ export class HeartbeatService {
         }
 
         // Refresh prompt before running
+        const config = await this.getConfig();
         const prompt = await this.buildHeartbeatPrompt();
         await scheduler.updateJob({
             id: job.id,
@@ -250,8 +284,8 @@ export class HeartbeatService {
                 prompt,
                 executionMode: 'background',
                 permissionMode: 'default',
-                maxTurns: 10,
-                timeoutMinutes: 5,
+                maxTurns: config.maxTurns ?? 10,
+                timeoutMinutes: config.timeoutMinutes ?? 5,
             },
         });
 
@@ -282,11 +316,12 @@ export class HeartbeatService {
             console.warn('[Heartbeat] Claude Memory sync failed:', err);
         }
 
+        const maxLines = config.maxLinesPerFile ?? 50;
         const truncate = (content: string, label: string): string => {
             const lines = content.split('\n');
-            if (lines.length > MAX_LINES_PER_FILE) {
-                console.warn(`[Heartbeat] Truncating ${label} from ${lines.length} to ${MAX_LINES_PER_FILE} lines`);
-                return lines.slice(0, MAX_LINES_PER_FILE).join('\n') + '\n\n[... truncated]';
+            if (lines.length > maxLines) {
+                console.warn(`[Heartbeat] Truncating ${label} from ${lines.length} to ${maxLines} lines`);
+                return lines.slice(0, maxLines).join('\n') + '\n\n[... truncated]';
             }
             return content;
         };
@@ -315,7 +350,10 @@ export class HeartbeatService {
             .map(([type, mode]) => `- ${type}: ${mode}`)
             .join('\n');
 
-        return `You are the Kuroryuu Personal Assistant performing a scheduled heartbeat check.
+        const agentName = config.agentName || 'Kuroryuu';
+        const timeout = config.timeoutMinutes ?? 5;
+
+        return `You are ${agentName}, performing a scheduled heartbeat check.
 
 ## Your Identity
 
@@ -349,7 +387,7 @@ After performing your checks, write your findings to:
 2. ai/identity/mutations.jsonl — any identity file updates (append JSONL)
 3. Update identity files directly if you have high-confidence improvements
 
-Keep the heartbeat run under 5 minutes. Focus on the most impactful observations.`;
+Keep the heartbeat run under ${timeout} minutes. Focus on the most impactful observations.`;
     }
 
     // ---------------------------------------------------------------------------
