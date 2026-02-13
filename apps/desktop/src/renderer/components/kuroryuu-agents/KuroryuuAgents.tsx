@@ -10,6 +10,7 @@ import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
 import { useIdentityStore } from '../../stores/identity-store';
 import { SessionCard } from './SessionCard';
 import { SdkMessageRenderer } from './SdkMessageRenderer';
+import { CliEventRenderer } from './CliEventRenderer';
 import { SessionTerminal, SessionTerminalPlaceholder } from './SessionTerminal';
 import { AgentFlowPanel } from './AgentFlowPanel';
 import { FindingsToTasksModal } from './FindingsToTasksModal';
@@ -544,6 +545,8 @@ export function KuroryuuAgents() {
                     ) : (
                       <SessionTerminalPlaceholder />
                     )
+                  ) : selectedSession.backend === 'cli' && selectedSession.sdkSessionId ? (
+                    <CliEventRenderer sessionId={selectedSession.sdkSessionId} />
                   ) : (
                     <SdkMessageRenderer sessionId={selectedSession.id} />
                   )}
