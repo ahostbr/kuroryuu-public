@@ -9,7 +9,8 @@ import { HOOK_EVENT_EMOJIS, TOOL_EMOJIS } from '../../types/observability';
 import type { HookEvent } from '../../types/observability';
 
 interface CliEventRendererProps {
-  sessionId: string; // sdkSessionId (Claude Code's session_id), NOT the cli-xxx ID
+  sessionId?: string;    // sdkSessionId (Claude Code's session_id) — direct match
+  cliSessionId: string;  // cli-xxx ID — matches payload.kuroryuu_session_id from hooks
 }
 
 function getRelativeTime(ts: number): string {
@@ -107,7 +108,7 @@ function EventCard({ event, tick }: { event: HookEvent; tick: number }) {
   );
 }
 
-export function CliEventRenderer({ sessionId }: CliEventRendererProps) {
+export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererProps) {
   const events = useObservabilityStore((s) => s.events);
   const isConnected = useObservabilityStore((s) => s.isConnected);
   const connect = useObservabilityStore((s) => s.connect);
@@ -127,11 +128,21 @@ export function CliEventRenderer({ sessionId }: CliEventRendererProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Filter events for this session
-  const sessionEvents = useMemo(
-    () => events.filter(e => e.session_id === sessionId),
-    [events, sessionId]
-  );
+  // Filter events for this session.
+  // Priority: direct sdkSessionId match → discover via payload.kuroryuu_session_id
+  const sessionEvents = useMemo(() => {
+    if (sessionId) {
+      return events.filter(e => e.session_id === sessionId);
+    }
+    // PTY sessions: discover Claude Code session_id from kuroryuu_session_id in payload
+    const discoveredSessionId = events.find(
+      e => (e.payload as Record<string, unknown>)?.kuroryuu_session_id === cliSessionId
+    )?.session_id;
+    if (discoveredSessionId) {
+      return events.filter(e => e.session_id === discoveredSessionId);
+    }
+    return [];
+  }, [events, sessionId, cliSessionId]);
 
   // Auto-scroll on new events
   useEffect(() => {
@@ -152,7 +163,7 @@ export function CliEventRenderer({ sessionId }: CliEventRendererProps) {
   return (
     <div ref={containerRef} className="flex-1 overflow-auto p-3 space-y-2">
       <div className="text-xs text-muted-foreground mb-2">
-        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''} · session {sessionId.slice(0, 8)}
+        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''} · {sessionId ? `session ${sessionId.slice(0, 8)}` : cliSessionId}
       </div>
       {sessionEvents.map((event) => (
         <EventCard key={event.id} event={event} tick={tick} />

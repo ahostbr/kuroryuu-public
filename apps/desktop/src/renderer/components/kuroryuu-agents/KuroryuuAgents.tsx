@@ -545,8 +545,8 @@ export function KuroryuuAgents() {
                     ) : (
                       <SessionTerminalPlaceholder />
                     )
-                  ) : selectedSession.backend === 'cli' && selectedSession.sdkSessionId ? (
-                    <CliEventRenderer sessionId={selectedSession.sdkSessionId} />
+                  ) : selectedSession.backend === 'cli' ? (
+                    <CliEventRenderer sessionId={selectedSession.sdkSessionId} cliSessionId={selectedSession.id} />
                   ) : (
                     <SdkMessageRenderer sessionId={selectedSession.id} />
                   )}

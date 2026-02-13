@@ -5,6 +5,7 @@ Usage: uv run send_event.py <EventType>
 Stdin: JSON hook payload from Claude Code.
 """
 import json
+import os
 import sys
 import time
 import urllib.request
@@ -30,6 +31,11 @@ def main():
     session_id = event.get("session_id", "unknown")
     agent_id = event.get("agent_id") or (event.get("agent", {}) or {}).get("name")
     tool_name = event.get("tool_name") or (event.get("tool", {}) or {}).get("name")
+
+    # Inject Kuroryuu session ID so PTY sessions can be matched to observability events
+    kuroryuu_session = os.environ.get("KURORYUU_AGENT_SESSION", "")
+    if kuroryuu_session:
+        event["kuroryuu_session_id"] = kuroryuu_session
 
     body = json.dumps({
         "source_app": "kuroryuu",
