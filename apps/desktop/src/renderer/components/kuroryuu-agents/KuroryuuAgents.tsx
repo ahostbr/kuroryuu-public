@@ -267,7 +267,7 @@ export function KuroryuuAgents() {
           <AgentsTab />
         </div>
       ) : activeTab === 'sessions' ? (
-        <div className="flex-1 overflow-hidden flex">
+        <div className="flex-1 overflow-hidden flex min-w-0">
           {/* Session List */}
           <div className="w-80 border-r border-border flex-shrink-0 overflow-y-auto p-4 space-y-4">
             {sessions.length === 0 && displayedArchived.length === 0 ? (
@@ -378,9 +378,9 @@ export function KuroryuuAgents() {
           </div>
 
           {/* Message Viewer */}
-          <div className="flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-hidden flex flex-col min-w-0">
             {selectedSession ? (
-              <div className="flex-1 min-h-0 flex flex-col bg-card rounded-lg border border-border m-4">
+              <div className="flex-1 min-h-0 min-w-0 flex flex-col bg-card rounded-lg border border-border m-4">
                 {/* Session Header */}
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                   <div className="flex items-center gap-2">

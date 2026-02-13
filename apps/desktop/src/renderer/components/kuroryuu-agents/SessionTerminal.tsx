@@ -45,15 +45,13 @@ export function SessionTerminal({ sessionId, ptyId, cwd, status }: SessionTermin
           Process {status}
         </div>
       )}
-      {/* Terminal */}
-      <div className="flex-1 min-h-0 overflow-hidden">
-        <Terminal
-          id={ptyId}
-          terminalId={`agent-session-${sessionId}`}
-          onReady={handleReady}
-          cwd={projectRoot}
-        />
-      </div>
+      {/* Terminal — render directly, no extra overflow wrapper (matches MarketingTerminal pattern) */}
+      <Terminal
+        id={ptyId}
+        terminalId={`agent-session-${sessionId}`}
+        onReady={handleReady}
+        cwd={projectRoot}
+      />
     </div>
   );
 }
