@@ -11,8 +11,9 @@
 import { BrowserWindow, app } from 'electron';
 import { spawn, exec, type ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
-import { writeFileSync, mkdirSync, unlinkSync } from 'fs';
+import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 import type {
   SDKAgentSession,
   SDKAgentSessionSummary,
@@ -28,6 +29,41 @@ import type { PtyProcess } from '../pty/types';
 
 const MAX_MESSAGES_IN_MEMORY = 5000;
 const CLI_SESSION_PREFIX = 'cli-';
+
+// -------------------------------------------------------------------
+// Claude CLI resolution (PTY mode needs full path on Windows)
+// -------------------------------------------------------------------
+
+function resolveClaudePath(): string {
+  if (process.platform !== 'win32') return 'claude';
+
+  // Try `where` first (uses the actual process PATH)
+  try {
+    const result = execSync('where claude', { windowsHide: true, encoding: 'utf-8' }).trim();
+    const firstLine = result.split(/\r?\n/)[0].trim();
+    if (firstLine && existsSync(firstLine)) {
+      console.log(`[CliExec] resolveClaudePath: found via 'where': ${firstLine}`);
+      return firstLine;
+    }
+  } catch { /* not in PATH */ }
+
+  // Known installation paths
+  const homeDir = process.env.USERPROFILE || process.env.HOME || '';
+  const knownPaths = [
+    join(homeDir, '.claude', 'node_modules', '.bin', 'claude.cmd'),
+    join(process.env.APPDATA || '', 'npm', 'claude.cmd'),
+    join(homeDir, 'AppData', 'Roaming', 'npm', 'claude.cmd'),
+  ];
+  for (const p of knownPaths) {
+    if (existsSync(p)) {
+      console.log(`[CliExec] resolveClaudePath: found at known path: ${p}`);
+      return p;
+    }
+  }
+
+  console.warn(`[CliExec] resolveClaudePath: claude not found! Tried: ${knownPaths.join(', ')}`);
+  return 'claude';
+}
 
 // -------------------------------------------------------------------
 // Internal session state
@@ -286,7 +322,7 @@ export class CliExecutionService {
     this.emitStatusChange(sessionId, 'starting');
 
     // Build claude args (NO --output-format, NO --verbose — real terminal output)
-    const args: string[] = [];
+    const claudeArgs: string[] = [];
 
     // Handle long prompts via temp file (@file syntax)
     if (config.prompt.length > 2000) {
@@ -294,29 +330,57 @@ export class CliExecutionService {
       mkdirSync(promptDir, { recursive: true });
       const tmpFile = join(promptDir, `${sessionId}.md`);
       writeFileSync(tmpFile, config.prompt, 'utf-8');
-      args.push(`@${tmpFile}`);
+      claudeArgs.push(`@${tmpFile}`);
       internal._promptTmpFile = tmpFile;
     } else {
-      args.push(config.prompt);
+      claudeArgs.push('-p', config.prompt);
     }
 
     if (config.model) {
-      args.push('--model', config.model);
+      claudeArgs.push('--model', config.model);
     }
     if (config.maxTurns && config.maxTurns > 0) {
-      args.push('--max-turns', String(config.maxTurns));
+      claudeArgs.push('--max-turns', String(config.maxTurns));
     }
 
     // Permission handling
     const skipPerms = config.dangerouslySkipPermissions !== false;
     if (skipPerms) {
-      args.push('--dangerously-skip-permissions');
+      claudeArgs.push('--dangerously-skip-permissions');
+    }
+
+    // Resolve claude to full path (node-pty can't use shell:true like child_process)
+    const claudeCmd = resolveClaudePath();
+    console.log(`[CliExec] Resolved claude path for PTY: ${claudeCmd}`);
+
+    // On Windows, bypass PtyManager's cmd wrapper — construct the final command ourselves.
+    // PtyManager wraps npmGlobalCommands in `cmd /c`, but that can fail when claude isn't
+    // in the embedded PTY's PATH. By passing `cmd.exe` directly (not in npmGlobalCommands),
+    // PtyManager spawns it without re-wrapping.
+    const isWindows = process.platform === 'win32';
+    let ptyCmd: string;
+    let ptyArgs: string[];
+
+    if (isWindows) {
+      const quotedClaudeArgs = claudeArgs.map(arg => {
+        if (arg.includes('@') || arg.includes(' ') || arg.includes('"')) {
+          return `"${arg.replace(/"/g, '""')}"`;
+        }
+        return arg;
+      });
+      // Pass cmd.exe directly — PtyManager won't try to re-wrap it
+      ptyCmd = 'cmd.exe';
+      ptyArgs = ['/c', claudeCmd, ...quotedClaudeArgs];
+      console.log(`[CliExec] PTY spawn: cmd.exe /c ${claudeCmd} ${quotedClaudeArgs.join(' ')}`);
+    } else {
+      ptyCmd = claudeCmd;
+      ptyArgs = claudeArgs;
     }
 
     try {
       const ptyProcess: PtyProcess = this.ptyManager.create({
-        cmd: 'claude',
-        args,
+        cmd: ptyCmd,
+        args: ptyArgs,
         cwd,
         env: {
           KURORYUU_AGENT_ID: sessionId,
@@ -324,7 +388,6 @@ export class CliExecutionService {
         },
         ownerSessionId: sessionId,
         label: `Agent: ${config.prompt.slice(0, 40)}`,
-        cliType: 'claude',
       });
 
       internal.ptyId = ptyProcess.id;
@@ -367,11 +430,11 @@ export class CliExecutionService {
       internal.session.status = 'running';
       this.emitStatusChange(sessionId, 'running');
 
-      console.log(`[CliExec] Started PTY session ${sessionId}: claude ${args.join(' ')}`);
+      console.log(`[CliExec] Started PTY session ${sessionId}: ${ptyCmd} ${ptyArgs.join(' ')}`);
       return { ok: true, sessionId };
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
-      console.error(`[CliExec] Failed to spawn PTY for ${sessionId}:`, errMsg);
+      console.error(`[CliExec] Failed to spawn PTY for ${sessionId}:`, errMsg, { ptyCmd, ptyArgs, cwd });
       this.markSessionDone(sessionId, 'error', errMsg);
       return { ok: false, error: errMsg };
     }

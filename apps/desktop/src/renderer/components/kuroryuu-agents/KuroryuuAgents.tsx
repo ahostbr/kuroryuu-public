@@ -4,7 +4,7 @@
  * Shows sessions managed by Claude Agent SDK via IPC.
  * Features three views: Sessions (list), Agent Flow (graph), Terminal Agents
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users, Plus, Brain, TerminalSquare, MessageSquare } from 'lucide-react';
 import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
 import { useIdentityStore } from '../../stores/identity-store';
@@ -50,6 +50,7 @@ export function KuroryuuAgents() {
 
   // Detail view tab (terminal vs messages)
   const [detailTab, setDetailTab] = useState<DetailTab>('terminal');
+  const termWrapperRef = useRef<HTMLDivElement>(null);
 
   // Assistant badge
   const { newActionCount, incrementNewActionCount, clearNewActionCount } = useIdentityStore();
@@ -116,6 +117,20 @@ export function KuroryuuAgents() {
       setDetailTab('messages');
     }
   }, [selectedSessionId, sessions]);
+
+  // Force terminal refit after tab/session changes (Marketing terminal sizing pattern).
+  // Delayed padding nudge guarantees ResizeObserver fires AFTER Terminal.tsx sets up its observer.
+  useEffect(() => {
+    const el = termWrapperRef.current;
+    if (!el || detailTab !== 'terminal') return;
+    const timers = [300, 600, 1000].map(delay =>
+      setTimeout(() => {
+        el.style.paddingRight = '1px';
+        requestAnimationFrame(() => { el.style.paddingRight = ''; });
+      }, delay)
+    );
+    return () => timers.forEach(t => clearTimeout(t));
+  }, [detailTab, selectedSessionId]);
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
   const selectedArchived = archivedSessions.find((a) => a.id === selectedSessionId);
