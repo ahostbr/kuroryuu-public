@@ -383,6 +383,7 @@ export class HeartbeatService {
 
         const agentName = config.agentName || 'Kuroryuu';
         const timeout = config.timeoutMinutes ?? 5;
+        const todayDate = new Date().toISOString().split('T')[0];
 
         return `You are ${agentName}, performing a scheduled heartbeat check.
 
@@ -400,6 +401,20 @@ ${truncate(profile.memory.content, 'memory')}
 ${dailyContext ? `### Today's Context\n${dailyContext}\n` : ''}
 ### Standing Instructions
 ${truncate(profile.heartbeat.content, 'heartbeat')}
+
+## HARD RULE — Identity File Updates (MANDATORY)
+
+**You MUST update your identity files on EVERY heartbeat run. This is non-negotiable.**
+
+Files to update (all under ai/identity/):
+1. **ai/identity/memory/${todayDate}.md** — ALWAYS write today's daily context. Summarize what happened, what changed, current status. This is the MOST important output.
+2. **ai/identity/heartbeat.md** — Update wave progress table, status changes, any new standing instructions.
+3. **ai/identity/actions.json** — Append your heartbeat action entry to the actions array.
+4. **ai/identity/soul.md** — Update "Current Phase" section if the phase has changed (wave started/completed).
+5. **ai/identity/memory.md** — Add a new memory entry ONLY for major milestones (wave completion, significant discovery).
+6. **ai/identity/user.md** — Update ONLY if user preferences or facts have changed.
+
+If you skip updating these files, the heartbeat is INCOMPLETE. The Desktop UI reads these files directly — stale files mean stale context for every future session.
 
 ## Execution Rules
 
