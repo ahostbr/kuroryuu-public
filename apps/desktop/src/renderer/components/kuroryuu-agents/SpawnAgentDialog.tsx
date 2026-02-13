@@ -226,7 +226,7 @@ export function SpawnAgentDialog({
               type="text"
               value={workdir}
               onChange={(e) => setWorkdir(e.target.value)}
-              placeholder="Leave empty for project root"
+              placeholder={defaultWorkdir ? `Default: ${defaultWorkdir}` : "Leave empty for project root"}
               className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:border-primary focus:outline-none text-sm"
             />
           </div>

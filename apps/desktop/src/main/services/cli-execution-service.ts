@@ -12,7 +12,7 @@ import { BrowserWindow, app } from 'electron';
 import { spawn, exec, type ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
 import { writeFileSync, mkdirSync, unlinkSync, existsSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { execSync } from 'child_process';
 import type {
   SDKAgentSession,
@@ -29,6 +29,7 @@ import type { PtyProcess } from '../pty/types';
 
 const MAX_MESSAGES_IN_MEMORY = 5000;
 const CLI_SESSION_PREFIX = 'cli-';
+const PROJECT_ROOT = process.env.KURORYUU_PROJECT_ROOT || resolve(__dirname, '../../../..');
 
 // -------------------------------------------------------------------
 // Claude CLI resolution (PTY mode needs full path on Windows)
@@ -141,7 +142,7 @@ export class CliExecutionService {
     }
 
     const sessionId = CLI_SESSION_PREFIX + randomUUID().slice(0, 12);
-    const cwd = config.cwd || process.cwd();
+    const cwd = config.cwd || PROJECT_ROOT;
     const now = Date.now();
 
     // Build session object
@@ -286,7 +287,7 @@ export class CliExecutionService {
     }
 
     const sessionId = CLI_SESSION_PREFIX + randomUUID().slice(0, 12);
-    const cwd = config.cwd || process.cwd();
+    const cwd = config.cwd || PROJECT_ROOT;
     const now = Date.now();
 
     // Build session object

@@ -98,6 +98,15 @@ export function KuroryuuAgents() {
     if (!obsConnected) obsConnect();
   }, [obsConnected, obsConnect]);
 
+  // Fetch project root for spawn dialog default working directory
+  const [projectRoot, setProjectRoot] = useState('');
+  useEffect(() => {
+    (window as unknown as { electronAPI: { app: { getProjectRoot: () => Promise<string> } } })
+      .electronAPI?.app?.getProjectRoot?.()
+      .then(setProjectRoot)
+      .catch(() => {});
+  }, []);
+
   // Load persisted layout mode (Marketing pattern)
   useEffect(() => {
     window.electronAPI?.settings?.get?.('ui.agentsLayout').then((raw: unknown) => {
@@ -648,6 +657,7 @@ export function KuroryuuAgents() {
         isOpen={showSpawnDialog}
         onClose={() => setShowSpawnDialog(false)}
         onSpawn={handleSpawn}
+        defaultWorkdir={projectRoot}
       />
 
       {/* Findings to Tasks Modal */}
