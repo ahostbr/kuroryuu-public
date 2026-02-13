@@ -329,18 +329,23 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
     if (!initialized || !fitAddonRef.current) return;
     
     // Multiple fit attempts to handle race conditions
-    const safeFit = () => {
+    // Also sync PTY dimensions (critical for pre-existing PTYs where termId is set on mount)
+    const doFit = () => {
       try {
         fitAddonRef.current?.fit();
+        const currentTermId = termIdRef.current;
+        if (currentTermId && termRef.current) {
+          window.electronAPI.pty.resize(currentTermId, termRef.current.cols, termRef.current.rows);
+        }
       } catch (e) {
         // Ignore fit errors during initialization
       }
     };
     
     const timers = [
-      setTimeout(safeFit, 50),
-      setTimeout(safeFit, 150),
-      setTimeout(safeFit, 300),
+      setTimeout(doFit, 50),
+      setTimeout(doFit, 150),
+      setTimeout(doFit, 300),
     ];
     
     return () => timers.forEach(t => clearTimeout(t));
@@ -383,7 +388,10 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
       if (resizeTimer) clearTimeout(resizeTimer);
       resizeObserver.disconnect();
     };
-  }, [termId, safeFit]);
+  // Depends on [termId, safeFit, initialized] because when initialId is pre-set,
+  // termId never changes, so we need initialized to trigger re-run after xterm opens.
+  // Without this, ResizeObserver never attaches and pty.resize() never fires for pre-existing PTYs.
+  }, [termId, safeFit, initialized]);
 
   // Handle input - uses ref to avoid stale closure after navigation
   // Depends on [termId, initialized] because when initialId is pre-set,
