@@ -9,6 +9,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Zero-Cost Memory Injection (Feb 13, 2026)
+- Agent→checkpoint linking: checkpoint save/load now carries agent_id/session_id, new `_load_latest_for_agent()` query
+- Smart session start: `_action_start` returns resumption_context with checkpoint summary, worklog summary, working memory, and "Previously" section — all file reads, zero LLM cost
+- Auto-checkpoint on session end: `_action_end` auto-saves lightweight checkpoint (`auto_{agent_id}`) with in-progress tasks and working memory snapshot
+- Plugin Config UI: new Memory Injection section with 3 toggles (Smart Session Start, Auto-Checkpoint on End, Previously Section), all default ON
+
+#### PTY Terminal View for Kuroryuu Agents (Feb 12-13, 2026)
+- Dual execution mode: existing JSONL structured view preserved, new PTY terminal view added as primary tab
+- Sessions spawn via PtyManager with real xterm.js embedded terminal
+- Tab bar switching between Terminal and Messages views with auto-tab selection based on ptyId
+- PTY badge (amber) on SessionCard when session has active PTY
+- Heartbeat and scheduler route to PTY mode by default via `executionRendering` field on PromptAction
+- Collapsible session list sidebar (w-56, PanelLeft toggle) matching Marketing page layout
+- Layout mode switching: grid/splitter/window with cycle button, persisted to `ui.agentsLayout`
+- Window mode with drag+resize handlers, CSS Grid terminal area
+
+#### CLI Execution Backend (Feb 12, 2026)
+- CLI-default execution backend replacing SDK API key dependency
+- Spawns Claude CLI with OAuth authentication instead of requiring Anthropic API key
+- Windows Claude path resolution via `which claude` with `.cmd` extension handling
+- `startAgentPty()` method in cli-execution-service with PTY kill branch and ptyId tracking
+
+#### CLI Event Renderer & Observability Bridge (Feb 12-13, 2026)
+- New CliEventRenderer.tsx: renders observability HookEvents for CLI sessions via kuroryuu_session_id bridge
+- `send_event.py` injects `KURORYUU_AGENT_SESSION` env var as `kuroryuu_session_id` into hook event payloads
+- Compact-safe filtering: uses `payload.kuroryuu_session_id` instead of `session_id` — survives `/compact` and session ID changes
+- Consistent 8-char session UUID display across PTY status line, observability panel, hook events, and Messages tab header
+- KuroryuuAgents.tsx routes CLI sessions to CliEventRenderer, SDK sessions to SdkMessageRenderer
+
+#### Claude Agent SDK Integration (Feb 11, 2026)
+- Replaced CLI-based agent spawning (k_bash/k_process) with TypeScript `@anthropic-ai/claude-agent-sdk`
+- New claude-sdk-service.ts main process wrapper with IPC handlers and preload bridge
+- Zustand store with SDK IPC event subscriptions replacing k_process polling
+- SpawnDialog with SDK config (role/model/permissionMode), SdkMessageRenderer with structured tool call display
+- Agent-flow-store with SDK adapter, AGENT_ROLES updated with SDK-native fields (allowedTools, permissionMode)
+- Deleted legacy SessionLogViewer, cleaned up persistence types
+
+#### Inter-Agent Messaging — k_msg (Feb 11, 2026)
+- New `k_msg` simplified messaging MCP tool wrapping k_inbox for inter-agent communication
+- Actions: send, check, read, reply, complete, broadcast, list_agents
+- Prompts index guide and KURORYUU_BOOTSTRAP updated with k_msg usage patterns
+
+#### Personal Assistant & Identity System (Feb 12, 2026)
+- Identity bootstrap system: soul.md, user.md, heartbeat.md, memory.md, `.bootstrap_complete` in `ai/identity/`
+- BootstrapWelcome component with interactive CLI terminal spawn, file watcher for completion, skip/reset
+- Daily memory files (`ai/identity/memory/YYYY-MM-DD.md`) with date picker UI in Identity Editor
+- One-way Claude→Kuroryuu memory sync (MemorySyncService) with hash-based diffing and `[claude-auto]` tags
+- Heartbeat config: agentName, maxLinesPerFile, maxTurns, timeoutMinutes as configurable fields
+- Prompt Preview tab showing exact rendered heartbeat prompt in read-only CodeMirror with Copy/Refresh
+- Inbox polling hook and UI toggle for agent message checking
+- Auto-register/deregister agents with Gateway on session start/end
+
+#### Ash Identity Bootstrap — The Twelve Pain Points (Feb 12, 2026)
+- Established Ash as named identity — thinking partner and codebase sweeper, not code monkey
+- Created T100-T111: twelve documented pain points as heartbeat sweep queue
+- Standing order: each heartbeat, document one pain point → write `Docs/reviews/T{NNN}-{slug}.md` → link on task → update memory → stop
+- All 12 pain point review documents written: Dojo/PRD, Chatbot, Agents redundancy, GenUI theme, Code Editor minimap, Capture theme, Marketing repos, Observability timelines, Restic backup, Auto-update, Kuroryuu CLI, Codebase consolidation
+
+#### Persistent Session Archival (Feb 13, 2026)
+- Extracted archival into persistent `initArchivalListener()` called from App.tsx on mount (never unmounts)
+- Fixed bug where sessions completing while user was on a different panel were silently lost
+- Fixed `pty:false` hardcode in ArchivedSessionData — now uses `!!session.ptyId`
+
 #### kuroryuu.com Website Launch (Feb 11, 2026)
 - Full Next.js 15 + OpenNext + Cloudflare Workers site: Home (hero, features, stats), Features (28 items across 4 groups), About, Downloads, Docs (5 MDX pages with sidebar nav), Blog (6 posts), Changelog
 - Imperial dragon theme with dark aesthetic carried from desktop app
@@ -198,6 +261,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### Agent Execution & UI (Feb 12-13, 2026)
+- Kuroryuu Agents: default execution backend switched from SDK API to CLI PTY (no API key needed)
+- SessionTerminal flattened to thin passthrough (no wrapper divs)
+- LM Studio context windows marked as estimated in chat store
+- Heartbeat countdown timer added to heartbeat service
+
 #### SPA & Routing (Feb 10, 2026)
 - Switched health probes to `/v1/health` endpoint; tightened SPA static file routing rules
 
@@ -239,6 +308,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plan Mode button added (shift+tab shortcut)
 
 ### Fixed
+
+#### Session & PTY Fixes (Feb 12-13, 2026)
+- Session archival persistence: onCompleted archival listener was tied to KuroryuuAgents component lifecycle — navigating away dropped completion events; extracted to persistent App.tsx-level listener
+- PTY Messages compact fix: session_id-based filtering broke after `/compact`; switched to `payload.kuroryuu_session_id` filtering that survives session ID changes
+- Terminal garbled text race condition: added `initialized` to ResizeObserver effect deps, post-init fits now call `pty.resize()`
+- Terminal flex overflow: fixed with `flex-1 min-h-0` pattern for session viewers
+- Agent terminal sizing: matched Marketing layout proportions
 
 #### TTS Double-Fire Prevention (Feb 11, 2026)
 - `smart_tts.py` `should_skip_global()` checked preference flags (`ttsOnStop` etc.) instead of actual hook commands, causing circular skip where global hooks deferred to project hooks that lacked TTS commands; fixed by inspecting `settings.hooks` for actual `smart_tts.py`/`edge_tts.py` commands
