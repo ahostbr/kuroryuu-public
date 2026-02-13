@@ -1688,9 +1688,9 @@ function setupKuroConfigIpc(): void {
           features: {
             ragInteractive: false,
             questionMode: false,
-            smartSessionStart: true,
-            autoCheckpointOnEnd: true,
-            previouslySection: true,
+            smartSessionStart: false,
+            autoCheckpointOnEnd: false,
+            previouslySection: false,
             ...(kuroPlugin.features || {}),
           },
         };
@@ -1734,9 +1734,9 @@ function setupKuroConfigIpc(): void {
         features: {
           ragInteractive: false,
           questionMode: false,
-          smartSessionStart: true,
-          autoCheckpointOnEnd: true,
-          previouslySection: true,
+          smartSessionStart: false,
+          autoCheckpointOnEnd: false,
+          previouslySection: false,
         },
       };
 

@@ -127,9 +127,9 @@ const DEFAULT_CONFIG: KuroConfig = {
   features: {
     ragInteractive: false,
     questionMode: false,
-    smartSessionStart: true,
-    autoCheckpointOnEnd: true,
-    previouslySection: true,
+    smartSessionStart: false,
+    autoCheckpointOnEnd: false,
+    previouslySection: false,
   },
 };
 

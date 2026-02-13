@@ -16,22 +16,20 @@ import {
   GitBranch,
   Clock,
   Loader2,
-  ListTodo,
   Archive,
   Power,
   Megaphone,
   Send,
   X,
-  BarChart3,
+  PanelBottom,
 } from 'lucide-react';
 import { useClaudeTeamsStore, setupClaudeTeamsIpcListeners } from '../../stores/claude-teams-store';
 import { useTeamFlowStore } from '../../stores/team-flow-store';
 import { TeamFlowPanel } from './TeamFlowPanel';
 import { TeammateDetailPanel } from './TeammateDetailPanel';
-import { TaskListPanel } from './TaskListPanel';
-import { TeamsAnalyticsPanel } from './TeamsAnalyticsPanel';
 import { TeamHistoryPanel } from './TeamHistoryPanel';
 import { TimelineView } from './timeline';
+import { TeamDetailsDashboard } from './details';
 import type { FlowViewMode } from '../../types/claude-teams';
 
 const VIEW_TABS: { id: FlowViewMode; label: string; icon: React.ElementType; ready: boolean }[] = [
@@ -55,15 +53,17 @@ export function ClaudeTeams() {
   } = useClaudeTeamsStore();
 
   const [activeView, setActiveView] = useState<FlowViewMode>('hub-spokes');
-  const [showTasks, setShowTasks] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
   const setViewMode = useTeamFlowStore((s) => s.setViewMode);
+  const selectTeammate = useTeamFlowStore((s) => s.selectTeammate);
   const history = useClaudeTeamsStore((s) => s.history);
   const loadHistory = useClaudeTeamsStore((s) => s.loadHistory);
   const checkTeammateHealth = useClaudeTeamsStore((s) => s.checkTeammateHealth);
   const computeAnalytics = useClaudeTeamsStore((s) => s.computeAnalytics);
   const teamAnalytics = useClaudeTeamsStore((s) => s.teamAnalytics);
+  const selectedTeamTasks = useClaudeTeamsStore((s) => s.selectedTeamTasks);
+  const teammateHealth = useClaudeTeamsStore((s) => s.teammateHealth);
   const shutdownAllTeammates = useClaudeTeamsStore((s) => s.shutdownAllTeammates);
   const broadcastToTeammates = useClaudeTeamsStore((s) => s.broadcastToTeammates);
 
@@ -176,33 +176,18 @@ export function ClaudeTeams() {
 
         {/* Right side controls */}
         <div className="flex items-center gap-2">
-          {/* Analytics toggle */}
+          {/* Details dashboard toggle */}
           {selectedTeam && (
             <button
-              onClick={() => setShowAnalytics((v) => !v)}
+              onClick={() => setShowDetails((v) => !v)}
               className={`p-2 rounded-lg transition-colors ${
-                showAnalytics
-                  ? 'text-cyan-400 bg-cyan-400/10'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-              }`}
-              title="Toggle analytics panel"
-            >
-              <BarChart3 className="w-4 h-4" />
-            </button>
-          )}
-
-          {/* Tasks toggle */}
-          {selectedTeam && (
-            <button
-              onClick={() => setShowTasks((v) => !v)}
-              className={`p-2 rounded-lg transition-colors ${
-                showTasks
+                showDetails
                   ? 'text-primary bg-primary/10'
                   : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
               }`}
-              title="Toggle task panel"
+              title="Toggle details dashboard"
             >
-              <ListTodo className="w-4 h-4" />
+              <PanelBottom className="w-4 h-4" />
             </button>
           )}
 
@@ -415,17 +400,18 @@ export function ClaudeTeams() {
               <TeammateDetailPanel />
             </div>
 
-            {/* Task panel (collapsible, below graph) */}
-            {showTasks && (
-              <div className="border-t border-border p-3 max-h-[40%] overflow-y-auto">
-                <TaskListPanel />
-              </div>
-            )}
-
-            {/* Analytics panel (collapsible, below tasks) */}
-            {showAnalytics && (
-              <div className="border-t border-border p-3 max-h-[35%] overflow-y-auto flex-shrink-0">
-                <TeamsAnalyticsPanel />
+            {/* Details dashboard (collapsible, below graph) */}
+            {showDetails && selectedTeam && (
+              <div className="border-t border-border max-h-[50%] overflow-y-auto flex-shrink-0">
+                <TeamDetailsDashboard
+                  mode="live"
+                  config={selectedTeam.config}
+                  tasks={selectedTeamTasks}
+                  inboxes={selectedTeam.inboxes}
+                  analytics={teamAnalytics}
+                  teammateHealth={teammateHealth}
+                  onSelectTeammate={(name) => selectTeammate(name)}
+                />
               </div>
             )}
           </>

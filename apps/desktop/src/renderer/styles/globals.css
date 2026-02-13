@@ -922,3 +922,73 @@ body {
   color: color-mix(in srgb, var(--g-accent) 70%, transparent);
   font-size: 0.7rem;
 }
+
+/* ── Team Details Dashboard ─────────────────────────── */
+
+/* Stats ribbon card stagger */
+.td-stats-card {
+  animation: genuiReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.td-stats-card:nth-child(1) { animation-delay: 0ms; }
+.td-stats-card:nth-child(2) { animation-delay: 60ms; }
+.td-stats-card:nth-child(3) { animation-delay: 120ms; }
+.td-stats-card:nth-child(4) { animation-delay: 180ms; }
+
+/* Completion ring (CSS-only donut) */
+@property --td-completion {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+.td-completion-ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--success) var(--td-completion),
+    color-mix(in srgb, var(--muted-foreground) 20%, transparent) var(--td-completion)
+  );
+  transition: --td-completion 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  -webkit-mask: radial-gradient(circle, transparent 55%, black 56%);
+  mask: radial-gradient(circle, transparent 55%, black 56%);
+}
+
+/* Member card hover */
+.td-member-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.td-member-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+/* Tab content enter animation */
+.td-tab-content {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Status health ring */
+.td-health-pulse {
+  animation: pulse-status 2s ease-in-out infinite;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 40%, transparent);
+  border-radius: 50%;
+}
+.td-health-pulse--danger {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--destructive) 40%, transparent);
+  animation: pulse-status 2s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+/* Stacked progress bar segments */
+.td-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+  background: color-mix(in srgb, var(--muted-foreground) 20%, transparent);
+}
+.td-progress-bar__segment {
+  transition: flex-basis 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  height: 100%;
+}

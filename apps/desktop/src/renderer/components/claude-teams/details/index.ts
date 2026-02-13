@@ -1,0 +1,1 @@
+export { TeamDetailsDashboard } from './TeamDetailsDashboard';

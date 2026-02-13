@@ -4,7 +4,7 @@
  * Displays past team sessions that were auto-archived before cleanup.
  * Each entry shows team name, duration, stats, and allows loading full details.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Archive,
   Clock,
@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { ArchiveReplayPanel } from './ArchiveReplayPanel';
-import type { TeamHistoryEntry, ArchivedTeamSession, InboxMessage } from '../../types/claude-teams';
-import { parseSystemMessage } from '../../types/claude-teams';
+import { TeamDetailsDashboard } from './details';
+import type { TeamHistoryEntry, ArchivedTeamSession, TeamAnalytics } from '../../types/claude-teams';
 
 /** Format duration from ms to human-readable string */
 function formatDuration(ms: number): string {
@@ -50,169 +50,38 @@ function completionRate(entry: TeamHistoryEntry): number {
 }
 
 // ---------------------------------------------------------------------------
-// Archive message & task sub-components
+// Compute analytics from archive data (pure function)
 // ---------------------------------------------------------------------------
 
-function ArchiveSystemBadge({ msg, timestamp }: { msg: { type: string; from?: string; taskId?: string; subject?: string }; timestamp: string }) {
-  const styles: Record<string, { bg: string; text: string; label: string }> = {
-    idle_notification: { bg: 'bg-gray-500/15', text: 'text-gray-400', label: 'IDLE' },
-    shutdown_approved: { bg: 'bg-red-500/15', text: 'text-red-400', label: 'SHUTDOWN' },
-    shutdown_request: { bg: 'bg-orange-500/15', text: 'text-orange-400', label: 'SHUTDOWN REQ' },
-    task_completed: { bg: 'bg-green-500/15', text: 'text-green-400', label: 'TASK DONE' },
+function computeArchiveAnalytics(archive: ArchivedTeamSession): TeamAnalytics {
+  const tasks = archive.tasks.filter(t => t.status !== 'deleted' && t.metadata?._internal !== true);
+  const completedTasks = tasks.filter(t => t.status === 'completed');
+  const archivedAtMs = archive.archivedAt ? new Date(archive.archivedAt).getTime() : Date.now();
+  const teamUptime = archivedAtMs - archive.config.createdAt;
+  const uptimeMinutes = teamUptime / 60000;
+
+  const velocity = uptimeMinutes > 0 ? completedTasks.length / uptimeMinutes : 0;
+  const completionPct = tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0;
+  const totalMessages = Object.values(archive.inboxes).reduce((sum, msgs) => sum + msgs.length, 0);
+  const messageRate = uptimeMinutes > 0 ? totalMessages / uptimeMinutes : 0;
+
+  // Simple bottleneck detection for archives
+  const bottleneckTaskIds = tasks
+    .filter(t => t.status !== 'completed')
+    .sort((a, b) => b.blockedBy.length - a.blockedBy.length)
+    .slice(0, 3)
+    .filter(t => t.blockedBy.length > 0)
+    .map(t => t.id);
+
+  return {
+    velocity,
+    completionPct,
+    totalMessages,
+    avgResponseLatency: 0,
+    messageRate,
+    bottleneckTaskIds,
+    teamUptime,
   };
-  const s = styles[msg.type] || { bg: 'bg-gray-500/15', text: 'text-gray-400', label: msg.type.toUpperCase() };
-  return (
-    <div className="flex items-center gap-2 px-2 py-1 bg-secondary/20 rounded border border-border/30 text-[10px]">
-      <span className={`px-1.5 py-0 rounded font-medium ${s.bg} ${s.text}`}>{s.label}</span>
-      {msg.from && <span className="text-muted-foreground">{msg.from}</span>}
-      {'taskId' in msg && msg.taskId && <span className="text-foreground/70">#{msg.taskId}</span>}
-      {'subject' in msg && msg.subject && <span className="text-foreground/70 truncate">{msg.subject}</span>}
-      <span className="text-muted-foreground/50 ml-auto flex-shrink-0">{timestamp}</span>
-    </div>
-  );
-}
-
-function ArchiveMessageItem({ msg, agentName, memberColor }: { msg: InboxMessage; agentName: string; memberColor?: string }) {
-  const systemMsg = parseSystemMessage(msg.text);
-  const timestamp = new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  const colorDot = msg.color || memberColor || '#888';
-
-  if (systemMsg) {
-    return <ArchiveSystemBadge msg={systemMsg} timestamp={timestamp} />;
-  }
-
-  return (
-    <div className="flex flex-col gap-0.5">
-      <div className="flex items-center gap-1.5 text-[10px]">
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: colorDot }} />
-        <span className="font-medium text-foreground">{msg.from}</span>
-        <span className="text-muted-foreground/60">{timestamp}</span>
-        <span className="text-muted-foreground/40">in {agentName}</span>
-      </div>
-      <div className="ml-3 bg-secondary/40 rounded px-2.5 py-1.5 border border-border/40">
-        <p className="text-[11px] text-foreground/90 leading-relaxed whitespace-pre-wrap break-words">
-          {msg.text.length > 500 ? msg.text.slice(0, 500) + '...' : msg.text}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function ArchiveMessages({ inboxes, members }: { inboxes: Record<string, InboxMessage[]>; members: { name: string; color?: string; agentType: string }[] }) {
-  const [expanded, setExpanded] = useState(false);
-  const [viewMode, setViewMode] = useState<'timeline' | 'by-agent'>('timeline');
-
-  const memberColors = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const m of members) {
-      map[m.name] = m.color || (m.agentType === 'team-lead' ? '#a78bfa' : '#60a5fa');
-    }
-    return map;
-  }, [members]);
-
-  const chronological = useMemo(() => {
-    return Object.entries(inboxes)
-      .flatMap(([agentName, msgs]) => msgs.map((m) => ({ ...m, _agentName: agentName })))
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-  }, [inboxes]);
-
-  const totalCount = chronological.length;
-  if (totalCount === 0) return null;
-
-  return (
-    <div>
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-1"
-      >
-        {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
-        Messages ({totalCount})
-      </button>
-
-      {expanded && (
-        <div>
-          <div className="flex gap-1 mb-2">
-            <button
-              onClick={() => setViewMode('timeline')}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                viewMode === 'timeline' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              Timeline
-            </button>
-            <button
-              onClick={() => setViewMode('by-agent')}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                viewMode === 'by-agent' ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              By Agent
-            </button>
-          </div>
-
-          <div className="max-h-60 overflow-y-auto space-y-1.5">
-            {viewMode === 'timeline' ? (
-              chronological.map((msg, idx) => (
-                <ArchiveMessageItem
-                  key={idx}
-                  msg={msg}
-                  agentName={msg._agentName}
-                  memberColor={memberColors[msg.from]}
-                />
-              ))
-            ) : (
-              Object.entries(inboxes).map(([agentName, msgs]) => (
-                <div key={agentName} className="mb-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground mb-1">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: memberColors[agentName] || '#888' }} />
-                    {agentName} ({msgs.length})
-                  </div>
-                  <div className="space-y-1 ml-2">
-                    {msgs.map((msg, idx) => (
-                      <ArchiveMessageItem key={idx} msg={msg} agentName={agentName} memberColor={memberColors[msg.from]} />
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ExpandableTask({ task }: { task: { id: string; subject: string; status: string; owner?: string; description?: string } }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasDesc = task.description && task.description.length > 0;
-
-  return (
-    <div>
-      <div
-        role={hasDesc ? 'button' : undefined}
-        tabIndex={hasDesc ? 0 : undefined}
-        onClick={() => hasDesc && setExpanded((v) => !v)}
-        onKeyDown={(e) => {
-          if (hasDesc && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setExpanded((v) => !v); }
-        }}
-        className={`flex items-center gap-2 text-xs py-0.5 ${hasDesc ? 'cursor-pointer hover:bg-secondary/30 rounded px-1 -mx-1' : ''}`}
-      >
-        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-          task.status === 'completed' ? 'bg-green-400' : task.status === 'in_progress' ? 'bg-yellow-400' : 'bg-gray-400'
-        }`} />
-        {hasDesc && (expanded ? <ChevronDown className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" /> : <ChevronRight className="w-2.5 h-2.5 text-muted-foreground flex-shrink-0" />)}
-        <span className="text-foreground truncate flex-1">{task.subject}</span>
-        {task.owner && <span className="text-muted-foreground">@{task.owner}</span>}
-      </div>
-      {expanded && hasDesc && (
-        <div className="ml-5 mt-1 mb-1 bg-secondary/30 rounded px-2.5 py-1.5 border border-border/30">
-          <p className="text-[10px] text-foreground/80 leading-relaxed whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
-            {task.description}
-          </p>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ---------------------------------------------------------------------------
@@ -222,7 +91,6 @@ function ExpandableTask({ task }: { task: { id: string; subject: string; status:
 function ArchiveDetail({ archiveId, onClose }: { archiveId: string; onClose?: () => void }) {
   const [archive, setArchive] = useState<ArchivedTeamSession | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -254,71 +122,20 @@ function ArchiveDetail({ archiveId, onClose }: { archiveId: string; onClose?: ()
     );
   }
 
-  const config = archive.config;
-  const tasks = archive.tasks;
-
   return (
     <div className="px-3 pb-3 space-y-3">
       {/* Graph replay */}
       <ArchiveReplayPanel archiveId={archiveId} onClose={onClose} />
 
-      {/* Toggle for text details */}
-      <button
-        onClick={() => setShowDetails((v) => !v)}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-      >
-        {showDetails ? (
-          <ChevronDown className="w-3 h-3" />
-        ) : (
-          <ChevronRight className="w-3 h-3" />
-        )}
-        Details
-      </button>
-
-      {showDetails && (
-        <>
-          {/* Members */}
-          <div>
-            <h4 className="text-xs font-medium text-muted-foreground mb-1">Members</h4>
-            <div className="flex flex-wrap gap-1.5">
-              {config.members.map((m) => (
-                <span
-                  key={m.agentId}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-secondary/80"
-                >
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: m.color || (m.agentType === 'team-lead' ? '#a78bfa' : '#60a5fa') }}
-                  />
-                  {m.name}
-                  <span className="text-muted-foreground">({m.model?.split('-').slice(-1)[0] || 'unknown'})</span>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Tasks (exclude internal teammate tracker tasks) */}
-          {tasks.length > 0 && (
-            <div>
-              <h4 className="text-xs font-medium text-muted-foreground mb-1">
-                Tasks ({tasks.filter((t) => t.status !== 'deleted' && t.metadata?._internal !== true).length})
-              </h4>
-              <div className="space-y-1 max-h-40 overflow-y-auto">
-                {tasks
-                  .filter((t) => t.status !== 'deleted' && t.metadata?._internal !== true)
-                  .map((task) => (
-                    <ExpandableTask key={task.id} task={task} />
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Messages */}
-          {Object.keys(archive.inboxes).length > 0 && (
-            <ArchiveMessages inboxes={archive.inboxes} members={config.members} />
-          )}
-        </>
-      )}
+      {/* Details dashboard */}
+      <TeamDetailsDashboard
+        mode="archive"
+        config={archive.config}
+        tasks={archive.tasks}
+        inboxes={archive.inboxes}
+        analytics={computeArchiveAnalytics(archive)}
+        teammateHealth={{}}
+      />
     </div>
   );
 }

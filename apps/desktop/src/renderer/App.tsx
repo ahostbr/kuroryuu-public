@@ -292,6 +292,48 @@ export function App() {
     };
   }, []);
 
+  // Memory injection modal — show once after First Book bootstrap completes
+  useEffect(() => {
+    const unsub = window.electronAPI?.identity?.onBootstrapCompleted?.(async () => {
+      if (localStorage.getItem('memoryInjectionModalShown')) return;
+      localStorage.setItem('memoryInjectionModalShown', 'true');
+
+      // Let bootstrap UI settle before showing dialog
+      await new Promise(r => setTimeout(r, 1500));
+
+      const enable = await showConfirm(
+        'Enable Memory Injection?',
+        'Your assistant has been created.\n\n' +
+        'Enabling memory injection will make every Claude CLI session in Kuroryuu ' +
+        'automatically start as your configured assistant.\n\n' +
+        'Leave this off for normal use.\n' +
+        'Turn this on when running your assistant in heartbeat mode.',
+        { confirmLabel: 'Enable Memory Injection', cancelLabel: 'Keep Off' }
+      );
+
+      if (enable) {
+        try {
+          const result = await window.electronAPI?.kuroConfig?.load?.();
+          if (result?.ok && result.config) {
+            const { elevenlabsKeyConfigured, ...configToSave } = result.config as any;
+            configToSave.features = {
+              ...configToSave.features,
+              smartSessionStart: true,
+              autoCheckpointOnEnd: true,
+              previouslySection: true,
+            };
+            await window.electronAPI?.kuroConfig?.save?.(configToSave);
+            toast.success('Memory injection enabled');
+          }
+        } catch (err) {
+          console.error('[App] Failed to enable memory injection:', err);
+        }
+      }
+    });
+
+    return () => { unsub?.(); };
+  }, []);
+
   // Handler for "View in Traffic" - enables defense mode and navigates to traffic page
   const handleViewInTraffic = useCallback(() => {
     setDefenseMode?.(true);
