@@ -437,21 +437,23 @@ export function KuroryuuAgents() {
                     Messages
                   </button>
                 </div>
-                {/* Detail content */}
-                {detailTab === 'terminal' ? (
-                  selectedSession.ptyId ? (
-                    <SessionTerminal
-                      sessionId={selectedSession.id}
-                      ptyId={selectedSession.ptyId}
-                      cwd={selectedSession.cwd}
-                      status={selectedSession.status}
-                    />
+                {/* Detail content — flex-1 min-h-0 overflow-hidden matches Marketing/TerminalGrid sizing */}
+                <div ref={termWrapperRef} className="flex-1 min-h-0 overflow-hidden relative">
+                  {detailTab === 'terminal' ? (
+                    selectedSession.ptyId ? (
+                      <SessionTerminal
+                        sessionId={selectedSession.id}
+                        ptyId={selectedSession.ptyId}
+                        cwd={selectedSession.cwd}
+                        status={selectedSession.status}
+                      />
+                    ) : (
+                      <SessionTerminalPlaceholder />
+                    )
                   ) : (
-                    <SessionTerminalPlaceholder />
-                  )
-                ) : (
-                  <SdkMessageRenderer sessionId={selectedSession.id} />
-                )}
+                    <SdkMessageRenderer sessionId={selectedSession.id} />
+                  )}
+                </div>
               </div>
             ) : selectedArchived ? (
               /* Archived Session Log Viewer */
