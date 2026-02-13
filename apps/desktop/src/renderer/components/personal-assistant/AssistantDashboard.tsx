@@ -2,11 +2,11 @@
  * AssistantDashboard — heartbeat config controls + status cards
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
-    Heart, Play, Settings, Clock, CheckCircle,
+    Heart, Play, Pause, Settings, Clock, CheckCircle,
     Zap, Shield, BookOpen, Calendar, Bell, Github, RefreshCw, RotateCcw,
-    User, Sliders,
+    User, Sliders, Timer,
 } from 'lucide-react';
 import { useIdentityStore } from '../../stores/identity-store';
 import { BootstrapWelcome } from './BootstrapWelcome';
@@ -37,6 +37,17 @@ function formatInterval(minutes: number): string {
     return `${minutes / 1440}d`;
 }
 
+function formatCountdown(ms: number): string {
+    if (ms <= 0) return 'Due now';
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    if (minutes > 0) return `${minutes}m ${seconds}s`;
+    return `${seconds}s`;
+}
+
 export function AssistantDashboard() {
     const {
         heartbeatConfig,
@@ -64,6 +75,9 @@ export function AssistantDashboard() {
     } = useIdentityStore();
 
     const [nameInput, setNameInput] = useState('');
+    const [intervalInput, setIntervalInput] = useState('');
+    const [countdown, setCountdown] = useState<number | null>(null);
+    const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         checkBootstrap();
@@ -78,6 +92,46 @@ export function AssistantDashboard() {
             setNameInput(heartbeatConfig.agentName);
         }
     }, [heartbeatConfig?.agentName, nameInput]);
+
+    // Sync interval input with loaded config
+    useEffect(() => {
+        if (heartbeatConfig?.intervalMinutes != null && !intervalInput) {
+            setIntervalInput(String(heartbeatConfig.intervalMinutes));
+        }
+    }, [heartbeatConfig?.intervalMinutes, intervalInput]);
+
+    // Live countdown timer
+    useEffect(() => {
+        if (countdownRef.current) {
+            clearInterval(countdownRef.current);
+            countdownRef.current = null;
+        }
+
+        const nextRun = heartbeatStatus?.nextRun;
+        if (!nextRun || !heartbeatConfig?.enabled) {
+            setCountdown(null);
+            return;
+        }
+
+        const tick = () => {
+            const remaining = nextRun - Date.now();
+            setCountdown(remaining > 0 ? remaining : 0);
+            if (remaining <= 0) {
+                // Refresh status after the run should have triggered
+                setTimeout(() => loadHeartbeatConfig(), 3000);
+            }
+        };
+
+        tick();
+        countdownRef.current = setInterval(tick, 1000);
+
+        return () => {
+            if (countdownRef.current) {
+                clearInterval(countdownRef.current);
+                countdownRef.current = null;
+            }
+        };
+    }, [heartbeatStatus?.nextRun, heartbeatConfig?.enabled, loadHeartbeatConfig]);
 
     // Show bootstrap welcome if not yet bootstrapped
     if (bootstrapStatus && !bootstrapStatus.bootstrapped) {
@@ -132,16 +186,49 @@ export function AssistantDashboard() {
                 </div>
             </div>
 
-            {/* Last/Next Run */}
+            {/* Countdown & Controls */}
             {status && (status.lastRun || status.nextRun) && (
                 <div className="p-3 rounded-lg border border-border bg-card">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        {status.lastRun && (
-                            <span>Last run: {new Date(status.lastRun).toLocaleString()}</span>
-                        )}
-                        {status.nextRun && (
-                            <span>Next run: {new Date(status.nextRun).toLocaleString()}</span>
-                        )}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            {status.lastRun && (
+                                <span>Last run: {new Date(status.lastRun).toLocaleString()}</span>
+                            )}
+                            {status.nextRun && (
+                                <span>Next run: {new Date(status.nextRun).toLocaleString()}</span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {/* Live Countdown */}
+                            {config?.enabled && countdown !== null && (
+                                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-secondary text-xs font-mono tabular-nums">
+                                    <Timer className="w-3 h-3 text-primary" />
+                                    <span className={countdown <= 60000 ? 'text-yellow-400' : 'text-foreground'}>
+                                        {formatCountdown(countdown)}
+                                    </span>
+                                </div>
+                            )}
+                            {/* Pause / Resume */}
+                            {config?.enabled ? (
+                                <button
+                                    onClick={() => setHeartbeatEnabled(false)}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-secondary hover:bg-yellow-500/20 hover:text-yellow-400 transition-colors text-muted-foreground"
+                                    title="Pause heartbeat"
+                                >
+                                    <Pause className="w-3 h-3" />
+                                    Pause
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={() => setHeartbeatEnabled(true)}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium bg-primary/20 hover:bg-primary/30 text-primary transition-colors"
+                                    title="Resume heartbeat"
+                                >
+                                    <Play className="w-3 h-3" />
+                                    Resume
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -212,15 +299,51 @@ export function AssistantDashboard() {
                 {/* Interval */}
                 <div className="flex items-center justify-between">
                     <span className="text-sm text-foreground">Check Interval</span>
-                    <select
-                        value={config?.intervalMinutes ?? 30}
-                        onChange={e => setHeartbeatInterval(Number(e.target.value))}
-                        className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
-                    >
-                        {INTERVAL_OPTIONS.map(v => (
-                            <option key={v} value={v}>{formatInterval(v)}</option>
-                        ))}
-                    </select>
+                    <div className="flex items-center gap-0">
+                        <input
+                            type="text"
+                            value={intervalInput}
+                            onChange={e => {
+                                const raw = e.target.value.replace(/[^0-9]/g, '');
+                                setIntervalInput(raw);
+                            }}
+                            onBlur={() => {
+                                const n = parseInt(intervalInput, 10);
+                                if (n > 0) {
+                                    setHeartbeatInterval(n);
+                                    setIntervalInput(String(n));
+                                } else {
+                                    setIntervalInput(String(config?.intervalMinutes ?? 30));
+                                }
+                            }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                    (e.target as HTMLInputElement).blur();
+                                }
+                            }}
+                            className="bg-secondary border border-border rounded-l px-2 py-1 text-xs text-foreground w-14 text-right"
+                            title="Minutes — type a custom value or pick from dropdown"
+                        />
+                        <select
+                            value={INTERVAL_OPTIONS.includes(config?.intervalMinutes ?? 30) ? (config?.intervalMinutes ?? 30) : ''}
+                            onChange={e => {
+                                const v = Number(e.target.value);
+                                setHeartbeatInterval(v);
+                                setIntervalInput(String(v));
+                            }}
+                            className="bg-secondary border border-border border-l-0 rounded-r px-1 py-1 text-xs text-foreground cursor-pointer"
+                            title="Preset intervals"
+                        >
+                            {!INTERVAL_OPTIONS.includes(config?.intervalMinutes ?? 30) && (
+                                <option value="" disabled>
+                                    {formatInterval(config?.intervalMinutes ?? 30)}
+                                </option>
+                            )}
+                            {INTERVAL_OPTIONS.map(v => (
+                                <option key={v} value={v}>{formatInterval(v)}</option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
 
                 {/* Notification Mode */}

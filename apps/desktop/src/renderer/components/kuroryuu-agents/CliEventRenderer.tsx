@@ -128,20 +128,23 @@ export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererPr
     return () => clearInterval(interval);
   }, []);
 
-  // Discover the Claude Code session_id (for display + filtering).
-  // Direct sdkSessionId if available, otherwise scan payload.kuroryuu_session_id bridge.
-  const resolvedSessionId = useMemo(() => {
-    if (sessionId) return sessionId;
-    return events.find(
+  // Filter events for this CLI session.
+  // Uses payload.kuroryuu_session_id (injected by send_event.py from KURORYUU_AGENT_SESSION env var)
+  // to match across session_id changes (e.g. after context compaction).
+  // Falls back to direct sdkSessionId match for non-PTY CLI sessions.
+  const sessionEvents = useMemo(() => {
+    if (sessionId) {
+      return events.filter(e => e.session_id === sessionId);
+    }
+    return events.filter(
       e => (e.payload as Record<string, unknown>)?.kuroryuu_session_id === cliSessionId
-    )?.session_id ?? null;
+    );
   }, [events, sessionId, cliSessionId]);
 
-  // Filter events for this session
-  const sessionEvents = useMemo(() => {
-    if (!resolvedSessionId) return [];
-    return events.filter(e => e.session_id === resolvedSessionId);
-  }, [events, resolvedSessionId]);
+  // Get the most recent Claude Code session_id for display (matches observability panel)
+  const latestSessionId = sessionEvents.length > 0
+    ? sessionEvents[0].session_id
+    : null;
 
   // Auto-scroll on new events
   useEffect(() => {
@@ -162,7 +165,7 @@ export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererPr
   return (
     <div ref={containerRef} className="flex-1 overflow-auto p-3 space-y-2">
       <div className="text-xs text-muted-foreground mb-2">
-        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''} · {resolvedSessionId ? resolvedSessionId.slice(0, 8) : cliSessionId}
+        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''} · {latestSessionId ? latestSessionId.slice(0, 8) : cliSessionId}
       </div>
       {sessionEvents.map((event) => (
         <EventCard key={event.id} event={event} tick={tick} />
