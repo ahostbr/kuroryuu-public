@@ -68,6 +68,15 @@ export function SessionCard({ session, isSelected, onSelect, onStop }: SessionCa
               {statusLabel}
             </span>
           )}
+          <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+            session.ptyId
+              ? 'bg-amber-500/20 text-amber-400'
+              : session.backend === 'cli'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-violet-500/20 text-violet-400'
+          }`}>
+            {session.ptyId ? 'PTY' : session.backend === 'cli' ? 'CLI' : 'SDK'}
+          </span>
           {session.role && (
             <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-medium">
               {session.role}

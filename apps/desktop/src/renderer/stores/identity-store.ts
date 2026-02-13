@@ -97,6 +97,8 @@ interface IdentityStore {
     setMaxLinesPerFile: (lines: number) => Promise<void>;
     setMaxTurns: (turns: number) => Promise<void>;
     setTimeoutMinutes: (minutes: number) => Promise<void>;
+    setExecutionBackend: (backend: 'cli' | 'sdk') => Promise<void>;
+    setExecutionRendering: (rendering: 'pty' | 'jsonl') => Promise<void>;
     loadHeartbeatPrompt: () => Promise<void>;
     runHeartbeatNow: () => Promise<void>;
 
@@ -406,6 +408,46 @@ export const useIdentityStore = create<IdentityStore>((set, get) => ({
             if (heartbeatConfig) set({ heartbeatConfig });
             const msg = err instanceof Error ? err.message : String(err);
             toast.error(`Failed to set timeout: ${msg}`);
+        }
+    },
+
+    setExecutionBackend: async (backend) => {
+        const { heartbeatConfig } = get();
+        if (heartbeatConfig) {
+            set({ heartbeatConfig: { ...heartbeatConfig, executionBackend: backend } });
+        }
+        try {
+            const result = await window.electronAPI.identity.heartbeat.configure({ executionBackend: backend });
+            if (!result.ok) {
+                if (heartbeatConfig) set({ heartbeatConfig });
+                toast.error(`Failed to set backend: ${result.error}`);
+                return;
+            }
+            toast.success(`Execution backend: ${backend.toUpperCase()}`);
+        } catch (err) {
+            if (heartbeatConfig) set({ heartbeatConfig });
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to set backend: ${msg}`);
+        }
+    },
+
+    setExecutionRendering: async (rendering) => {
+        const { heartbeatConfig } = get();
+        if (heartbeatConfig) {
+            set({ heartbeatConfig: { ...heartbeatConfig, executionRendering: rendering } });
+        }
+        try {
+            const result = await window.electronAPI.identity.heartbeat.configure({ executionRendering: rendering });
+            if (!result.ok) {
+                if (heartbeatConfig) set({ heartbeatConfig });
+                toast.error(`Failed to set rendering: ${result.error}`);
+                return;
+            }
+            toast.success(`Output mode: ${rendering === 'pty' ? 'Terminal' : 'Structured'}`);
+        } catch (err) {
+            if (heartbeatConfig) set({ heartbeatConfig });
+            const msg = err instanceof Error ? err.message : String(err);
+            toast.error(`Failed to set rendering: ${msg}`);
         }
     },
 

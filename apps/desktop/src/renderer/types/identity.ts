@@ -86,6 +86,10 @@ export interface HeartbeatConfig {
     maxLinesPerFile: number;
     maxTurns: number;
     timeoutMinutes: number;
+    /** Execution backend: 'cli' (OAuth, default) or 'sdk' (API key) */
+    executionBackend?: 'cli' | 'sdk';
+    /** CLI rendering mode: 'pty' (real terminal) or 'jsonl' (structured messages) */
+    executionRendering?: 'pty' | 'jsonl';
 }
 
 export const DEFAULT_HEARTBEAT_CONFIG: HeartbeatConfig = {

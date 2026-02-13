@@ -757,6 +757,12 @@ function setupPtyIpcHandlersDaemon(): void {
 
   ipcMain.handle('pty:getBufferedData', async (_, id: string) => {
     mainLogger.log('PTY-IPC', 'Fetching buffered data', { termId: id });
+    // Check embedded PtyManager first (agent PTYs), then daemon
+    const embeddedResult = ptyManager?.getBufferedData(id);
+    if (embeddedResult !== undefined && embeddedResult !== '') {
+      mainLogger.log('PTY-IPC', 'Buffered data from embedded PtyManager', { termId: id, dataLength: embeddedResult.length });
+      return embeddedResult;
+    }
     const result = await ptyDaemonClient?.getBufferedData(id);
     const dataLength = result?.length ?? 0;
     mainLogger.log('PTY-IPC', 'Buffered data fetched', { termId: id, dataLength });
@@ -764,6 +770,10 @@ function setupPtyIpcHandlersDaemon(): void {
   });
 
   ipcMain.handle('pty:write', async (_, id: string, data: string) => {
+    // Check embedded PtyManager first (agent PTYs), then daemon
+    if (ptyManager?.hasProcess(id)) {
+      return ptyManager.write(id, data);
+    }
     return ptyDaemonClient?.write(id, data);
   });
 
@@ -840,6 +850,10 @@ function setupPtyIpcHandlersDaemon(): void {
 
   // Subscribe to terminal events
   ipcMain.handle('pty:subscribe', async (_, termId: string) => {
+    // Agent PTYs live in embedded PtyManager — subscribe is a no-op (data events already forwarded)
+    if (ptyManager?.hasProcess(termId)) {
+      return;
+    }
     return ptyDaemonClient?.subscribe(termId);
   });
 
@@ -3941,6 +3955,30 @@ app.whenReady().then(async () => {
   // Setup PTY IPC (daemon or embedded mode)
   await setupPtyIpc();
 
+  // In daemon mode, ptyManager is null (daemon handles renderer terminals).
+  // Create an embedded PtyManager anyway for agent PTY sessions (CLI execution service).
+  // Agent PTYs are ephemeral and don't need daemon persistence.
+  if (!ptyManager) {
+    console.log('[PTY] Creating embedded PtyManager for agent PTY sessions (daemon mode active)');
+    ptyManager = new PtyManager();
+
+    // Forward data/exit events to renderer so Terminal component can display agent PTY output
+    ptyManager.on('data', ({ id, data }: { id: string; data: string }) => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+          mainWindow.webContents.send('pty:data', id, data);
+        }
+      } catch { /* window destroyed */ }
+    });
+    ptyManager.on('exit', async ({ id, exitCode }: { id: string; exitCode: number }) => {
+      try {
+        if (mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isDestroyed()) {
+          mainWindow.webContents.send('pty:exit', id, exitCode);
+        }
+      } catch { /* window destroyed */ }
+    });
+  }
+
   // Register Desktop secret with Gateway for secure role management
   await registerDesktopSecret();
 
@@ -4233,7 +4271,7 @@ app.whenReady().then(async () => {
 
   createWindow();
   setupClaudeTeamsIpc(mainWindow!);
-  registerSdkAgentHandlers(mainWindow!);
+  registerSdkAgentHandlers(mainWindow!, ptyManager);
 
   // === CodeEditor Window IPC ===
   ipcMain.handle('code-editor:open', () => {

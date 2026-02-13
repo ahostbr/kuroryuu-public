@@ -29,6 +29,7 @@ import type {
     CreateJobParams,
     UpdateJobParams,
     ExecutionMode,
+    ExecutionBackend,
 } from '../../types/scheduler';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -87,6 +88,9 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
     const [executionMode, setExecutionMode] = useState<ExecutionMode>(
         job?.action?.type === 'prompt' ? job.action.executionMode ?? 'background' : 'background'
     );
+    const [executionBackend, setExecutionBackend] = useState<ExecutionBackend>(
+        job?.action?.type === 'prompt' ? (job.action as { executionBackend?: ExecutionBackend }).executionBackend ?? 'cli' : 'cli'
+    );
     const [teamId, setTeamId] = useState(
         job?.action?.type === 'team' ? job.action.teamId : ''
     );
@@ -144,6 +148,7 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                 prompt,
                 workdir: workdir || undefined,
                 executionMode,
+                executionBackend: executionMode === 'background' ? executionBackend : undefined,
                 systemPrompt: systemPrompt || undefined,
                 permissionMode: permissionMode !== 'bypassPermissions' ? permissionMode as 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan' : undefined,
                 maxTurns: maxTurns > 0 ? maxTurns : undefined,
@@ -435,6 +440,39 @@ export function JobEditor({ job, onClose }: JobEditorProps) {
                                         </button>
                                     </div>
                                 </div>
+
+                                {/* Execution Backend (visible when Background) */}
+                                {executionMode === 'background' && (
+                                    <div>
+                                        <label className="block text-sm text-muted-foreground mb-1.5">
+                                            Execution Backend
+                                        </label>
+                                        <div className="flex items-center gap-1 bg-secondary/50 rounded-lg p-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setExecutionBackend('cli')}
+                                                className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2 rounded text-xs transition-colors ${executionBackend === 'cli'
+                                                    ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                                                    }`}
+                                            >
+                                                <span className="font-medium">CLI</span>
+                                                <span className="text-[10px] opacity-80">OAuth (free)</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setExecutionBackend('sdk')}
+                                                className={`flex-1 flex flex-col items-center gap-0.5 px-3 py-2 rounded text-xs transition-colors ${executionBackend === 'sdk'
+                                                    ? 'bg-violet-500/20 text-violet-400 shadow-sm'
+                                                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary/50'
+                                                    }`}
+                                            >
+                                                <span className="font-medium">SDK</span>
+                                                <span className="text-[10px] opacity-80">API Key</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Advanced SDK Options */}
                                 <div className="border border-border/50 rounded-md">

@@ -12,6 +12,8 @@ import {
   Settings2,
   Shield,
   Zap,
+  TerminalSquare,
+  List,
 } from 'lucide-react';
 import type { SDKAgentConfig } from '../../types/sdk-agent';
 
@@ -51,6 +53,7 @@ export function SpawnAgentDialog({
   const [maxTurns, setMaxTurns] = useState(0);
   const [maxBudgetUsd, setMaxBudgetUsd] = useState(0);
   const [systemPrompt, setSystemPrompt] = useState('');
+  const [outputMode, setOutputMode] = useState<'pty' | 'jsonl'>('pty');
   const [isSpawning, setIsSpawning] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
 
@@ -77,20 +80,22 @@ export function SpawnAgentDialog({
 
     setIsSpawning(true);
     try {
-      const config: SDKAgentConfig = {
+      const config: SDKAgentConfig & { executionBackend?: string; executionMode?: string } = {
         prompt: prompt.trim(),
         role: selectedRole,
         model,
         cwd: workdir || undefined,
         permissionMode: permissionMode as SDKAgentConfig['permissionMode'],
         useClaudeCodePreset: true,
+        executionBackend: 'cli',
+        executionMode: outputMode === 'pty' ? 'pty' : undefined,
       };
 
       if (maxTurns > 0) config.maxTurns = maxTurns;
       if (maxBudgetUsd > 0) config.maxBudgetUsd = maxBudgetUsd;
       if (systemPrompt.trim()) config.appendSystemPrompt = systemPrompt.trim();
 
-      await onSpawn(config);
+      await onSpawn(config as SDKAgentConfig);
       onClose();
     } catch (error) {
       console.error('Failed to spawn agent:', error);
@@ -247,6 +252,44 @@ export function SpawnAgentDialog({
                   <div className="text-xs text-muted-foreground">{pm.description}</div>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Output Mode */}
+          <div>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              <TerminalSquare className="w-4 h-4 inline mr-1" />
+              Output Mode
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setOutputMode('pty')}
+                className={`px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
+                  outputMode === 'pty'
+                    ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="font-medium flex items-center gap-1.5">
+                  <TerminalSquare className="w-3.5 h-3.5" />
+                  Terminal
+                </div>
+                <div className="text-xs text-muted-foreground">Real xterm.js terminal view</div>
+              </button>
+              <button
+                onClick={() => setOutputMode('jsonl')}
+                className={`px-3 py-2 rounded-lg border text-sm text-left transition-colors ${
+                  outputMode === 'jsonl'
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                    : 'border-border hover:border-primary/50'
+                }`}
+              >
+                <div className="font-medium flex items-center gap-1.5">
+                  <List className="w-3.5 h-3.5" />
+                  Structured
+                </div>
+                <div className="text-xs text-muted-foreground">Parsed message cards</div>
+              </button>
             </div>
           </div>
 

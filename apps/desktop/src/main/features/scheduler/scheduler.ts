@@ -25,6 +25,9 @@ import {
 import { getSchedulerStorage, SchedulerStorage } from './storage';
 import { getSchedulerEngine, SchedulerEngine, calculateNextRun } from './engine';
 import { getClaudeSDKService } from '../../services/claude-sdk-service';
+import { getCliExecutionService } from '../../services/cli-execution-service';
+import { getApiKey } from '../../integrations/token-store';
+import type { ExecutionBackend } from './types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Module Metadata
@@ -110,14 +113,20 @@ export class SchedulerFeature implements IFeatureModule {
 
     async shutdown(): Promise<FeatureResponse<void>> {
         try {
-            // Cancel all running SDK sessions
+            // Cancel all running sessions (CLI + SDK)
+            const cli = getCliExecutionService();
             for (const [jobId, sessionId] of this.sdkSessions.entries()) {
-                console.log(`[Scheduler] Shutdown: cancelling SDK session ${sessionId} for job ${jobId}`);
+                console.log(`[Scheduler] Shutdown: cancelling session ${sessionId} for job ${jobId}`);
                 try {
-                    await getClaudeSDKService().stopAgent(sessionId);
+                    if (cli.hasSession(sessionId)) {
+                        await cli.stopAgent(sessionId);
+                    } else {
+                        await getClaudeSDKService().stopAgent(sessionId);
+                    }
                 } catch { /* best-effort */ }
             }
             this.sdkSessions.clear();
+            await cli.shutdown();
 
             await this.engine.stop();
             this._isInitialized = false;
@@ -538,11 +547,16 @@ export class SchedulerFeature implements IFeatureModule {
     async cancelJob(jobId: string): Promise<void> {
         const sessionId = this.sdkSessions.get(jobId);
         if (sessionId) {
-            console.log(`[Scheduler] Cancelling SDK session ${sessionId} for job ${jobId}`);
+            console.log(`[Scheduler] Cancelling session ${sessionId} for job ${jobId}`);
             try {
-                await getClaudeSDKService().stopAgent(sessionId);
+                const cli = getCliExecutionService();
+                if (cli.hasSession(sessionId)) {
+                    await cli.stopAgent(sessionId);
+                } else {
+                    await getClaudeSDKService().stopAgent(sessionId);
+                }
             } catch (err) {
-                console.log(`[Scheduler] SDK session may already be stopped:`, err);
+                console.log(`[Scheduler] Session may already be stopped:`, err);
             }
             this.sdkSessions.delete(jobId);
         }
@@ -566,7 +580,7 @@ export class SchedulerFeature implements IFeatureModule {
 
     private async executePromptAction(
         job: ScheduledJob,
-        action: { type: 'prompt'; prompt: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive'; systemPrompt?: string; permissionMode?: string; maxTurns?: number; maxBudgetUsd?: number; timeoutMinutes?: number },
+        action: { type: 'prompt'; prompt: string; workdir?: string; model?: string; executionMode?: 'background' | 'interactive'; systemPrompt?: string; permissionMode?: string; maxTurns?: number; maxBudgetUsd?: number; timeoutMinutes?: number; executionBackend?: ExecutionBackend; executionRendering?: 'jsonl' | 'pty' },
     ): Promise<{ output?: string; metadata?: Record<string, unknown> } | void> {
         console.log(`[Scheduler] Executing prompt for job ${job.id}: "${action.prompt.substring(0, 50)}..."`);
 
@@ -580,7 +594,88 @@ export class SchedulerFeature implements IFeatureModule {
             return;
         }
 
-        // BACKGROUND MODE: Use Claude Agent SDK
+        // Determine backend (default: cli)
+        const backend: ExecutionBackend = action.executionBackend || 'cli';
+
+        if (backend === 'cli') {
+            return this.executePromptViaCli(job, action, workdir);
+        }
+
+        // BACKGROUND MODE via SDK: requires API key
+        return this.executePromptViaSdk(job, action, workdir);
+    }
+
+    /**
+     * Execute a background prompt via CLI (--output-format stream-json or PTY)
+     */
+    private async executePromptViaCli(
+        job: ScheduledJob,
+        action: { prompt: string; model?: string; permissionMode?: string; maxTurns?: number; timeoutMinutes?: number; executionRendering?: 'jsonl' | 'pty' },
+        workdir: string,
+    ): Promise<{ output?: string; metadata?: Record<string, unknown> } | void> {
+        const cli = getCliExecutionService();
+        const timeoutMinutes = action.timeoutMinutes ?? 60;
+        const usePty = action.executionRendering === 'pty';
+
+        console.log(`[Scheduler] Running CLI ${usePty ? 'PTY' : 'BACKGROUND'} mode for job ${job.id}`);
+
+        const cliConfig = {
+            prompt: action.prompt,
+            model: action.model,
+            cwd: workdir,
+            maxTurns: action.maxTurns,
+            timeoutMinutes,
+            dangerouslySkipPermissions: action.permissionMode === 'bypassPermissions' || !action.permissionMode || action.permissionMode === 'default',
+        };
+
+        let startResult: { ok: boolean; sessionId?: string; error?: string };
+
+        if (usePty) {
+            startResult = await cli.startAgentPty(cliConfig);
+            // Fallback to JSONL if PTY manager not available (e.g. daemon mode)
+            if (!startResult.ok && startResult.error?.includes('PTY manager')) {
+                console.log(`[Scheduler] PTY not available, falling back to JSONL for job ${job.id}`);
+                startResult = await cli.startAgent(cliConfig);
+            }
+        } else {
+            startResult = await cli.startAgent(cliConfig);
+        }
+
+        if (!startResult.ok || !startResult.sessionId) {
+            throw new Error(startResult.error || 'Failed to start CLI session');
+        }
+
+        const sessionId = startResult.sessionId;
+        this.sdkSessions.set(job.id, sessionId);
+        console.log(`[Scheduler] CLI session ${sessionId} started for job ${job.id}`);
+
+        // Emit navigate event
+        const { BrowserWindow: BW } = await import('electron');
+        const win = BW.getAllWindows()[0];
+        if (win && !win.isDestroyed()) {
+            win.webContents.send('cli:session-spawned', sessionId);
+        }
+
+        // Poll for completion
+        return this.pollSessionCompletion(job.id, sessionId, 'cli');
+    }
+
+    /**
+     * Execute a background prompt via SDK (API key required)
+     */
+    private async executePromptViaSdk(
+        job: ScheduledJob,
+        action: { prompt: string; model?: string; systemPrompt?: string; permissionMode?: string; maxTurns?: number; maxBudgetUsd?: number; timeoutMinutes?: number },
+        workdir: string,
+    ): Promise<{ output?: string; metadata?: Record<string, unknown> } | void> {
+        // Guard: SDK requires API key
+        const apiKey = getApiKey('anthropic') || process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            throw new Error(
+                'SDK backend requires an Anthropic API key. Set one in Settings > Integrations, or switch to CLI backend.'
+            );
+        }
+
         console.log(`[Scheduler] Running SDK BACKGROUND mode for job ${job.id}`);
 
         const sdk = getClaudeSDKService();
@@ -597,19 +692,39 @@ export class SchedulerFeature implements IFeatureModule {
             persistSession: false,
         });
 
-        // Track SDK session for cancellation
+        // Track session for cancellation
         this.sdkSessions.set(job.id, sessionId);
         console.log(`[Scheduler] SDK session ${sessionId} started for job ${job.id}`);
 
-        // Wait for completion with optional timeout
-        const result = await new Promise<{ output?: string; metadata?: Record<string, unknown> }>((resolve, reject) => {
+        return this.pollSessionCompletion(job.id, sessionId, 'sdk', timeoutMinutes);
+    }
+
+    /**
+     * Poll a session (CLI or SDK) for completion
+     */
+    private async pollSessionCompletion(
+        jobId: string,
+        sessionId: string,
+        backend: ExecutionBackend,
+        timeoutMinutes?: number,
+    ): Promise<{ output?: string; metadata?: Record<string, unknown> }> {
+        const getSession = backend === 'cli'
+            ? () => getCliExecutionService().getSession(sessionId)
+            : () => getClaudeSDKService().getSession(sessionId);
+        const stopAgent = backend === 'cli'
+            ? () => getCliExecutionService().stopAgent(sessionId)
+            : () => getClaudeSDKService().stopAgent(sessionId);
+
+        const timeout = timeoutMinutes ?? 60;
+
+        return new Promise<{ output?: string; metadata?: Record<string, unknown> }>((resolve, reject) => {
             let timeoutHandle: NodeJS.Timeout | null = null;
 
             const checkCompletion = () => {
-                const session = sdk.getSession(sessionId);
+                const session = getSession();
                 if (!session) {
                     cleanup();
-                    reject(new Error('SDK session disappeared'));
+                    reject(new Error(`${backend.toUpperCase()} session disappeared`));
                     return;
                 }
 
@@ -617,7 +732,7 @@ export class SchedulerFeature implements IFeatureModule {
                     cleanup();
 
                     if (session.status === 'error') {
-                        reject(new Error(session.errors?.join('; ') || 'SDK agent failed'));
+                        reject(new Error(session.errors?.join('; ') || `${backend.toUpperCase()} agent failed`));
                         return;
                     }
 
@@ -625,6 +740,7 @@ export class SchedulerFeature implements IFeatureModule {
                         output: session.result || `Agent completed in ${session.numTurns} turns`,
                         metadata: {
                             sessionId,
+                            backend,
                             costUsd: session.totalCostUsd,
                             usage: session.usage,
                             numTurns: session.numTurns,
@@ -639,26 +755,24 @@ export class SchedulerFeature implements IFeatureModule {
             const cleanup = () => {
                 clearInterval(pollTimer);
                 if (timeoutHandle) clearTimeout(timeoutHandle);
-                this.sdkSessions.delete(job.id);
+                this.sdkSessions.delete(jobId);
             };
 
             // Timeout
-            if (timeoutMinutes > 0) {
+            if (timeout > 0) {
                 timeoutHandle = setTimeout(async () => {
-                    console.log(`[Scheduler] Job ${job.id} timed out after ${timeoutMinutes} minutes`);
+                    console.log(`[Scheduler] Job ${jobId} timed out after ${timeout} minutes`);
                     try {
-                        await sdk.stopAgent(sessionId);
+                        await stopAgent();
                     } catch { /* may already be done */ }
                     cleanup();
-                    reject(new Error(`SDK agent timed out after ${timeoutMinutes} minute(s)`));
-                }, timeoutMinutes * 60 * 1000);
+                    reject(new Error(`${backend.toUpperCase()} agent timed out after ${timeout} minute(s)`));
+                }, timeout * 60 * 1000);
             }
 
             // Immediate check in case it completed very fast
             checkCompletion();
         });
-
-        return result;
     }
 
     /**

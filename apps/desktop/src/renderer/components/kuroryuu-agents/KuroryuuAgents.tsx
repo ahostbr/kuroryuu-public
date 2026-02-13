@@ -5,11 +5,12 @@
  * Features three views: Sessions (list), Agent Flow (graph), Terminal Agents
  */
 import { useEffect, useState } from 'react';
-import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users, Plus, Brain } from 'lucide-react';
+import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users, Plus, Brain, TerminalSquare, MessageSquare } from 'lucide-react';
 import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
 import { useIdentityStore } from '../../stores/identity-store';
 import { SessionCard } from './SessionCard';
 import { SdkMessageRenderer } from './SdkMessageRenderer';
+import { SessionTerminal, SessionTerminalPlaceholder } from './SessionTerminal';
 import { AgentFlowPanel } from './AgentFlowPanel';
 import { FindingsToTasksModal } from './FindingsToTasksModal';
 import { AgentsEmptyState } from './AgentsEmptyState';
@@ -20,6 +21,7 @@ import { toast } from '../ui/toast';
 import type { SDKAgentConfig } from '../../types/sdk-agent';
 
 type ViewTab = 'sessions' | 'flow' | 'terminal-agents' | 'assistant';
+type DetailTab = 'terminal' | 'messages';
 
 export function KuroryuuAgents() {
   const {
@@ -46,6 +48,9 @@ export function KuroryuuAgents() {
   // Findings modal state
   const [findingsModalOpen, setFindingsModalOpen] = useState(false);
 
+  // Detail view tab (terminal vs messages)
+  const [detailTab, setDetailTab] = useState<DetailTab>('terminal');
+
   // Assistant badge
   const { newActionCount, incrementNewActionCount, clearNewActionCount } = useIdentityStore();
 
@@ -54,6 +59,22 @@ export function KuroryuuAgents() {
     subscribe();
     return () => unsubscribe();
   }, [subscribe, unsubscribe]);
+
+  // Auto-navigate to sessions tab when CLI spawns
+  useEffect(() => {
+    const api = (window as unknown as { electronAPI: { sdkAgent: {
+      onCliSessionSpawned?: (cb: (sid: string) => void) => () => void;
+    }}}).electronAPI?.sdkAgent;
+
+    if (!api?.onCliSessionSpawned) return;
+
+    const off = api.onCliSessionSpawned((sessionId) => {
+      setActiveTab('sessions');
+      selectSession(sessionId);
+    });
+
+    return off;
+  }, [selectSession]);
 
   // Listen for heartbeat completion events (badge + toast)
   useEffect(() => {
@@ -86,10 +107,21 @@ export function KuroryuuAgents() {
     };
   }, [activeTab, incrementNewActionCount]);
 
+  // Auto-set detail tab based on selected session type
+  useEffect(() => {
+    const session = sessions.find((s) => s.id === selectedSessionId);
+    if (session?.ptyId) {
+      setDetailTab('terminal');
+    } else {
+      setDetailTab('messages');
+    }
+  }, [selectedSessionId, sessions]);
+
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
   const selectedArchived = archivedSessions.find((a) => a.id === selectedSessionId);
   const runningSessions = sessions.filter((s) => s.status === 'starting' || s.status === 'running');
   const completedSessions = sessions.filter((s) => s.status !== 'starting' && s.status !== 'running');
+  const hasActiveCli = sessions.some(s => s.backend === 'cli' && (s.status === 'starting' || s.status === 'running'));
   // Filter archived sessions that aren't in the live sessions list
   const liveSessionIds = new Set(sessions.map(s => s.id));
   const displayedArchived = archivedSessions.filter(a => !liveSessionIds.has(a.id));
@@ -180,7 +212,13 @@ export function KuroryuuAgents() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSpawnDialog(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors text-sm"
+            disabled={hasActiveCli}
+            title={hasActiveCli ? 'CLI session active — SDK spawn blocked' : 'Spawn a new agent'}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors text-sm ${
+              hasActiveCli
+                ? 'bg-secondary text-muted-foreground cursor-not-allowed opacity-50'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            }`}
           >
             <Plus className="w-4 h-4" />
             Spawn
@@ -359,8 +397,46 @@ export function KuroryuuAgents() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                {/* SDK Message Stream */}
-                <SdkMessageRenderer sessionId={selectedSession.id} />
+                {/* Detail tab bar */}
+                <div className="flex items-center gap-1 px-4 py-1.5 border-b border-border bg-secondary/20">
+                  <button
+                    onClick={() => setDetailTab('terminal')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      detailTab === 'terminal'
+                        ? 'bg-primary/20 text-primary'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    <TerminalSquare className="w-3.5 h-3.5" />
+                    Terminal
+                  </button>
+                  <button
+                    onClick={() => setDetailTab('messages')}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                      detailTab === 'messages'
+                        ? 'bg-primary/20 text-primary'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                    }`}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Messages
+                  </button>
+                </div>
+                {/* Detail content */}
+                {detailTab === 'terminal' ? (
+                  selectedSession.ptyId ? (
+                    <SessionTerminal
+                      sessionId={selectedSession.id}
+                      ptyId={selectedSession.ptyId}
+                      cwd={selectedSession.cwd}
+                      status={selectedSession.status}
+                    />
+                  ) : (
+                    <SessionTerminalPlaceholder />
+                  )
+                ) : (
+                  <SdkMessageRenderer sessionId={selectedSession.id} />
+                )}
               </div>
             ) : selectedArchived ? (
               /* Archived Session Log Viewer */

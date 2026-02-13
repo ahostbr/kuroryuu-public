@@ -2651,6 +2651,13 @@ const api = {
       ipcRenderer.on('sdk-agent:status-change', handler as (...args: unknown[]) => void);
       return () => ipcRenderer.removeListener('sdk-agent:status-change', handler as (...args: unknown[]) => void);
     },
+
+    /** Subscribe to CLI session spawn events (for auto-navigation) */
+    onCliSessionSpawned: (callback: (sessionId: string) => void): (() => void) => {
+      const handler = (_event: unknown, sid: string) => callback(sid);
+      ipcRenderer.on('cli:session-spawned', handler as (...args: unknown[]) => void);
+      return () => ipcRenderer.removeListener('cli:session-spawned', handler as (...args: unknown[]) => void);
+    },
   },
 
   /**

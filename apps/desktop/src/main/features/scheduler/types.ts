@@ -31,6 +31,7 @@ export type Schedule = CronSchedule | IntervalSchedule | OneTimeSchedule;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type ExecutionMode = 'background' | 'interactive';
+export type ExecutionBackend = 'cli' | 'sdk';
 
 export interface PromptAction {
     type: 'prompt';
@@ -55,6 +56,10 @@ export interface PromptAction {
     maxBudgetUsd?: number;
     /** Timeout in minutes (0 = no timeout). Default: 60 */
     timeoutMinutes?: number;
+    /** Execution backend: 'cli' (OAuth, default) or 'sdk' (API key) */
+    executionBackend?: ExecutionBackend;
+    /** Rendering mode for CLI backend: 'jsonl' (structured messages) or 'pty' (real terminal) */
+    executionRendering?: 'jsonl' | 'pty';
 }
 
 export interface TeamAction {
@@ -176,6 +181,10 @@ export interface SchedulerSettings {
     maxConcurrentJobs: number;
     historyRetentionDays: number;
     defaultNotifyOnError: boolean;
+    /** Default execution backend for new prompt jobs */
+    executionBackend?: ExecutionBackend;
+    /** Max concurrent CLI sessions (default 1) */
+    cliMaxConcurrent?: number;
 }
 
 export const DEFAULT_SCHEDULER_SETTINGS: SchedulerSettings = {
@@ -183,6 +192,8 @@ export const DEFAULT_SCHEDULER_SETTINGS: SchedulerSettings = {
     maxConcurrentJobs: 3,
     historyRetentionDays: 30,
     defaultNotifyOnError: true,
+    executionBackend: 'cli',
+    cliMaxConcurrent: 1,
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════

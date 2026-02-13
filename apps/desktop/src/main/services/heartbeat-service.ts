@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as os from 'os';
 import { BrowserWindow, Notification, ipcMain } from 'electron';
 import { getScheduler } from '../ipc/scheduler-handlers';
+import { getProjectRoot } from '../utils/paths';
 import { getIdentityService } from './identity-service';
 import type { IdentityService } from './identity-service';
 import { isSuccess } from '../features/base';
@@ -51,6 +52,8 @@ const DEFAULT_CONFIG: HeartbeatConfig = {
     maxLinesPerFile: 50,
     maxTurns: 10,
     timeoutMinutes: 5,
+    executionBackend: 'cli',
+    executionRendering: 'pty',
 };
 
 async function loadConfig(): Promise<HeartbeatConfig> {
@@ -152,6 +155,22 @@ export class HeartbeatService {
         await this.syncJob();
     }
 
+    async setExecutionBackend(backend: 'cli' | 'sdk'): Promise<void> {
+        const config = await this.getConfig();
+        config.executionBackend = backend;
+        this.config = config;
+        await saveConfig(config);
+        await this.syncJob();
+    }
+
+    async setExecutionRendering(rendering: 'pty' | 'jsonl'): Promise<void> {
+        const config = await this.getConfig();
+        config.executionRendering = rendering;
+        this.config = config;
+        await saveConfig(config);
+        await this.syncJob();
+    }
+
     // ---------------------------------------------------------------------------
     // Status
     // ---------------------------------------------------------------------------
@@ -213,6 +232,8 @@ export class HeartbeatService {
 
         const prompt = await this.buildHeartbeatPrompt();
 
+        const backend = config.executionBackend || 'cli';
+
         if (existingJob) {
             await scheduler.updateJob({
                 id: existingJob.id,
@@ -225,10 +246,13 @@ export class HeartbeatService {
                 action: {
                     type: 'prompt',
                     prompt,
+                    workdir: getProjectRoot(),
                     executionMode: 'background',
                     permissionMode: 'default',
                     maxTurns: config.maxTurns ?? 10,
                     timeoutMinutes: config.timeoutMinutes ?? 5,
+                    executionBackend: backend,
+                    executionRendering: config.executionRendering || 'pty',
                 },
             });
             console.log('[Heartbeat] Updated heartbeat job');
@@ -244,10 +268,13 @@ export class HeartbeatService {
                 action: {
                     type: 'prompt',
                     prompt,
+                    workdir: getProjectRoot(),
                     executionMode: 'background',
                     permissionMode: 'default',
                     maxTurns: config.maxTurns ?? 10,
                     timeoutMinutes: config.timeoutMinutes ?? 5,
+                    executionBackend: backend,
+                    executionRendering: config.executionRendering || 'pty',
                 },
                 enabled: true,
                 tags: [HEARTBEAT_JOB_TAG, 'personal-assistant'],
@@ -277,15 +304,19 @@ export class HeartbeatService {
         // Refresh prompt before running
         const config = await this.getConfig();
         const prompt = await this.buildHeartbeatPrompt();
+        const runBackend = config.executionBackend || 'cli';
         await scheduler.updateJob({
             id: job.id,
             action: {
                 type: 'prompt',
                 prompt,
+                workdir: getProjectRoot(),
                 executionMode: 'background',
                 permissionMode: 'default',
                 maxTurns: config.maxTurns ?? 10,
                 timeoutMinutes: config.timeoutMinutes ?? 5,
+                executionBackend: runBackend,
+                executionRendering: 'pty',
             },
         });
 

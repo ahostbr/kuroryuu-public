@@ -121,6 +121,8 @@ export interface SDKAgentSession {
   sdkSessionId?: string;
   /** Agent role (from AGENT_ROLES) */
   role?: string;
+  /** Execution backend: 'cli' or 'sdk' */
+  backend: 'cli' | 'sdk';
   status: SDKSessionStatus;
   prompt: string;
   model: string;
@@ -154,6 +156,9 @@ export interface SDKAgentSession {
 
   // Subagent tracking
   subagentCount: number;
+
+  /** PTY ID for terminal reconnection (only set in pty execution mode) */
+  ptyId?: string;
 }
 
 /** Lightweight summary for list views */
@@ -161,6 +166,8 @@ export interface SDKAgentSessionSummary {
   id: string;
   sdkSessionId?: string;
   role?: string;
+  /** Execution backend: 'cli' or 'sdk' */
+  backend: 'cli' | 'sdk';
   status: SDKSessionStatus;
   prompt: string;
   model: string;
@@ -173,6 +180,8 @@ export interface SDKAgentSessionSummary {
   subagentCount: number;
   toolCallCount: number;
   lastMessage?: string;
+  /** PTY ID for terminal reconnection (only set in pty execution mode) */
+  ptyId?: string;
 }
 
 // -------------------------------------------------------------------

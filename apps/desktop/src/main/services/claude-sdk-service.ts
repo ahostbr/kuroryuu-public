@@ -99,6 +99,7 @@ export class ClaudeSDKService {
     // Initialize session state
     const session: SDKAgentSession = {
       id: sessionId,
+      backend: 'sdk',
       role: config.role,
       status: 'starting',
       prompt: config.prompt,
@@ -186,6 +187,7 @@ export class ClaudeSDKService {
         id: s.id,
         sdkSessionId: s.sdkSessionId,
         role: s.role,
+        backend: 'sdk',
         status: s.status,
         prompt: s.prompt,
         model: s.model,

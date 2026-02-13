@@ -102,6 +102,11 @@ export class PtyManager extends EventEmitter {
     this.shell = process.platform === 'win32' ? 'powershell.exe' : 'bash';
   }
 
+  // Check if a PTY process exists by id
+  hasProcess(id: string): boolean {
+    return this.ptys.has(id);
+  }
+
   // Get and clear buffered data for a PTY
   getBufferedData(id: string): string {
     const buffered = this.buffers.get(id) || '';

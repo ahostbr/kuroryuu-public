@@ -56,6 +56,8 @@ export function AssistantDashboard() {
         setMaxLinesPerFile,
         setMaxTurns,
         setTimeoutMinutes,
+        setExecutionBackend,
+        setExecutionRendering,
         runHeartbeatNow,
         syncClaudeMemory,
         loadMemorySyncStatus,
@@ -296,6 +298,68 @@ export function AssistantDashboard() {
                 <p className="text-[10px] text-muted-foreground">
                     Fine-tune heartbeat prompt construction and execution limits.
                 </p>
+
+                {/* Execution Backend */}
+                <div className="flex items-center justify-between py-1">
+                    <div>
+                        <span className="text-xs text-foreground">Execution Backend</span>
+                        <p className="text-[10px] text-muted-foreground">CLI uses OAuth login (free with Max). SDK needs API key.</p>
+                    </div>
+                    <div className="flex items-center gap-1 bg-secondary/50 rounded p-0.5">
+                        <button
+                            onClick={() => setExecutionBackend('cli')}
+                            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+                                (config?.executionBackend ?? 'cli') === 'cli'
+                                    ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            CLI
+                        </button>
+                        <button
+                            onClick={() => setExecutionBackend('sdk')}
+                            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+                                config?.executionBackend === 'sdk'
+                                    ? 'bg-violet-500/20 text-violet-400 shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            SDK
+                        </button>
+                    </div>
+                </div>
+
+                {/* Execution Rendering (CLI only) */}
+                {(config?.executionBackend ?? 'cli') === 'cli' && (
+                <div className="flex items-center justify-between py-1">
+                    <div>
+                        <span className="text-xs text-foreground">Output Mode</span>
+                        <p className="text-[10px] text-muted-foreground">Terminal shows real xterm.js. Structured shows parsed messages.</p>
+                    </div>
+                    <div className="flex items-center gap-1 bg-secondary/50 rounded p-0.5">
+                        <button
+                            onClick={() => setExecutionRendering('pty')}
+                            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+                                (config?.executionRendering ?? 'pty') === 'pty'
+                                    ? 'bg-amber-500/20 text-amber-400 shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Terminal
+                        </button>
+                        <button
+                            onClick={() => setExecutionRendering('jsonl')}
+                            className={`px-2.5 py-1 rounded text-[10px] font-medium transition-colors ${
+                                config?.executionRendering === 'jsonl'
+                                    ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                                    : 'text-muted-foreground hover:text-foreground'
+                            }`}
+                        >
+                            Structured
+                        </button>
+                    </div>
+                </div>
+                )}
 
                 {/* Max Lines Per File */}
                 <div className="flex items-center justify-between py-1">

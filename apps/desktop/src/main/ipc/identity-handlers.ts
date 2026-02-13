@@ -126,6 +126,8 @@ export async function setupIdentityIpc(): Promise<void> {
         maxLinesPerFile: number;
         maxTurns: number;
         timeoutMinutes: number;
+        executionBackend: 'cli' | 'sdk';
+        executionRendering: 'pty' | 'jsonl';
     }>) => {
         if (!heartbeat) return { ok: false, error: 'Heartbeat service not initialized' };
         try {
@@ -154,6 +156,12 @@ export async function setupIdentityIpc(): Promise<void> {
             }
             if (config.timeoutMinutes !== undefined) {
                 await heartbeat.setTimeoutMinutes(config.timeoutMinutes);
+            }
+            if (config.executionBackend !== undefined) {
+                await heartbeat.setExecutionBackend(config.executionBackend);
+            }
+            if (config.executionRendering !== undefined) {
+                await heartbeat.setExecutionRendering(config.executionRendering);
             }
             return { ok: true };
         } catch (err) {
