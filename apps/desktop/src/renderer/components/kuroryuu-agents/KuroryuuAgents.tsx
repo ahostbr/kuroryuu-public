@@ -380,7 +380,7 @@ export function KuroryuuAgents() {
           {/* Message Viewer */}
           <div className="flex-1 overflow-hidden flex flex-col">
             {selectedSession ? (
-              <div className="h-full flex flex-col bg-card rounded-lg border border-border m-4">
+              <div className="flex-1 min-h-0 flex flex-col bg-card rounded-lg border border-border m-4">
                 {/* Session Header */}
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                   <div className="flex items-center gap-2">
@@ -457,7 +457,7 @@ export function KuroryuuAgents() {
               </div>
             ) : selectedArchived ? (
               /* Archived Session Log Viewer */
-              <div className="h-full flex flex-col bg-card rounded-lg border border-border m-4">
+              <div className="flex-1 min-h-0 flex flex-col bg-card rounded-lg border border-border m-4">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                   <div className="flex items-center gap-2">
                     <Archive className="w-4 h-4 text-muted-foreground" />
