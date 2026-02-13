@@ -134,6 +134,7 @@ function MessageBubble({
   onStopSpeaking,
   isSpeaking,
   showRichCards,
+  onImageClick,
 }: {
   message: ChatMessage;
   onApplyCode?: (code: string, language: string) => void;
@@ -141,6 +142,7 @@ function MessageBubble({
   onStopSpeaking?: () => void;
   isSpeaking?: boolean;
   showRichCards?: boolean;
+  onImageClick?: (src: string) => void;
 }) {
   const [copied, setCopied] = useState(false);
   const isUser = message.role === 'user';
@@ -258,7 +260,8 @@ function MessageBubble({
                     src={img.data}
                     className="max-h-48 rounded border object-contain cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ borderColor: 'var(--cp-border)' }}
-                    title={img.name || 'Attached image'}
+                    title={img.name ? `${img.name} (click to enlarge)` : 'Click to enlarge'}
+                    onClick={() => onImageClick?.(img.data)}
                   />
                 ))}
               </div>
@@ -548,6 +551,47 @@ function ResizeHandle({
 }
 
 // ============================================================================
+// Image lightbox overlay
+// ============================================================================
+function ImageLightbox({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string;
+  alt?: string;
+  onClose: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.85)' }}
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+        title="Close"
+      >
+        <X className="w-6 h-6" />
+      </button>
+      <motion.img
+        initial={{ scale: 0.9 }}
+        animate={{ scale: 1 }}
+        src={src}
+        alt={alt || 'Image preview'}
+        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+        style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}
+        onClick={(e) => e.stopPropagation()}
+      />
+    </motion.div>
+  );
+}
+
+// ============================================================================
 // Main panel component
 // ============================================================================
 export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: AssistantPanelProps) {
@@ -605,6 +649,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
 
   const [input, setInput] = useState('');
   const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([]);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -1546,6 +1591,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                   onStopSpeaking={stop}
                   isSpeaking={speakingMessageId === msg.id}
                   showRichCards={enableRichToolVisualizations}
+                  onImageClick={setLightboxSrc}
                 />
               ))}
 
@@ -1802,6 +1848,16 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
           </div>
         </div>
       </div>
+
+      {/* Image lightbox overlay */}
+      <AnimatePresence>
+        {lightboxSrc && (
+          <ImageLightbox
+            src={lightboxSrc}
+            onClose={() => setLightboxSrc(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
