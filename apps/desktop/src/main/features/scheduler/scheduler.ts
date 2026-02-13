@@ -628,18 +628,9 @@ export class SchedulerFeature implements IFeatureModule {
             dangerouslySkipPermissions: action.permissionMode === 'bypassPermissions' || !action.permissionMode || action.permissionMode === 'default',
         };
 
-        let startResult: { ok: boolean; sessionId?: string; error?: string };
-
-        if (usePty) {
-            startResult = await cli.startAgentPty(cliConfig);
-            // Fallback to JSONL if PTY manager not available (e.g. daemon mode)
-            if (!startResult.ok && startResult.error?.includes('PTY manager')) {
-                console.log(`[Scheduler] PTY not available, falling back to JSONL for job ${job.id}`);
-                startResult = await cli.startAgent(cliConfig);
-            }
-        } else {
-            startResult = await cli.startAgent(cliConfig);
-        }
+        const startResult = usePty
+            ? await cli.startAgentPty(cliConfig)
+            : await cli.startAgent(cliConfig);
 
         if (!startResult.ok || !startResult.sessionId) {
             throw new Error(startResult.error || 'Failed to start CLI session');

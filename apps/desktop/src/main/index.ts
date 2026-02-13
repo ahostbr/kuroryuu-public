@@ -758,8 +758,8 @@ function setupPtyIpcHandlersDaemon(): void {
   ipcMain.handle('pty:getBufferedData', async (_, id: string) => {
     mainLogger.log('PTY-IPC', 'Fetching buffered data', { termId: id });
     // Check embedded PtyManager first (agent PTYs), then daemon
-    const embeddedResult = ptyManager?.getBufferedData(id);
-    if (embeddedResult !== undefined && embeddedResult !== '') {
+    if (ptyManager?.hasProcess(id)) {
+      const embeddedResult = ptyManager.getBufferedData(id);
       mainLogger.log('PTY-IPC', 'Buffered data from embedded PtyManager', { termId: id, dataLength: embeddedResult.length });
       return embeddedResult;
     }
@@ -778,6 +778,10 @@ function setupPtyIpcHandlersDaemon(): void {
   });
 
   ipcMain.handle('pty:resize', async (_, id: string, cols: number, rows: number) => {
+    // Check embedded PtyManager first (agent PTYs), then daemon
+    if (ptyManager?.hasProcess(id)) {
+      return ptyManager.resize(id, cols, rows);
+    }
     return ptyDaemonClient?.resize(id, cols, rows);
   });
 
