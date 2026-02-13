@@ -4,9 +4,10 @@
  * Shows sessions managed by Claude Agent SDK via IPC.
  * Features three views: Sessions (list), Agent Flow (graph), Terminal Agents
  */
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { RefreshCw, Bot, AlertCircle, List, GitBranch, Archive, Trash2, X, ClipboardList, Users, Plus, Brain, TerminalSquare, MessageSquare, LayoutGrid, GripVertical, Layers, PanelLeft } from 'lucide-react';
 import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
+import { useObservabilityStore } from '../../stores/observability-store';
 import { useIdentityStore } from '../../stores/identity-store';
 import { SessionCard } from './SessionCard';
 import { SdkMessageRenderer } from './SdkMessageRenderer';
@@ -62,11 +63,40 @@ export function KuroryuuAgents() {
   // Assistant badge
   const { newActionCount, incrementNewActionCount, clearNewActionCount } = useIdentityStore();
 
+  // Observability events — used to resolve CLI session → Claude Code session_id mapping
+  const obsEvents = useObservabilityStore(s => s.events);
+  const obsConnect = useObservabilityStore(s => s.connect);
+  const obsConnected = useObservabilityStore(s => s.isConnected);
+
+  // Build CLI session → latest Claude Code session_id mapping (the "glue" ID)
+  const cliToClaudeMap = useMemo(() => {
+    const map: Record<string, { sid: string; ts: number }> = {};
+    for (const e of obsEvents) {
+      const kuroSid = (e.payload as Record<string, unknown>)?.kuroryuu_session_id;
+      if (typeof kuroSid === 'string') {
+        const existing = map[kuroSid];
+        if (!existing || e.timestamp > existing.ts) {
+          map[kuroSid] = { sid: e.session_id, ts: e.timestamp };
+        }
+      }
+    }
+    const result: Record<string, string> = {};
+    for (const [k, v] of Object.entries(map)) {
+      result[k] = v.sid;
+    }
+    return result;
+  }, [obsEvents]);
+
   // Subscribe to SDK events on mount, unsubscribe on unmount
   useEffect(() => {
     subscribe();
     return () => unsubscribe();
   }, [subscribe, unsubscribe]);
+
+  // Ensure observability WebSocket is connected (needed for cliToClaudeMap)
+  useEffect(() => {
+    if (!obsConnected) obsConnect();
+  }, [obsConnected, obsConnect]);
 
   // Load persisted layout mode (Marketing pattern)
   useEffect(() => {
@@ -390,6 +420,7 @@ export function KuroryuuAgents() {
                           <SessionCard
                             key={session.id}
                             session={session}
+                            claudeSessionId={cliToClaudeMap[session.id]}
                             isSelected={selectedSessionId === session.id}
                             onSelect={() => selectSession(session.id)}
                             onStop={() => handleStop(session.id)}
@@ -408,6 +439,7 @@ export function KuroryuuAgents() {
                           <SessionCard
                             key={session.id}
                             session={session}
+                            claudeSessionId={cliToClaudeMap[session.id]}
                             isSelected={selectedSessionId === session.id}
                             onSelect={() => selectSession(session.id)}
                             onStop={() => handleStop(session.id)}
@@ -483,7 +515,9 @@ export function KuroryuuAgents() {
                 {/* Header (Marketing headerClass pattern) */}
                 <div className={headerClass}>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-primary">{selectedSession.id.slice(0, 12)}</span>
+                    <span className="font-mono text-sm text-primary" title={selectedSession.id}>
+                      {(cliToClaudeMap[selectedSession.id] || selectedSession.id).slice(0, 8)}
+                    </span>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${
                       selectedSession.status === 'running' || selectedSession.status === 'starting'
                         ? 'bg-green-500/20 text-green-400'
@@ -546,7 +580,7 @@ export function KuroryuuAgents() {
                       <SessionTerminalPlaceholder />
                     )
                   ) : selectedSession.backend === 'cli' ? (
-                    <CliEventRenderer sessionId={selectedSession.sdkSessionId} cliSessionId={selectedSession.id} />
+                    <CliEventRenderer cliSessionId={selectedSession.id} />
                   ) : (
                     <SdkMessageRenderer sessionId={selectedSession.id} />
                   )}

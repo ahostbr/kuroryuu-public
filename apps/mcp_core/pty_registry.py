@@ -46,6 +46,7 @@ class RegisteredSession:
     owner_session_id: Optional[str] = None    # k_session.session_id - secondary routing key
     owner_role: Optional[str] = None          # "leader" | "worker"
     label: Optional[str] = None               # Human-friendly label, e.g., "Worker A"
+    claude_code_session_id: Optional[str] = None  # Linked from observability events
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to serializable dict."""
@@ -62,6 +63,7 @@ class RegisteredSession:
             "owner_session_id": self.owner_session_id,
             "owner_role": self.owner_role,
             "label": self.label,
+            "claude_code_session_id": self.claude_code_session_id,
         }
 
 
@@ -94,6 +96,7 @@ class PTYRegistry:
         owner_session_id: Optional[str] = None,
         owner_role: Optional[str] = None,
         label: Optional[str] = None,
+        claude_code_session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Register a PTY session.
 
@@ -107,6 +110,7 @@ class PTYRegistry:
             owner_session_id: k_session.session_id (secondary routing key)
             owner_role: "leader" or "worker"
             label: Human-friendly label
+            claude_code_session_id: Claude Code session_id (linked from observability)
 
         Returns:
             {ok: True} or {ok: False, error: str}
@@ -140,6 +144,8 @@ class PTYRegistry:
                     existing.owner_role = owner_role
                 if label is not None:
                     existing.label = label
+                if claude_code_session_id is not None:
+                    existing.claude_code_session_id = claude_code_session_id
                 logger.info(f"Updated registered session: {session_id} (source={source})")
                 return {"ok": True, "updated": True}
 
@@ -154,6 +160,7 @@ class PTYRegistry:
                 owner_session_id=owner_session_id,
                 owner_role=owner_role,
                 label=label,
+                claude_code_session_id=claude_code_session_id,
             )
             self._sessions[session_id] = session
             logger.info(f"Registered new session: {session_id} (source={source}, cli={cli_type}, owner={owner_agent_id})")
@@ -285,11 +292,21 @@ class PTYRegistry:
     # Targeted Routing (Plan: PTY_TargetedRouting)
     # ========================================================================
 
+    def link_claude_session(self, kuroryuu_session_id: str, claude_code_session_id: str) -> bool:
+        """Link a Claude Code session_id to a PTY session by matching owner_session_id or session_id."""
+        with self._lock:
+            for session in self._sessions.values():
+                if session.owner_session_id == kuroryuu_session_id or session.session_id == kuroryuu_session_id:
+                    session.claude_code_session_id = claude_code_session_id
+                    return True
+        return False
+
     def resolve(
         self,
         agent_id: Optional[str] = None,
         owner_session_id: Optional[str] = None,
         label: Optional[str] = None,
+        claude_code_session_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Resolve owner identity to PTY session_id.
 
@@ -300,17 +317,18 @@ class PTYRegistry:
             agent_id: Owner agent ID (primary routing key)
             owner_session_id: k_session.session_id (secondary key)
             label: Human-friendly label
+            claude_code_session_id: Claude Code session_id (tertiary key)
 
         Returns:
             - If exactly 1 match: {ok: True, session_id: "...", session: {...}}
             - If 0 matches: {ok: False, error_code: "NOT_FOUND", ...}
             - If >1 matches: {ok: False, error_code: "AMBIGUOUS", matches: [...]}
         """
-        if not any([agent_id, owner_session_id, label]):
+        if not any([agent_id, owner_session_id, label, claude_code_session_id]):
             return {
                 "ok": False,
                 "error_code": "MISSING_PARAM",
-                "error": "At least one of agent_id, owner_session_id, or label is required",
+                "error": "At least one of agent_id, owner_session_id, label, or claude_code_session_id is required",
             }
 
         with self._lock:
@@ -324,13 +342,15 @@ class PTYRegistry:
                     matches.append(session)
                 elif label and session.label == label:
                     matches.append(session)
+                elif claude_code_session_id and session.claude_code_session_id == claude_code_session_id:
+                    matches.append(session)
 
             if len(matches) == 0:
                 return {
                     "ok": False,
                     "error_code": "NOT_FOUND",
-                    "error": f"No PTY found for: agent_id={agent_id}, owner_session_id={owner_session_id}, label={label}",
-                    "query": {"agent_id": agent_id, "owner_session_id": owner_session_id, "label": label},
+                    "error": f"No PTY found for: agent_id={agent_id}, owner_session_id={owner_session_id}, label={label}, claude_code_session_id={claude_code_session_id}",
+                    "query": {"agent_id": agent_id, "owner_session_id": owner_session_id, "label": label, "claude_code_session_id": claude_code_session_id},
                 }
 
             if len(matches) > 1:
@@ -339,7 +359,7 @@ class PTYRegistry:
                     "error_code": "AMBIGUOUS",
                     "error": f"Multiple PTYs match query ({len(matches)} found). Use more specific criteria.",
                     "matches": [m.to_dict() for m in matches],
-                    "query": {"agent_id": agent_id, "owner_session_id": owner_session_id, "label": label},
+                    "query": {"agent_id": agent_id, "owner_session_id": owner_session_id, "label": label, "claude_code_session_id": claude_code_session_id},
                 }
 
             # Exactly one match
@@ -424,6 +444,7 @@ class PTYRegistry:
                         owner_session_id=session_data.get("owner_session_id"),
                         owner_role=session_data.get("owner_role"),
                         label=session_data.get("label"),
+                        claude_code_session_id=session_data.get("claude_code_session_id"),
                     )
                     self._sessions[session_data["session_id"]] = session
                     restored += 1

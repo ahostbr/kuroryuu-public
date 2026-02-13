@@ -15,10 +15,14 @@ from .websocket import obs_ws_manager
 from .models import HookEventCreate
 
 from ..utils.logging_config import get_logger
+from ..mcp import get_mcp_client
 
 logger = get_logger(__name__)
 
 router = APIRouter(prefix="/v1/observability", tags=["observability"])
+
+# Module-level cache to avoid redundant MCP calls (kuroryuu_session_id → claude_code_session_id)
+_linked_sessions: Dict[str, str] = {}
 
 
 @router.post("/events")
@@ -53,6 +57,23 @@ async def ingest_event(event: HookEventCreate) -> Dict[str, Any]:
         "timestamp": event.timestamp,
     }
     await obs_ws_manager.broadcast_event(broadcast_data)
+
+    # Auto-link: if event has kuroryuu_session_id, persist the mapping
+    kuro_sid = (event.payload or {}).get("kuroryuu_session_id")
+    if kuro_sid and event.session_id:
+        prev = _linked_sessions.get(kuro_sid)
+        if prev != event.session_id:
+            # New link or session_id changed (e.g. after compact)
+            _linked_sessions[kuro_sid] = event.session_id
+            try:
+                mcp = get_mcp_client()
+                await mcp.call_tool("k_session", {
+                    "action": "link",
+                    "session_id": kuro_sid,
+                    "claude_code_session_id": event.session_id,
+                })
+            except Exception as e:
+                logger.debug(f"Auto-link failed (non-fatal): {e}")
 
     return {"status": "ok", "id": event_id}
 

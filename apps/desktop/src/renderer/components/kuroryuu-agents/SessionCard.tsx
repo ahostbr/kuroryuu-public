@@ -6,12 +6,13 @@ import type { SDKAgentSessionSummary } from '../../types/sdk-agent';
 
 interface SessionCardProps {
   session: SDKAgentSessionSummary;
+  claudeSessionId?: string;  // Claude Code session_id resolved from observability events
   isSelected: boolean;
   onSelect: () => void;
   onStop: () => void;
 }
 
-export function SessionCard({ session, isSelected, onSelect, onStop }: SessionCardProps) {
+export function SessionCard({ session, claudeSessionId, isSelected, onSelect, onStop }: SessionCardProps) {
   const formatTime = (ts: number) => {
     try {
       return new Date(ts).toLocaleTimeString();
@@ -83,8 +84,8 @@ export function SessionCard({ session, isSelected, onSelect, onStop }: SessionCa
             </span>
           )}
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono">
-          {session.id.slice(0, 8)}
+        <span className="text-[10px] text-muted-foreground font-mono" title={session.id}>
+          {claudeSessionId ? claudeSessionId.slice(0, 8) : session.id.slice(0, 8)}
         </span>
       </div>
 

@@ -35,6 +35,7 @@ class CLISession:
     tool_calls: int = 0
     tool_successes: int = 0
     tool_failures: int = 0
+    claude_code_session_id: Optional[str] = None  # Linked from observability events
 
 
 class SessionManager:
@@ -109,6 +110,15 @@ class SessionManager:
     def list_all(self) -> List[CLISession]:
         """List all sessions."""
         return list(self._sessions.values())
+
+    def link_claude_session(self, session_id: str, claude_code_session_id: str) -> Optional[CLISession]:
+        """Link a Claude Code session_id to an existing CLI session."""
+        with self._lock:
+            session = self._sessions.get(session_id)
+            if session:
+                session.claude_code_session_id = claude_code_session_id
+                self._save()
+            return session
 
 
 # Singleton

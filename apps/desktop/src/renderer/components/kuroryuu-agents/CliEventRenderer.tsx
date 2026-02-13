@@ -1,6 +1,6 @@
 /**
  * CliEventRenderer - Renders observability events for CLI agent sessions.
- * Bridges CLI sessions to the hook event telemetry system via sdkSessionId.
+ * Bridges CLI sessions to hook event telemetry via payload.kuroryuu_session_id.
  */
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { ChevronDown, ChevronRight, Copy, ClipboardCheck, Loader2 } from 'lucide-react';
@@ -9,7 +9,6 @@ import { HOOK_EVENT_EMOJIS, TOOL_EMOJIS } from '../../types/observability';
 import type { HookEvent } from '../../types/observability';
 
 interface CliEventRendererProps {
-  sessionId?: string;    // sdkSessionId (Claude Code's session_id) — direct match
   cliSessionId: string;  // cli-xxx ID — matches payload.kuroryuu_session_id from hooks
 }
 
@@ -108,7 +107,7 @@ function EventCard({ event, tick }: { event: HookEvent; tick: number }) {
   );
 }
 
-export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererProps) {
+export function CliEventRenderer({ cliSessionId }: CliEventRendererProps) {
   const events = useObservabilityStore((s) => s.events);
   const isConnected = useObservabilityStore((s) => s.isConnected);
   const connect = useObservabilityStore((s) => s.connect);
@@ -131,20 +130,21 @@ export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererPr
   // Filter events for this CLI session.
   // Uses payload.kuroryuu_session_id (injected by send_event.py from KURORYUU_AGENT_SESSION env var)
   // to match across session_id changes (e.g. after context compaction).
-  // Falls back to direct sdkSessionId match for non-PTY CLI sessions.
   const sessionEvents = useMemo(() => {
-    if (sessionId) {
-      return events.filter(e => e.session_id === sessionId);
-    }
     return events.filter(
       e => (e.payload as Record<string, unknown>)?.kuroryuu_session_id === cliSessionId
     );
-  }, [events, sessionId, cliSessionId]);
+  }, [events, cliSessionId]);
 
-  // Get the most recent Claude Code session_id for display (matches observability panel)
-  const latestSessionId = sessionEvents.length > 0
-    ? sessionEvents[0].session_id
-    : null;
+  // Get the most recent Claude Code session_id by max timestamp (not array order)
+  const latestClaudeSessionId = useMemo(() => {
+    if (sessionEvents.length === 0) return null;
+    let latest = sessionEvents[0];
+    for (const e of sessionEvents) {
+      if (e.timestamp > latest.timestamp) latest = e;
+    }
+    return latest.session_id;
+  }, [sessionEvents]);
 
   // Auto-scroll on new events
   useEffect(() => {
@@ -165,7 +165,12 @@ export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererPr
   return (
     <div ref={containerRef} className="flex-1 overflow-auto p-3 space-y-2">
       <div className="text-xs text-muted-foreground mb-2">
-        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''} · {latestSessionId ? latestSessionId.slice(0, 8) : cliSessionId}
+        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''}
+        {latestClaudeSessionId && (
+          <> · <span title={`Claude Code session: ${latestClaudeSessionId}`}>
+            {latestClaudeSessionId.slice(0, 8)}
+          </span></>
+        )}
       </div>
       {sessionEvents.map((event) => (
         <EventCard key={event.id} event={event} tick={tick} />

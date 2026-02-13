@@ -73,6 +73,32 @@ def _read_working_memory() -> Optional[Dict[str, Any]]:
         return None
 
 
+def _write_working_memory(wm: Dict[str, Any]) -> None:
+    """Write ai/working_memory.json atomically."""
+    import uuid as _uuid
+    WORKING_MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = WORKING_MEMORY_PATH.parent / f".working_memory.tmp_{_uuid.uuid4().hex[:8]}"
+    data = json.dumps(wm, ensure_ascii=False, indent=2) + "\n"
+    try:
+        with tmp.open("w", encoding="utf-8", newline="\n") as f:
+            f.write(data)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(str(tmp), str(WORKING_MEMORY_PATH))
+    except Exception:
+        # Cleanup tmp on failure
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+
+def _now_local() -> str:
+    """ISO timestamp for working memory updates."""
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone.utc).isoformat()
+
+
 def _format_working_memory(wm: Dict[str, Any]) -> str:
     """Format working memory into a concise context block."""
     lines = ["**Working Memory:**"]
@@ -142,11 +168,38 @@ def _read_worklog_summary(worklog_path: str, max_chars: int = 500) -> Optional[s
 def _extract_last_assistant_message(agent_id: str) -> Optional[str]:
     """Extract the last assistant text message from the most recent transcript export.
 
-    Scans ai/exports/ for the newest .jsonl file and reads backward to find
-    the last assistant message. Strips system tags and truncates.
+    Correlates transcripts with session registry to find sessions belonging
+    to the specified agent. Falls back gracefully if no sessions found.
     """
     exports_dir = get_project_root() / "ai" / "exports"
     if not exports_dir.exists():
+        return None
+
+    # Build set of session short IDs belonging to this agent
+    agent_session_ids: set = set()
+    has_registry = False
+    try:
+        mgr = get_session_manager()
+        all_sessions = mgr.list_all() if hasattr(mgr, "list_all") else []
+        if all_sessions:
+            has_registry = True
+            for sess in all_sessions:
+                sess_agent = getattr(sess, "agent_id", "")
+                if sess_agent == agent_id:
+                    # Extract short ID suffix from session_id
+                    # Format: "{cli_type}_{agent_id}_{uuid8}" or "cli-{uuid}"
+                    sid = getattr(sess, "session_id", "")
+                    if sid:
+                        # Use last segment after underscore, or whole ID
+                        parts = sid.rsplit("_", 1)
+                        agent_session_ids.add(parts[-1] if len(parts) > 1 else sid)
+                        # Also add full session_id for exact match
+                        agent_session_ids.add(sid)
+    except Exception:
+        pass
+
+    # If registry has entries but none for this agent, don't fallback to random transcript
+    if has_registry and not agent_session_ids:
         return None
 
     try:
@@ -167,6 +220,12 @@ def _extract_last_assistant_message(agent_id: str) -> Optional[str]:
                 reverse=True,
             )
             for jf in jsonl_files[:5]:  # Check last 5 transcripts per day
+                # If we have agent session IDs, filter by them
+                if agent_session_ids:
+                    fname = jf.stem
+                    if not any(sid in fname for sid in agent_session_ids):
+                        continue
+
                 result = _scan_transcript_for_assistant_msg(jf)
                 if result:
                     return result
@@ -299,10 +358,13 @@ def _build_resumption_context(agent_id: str) -> str:
     # 3. Working memory (goals, blockers, next steps)
     wm = _read_working_memory()
     if wm:
-        goal = wm.get("active_goal", "")
-        steps = wm.get("next_steps", [])
-        if goal or steps:
-            sections.append(_format_working_memory(wm))
+        # Only inject if working memory belongs to this agent (or is unowned legacy)
+        wm_agent = wm.get("agent_id", "")
+        if not wm_agent or wm_agent == resolved_id:
+            goal = wm.get("active_goal", "")
+            steps = wm.get("next_steps", [])
+            if goal or steps:
+                sections.append(_format_working_memory(wm))
 
     # 4. "Previously" — last assistant message from prior transcript
     if _is_previously_enabled():
@@ -335,6 +397,8 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
                 "pre_tool": "Check before tool execution. Params: session_id, tool_name (required), arguments",
                 "post_tool": "Track tool result. Params: session_id, tool_name, result_ok (required), result_summary",
                 "log": "Append custom log entry. Params: session_id, message (required)",
+                "update_memory": "Update working memory mid-session. Params: agent_id (required), active_goal, blockers, next_steps",
+                "link": "Link Claude Code session_id to k_session + PTY. Params: session_id, claude_code_session_id (required)",
             },
         },
         "error": None,
@@ -358,6 +422,19 @@ def _action_start(
     mgr = get_session_manager()
     session = mgr.create(process_id, cli_type, agent_id, None)
     context = _build_context()
+
+    # Initialize working memory for this agent session
+    try:
+        _write_working_memory({
+            "agent_id": agent_id,
+            "session_id": session.session_id,
+            "active_goal": "",
+            "blockers": [],
+            "next_steps": [],
+            "updated_at": _now_local(),
+        })
+    except Exception as e:
+        logger.debug("Working memory init failed (non-fatal): %s", e)
 
     # Build resumption context (zero-cost: file reads only)
     resumption_context = ""
@@ -410,6 +487,20 @@ def _action_end(
         return {"ok": False, "error_code": "NOT_FOUND", "message": "Session not found"}
 
     agent_id = session.agent_id if hasattr(session, "agent_id") else ""
+
+    # Update working memory with session end state
+    if agent_id:
+        try:
+            _write_working_memory({
+                "agent_id": agent_id,
+                "session_id": session_id,
+                "active_goal": summary or "Session ended",
+                "blockers": [],
+                "next_steps": [],
+                "updated_at": _now_local(),
+            })
+        except Exception as e:
+            logger.debug("Working memory end-write failed (non-fatal): %s", e)
 
     # Auto-checkpoint on session end (zero-cost: file write only)
     auto_checkpoint_id = ""
@@ -544,6 +635,62 @@ def _action_log(
     return {"ok": True}
 
 
+def _action_update_memory(
+    agent_id: str = "",
+    active_goal: str = "",
+    blockers: Optional[List[str]] = None,
+    next_steps: Optional[List[str]] = None,
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """Update working memory with current agent state (mid-session)."""
+    if not agent_id:
+        return {"ok": False, "error_code": "MISSING_PARAM", "message": "agent_id is required"}
+
+    wm = _read_working_memory() or {}
+    wm["agent_id"] = agent_id
+    if active_goal:
+        wm["active_goal"] = active_goal
+    if blockers is not None:
+        wm["blockers"] = blockers
+    if next_steps is not None:
+        wm["next_steps"] = next_steps
+    wm["updated_at"] = _now_local()
+
+    _write_working_memory(wm)
+    return {"ok": True, "message": "Working memory updated"}
+
+
+def _action_link(
+    session_id: str = "",
+    claude_code_session_id: str = "",
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """Link a Claude Code session_id to an existing k_session + PTY registry entry."""
+    if not session_id:
+        return {"ok": False, "error_code": "MISSING_PARAM", "message": "session_id is required"}
+    if not claude_code_session_id:
+        return {"ok": False, "error_code": "MISSING_PARAM", "message": "claude_code_session_id is required"}
+
+    mgr = get_session_manager()
+    linked_session = mgr.link_claude_session(session_id, claude_code_session_id) if hasattr(mgr, "link_claude_session") else None
+    k_session_linked = linked_session is not None
+
+    # Also link in PTY registry if available
+    pty_linked = False
+    try:
+        from pty_registry import get_pty_registry
+        pty_linked = get_pty_registry().link_claude_session(session_id, claude_code_session_id)
+    except Exception as e:
+        logger.debug("PTY registry link failed (non-fatal): %s", e)
+
+    return {
+        "ok": True,
+        "linked": {"k_session": k_session_linked, "pty_registry": pty_linked},
+        "session_id": session_id,
+        "claude_code_session_id": claude_code_session_id,
+    }
+
+
 # ============================================================================
 # Routed tool
 # ============================================================================
@@ -556,6 +703,8 @@ ACTION_HANDLERS = {
     "pre_tool": _action_pre_tool,
     "post_tool": _action_post_tool,
     "log": _action_log,
+    "update_memory": _action_update_memory,
+    "link": _action_link,
 }
 
 
@@ -572,18 +721,22 @@ def k_session(
     result_ok: bool = True,
     result_summary: str = "",
     message: str = "",
+    active_goal: str = "",
+    blockers: Optional[List[str]] = None,
+    next_steps: Optional[List[str]] = None,
+    claude_code_session_id: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Kuroryuu Session - Hook/lifecycle management for spawned CLIs.
 
-    Routed tool with actions: help, start, end, context, pre_tool, post_tool, log
+    Routed tool with actions: help, start, end, context, pre_tool, post_tool, log, update_memory, link
 
     Args:
         action: Action to perform (required)
         process_id: OS process ID (for start)
         cli_type: CLI type: kiro, claude, copilot, codex (for start)
-        agent_id: Agent identifier (for start)
-        session_id: Session ID (for end, context, pre_tool, post_tool, log)
+        agent_id: Agent identifier (for start, update_memory)
+        session_id: Session ID (for end, context, pre_tool, post_tool, log, link)
         exit_code: Exit code (for end)
         summary: Summary text (for end)
         tool_name: Tool name (for pre_tool, post_tool)
@@ -591,6 +744,10 @@ def k_session(
         result_ok: Whether tool succeeded (for post_tool)
         result_summary: Tool result summary (for post_tool)
         message: Progress message (for log)
+        active_goal: Current goal (for update_memory)
+        blockers: Current blockers (for update_memory)
+        next_steps: Next steps (for update_memory)
+        claude_code_session_id: Claude Code session ID (for link)
 
     Returns:
         {ok, ...} response dict
@@ -626,6 +783,10 @@ def k_session(
         result_ok=result_ok,
         result_summary=result_summary,
         message=message,
+        active_goal=active_goal,
+        blockers=blockers,
+        next_steps=next_steps,
+        claude_code_session_id=claude_code_session_id,
         **kwargs,
     )
 
@@ -639,13 +800,13 @@ def register_hooks_tools(registry: ToolRegistry) -> None:
 
     registry.register(
         name="k_session",
-        description="Session/hook lifecycle management. Actions: help, start, end, context, pre_tool, post_tool, log",
+        description="Session/hook lifecycle management. Actions: help, start, end, context, pre_tool, post_tool, log, update_memory, link",
         input_schema={
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["help", "start", "end", "context", "pre_tool", "post_tool", "log"],
+                    "enum": ["help", "start", "end", "context", "pre_tool", "post_tool", "log", "update_memory", "link"],
                     "description": "Action to perform",
                 },
                 "process_id": {
@@ -658,11 +819,11 @@ def register_hooks_tools(registry: ToolRegistry) -> None:
                 },
                 "agent_id": {
                     "type": "string",
-                    "description": "Agent identifier (for start)",
+                    "description": "Agent identifier (for start, update_memory)",
                 },
                 "session_id": {
                     "type": "string",
-                    "description": "Session ID (for end, context, pre_tool, post_tool, log)",
+                    "description": "Session ID (for end, context, pre_tool, post_tool, log, link)",
                 },
                 "exit_code": {
                     "type": "integer",
@@ -693,6 +854,24 @@ def register_hooks_tools(registry: ToolRegistry) -> None:
                 "message": {
                     "type": "string",
                     "description": "Progress message (for log)",
+                },
+                "active_goal": {
+                    "type": "string",
+                    "description": "Current goal (for update_memory)",
+                },
+                "blockers": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Current blockers (for update_memory)",
+                },
+                "next_steps": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Next steps (for update_memory)",
+                },
+                "claude_code_session_id": {
+                    "type": "string",
+                    "description": "Claude Code session ID (for link)",
                 },
             },
             "required": ["action"],

@@ -145,6 +145,19 @@ def _write_task_meta(meta: Dict[str, Any]) -> None:
     _write_json_atomic(meta_path, meta)
 
 
+def _extract_agent_from_data(data: Any) -> str:
+    """Fallback: extract agent identifier from checkpoint data payload.
+
+    Convention: data dict may contain 'agent' key set by the saving agent.
+    Used when agent_id is not explicitly provided as a parameter.
+    """
+    if isinstance(data, dict):
+        agent = data.get("agent", "")
+        if isinstance(agent, str) and agent.strip():
+            return agent.strip()
+    return ""
+
+
 def _link_task_sidecar(task_id: str, checkpoint_id: str, worklog_rel: Optional[str]) -> None:
     """Link checkpoint + worklog to a task in ai/task-meta.json sidecar."""
     meta = _read_task_meta()
@@ -250,8 +263,13 @@ def _action_save(
         now = _now_local()
         safe_name = _safe_name(name)
 
-        # Resolve agent_id: param > env > "unknown"
-        resolved_agent_id = agent_id or os.environ.get("KURORYUU_AGENT_ID", "")
+        # Resolve agent_id: param > env > data.agent > "unknown"
+        resolved_agent_id = (
+            agent_id
+            or os.environ.get("KURORYUU_AGENT_ID", "")
+            or _extract_agent_from_data(data)
+            or "unknown"
+        )
         resolved_session_id = os.environ.get("KURORYUU_AGENT_SESSION", "")
 
         checkpoint_id = f"cp_{_ts_for_filename(now)}_{uuid.uuid4().hex[:8]}"
@@ -486,7 +504,10 @@ def _action_list(
 def _load_latest_for_agent(agent_id: str, session_id: str = "") -> Optional[Dict[str, Any]]:
     """Load the latest checkpoint for a given agent_id (or session_id).
 
-    Scans _index.jsonl in reverse order for matching agent_id or session_id.
+    Two-pass strategy:
+    1. Fast path: scan _index.jsonl for agent_id/session_id match (no file I/O)
+    2. Fallback: scan checkpoint files for data.agent match (handles legacy entries)
+
     Returns the full checkpoint dict or None.
     """
     root = _get_checkpoint_root()
@@ -494,7 +515,7 @@ def _load_latest_for_agent(agent_id: str, session_id: str = "") -> Optional[Dict
     if not index_path.exists():
         return None
 
-    # Read all index entries, find latest match
+    # Read all index entries
     entries = []
     try:
         with index_path.open("r", encoding="utf-8") as f:
@@ -511,17 +532,45 @@ def _load_latest_for_agent(agent_id: str, session_id: str = "") -> Optional[Dict
     # Reverse to check newest first
     entries.reverse()
 
+    # --- Pass 1: Check index agent_id/session_id field (fast, no file I/O) ---
     for entry in entries:
-        if agent_id and entry.get("agent_id") == agent_id:
+        entry_agent = entry.get("agent_id", "")
+        if agent_id and entry_agent == agent_id:
             cp_path = root / entry.get("path", "")
             if cp_path.exists():
                 obj, _ = _safe_read_json(cp_path)
-                return obj
+                if obj:
+                    return obj
         elif session_id and entry.get("session_id") == session_id:
             cp_path = root / entry.get("path", "")
             if cp_path.exists():
                 obj, _ = _safe_read_json(cp_path)
-                return obj
+                if obj:
+                    return obj
+
+    # --- Pass 2: Fallback - check data.agent in checkpoint files ---
+    # Handles legacy entries that lack agent_id in the index.
+    # Cap at 50 to avoid excessive I/O on large histories.
+    if not agent_id:
+        return None
+    FALLBACK_SCAN_LIMIT = 50
+    for entry in entries[:FALLBACK_SCAN_LIMIT]:
+        # Skip entries explicitly tagged to a different agent
+        entry_agent = entry.get("agent_id", "")
+        if entry_agent and entry_agent != agent_id:
+            continue
+
+        cp_path = root / entry.get("path", "")
+        if not cp_path.exists():
+            continue
+        obj, _ = _safe_read_json(cp_path)
+        if obj is None:
+            continue
+
+        # Check data.agent field (convention used by all checkpoint saves)
+        data = obj.get("data", {})
+        if isinstance(data, dict) and data.get("agent") == agent_id:
+            return obj
 
     return None
 
