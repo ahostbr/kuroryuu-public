@@ -203,6 +203,7 @@ export interface ModelInfo {
   provider: LLMProvider;
   source?: string; // Actual source provider within CLI Proxy ('antigravity', 'claude', 'github-copilot', etc.)
   contextWindow?: number;
+  contextWindowEstimated?: boolean;
   supportsTools?: boolean;
 }
 

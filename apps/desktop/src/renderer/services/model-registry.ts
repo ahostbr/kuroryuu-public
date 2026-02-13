@@ -87,13 +87,18 @@ export async function fetchLMStudioModels(): Promise<ModelInfo[]> {
       return [];
     }
 
-    const models = data.data.map((model: { id: string; [key: string]: unknown }) => ({
-      id: model.id,
-      name: formatModelName(model.id),
-      provider: 'lmstudio' as LLMProvider,
-      contextWindow: 32768, // Default for most local models
-      supportsTools: true, // Local models can use MCP tools through Gateway
-    }));
+    const models = data.data.map((model: { id: string; [key: string]: unknown }) => {
+      const realCtx = Number(model.max_context_length);
+      const hasRealCtx = Number.isFinite(realCtx) && realCtx > 0;
+      return {
+        id: model.id,
+        name: formatModelName(model.id),
+        provider: 'lmstudio' as LLMProvider,
+        contextWindow: hasRealCtx ? realCtx : 32768,
+        contextWindowEstimated: !hasRealCtx,
+        supportsTools: true,
+      };
+    });
 
     _lmStudioCache = { models, timestamp: Date.now(), available: true };
     return models;

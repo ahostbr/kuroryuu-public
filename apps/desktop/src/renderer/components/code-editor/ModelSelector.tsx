@@ -324,8 +324,12 @@ export function ModelSelector({
                               <Wrench className="model-selector-item-tools" />
                             )}
                             {model.contextWindow && (
-                              <span className="model-selector-item-ctx">
-                                {formatContextWindow(model.contextWindow)}
+                              <span
+                                className="model-selector-item-ctx"
+                                title={model.contextWindowEstimated ? 'Estimated — LM Studio did not report context window' : undefined}
+                                style={model.contextWindowEstimated ? { opacity: 0.5 } : undefined}
+                              >
+                                {model.contextWindowEstimated ? '~' : ''}{formatContextWindow(model.contextWindow)}
                               </span>
                             )}
                           </span>
@@ -355,8 +359,8 @@ export function ModelSelector({
                   <span className="model-selector-tooltip-name">{hoveredModel.name}</span>
                   <span className="model-selector-tooltip-id">({hoveredModel.id})</span>
                   {hoveredModel.contextWindow && (
-                    <span className="model-selector-tooltip-ctx">
-                      {formatContextWindow(hoveredModel.contextWindow)} context
+                    <span className="model-selector-tooltip-ctx" style={hoveredModel.contextWindowEstimated ? { opacity: 0.6 } : undefined}>
+                      {hoveredModel.contextWindowEstimated ? '~' : ''}{formatContextWindow(hoveredModel.contextWindow)} context{hoveredModel.contextWindowEstimated ? ' (estimated)' : ''}
                     </span>
                   )}
                 </motion.div>
