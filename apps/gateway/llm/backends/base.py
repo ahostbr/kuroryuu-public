@@ -18,7 +18,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional
 class LLMMessage:
     """Normalized message format for all backends."""
     role: str  # "system", "user", "assistant", "tool"
-    content: str
+    content: Any  # str or list of content blocks for multimodal
     name: Optional[str] = None  # For tool messages
     tool_call_id: Optional[str] = None  # For tool results
     tool_calls: Optional[List[Dict[str, Any]]] = None  # For assistant messages with tool calls

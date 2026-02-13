@@ -69,7 +69,7 @@ def build_system_with_bootstrap(custom_system: Optional[str] = None) -> str:
 class ChatMessage(BaseModel):
     """Single chat message."""
     role: str = Field(..., description="Role: user, assistant, system, tool")
-    content: str = Field(..., description="Message content")
+    content: Any = Field(..., description="Message content: string or multimodal content blocks")
     tool_call_id: Optional[str] = Field(None, description="Tool call ID for tool responses")
 
 

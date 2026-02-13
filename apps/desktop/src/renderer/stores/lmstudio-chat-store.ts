@@ -97,12 +97,21 @@ export interface ToolSchema {
   inputSchema: Record<string, unknown>;
 }
 
+export interface ImageAttachment {
+  id: string;
+  data: string;       // base64 data URI: "data:image/png;base64,..."
+  mimeType: string;   // "image/png", "image/jpeg", etc.
+  name?: string;      // filename if from file picker
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   timestamp: number;
   contextIncluded?: boolean;
+  // Image attachments (for vision-capable models)
+  images?: ImageAttachment[];
   // Tool call support
   toolCalls?: ToolCallData[];
   toolCallId?: string; // For tool result messages
@@ -1321,7 +1330,7 @@ interface LMStudioChatState {
   loadModels: () => Promise<void>;
   loadTools: () => Promise<void>;
   setModel: (model: string) => void;
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string, images?: ImageAttachment[]) => Promise<void>;
   cancelStreaming: () => void;
   clearHistory: () => void;
   setEditorContext: (context: EditorContext | null) => void;
@@ -1595,9 +1604,9 @@ export const useLMStudioChatStore = create<LMStudioChatState>()(
       setModel: (model: string) => set({ selectedModel: model }),
 
       // Chat actions
-      sendMessage: async (content: string) => {
+      sendMessage: async (content: string, images?: ImageAttachment[]) => {
         const state = get();
-        if (!content.trim() || state.isSending || state.isStreaming || !state.isConnected) return;
+        if ((!content.trim() && (!images || images.length === 0)) || state.isSending || state.isStreaming || !state.isConnected) return;
 
         // Create AbortController for cancellation
         const abortController = new AbortController();
@@ -1628,16 +1637,29 @@ ${content}`;
           content,
           timestamp: Date.now(),
           contextIncluded: state.includeContext && !!state.editorContext,
+          images: images && images.length > 0 ? images : undefined,
         };
 
         set((s) => ({ messages: [...s.messages, userMessage] }));
 
+        // Helper: build API content for a message (multimodal array when images present)
+        const buildApiContent = (text: string, imgs?: ImageAttachment[]): string | Array<Record<string, unknown>> => {
+          if (!imgs || imgs.length === 0) return text;
+          return [
+            { type: 'text', text },
+            ...imgs.map(img => ({
+              type: 'image_url',
+              image_url: { url: img.data },
+            })),
+          ];
+        };
+
         try {
-          // Build messages array for API
+          // Build messages array for API (include images from prior messages too)
           const apiMessages = [
             { role: 'system', content: CODE_EDITOR_SYSTEM_PROMPT },
-            ...state.messages.map((m) => ({ role: m.role, content: m.content })),
-            { role: 'user', content: userContent },
+            ...state.messages.map((m) => ({ role: m.role, content: buildApiContent(m.content, m.images) })),
+            { role: 'user', content: buildApiContent(userContent, images) },
           ];
 
           // Get domain config for code-editor chat - domainConfig is source of truth

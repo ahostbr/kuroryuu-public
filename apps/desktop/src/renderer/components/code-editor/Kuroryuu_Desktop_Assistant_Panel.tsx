@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLMStudioChatStore, type ChatMessage, type ToolCallData } from '../../stores/lmstudio-chat-store';
+import { useLMStudioChatStore, type ChatMessage, type ToolCallData, type ImageAttachment } from '../../stores/lmstudio-chat-store';
 import type { RichCard } from '../../types/insights';
 import { chatLock, type AssistantViewType } from '../../utils/cross-window-lock';
 import { useCodeEditorStore } from '../../stores/code-editor-store';
@@ -40,6 +40,7 @@ import {
   FolderTree,
   MessageSquare,
   TerminalSquare,
+  Paperclip,
 } from 'lucide-react';
 
 // Kuroryuu brand icon - ink-wash dragon
@@ -247,6 +248,21 @@ function MessageBubble({
                 </span>
               )}
             </div>
+
+            {/* Attached images */}
+            {message.images && message.images.length > 0 && (
+              <div className="flex gap-2 flex-wrap mb-2">
+                {message.images.map(img => (
+                  <img
+                    key={img.id}
+                    src={img.data}
+                    className="max-h-48 rounded border object-contain cursor-pointer hover:opacity-80 transition-opacity"
+                    style={{ borderColor: 'var(--cp-border)' }}
+                    title={img.name || 'Attached image'}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Tool calls FIRST - chronological order (tools called before response) */}
             {hasToolCalls && (
@@ -588,6 +604,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   const activeFile = activeFileIndex >= 0 ? openFiles[activeFileIndex] : null;
 
   const [input, setInput] = useState('');
+  const [pendingImages, setPendingImages] = useState<ImageAttachment[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -595,6 +612,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   const [isTranscribing, setIsTranscribing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice input state (using Python voice_input.py via IPC - same as tray_companion)
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -796,17 +814,64 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   const isPtyProvider = domainConfig.provider === 'claude-cli-pty';
 
   const handleSend = () => {
-    if (!input.trim() || isSending) return;
+    if ((!input.trim() && pendingImages.length === 0) || isSending) return;
+
+    const images = pendingImages.length > 0 ? [...pendingImages] : undefined;
 
     // Use PTY method if provider is claude-cli-pty and we have a session
     if (isPtyProvider && ptySessionId) {
       sendMessageViaPty(input.trim());
     } else {
-      sendMessage(input.trim());
+      sendMessage(input.trim(), images);
     }
 
     setInput('');
+    setPendingImages([]);
     setShowSlashMenu(false);
+  };
+
+  // Handle paste — intercept image data from clipboard
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (!file) continue;
+        const reader = new FileReader();
+        reader.onload = () => {
+          setPendingImages(prev => [...prev, {
+            id: crypto.randomUUID(),
+            data: reader.result as string,
+            mimeType: file.type,
+            name: file.name || 'pasted-image',
+          }]);
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  // Handle file picker selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPendingImages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          data: reader.result as string,
+          mimeType: file.type,
+          name: file.name,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input so the same file can be selected again
+    e.target.value = '';
   };
 
   // Handle input change - detect slash commands and @ mentions
@@ -1569,11 +1634,33 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                   onFolderNavigate={handleAtFolderNavigate}
                   folderContents={atFolderContents}
                 />
+                {/* Image preview strip */}
+                {pendingImages.length > 0 && (
+                  <div className="flex gap-2 p-2 pb-1 flex-wrap">
+                    {pendingImages.map(img => (
+                      <div key={img.id} className="relative group">
+                        <img
+                          src={img.data}
+                          alt={img.name || 'Pending image'}
+                          className="h-16 rounded object-cover"
+                          style={{ border: '1px solid var(--cp-border)' }}
+                        />
+                        <button
+                          onClick={() => setPendingImages(prev => prev.filter(i => i.id !== img.id))}
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity leading-none"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <textarea
                   ref={inputRef}
                   value={input}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyDown}
+                  onPaste={handlePaste}
                   placeholder={
                     isTranscribing
                       ? 'Transcribing & sending...'
@@ -1592,6 +1679,25 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
 
               {/* Right Controls */}
               <div className="flex items-center gap-1">
+                {/* Attachment button */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <motion.button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={!isConnected || isSending}
+                  whileTap={{ scale: 0.95 }}
+                  className="p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ color: pendingImages.length > 0 ? 'var(--cp-accent-blue)' : 'var(--cp-text-muted)' }}
+                  title="Attach image"
+                >
+                  <Paperclip className="w-5 h-5" />
+                </motion.button>
                 {/* Microphone */}
                 <motion.button
                   onClick={handleMicClick}
@@ -1625,14 +1731,14 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
                 ) : (
                   <motion.button
                     onClick={handleSend}
-                    disabled={!isConnected || isSending || !input.trim() || isRecording}
+                    disabled={!isConnected || isSending || (!input.trim() && pendingImages.length === 0) || isRecording}
                     whileTap={{ scale: 0.95 }}
                     className={`p-2 rounded-lg transition-colors ${
-                      input.trim() && !isSending && isConnected && !isRecording
+                      (input.trim() || pendingImages.length > 0) && !isSending && isConnected && !isRecording
                         ? 'cp-btn-primary'
                         : 'cursor-not-allowed'
                     }`}
-                    style={!(input.trim() && !isSending && isConnected && !isRecording) ? { color: 'var(--cp-text-muted)' } : undefined}
+                    style={!((input.trim() || pendingImages.length > 0) && !isSending && isConnected && !isRecording) ? { color: 'var(--cp-text-muted)' } : undefined}
                     title="Send message"
                   >
                     {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}

@@ -117,10 +117,10 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
             "description": "Session/thread persistence with JSON payloads",
             "actions": {
                 "help": "Show this help",
-                "save": "Save checkpoint. Params: name (required), data (required), summary, tags, worklog (bool), task_id (auto-link sidecar)",
+                "save": "Save checkpoint. Params: name (required), data (required), summary, tags, worklog (bool), task_id (auto-link sidecar), agent_id (auto-detected from env)",
                 "append": "Update latest checkpoint in-place. Params: name (required), data (deep-merged), summary (replaced if given), tags (appended)",
                 "list": "List checkpoints. Params: name (filter), limit",
-                "load": "Load checkpoint. Params: id (or 'latest' for global latest), name (for namespace latest)",
+                "load": "Load checkpoint. Params: id (or 'latest' for global latest), name (for namespace latest), agent_id (for agent-specific latest)",
             },
             "checkpoint_root": str(_get_checkpoint_root()),
         },
@@ -235,6 +235,7 @@ def _action_save(
     tags: Optional[List[str]] = None,
     worklog: bool = False,
     task_id: str = "",
+    agent_id: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Save a checkpoint with arbitrary data. Optionally generate a worklog."""
@@ -249,12 +250,18 @@ def _action_save(
         now = _now_local()
         safe_name = _safe_name(name)
 
+        # Resolve agent_id: param > env > "unknown"
+        resolved_agent_id = agent_id or os.environ.get("KURORYUU_AGENT_ID", "")
+        resolved_session_id = os.environ.get("KURORYUU_AGENT_SESSION", "")
+
         checkpoint_id = f"cp_{_ts_for_filename(now)}_{uuid.uuid4().hex[:8]}"
 
         checkpoint: Dict[str, Any] = {
             "schema": SCHEMA_V1,
             "id": checkpoint_id,
             "name": safe_name,
+            "agent_id": resolved_agent_id,
+            "session_id": resolved_session_id,
             "saved_at": _iso(now),
             "summary": summary or "",
             "tags": tags or [],
@@ -292,6 +299,8 @@ def _action_save(
         index_entry = {
             "id": checkpoint_id,
             "name": safe_name,
+            "agent_id": resolved_agent_id,
+            "session_id": resolved_session_id,
             "saved_at": _iso(now),
             "path": str(cp_path.relative_to(root)),
             "size_bytes": cp_path.stat().st_size,
@@ -474,14 +483,69 @@ def _action_list(
         return {"ok": False, "error_code": "LIST_FAILED", "message": str(e)}
 
 
+def _load_latest_for_agent(agent_id: str, session_id: str = "") -> Optional[Dict[str, Any]]:
+    """Load the latest checkpoint for a given agent_id (or session_id).
+
+    Scans _index.jsonl in reverse order for matching agent_id or session_id.
+    Returns the full checkpoint dict or None.
+    """
+    root = _get_checkpoint_root()
+    index_path = root / "_index.jsonl"
+    if not index_path.exists():
+        return None
+
+    # Read all index entries, find latest match
+    entries = []
+    try:
+        with index_path.open("r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    try:
+                        entries.append(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+    except Exception:
+        return None
+
+    # Reverse to check newest first
+    entries.reverse()
+
+    for entry in entries:
+        if agent_id and entry.get("agent_id") == agent_id:
+            cp_path = root / entry.get("path", "")
+            if cp_path.exists():
+                obj, _ = _safe_read_json(cp_path)
+                return obj
+        elif session_id and entry.get("session_id") == session_id:
+            cp_path = root / entry.get("path", "")
+            if cp_path.exists():
+                obj, _ = _safe_read_json(cp_path)
+                return obj
+
+    return None
+
+
 def _action_load(
     id: str = "",
     name: str = "",
+    agent_id: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
-    """Load a checkpoint by ID or latest by name."""
+    """Load a checkpoint by ID, latest by name, or latest for an agent."""
+    # Resolve agent_id from param or env
+    resolved_agent_id = agent_id or ""
+    resolved_session_id = ""
+
+    # If agent_id provided (no name or id): load latest for that agent
+    if resolved_agent_id and not name and not id:
+        checkpoint = _load_latest_for_agent(resolved_agent_id)
+        if checkpoint:
+            return {"ok": True, "checkpoint": checkpoint, "matched_by": "agent_id"}
+        return {"ok": False, "error_code": "NOT_FOUND", "message": f"No checkpoints found for agent: {resolved_agent_id}"}
+
     if not id and not name:
-        return {"ok": False, "error_code": "MISSING_PARAM", "message": "id or name is required"}
+        return {"ok": False, "error_code": "MISSING_PARAM", "message": "id, name, or agent_id is required"}
 
     try:
         root = _get_checkpoint_root()
@@ -559,6 +623,7 @@ def k_checkpoint(
     id: str = "",
     worklog: bool = False,
     task_id: str = "",
+    agent_id: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Kuroryuu Checkpoint - Session/thread persistence.
@@ -575,6 +640,7 @@ def k_checkpoint(
         id: Checkpoint ID (for load, use 'latest' for most recent)
         worklog: Auto-generate worklog file alongside checkpoint (for save)
         task_id: Task ID to auto-link checkpoint+worklog in ai/task-meta.json (for save)
+        agent_id: Agent identifier (auto-detected from KURORYUU_AGENT_ID env if not provided)
 
     Returns:
         {ok, ...} response dict
@@ -607,6 +673,7 @@ def k_checkpoint(
         id=id,
         worklog=worklog,
         task_id=task_id,
+        agent_id=agent_id,
         **kwargs,
     )
 
@@ -663,6 +730,11 @@ def register_checkpoint_tools(registry: "ToolRegistry") -> None:
                     "type": "string",
                     "default": "",
                     "description": "Task ID (e.g. T001) to auto-link checkpoint+worklog in ai/task-meta.json",
+                },
+                "agent_id": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Agent identifier. Auto-detected from KURORYUU_AGENT_ID env if not provided. Used for save (tagging) and load (agent-specific latest).",
                 },
             },
             "required": ["action"],

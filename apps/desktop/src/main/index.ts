@@ -1685,9 +1685,13 @@ function setupKuroConfigIpc(): void {
             observability: false,
             inboxPolling: false,
           },
-          features: kuroPlugin.features || {
+          features: {
             ragInteractive: false,
             questionMode: false,
+            smartSessionStart: true,
+            autoCheckpointOnEnd: true,
+            previouslySection: true,
+            ...(kuroPlugin.features || {}),
           },
         };
         return { ok: true, config };
@@ -1730,6 +1734,9 @@ function setupKuroConfigIpc(): void {
         features: {
           ragInteractive: false,
           questionMode: false,
+          smartSessionStart: true,
+          autoCheckpointOnEnd: true,
+          previouslySection: true,
         },
       };
 
@@ -1859,7 +1866,13 @@ function setupKuroConfigIpc(): void {
       observability: boolean;
       inboxPolling: boolean;
     };
-    features: { ragInteractive: boolean; questionMode: boolean };
+    features: {
+      ragInteractive: boolean;
+      questionMode: boolean;
+      smartSessionStart: boolean;
+      autoCheckpointOnEnd: boolean;
+      previouslySection: boolean;
+    };
   }) => {
     const writer = getSettingsWriter();
     return writer.write(SETTINGS_PATH, {

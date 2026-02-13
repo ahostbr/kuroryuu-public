@@ -30,6 +30,7 @@ import {
   Info,
   AlertCircle,
   Copy,
+  Brain,
 } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 import { useSettingsStore } from '../../stores/settings-store';
@@ -85,6 +86,9 @@ interface KuroConfig {
   features: {
     ragInteractive: boolean;
     questionMode: boolean;
+    smartSessionStart: boolean;
+    autoCheckpointOnEnd: boolean;
+    previouslySection: boolean;
   };
 }
 
@@ -123,6 +127,9 @@ const DEFAULT_CONFIG: KuroConfig = {
   features: {
     ragInteractive: false,
     questionMode: false,
+    smartSessionStart: true,
+    autoCheckpointOnEnd: true,
+    previouslySection: true,
   },
 };
 
@@ -716,6 +723,9 @@ export function KuroPluginConfig() {
           features: {
             ragInteractive: restored.features?.ragInteractive ?? DEFAULT_CONFIG.features.ragInteractive,
             questionMode: restored.features?.questionMode ?? DEFAULT_CONFIG.features.questionMode,
+            smartSessionStart: restored.features?.smartSessionStart ?? DEFAULT_CONFIG.features.smartSessionStart,
+            autoCheckpointOnEnd: restored.features?.autoCheckpointOnEnd ?? DEFAULT_CONFIG.features.autoCheckpointOnEnd,
+            previouslySection: restored.features?.previouslySection ?? DEFAULT_CONFIG.features.previouslySection,
           },
         };
         setConfig(restoredConfig);
@@ -1230,6 +1240,40 @@ export function KuroPluginConfig() {
           </FieldRow>
         </CollapsibleSection>
 
+        {/* Memory Injection (Zero-Cost) */}
+        <CollapsibleSection title="Memory Injection" icon={Brain} defaultOpen={false}>
+          <div className="flex flex-col gap-1 p-3 mb-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-start gap-2">
+              <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-400 leading-relaxed">
+                Zero-cost session continuity. On session start, agents automatically receive their last checkpoint,
+                worklog summary, working memory, and prior conversation context. No LLM calls — file reads only.
+              </p>
+            </div>
+          </div>
+
+          <FieldRow label="Smart Session Start" description="Inject resumption context (checkpoint, worklog, goals) on k_session start">
+            <Toggle
+              checked={config.features.smartSessionStart}
+              onChange={(checked) => updateConfig('features', { smartSessionStart: checked })}
+            />
+          </FieldRow>
+
+          <FieldRow label="Auto-Checkpoint on End" description="Save a lightweight checkpoint when a session ends">
+            <Toggle
+              checked={config.features.autoCheckpointOnEnd}
+              onChange={(checked) => updateConfig('features', { autoCheckpointOnEnd: checked })}
+            />
+          </FieldRow>
+
+          <FieldRow label="Previously Section" description="Include last assistant message from prior transcript in context">
+            <Toggle
+              checked={config.features.previouslySection}
+              onChange={(checked) => updateConfig('features', { previouslySection: checked })}
+            />
+          </FieldRow>
+        </CollapsibleSection>
+
         {/* Features */}
         <CollapsibleSection title="Features" icon={Sparkles} defaultOpen={false}>
           <FieldRow label="RAG Interactive Mode" description="Select RAG results before use">
@@ -1478,6 +1522,30 @@ export function KuroPluginConfig() {
                                   <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
                                 )}
                                 <span className="text-xs">Question Mode</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.features?.smartSessionStart ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Smart Session Start</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.features?.autoCheckpointOnEnd ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Auto-Checkpoint on End</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                {config.features?.previouslySection ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+                                ) : (
+                                  <XCircle className="w-3.5 h-3.5 text-muted-foreground" />
+                                )}
+                                <span className="text-xs">Previously Section</span>
                               </div>
                             </div>
                           </div>

@@ -595,11 +595,23 @@ if _web_dist.exists():
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class ChatMessage(BaseModel):
-    """Chat message in request."""
+    """Chat message in request. Content can be a string or multimodal content blocks."""
     role: str = Field(..., description="Message role: system, user, assistant, tool")
-    content: str = Field(..., description="Message content")
+    content: Any = Field(..., description="Message content: string or list of content blocks [{type, text?, image_url?}]")
     name: Optional[str] = Field(None, description="Tool name for tool messages")
     tool_call_id: Optional[str] = Field(None, description="Tool call ID for tool results")
+
+    def text_content(self) -> str:
+        """Extract text from content, whether string or multimodal blocks."""
+        if isinstance(self.content, str):
+            return self.content
+        if isinstance(self.content, list):
+            parts = []
+            for block in self.content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    parts.append(block.get("text", ""))
+            return "\n".join(parts)
+        return str(self.content)
 
 
 class ChatRequest(BaseModel):
@@ -1460,7 +1472,7 @@ async def chat_stream_v2(
             break
     
     if last_user_msg:
-        slash_prompt_name, user_remainder = detect_slash_command(last_user_msg.content)
+        slash_prompt_name, user_remainder = detect_slash_command(last_user_msg.text_content())
         if slash_prompt_name:
             slash_prompt_content = harness.load_prompt(slash_prompt_name)
     
@@ -1471,7 +1483,7 @@ async def chat_stream_v2(
             HookEvent.USER_PROMPT_SUBMIT,
             session_id=session_id,
             active_feature_id=None,
-            data={"prompt": last_user_msg.content},
+            data={"prompt": last_user_msg.text_content()},
             agent_role=agent_role,
             agent_run_id=agent_run_id,
         )

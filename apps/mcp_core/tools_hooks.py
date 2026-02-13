@@ -6,27 +6,32 @@ Routed tool: k_session(action, ...)
 Actions: help, start, end, context, pre_tool, post_tool, log
 """
 
+import json
 import os
 import re
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import httpx
 
 from protocol import ToolRegistry
 from sessions import get_session_manager
 
+try:
+    from .tools_checkpoint import _load_latest_for_agent, _action_save as _checkpoint_save, _get_checkpoint_root
+    from .paths import get_ai_dir_or_env, get_project_root
+except ImportError:
+    from tools_checkpoint import _load_latest_for_agent, _action_save as _checkpoint_save, _get_checkpoint_root
+    from paths import get_ai_dir_or_env, get_project_root
+
 logger = logging.getLogger("kuroryuu.mcp_core.k_session")
 GATEWAY_URL = os.environ.get("KURORYUU_GATEWAY_URL", "http://127.0.0.1:8200")
-try:
-    from .paths import get_ai_dir_or_env
-except ImportError:
-    from paths import get_ai_dir_or_env
 
 AI_DIR = get_ai_dir_or_env("KURORYUU_HOOKS_DIR")
 TODO_PATH = AI_DIR / "todo.md"
 TODO_STRICT = os.environ.get("KURORYUU_TODO_STRICT", "0") == "1"
+WORKING_MEMORY_PATH = AI_DIR / "working_memory.json"
 
 
 def _read_todo() -> str:
@@ -52,6 +57,263 @@ def _build_context() -> str:
 
     lines.extend(["", "---"])
     return "\n".join(lines)
+
+
+# ============================================================================
+# Resumption context (zero-cost memory injection)
+# ============================================================================
+
+def _read_working_memory() -> Optional[Dict[str, Any]]:
+    """Read ai/working_memory.json."""
+    if not WORKING_MEMORY_PATH.exists():
+        return None
+    try:
+        return json.loads(WORKING_MEMORY_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def _format_working_memory(wm: Dict[str, Any]) -> str:
+    """Format working memory into a concise context block."""
+    lines = ["**Working Memory:**"]
+    goal = wm.get("active_goal", "")
+    if goal:
+        lines.append(f"- Goal: {goal}")
+    blockers = wm.get("blockers", [])
+    if blockers:
+        lines.append(f"- Blockers: {', '.join(str(b) for b in blockers)}")
+    else:
+        lines.append("- Blockers: None")
+    steps = wm.get("next_steps", [])
+    if steps:
+        lines.append("- Next steps:")
+        for s in steps[:5]:
+            lines.append(f"  - {s}")
+    return "\n".join(lines)
+
+
+def _format_checkpoint_summary(cp: Dict[str, Any]) -> str:
+    """Format a checkpoint into a concise resumption block."""
+    lines = []
+    cp_id = cp.get("id", "unknown")
+    cp_name = cp.get("name", "")
+    saved_at = cp.get("saved_at", "")
+
+    lines.append(f"**Checkpoint:** {cp_id}" + (f" — {cp_name}" if cp_name else ""))
+    if saved_at:
+        lines.append(f"**Saved:** {saved_at}")
+
+    # Task IDs from checkpoint data
+    data = cp.get("data", {})
+    if isinstance(data, dict):
+        task_ids = data.get("task_ids", [])
+        if task_ids:
+            lines.append(f"**Tasks:** {', '.join(task_ids)}")
+        plan_file = data.get("plan_file")
+        if plan_file:
+            lines.append(f"**Plan:** {plan_file}")
+
+    summary = cp.get("summary", "")
+    if summary:
+        lines.append(f"**Summary:** {summary[:300]}")
+
+    return "\n".join(lines)
+
+
+def _read_worklog_summary(worklog_path: str, max_chars: int = 500) -> Optional[str]:
+    """Read first ~max_chars of a worklog file's Summary section."""
+    project_root = get_project_root()
+    full_path = project_root / worklog_path.replace("\\", "/")
+    if not full_path.exists():
+        return None
+    try:
+        content = full_path.read_text(encoding="utf-8")
+        # Extract ## Summary section
+        match = re.search(r"## Summary\n(.*?)(?=\n## |\Z)", content, re.DOTALL)
+        if match:
+            summary_text = match.group(1).strip()[:max_chars]
+            return f"**Worklog ({worklog_path}):**\n{summary_text}"
+        # Fallback: return first max_chars of the file
+        return f"**Worklog ({worklog_path}):**\n{content[:max_chars]}"
+    except Exception:
+        return None
+
+
+def _extract_last_assistant_message(agent_id: str) -> Optional[str]:
+    """Extract the last assistant text message from the most recent transcript export.
+
+    Scans ai/exports/ for the newest .jsonl file and reads backward to find
+    the last assistant message. Strips system tags and truncates.
+    """
+    exports_dir = get_project_root() / "ai" / "exports"
+    if not exports_dir.exists():
+        return None
+
+    try:
+        # Find the most recent date directory
+        date_dirs = sorted(
+            [d for d in exports_dir.iterdir() if d.is_dir()],
+            key=lambda d: d.name,
+            reverse=True,
+        )
+        if not date_dirs:
+            return None
+
+        # Find most recent .jsonl in the newest date dir
+        for date_dir in date_dirs[:3]:  # Check last 3 days
+            jsonl_files = sorted(
+                date_dir.glob("*.jsonl"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )
+            for jf in jsonl_files[:5]:  # Check last 5 transcripts per day
+                result = _scan_transcript_for_assistant_msg(jf)
+                if result:
+                    return result
+    except Exception:
+        pass
+    return None
+
+
+def _scan_transcript_for_assistant_msg(jsonl_path: Path, max_chars: int = 500) -> Optional[str]:
+    """Scan a transcript .jsonl backward for the last assistant text message."""
+    try:
+        lines = jsonl_path.read_text(encoding="utf-8").strip().split("\n")
+        # Scan from end
+        for line in reversed(lines):
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if entry.get("type") != "assistant":
+                continue
+            msg = entry.get("message", {})
+            if msg.get("role") != "assistant":
+                continue
+            content = msg.get("content", [])
+            if isinstance(content, str):
+                text = content
+            elif isinstance(content, list):
+                # Find the last text block
+                text_parts = [c.get("text", "") for c in content if isinstance(c, dict) and c.get("type") == "text"]
+                if not text_parts:
+                    continue
+                text = text_parts[-1]
+            else:
+                continue
+            if not text.strip():
+                continue
+            # Strip system-reminder tags
+            text = re.sub(r"<system-reminder>.*?</system-reminder>", "", text, flags=re.DOTALL).strip()
+            if text:
+                return text[:max_chars]
+    except Exception:
+        pass
+    return None
+
+
+def _is_memory_injection_enabled() -> bool:
+    """Check if smart session start (memory injection) is enabled in kuroPlugin config.
+
+    Reads .claude/settings.json → kuroPlugin.features.smartSessionStart.
+    Defaults to True if the key doesn't exist (opt-out, not opt-in).
+    """
+    settings_path = get_project_root() / ".claude" / "settings.json"
+    try:
+        if settings_path.exists():
+            data = json.loads(settings_path.read_text(encoding="utf-8"))
+            features = data.get("kuroPlugin", {}).get("features", {})
+            return features.get("smartSessionStart", True)
+    except Exception:
+        pass
+    return True
+
+
+def _is_auto_checkpoint_enabled() -> bool:
+    """Check if auto-checkpoint on session end is enabled.
+
+    Reads .claude/settings.json → kuroPlugin.features.autoCheckpointOnEnd.
+    Defaults to True if the key doesn't exist.
+    """
+    settings_path = get_project_root() / ".claude" / "settings.json"
+    try:
+        if settings_path.exists():
+            data = json.loads(settings_path.read_text(encoding="utf-8"))
+            features = data.get("kuroPlugin", {}).get("features", {})
+            return features.get("autoCheckpointOnEnd", True)
+    except Exception:
+        pass
+    return True
+
+
+def _is_previously_enabled() -> bool:
+    """Check if 'Previously' transcript extraction is enabled.
+
+    Reads .claude/settings.json → kuroPlugin.features.previouslySection.
+    Defaults to True if the key doesn't exist.
+    """
+    settings_path = get_project_root() / ".claude" / "settings.json"
+    try:
+        if settings_path.exists():
+            data = json.loads(settings_path.read_text(encoding="utf-8"))
+            features = data.get("kuroPlugin", {}).get("features", {})
+            return features.get("previouslySection", True)
+    except Exception:
+        pass
+    return True
+
+
+def _build_resumption_context(agent_id: str) -> str:
+    """Build resumption context block for an agent.
+
+    Reads checkpoint, worklog, working memory, and last assistant message.
+    All file reads — zero LLM cost.
+    """
+    if not _is_memory_injection_enabled():
+        return ""
+
+    # Resolve agent_id: param > env > "unknown"
+    resolved_id = agent_id or os.environ.get("KURORYUU_AGENT_ID", "")
+    if not resolved_id:
+        return ""
+
+    sections: List[str] = []
+    sections.append(f"## Last Session Context (agent: {resolved_id})")
+
+    # 1. Last checkpoint for this agent
+    checkpoint = _load_latest_for_agent(resolved_id)
+    if checkpoint:
+        sections.append(_format_checkpoint_summary(checkpoint))
+
+        # 2. Linked worklog (from checkpoint's data.worklog_files)
+        data = checkpoint.get("data", {})
+        if isinstance(data, dict):
+            wl_files = data.get("worklog_files", [])
+            if wl_files:
+                wl_summary = _read_worklog_summary(wl_files[-1])
+                if wl_summary:
+                    sections.append(wl_summary)
+
+    # 3. Working memory (goals, blockers, next steps)
+    wm = _read_working_memory()
+    if wm:
+        goal = wm.get("active_goal", "")
+        steps = wm.get("next_steps", [])
+        if goal or steps:
+            sections.append(_format_working_memory(wm))
+
+    # 4. "Previously" — last assistant message from prior transcript
+    if _is_previously_enabled():
+        last_msg = _extract_last_assistant_message(resolved_id)
+        if last_msg:
+            sections.append(f"**Previously:**\n{last_msg}")
+
+    if len(sections) <= 1:
+        return ""  # Only header, no content
+
+    return "\n\n".join(sections)
 
 
 # ============================================================================
@@ -85,7 +347,7 @@ def _action_start(
     agent_id: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
-    """Register a spawned CLI session."""
+    """Register a spawned CLI session and return resumption context."""
     if not process_id:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "process_id is required"}
     if not cli_type:
@@ -96,6 +358,13 @@ def _action_start(
     mgr = get_session_manager()
     session = mgr.create(process_id, cli_type, agent_id, None)
     context = _build_context()
+
+    # Build resumption context (zero-cost: file reads only)
+    resumption_context = ""
+    try:
+        resumption_context = _build_resumption_context(agent_id)
+    except Exception as e:
+        logger.debug("Resumption context build failed (non-fatal): %s", e)
 
     # Auto-register with Gateway agent registry (fire-and-forget)
     gateway_registered = False
@@ -113,12 +382,16 @@ def _action_start(
     except Exception as e:
         logger.debug("Gateway registration failed (non-fatal): %s", e)
 
-    return {
+    result: Dict[str, Any] = {
         "ok": True,
         "session_id": session.session_id,
         "gateway_registered": gateway_registered,
         "context": context,
     }
+    if resumption_context:
+        result["resumption_context"] = resumption_context
+
+    return result
 
 
 def _action_end(
@@ -127,7 +400,7 @@ def _action_end(
     summary: str = "",
     **kwargs: Any,
 ) -> Dict[str, Any]:
-    """End a CLI session."""
+    """End a CLI session. Auto-saves a lightweight checkpoint if enabled."""
     if not session_id:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "session_id is required"}
 
@@ -136,15 +409,56 @@ def _action_end(
     if not session:
         return {"ok": False, "error_code": "NOT_FOUND", "message": "Session not found"}
 
-    # Auto-deregister from Gateway (fire-and-forget)
     agent_id = session.agent_id if hasattr(session, "agent_id") else ""
+
+    # Auto-checkpoint on session end (zero-cost: file write only)
+    auto_checkpoint_id = ""
+    if agent_id and _is_auto_checkpoint_enabled():
+        try:
+            # Gather in-progress task IDs from todo.md
+            in_progress_tasks = []
+            todo_content = _read_todo()
+            if todo_content:
+                # Match both checked and unchecked tasks with "in_progress" or just unchecked
+                in_progress_tasks = re.findall(r"- \[ \] (T\d+)", todo_content)[:10]
+
+            auto_data: Dict[str, Any] = {
+                "agent_id": agent_id,
+                "session_id": session_id,
+                "task_ids": in_progress_tasks,
+                "auto_saved": True,
+            }
+
+            # Include working memory snapshot
+            wm = _read_working_memory()
+            if wm:
+                auto_data["active_goal"] = wm.get("active_goal", "")
+                auto_data["next_steps"] = wm.get("next_steps", [])
+                auto_data["blockers"] = wm.get("blockers", [])
+
+            result = _checkpoint_save(
+                name=f"auto_{agent_id}",
+                data=auto_data,
+                summary=summary or "Auto-saved at session end",
+                agent_id=agent_id,
+            )
+            if result.get("ok"):
+                auto_checkpoint_id = result.get("id", "")
+                logger.debug("Auto-checkpoint saved for agent %s: %s", agent_id, auto_checkpoint_id)
+        except Exception as e:
+            logger.debug("Auto-checkpoint failed (non-fatal): %s", e)
+
+    # Auto-deregister from Gateway (fire-and-forget)
     if agent_id:
         try:
             httpx.delete(f"{GATEWAY_URL}/v1/agents/{agent_id}", timeout=5.0)
         except Exception as e:
             logger.debug("Gateway deregister failed (non-fatal): %s", e)
 
-    return {"ok": True, "session_id": session_id}
+    result_dict: Dict[str, Any] = {"ok": True, "session_id": session_id}
+    if auto_checkpoint_id:
+        result_dict["auto_checkpoint_id"] = auto_checkpoint_id
+    return result_dict
 
 
 def _action_context(

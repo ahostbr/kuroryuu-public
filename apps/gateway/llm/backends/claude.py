@@ -47,22 +47,57 @@ class ClaudeBackend(LLMBackend):
                 raise ImportError("anthropic package not installed. Run: pip install anthropic")
         return self._client
     
+    def _convert_content(self, content: Any) -> Any:
+        """Convert content to Anthropic format.
+
+        Handles both plain strings and multimodal content arrays.
+        Converts OpenAI image_url blocks to Anthropic base64 image blocks.
+        """
+        if isinstance(content, str):
+            return content
+        if not isinstance(content, list):
+            return str(content)
+
+        blocks: List[Dict[str, Any]] = []
+        for block in content:
+            if not isinstance(block, dict):
+                continue
+            block_type = block.get("type", "")
+            if block_type == "text":
+                blocks.append({"type": "text", "text": block.get("text", "")})
+            elif block_type == "image_url":
+                url = block.get("image_url", {}).get("url", "")
+                if url.startswith("data:"):
+                    # Parse data URI: data:image/png;base64,xxxx
+                    header, b64data = url.split(",", 1)
+                    media_type = header.split(":")[1].split(";")[0]
+                    blocks.append({
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": b64data,
+                        }
+                    })
+        return blocks if blocks else content
+
     def _convert_messages(self, messages: List[LLMMessage]) -> tuple[Optional[str], List[Dict[str, Any]]]:
         """Convert messages to Anthropic format.
-        
+
         Returns (system_prompt, messages_list).
         Anthropic requires system as separate parameter, not in messages.
         """
         system_prompt: Optional[str] = None
         converted: List[Dict[str, Any]] = []
-        
+
         for msg in messages:
             if msg.role == "system":
-                # Accumulate system messages
+                # Accumulate system messages (always string)
+                sys_text = msg.content if isinstance(msg.content, str) else str(msg.content)
                 if system_prompt:
-                    system_prompt += "\n\n" + msg.content
+                    system_prompt += "\n\n" + sys_text
                 else:
-                    system_prompt = msg.content
+                    system_prompt = sys_text
             elif msg.role == "tool":
                 # Tool results in Anthropic format
                 converted.append({
@@ -70,16 +105,16 @@ class ClaudeBackend(LLMBackend):
                     "content": [{
                         "type": "tool_result",
                         "tool_use_id": msg.tool_call_id or "unknown",
-                        "content": msg.content,
+                        "content": msg.content if isinstance(msg.content, str) else str(msg.content),
                     }]
                 })
             else:
-                # User or assistant messages
+                # User or assistant messages — handle multimodal content
                 converted.append({
                     "role": msg.role,
-                    "content": msg.content,
+                    "content": self._convert_content(msg.content),
                 })
-        
+
         return system_prompt, converted
     
     def _convert_tools(self, tools: List[LLMToolSchema]) -> List[Dict[str, Any]]:

@@ -1213,7 +1213,13 @@ const api = {
           taskSync: boolean;
           transcriptExport: boolean;
         };
-        features: { ragInteractive: boolean; questionMode: boolean };
+        features: {
+          ragInteractive: boolean;
+          questionMode: boolean;
+          smartSessionStart: boolean;
+          autoCheckpointOnEnd: boolean;
+          previouslySection: boolean;
+        };
       };
       error?: string;
     }> => ipcRenderer.invoke('kuro-config:load'),
@@ -1241,7 +1247,13 @@ const api = {
         taskSync: boolean;
         transcriptExport: boolean;
       };
-      features: { ragInteractive: boolean; questionMode: boolean };
+      features: {
+        ragInteractive: boolean;
+        questionMode: boolean;
+        smartSessionStart: boolean;
+        autoCheckpointOnEnd: boolean;
+        previouslySection: boolean;
+      };
     }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('kuro-config:save', config),
 

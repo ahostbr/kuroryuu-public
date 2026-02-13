@@ -131,7 +131,7 @@ class InternalMessage:
     converted to any backend's format.
     """
     role: str  # "system", "user", "assistant", "tool"
-    content: str
+    content: Any  # str or list of content blocks for multimodal
     name: Optional[str] = None  # Tool name for tool messages
     tool_call_id: Optional[str] = None  # For tool results
     tool_calls: List[ToolCall] = field(default_factory=list)  # For assistant messages with tool calls
