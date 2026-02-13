@@ -128,21 +128,20 @@ export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererPr
     return () => clearInterval(interval);
   }, []);
 
-  // Filter events for this session.
-  // Priority: direct sdkSessionId match → discover via payload.kuroryuu_session_id
-  const sessionEvents = useMemo(() => {
-    if (sessionId) {
-      return events.filter(e => e.session_id === sessionId);
-    }
-    // PTY sessions: discover Claude Code session_id from kuroryuu_session_id in payload
-    const discoveredSessionId = events.find(
+  // Discover the Claude Code session_id (for display + filtering).
+  // Direct sdkSessionId if available, otherwise scan payload.kuroryuu_session_id bridge.
+  const resolvedSessionId = useMemo(() => {
+    if (sessionId) return sessionId;
+    return events.find(
       e => (e.payload as Record<string, unknown>)?.kuroryuu_session_id === cliSessionId
-    )?.session_id;
-    if (discoveredSessionId) {
-      return events.filter(e => e.session_id === discoveredSessionId);
-    }
-    return [];
+    )?.session_id ?? null;
   }, [events, sessionId, cliSessionId]);
+
+  // Filter events for this session
+  const sessionEvents = useMemo(() => {
+    if (!resolvedSessionId) return [];
+    return events.filter(e => e.session_id === resolvedSessionId);
+  }, [events, resolvedSessionId]);
 
   // Auto-scroll on new events
   useEffect(() => {
@@ -163,7 +162,7 @@ export function CliEventRenderer({ sessionId, cliSessionId }: CliEventRendererPr
   return (
     <div ref={containerRef} className="flex-1 overflow-auto p-3 space-y-2">
       <div className="text-xs text-muted-foreground mb-2">
-        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''} · {sessionId ? `session ${sessionId.slice(0, 8)}` : cliSessionId}
+        {sessionEvents.length} event{sessionEvents.length !== 1 ? 's' : ''} · {resolvedSessionId ? resolvedSessionId.slice(0, 8) : cliSessionId}
       </div>
       {sessionEvents.map((event) => (
         <EventCard key={event.id} event={event} tick={tick} />
