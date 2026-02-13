@@ -377,12 +377,12 @@ export function KuroryuuAgents() {
             )}
           </div>
 
-          {/* Message Viewer */}
-          <div className="flex-1 overflow-hidden flex flex-col min-w-0">
+          {/* Detail Area — CSS Grid layout matching Marketing/TerminalGrid pattern */}
+          <div className="flex-1 min-w-0 overflow-hidden grid grid-cols-1 grid-rows-1 p-1">
             {selectedSession ? (
-              <div className="flex-1 min-h-0 min-w-0 flex flex-col bg-card rounded-lg border border-border m-4">
-                {/* Session Header */}
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+              <div style={{ width: '100%', height: '100%' }} className="rounded-lg border-2 border-primary/60 overflow-hidden flex flex-col shadow-[0_0_30px_rgba(201,162,39,0.3)] ring-1 ring-primary/20">
+                {/* Header — merged session info + tabs (Marketing headerClass pattern) */}
+                <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-card/90 border-b border-primary/60 bg-gradient-to-r from-primary/10 via-card to-primary/10 shadow-[0_2px_12px_rgba(201,162,39,0.25)]">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-sm text-primary">{selectedSession.id.slice(0, 12)}</span>
                     <span className={`px-2 py-0.5 rounded-full text-xs ${
@@ -404,6 +404,29 @@ export function KuroryuuAgents() {
                         ${selectedSession.totalCostUsd.toFixed(4)}
                       </span>
                     )}
+                    <span className="w-px h-4 bg-border" />
+                    <button
+                      onClick={() => setDetailTab('terminal')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                        detailTab === 'terminal'
+                          ? 'bg-primary/20 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                      }`}
+                    >
+                      <TerminalSquare className="w-3.5 h-3.5" />
+                      Terminal
+                    </button>
+                    <button
+                      onClick={() => setDetailTab('messages')}
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
+                        detailTab === 'messages'
+                          ? 'bg-primary/20 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                      }`}
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      Messages
+                    </button>
                   </div>
                   <button
                     onClick={() => selectSession(null)}
@@ -412,32 +435,7 @@ export function KuroryuuAgents() {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                {/* Detail tab bar */}
-                <div className="flex items-center gap-1 px-4 py-1.5 border-b border-border bg-secondary/20">
-                  <button
-                    onClick={() => setDetailTab('terminal')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                      detailTab === 'terminal'
-                        ? 'bg-primary/20 text-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                    }`}
-                  >
-                    <TerminalSquare className="w-3.5 h-3.5" />
-                    Terminal
-                  </button>
-                  <button
-                    onClick={() => setDetailTab('messages')}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                      detailTab === 'messages'
-                        ? 'bg-primary/20 text-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                    }`}
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    Messages
-                  </button>
-                </div>
-                {/* Detail content — flex-1 min-h-0 overflow-hidden matches Marketing/TerminalGrid sizing */}
+                {/* Terminal/Messages content — termWrapperRef matches Marketing line 140 exactly */}
                 <div ref={termWrapperRef} className="flex-1 min-h-0 overflow-hidden relative">
                   {detailTab === 'terminal' ? (
                     selectedSession.ptyId ? (
@@ -445,7 +443,6 @@ export function KuroryuuAgents() {
                         sessionId={selectedSession.id}
                         ptyId={selectedSession.ptyId}
                         cwd={selectedSession.cwd}
-                        status={selectedSession.status}
                       />
                     ) : (
                       <SessionTerminalPlaceholder />
@@ -456,9 +453,9 @@ export function KuroryuuAgents() {
                 </div>
               </div>
             ) : selectedArchived ? (
-              /* Archived Session Log Viewer */
-              <div className="flex-1 min-h-0 flex flex-col bg-card rounded-lg border border-border m-4">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+              /* Archived Session Log Viewer — same container pattern */
+              <div style={{ width: '100%', height: '100%' }} className="rounded-lg border-2 border-primary/60 overflow-hidden flex flex-col shadow-[0_0_30px_rgba(201,162,39,0.3)] ring-1 ring-primary/20">
+                <div className="flex-shrink-0 flex items-center justify-between px-3 py-2 bg-card/90 border-b border-primary/60 bg-gradient-to-r from-primary/10 via-card to-primary/10 shadow-[0_2px_12px_rgba(201,162,39,0.25)]">
                   <div className="flex items-center gap-2">
                     <Archive className="w-4 h-4 text-muted-foreground" />
                     <span className="font-mono text-sm text-primary">{selectedArchived.id.slice(0, 12)}</span>
