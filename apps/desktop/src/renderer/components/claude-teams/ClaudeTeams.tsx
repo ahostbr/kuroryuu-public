@@ -424,7 +424,7 @@ export function ClaudeTeams() {
 
             {/* Analytics panel (collapsible, below tasks) */}
             {showAnalytics && (
-              <div className="border-t border-border p-3">
+              <div className="border-t border-border p-3 max-h-[35%] overflow-y-auto flex-shrink-0">
                 <TeamsAnalyticsPanel />
               </div>
             )}

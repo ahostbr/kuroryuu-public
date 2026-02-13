@@ -108,7 +108,7 @@ export function TeamsAnalyticsPanel() {
   ];
 
   return (
-    <div className="flex flex-col border border-white/10 rounded-lg bg-black/20 overflow-hidden max-h-[35%]">
+    <div className="flex flex-col border border-white/10 rounded-lg bg-black/20 overflow-hidden">
       {/* Header */}
       <button
         className="flex items-center justify-between px-4 py-2.5 bg-white/5 hover:bg-white/[0.08] transition-colors w-full text-left"

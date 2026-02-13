@@ -68,18 +68,23 @@ try {
     # Build bar with background colors (black on orange, light on gray for contrast)
     $bar = "$bgOrange$fgBlack$filledPart$reset$bgGray$fgLight$emptyPart$reset"
 
-    # Kuroryuu integration - extract role and full session ID
+    # Kuroryuu integration - extract role and session ID
+    # Priority: KURORYUU_SESSION_ID > KURORYUU_AGENT_ID > Claude Code session_id (JSON fallback)
     $role = ""
     $sessionIdFull = ""
     if ($env:KURORYUU_AGENT_ROLE) {
         $role = $env:KURORYUU_AGENT_ROLE.ToUpper()
     }
-    # Try KURORYUU_SESSION_ID first, fallback to KURORYUU_AGENT_ID
+    # 1. Primary: Kuroryuu env vars
     $idSource = if ($env:KURORYUU_SESSION_ID) { $env:KURORYUU_SESSION_ID } else { $env:KURORYUU_AGENT_ID }
     if ($idSource) {
         # Extract unique ID part (last segment after underscore)
         $parts = $idSource -split '_'
         $sessionIdFull = $parts[-1]
+    }
+    # 2. Fallback: Claude Code session_id from JSON input
+    if (-not $sessionIdFull -and $data.session_id) {
+        $sessionIdFull = $data.session_id.Substring(0, [math]::Min(8, $data.session_id.Length))
     }
 
     # Output based on mode
