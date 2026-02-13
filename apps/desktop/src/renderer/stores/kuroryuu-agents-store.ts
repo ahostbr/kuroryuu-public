@@ -218,51 +218,18 @@ export const useKuroryuuAgentsStore = create<KuroryuuAgentsState>((set, get) => 
     if (get().subscribed) return;
 
     const sdkAgent = (window as unknown as { electronAPI: { sdkAgent: {
-      onMessage: (cb: (sid: string, msg: unknown) => void) => () => void;
-      onCompleted: (cb: (sid: string, result: unknown) => void) => () => void;
       onStatusChange: (cb: (sid: string, status: string) => void) => () => void;
     }}}).electronAPI.sdkAgent;
 
-    // Load initial data
+    // Load current data when panel opens (catches archives made while panel was hidden)
     get().loadArchivedSessions().then(() => get().loadSessions());
 
-    // Subscribe to status changes to keep sessions list updated
+    // Subscribe to status changes for live UI refresh only
     const offStatus = sdkAgent.onStatusChange((_sid: string, _status: string) => {
-      // Refresh sessions on any status change
       get().loadSessions();
     });
 
-    // Subscribe to completion events for auto-archival
-    const offCompleted = sdkAgent.onCompleted(async (sid: string, _result: unknown) => {
-      console.log(`[KuroryuuAgentsStore] Session completed: ${sid}`);
-      await get().loadSessions();
-
-      // Auto-archive completed sessions
-      const session = get().sessions.find(s => s.id === sid);
-      if (session) {
-        try {
-          // Archive with a simple summary since SDK messages are in memory
-          const archivedData: ArchivedSessionData = {
-            id: session.id,
-            command: session.prompt,
-            workdir: session.cwd,
-            pty: false,
-            running: false,
-            started_at: new Date(session.startedAt).toISOString(),
-            exit_code: session.status === 'completed' ? 0 : 1,
-            output_lines: session.numTurns,
-          };
-          const logs = session.lastMessage || `Session ${session.status}. Cost: $${session.totalCostUsd.toFixed(4)}, Turns: ${session.numTurns}`;
-          await archiveSession(archivedData, logs);
-          await get().loadArchivedSessions();
-          await pruneOldSessions(100);
-        } catch (err) {
-          console.error('[KuroryuuAgentsStore] Auto-archive failed:', err);
-        }
-      }
-    });
-
-    cleanupFns = [offStatus, offCompleted];
+    cleanupFns = [offStatus];
     set({ subscribed: true });
   },
 
@@ -272,3 +239,54 @@ export const useKuroryuuAgentsStore = create<KuroryuuAgentsState>((set, get) => 
     set({ subscribed: false });
   },
 }));
+
+// ---------------------------------------------------------------------------
+// Persistent archival listener (app-lifetime, survives panel navigation)
+// ---------------------------------------------------------------------------
+let archivalInitialized = false;
+
+export function initArchivalListener(): void {
+  if (archivalInitialized) return;
+  archivalInitialized = true;
+
+  const sdkAgent = (window as unknown as { electronAPI: { sdkAgent: {
+    onCompleted: (cb: (sid: string, result: unknown) => void) => () => void;
+  }}}).electronAPI?.sdkAgent;
+
+  if (!sdkAgent) {
+    console.warn('[KuroryuuAgentsStore] electronAPI.sdkAgent not available, skipping archival listener');
+    return;
+  }
+
+  // Load archived sessions from IndexedDB on app startup
+  useKuroryuuAgentsStore.getState().loadArchivedSessions();
+
+  sdkAgent.onCompleted(async (sid: string, _result: unknown) => {
+    console.log(`[KuroryuuAgentsStore] Persistent archival: session completed: ${sid}`);
+    await useKuroryuuAgentsStore.getState().loadSessions();
+
+    const session = useKuroryuuAgentsStore.getState().sessions.find(s => s.id === sid);
+    if (session) {
+      try {
+        const archivedData: ArchivedSessionData = {
+          id: session.id,
+          command: session.prompt,
+          workdir: session.cwd,
+          pty: !!session.ptyId,
+          running: false,
+          started_at: new Date(session.startedAt).toISOString(),
+          exit_code: session.status === 'completed' ? 0 : 1,
+          output_lines: session.numTurns,
+        };
+        const logs = session.lastMessage || `Session ${session.status}. Cost: $${session.totalCostUsd.toFixed(4)}, Turns: ${session.numTurns}`;
+        await archiveSession(archivedData, logs);
+        await useKuroryuuAgentsStore.getState().loadArchivedSessions();
+        await pruneOldSessions(100);
+      } catch (err) {
+        console.error('[KuroryuuAgentsStore] Persistent auto-archive failed:', err);
+      }
+    }
+  });
+
+  console.log('[KuroryuuAgentsStore] Persistent archival listener initialized');
+}

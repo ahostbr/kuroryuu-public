@@ -56,6 +56,7 @@ import { MatrixRain } from './components/effects/MatrixRain';
 import { ThemedBackgroundOverlay } from './components/ui/ThemedBackground';
 import type { Task } from './types/task';
 import { initAgentConfigFromFile, useAgentConfigStore } from './stores/agent-config-store';
+import { initArchivalListener } from './stores/kuroryuu-agents-store';
 import { gatewayWebSocket } from './lib/websocket-client';
 import { useTrafficStore } from './stores/traffic-store';
 import { useAgentStore } from './stores/agent-store';
@@ -65,6 +66,11 @@ export function App() {
   // Initialize agent config from file on mount
   useEffect(() => {
     initAgentConfigFromFile();
+  }, []);
+
+  // Persistent archival listener — archives completed agent sessions regardless of active panel
+  useEffect(() => {
+    initArchivalListener();
   }, []);
 
   // Load persisted settings from electron-store on mount
