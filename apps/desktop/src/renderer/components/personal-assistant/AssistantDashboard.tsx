@@ -20,9 +20,9 @@ const ACTION_TYPE_INFO: { type: ActionType; label: string; icon: typeof Zap; des
 ];
 
 const INTERVAL_OPTIONS = [5, 10, 15, 30, 60, 120, 360, 720, 1440];
-const MAX_LINES_OPTIONS = [10, 25, 50, 75, 100, 150, 200, 500];
-const MAX_TURNS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 50];
-const TIMEOUT_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30];
+const MAX_LINES_OPTIONS = [10, 25, 50, 75, 100, 150, 200, 500, 0];
+const MAX_TURNS_OPTIONS = [1, 3, 5, 10, 15, 20, 30, 50, 0];
+const TIMEOUT_OPTIONS = [1, 2, 3, 5, 10, 15, 20, 30, 0];
 
 const NOTIFICATION_MODES: { value: HeartbeatNotificationMode; label: string; description: string }[] = [
     { value: 'toast', label: 'Toast', description: 'In-app toast notification' },
@@ -496,7 +496,7 @@ export function AssistantDashboard() {
                         className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                     >
                         {MAX_LINES_OPTIONS.map(v => (
-                            <option key={v} value={v}>{v} lines</option>
+                            <option key={v} value={v}>{v === 0 ? 'Infinite' : `${v} lines`}</option>
                         ))}
                     </select>
                 </div>
@@ -513,7 +513,7 @@ export function AssistantDashboard() {
                         className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                     >
                         {MAX_TURNS_OPTIONS.map(v => (
-                            <option key={v} value={v}>{v} turns</option>
+                            <option key={v} value={v}>{v === 0 ? 'Infinite' : `${v} turns`}</option>
                         ))}
                     </select>
                 </div>
@@ -530,7 +530,7 @@ export function AssistantDashboard() {
                         className="bg-secondary border border-border rounded px-2 py-1 text-xs text-foreground"
                     >
                         {TIMEOUT_OPTIONS.map(v => (
-                            <option key={v} value={v}>{v}m</option>
+                            <option key={v} value={v}>{v === 0 ? 'Infinite' : `${v}m`}</option>
                         ))}
                     </select>
                 </div>

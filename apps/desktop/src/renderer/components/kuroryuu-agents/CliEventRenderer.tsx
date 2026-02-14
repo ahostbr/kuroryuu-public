@@ -111,6 +111,7 @@ export function CliEventRenderer({ cliSessionId }: CliEventRendererProps) {
   const events = useObservabilityStore((s) => s.events);
   const isConnected = useObservabilityStore((s) => s.isConnected);
   const connect = useObservabilityStore((s) => s.connect);
+  const loadRecentEvents = useObservabilityStore((s) => s.loadRecentEvents);
   const containerRef = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(0);
 
@@ -120,6 +121,13 @@ export function CliEventRenderer({ cliSessionId }: CliEventRendererProps) {
       connect();
     }
   }, [isConnected, connect]);
+
+  // Load recent events on mount — connect() only calls loadRecentEvents()
+  // on fresh ws.onopen, not when ws is already connected. This ensures we
+  // have current data even if the WebSocket was connected before this component mounted.
+  useEffect(() => {
+    loadRecentEvents();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Refresh relative timestamps every 10s
   useEffect(() => {

@@ -134,14 +134,14 @@ export class HeartbeatService {
 
     async setMaxLinesPerFile(lines: number): Promise<void> {
         const config = await this.getConfig();
-        config.maxLinesPerFile = Math.max(10, Math.min(500, lines));
+        config.maxLinesPerFile = lines === 0 ? 0 : Math.max(10, Math.min(500, lines));
         this.config = config;
         await saveConfig(config);
     }
 
     async setMaxTurns(turns: number): Promise<void> {
         const config = await this.getConfig();
-        config.maxTurns = Math.max(1, Math.min(50, turns));
+        config.maxTurns = turns === 0 ? 0 : Math.max(1, Math.min(50, turns));
         this.config = config;
         await saveConfig(config);
         await this.syncJob();
@@ -149,7 +149,7 @@ export class HeartbeatService {
 
     async setTimeoutMinutes(minutes: number): Promise<void> {
         const config = await this.getConfig();
-        config.timeoutMinutes = Math.max(1, Math.min(30, minutes));
+        config.timeoutMinutes = minutes === 0 ? 0 : Math.max(1, Math.min(30, minutes));
         this.config = config;
         await saveConfig(config);
         await this.syncJob();
@@ -349,6 +349,7 @@ export class HeartbeatService {
 
         const maxLines = config.maxLinesPerFile ?? 50;
         const truncate = (content: string, label: string): string => {
+            if (maxLines === 0) return content; // 0 = infinite, no truncation
             const lines = content.split('\n');
             if (lines.length > maxLines) {
                 console.warn(`[Heartbeat] Truncating ${label} from ${lines.length} to ${maxLines} lines`);

@@ -13,12 +13,19 @@ export function AboutDialog() {
   const { activeDialog, closeDialog } = useSettingsStore();
   const { isKuroryuu } = useIsThemedStyle();
   const [version, setVersion] = useState('');
+  const [imgSrc, setImgSrc] = useState('');
 
   const isOpen = activeDialog === 'about';
 
   useEffect(() => {
     if (isOpen) {
       window.electronAPI?.app?.getVersion?.().then((v: string) => setVersion(v || '0.2.0')).catch(() => setVersion('0.2.0'));
+      // Resolve image path from project root via IPC
+      window.electronAPI?.app?.getProjectRoot?.().then((root: string) => {
+        if (root) {
+          setImgSrc(`file:///${root.replace(/\\/g, '/')}/assets/img/marleerose.jpg`);
+        }
+      }).catch(() => {});
     }
   }, [isOpen]);
 
@@ -134,6 +141,24 @@ export function AboutDialog() {
         >
           Were Doing This For Marlee Rose !!!
         </p>
+
+        {/* Marlee Rose photo */}
+        {imgSrc && (
+          <div className="flex justify-center pt-1">
+            <img
+              src={imgSrc}
+              alt="Marlee Rose"
+              className="rounded-lg"
+              style={{
+                maxWidth: '220px',
+                border: isKuroryuu ? '2px solid rgba(201, 162, 39, 0.3)' : '2px solid var(--border)',
+                boxShadow: isKuroryuu
+                  ? '0 4px 20px rgba(201, 162, 39, 0.15)'
+                  : '0 4px 12px rgba(0,0,0,0.2)',
+              }}
+            />
+          </div>
+        )}
 
         {/* Version info */}
         <div

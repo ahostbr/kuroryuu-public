@@ -111,6 +111,7 @@ Let user select which RAG results to keep before using them.
 - `k_msg(action="send", to="agent_id", subject="...", body="...")`
 - `k_msg(action="check", agent_id="my_id")` to poll for messages
 
+MUST REGISTER WITH k_session first for interagent communication.
 ---
 
 ## Claude Task Evidence (Linking Worklogs)
