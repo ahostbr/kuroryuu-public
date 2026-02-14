@@ -69,23 +69,25 @@ try {
     $bar = "$bgOrange$fgBlack$filledPart$reset$bgGray$fgLight$emptyPart$reset"
 
     # Kuroryuu integration - extract role and session ID
-    # Priority: Claude Code session_id (from JSON) > KURORYUU_SESSION_ID > KURORYUU_AGENT_ID
+    # Priority: KURORYUU_SESSION_ID (PTY context) > $data.session_id (Claude Code) > KURORYUU_AGENT_ID (legacy)
     $role = ""
     $sessionIdFull = ""
     if ($env:KURORYUU_AGENT_ROLE) {
         $role = $env:KURORYUU_AGENT_ROLE.ToUpper()
     }
-    # 1. Primary: Claude Code session_id from JSON input (matches observability)
-    if ($data.session_id) {
+    # 1. PTY context: KURORYUU_SESSION_ID (only set by Desktop PTY spawner)
+    if ($env:KURORYUU_SESSION_ID) {
+        $parts = $env:KURORYUU_SESSION_ID -split '_'
+        $sessionIdFull = $parts[-1]
+    }
+    # 2. Claude Code native session_id from JSON (matches observability)
+    if (-not $sessionIdFull -and $data.session_id) {
         $sessionIdFull = $data.session_id.Substring(0, [math]::Min(8, $data.session_id.Length))
     }
-    # 2. Fallback: Kuroryuu env vars (PTY/agent contexts without JSON input)
-    if (-not $sessionIdFull) {
-        $idSource = if ($env:KURORYUU_SESSION_ID) { $env:KURORYUU_SESSION_ID } else { $env:KURORYUU_AGENT_ID }
-        if ($idSource) {
-            $parts = $idSource -split '_'
-            $sessionIdFull = $parts[-1]
-        }
+    # 3. Legacy fallback: KURORYUU_AGENT_ID
+    if (-not $sessionIdFull -and $env:KURORYUU_AGENT_ID) {
+        $parts = $env:KURORYUU_AGENT_ID -split '_'
+        $sessionIdFull = $parts[-1]
     }
 
     # Output based on mode
