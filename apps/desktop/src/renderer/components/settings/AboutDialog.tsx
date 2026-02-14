@@ -13,6 +13,7 @@ export function AboutDialog() {
   const { activeDialog, closeDialog } = useSettingsStore();
   const { isKuroryuu } = useIsThemedStyle();
   const [version, setVersion] = useState('');
+  const [commitInfo, setCommitInfo] = useState<{ shortHash: string; date: string } | null>(null);
   const [imgSrc, setImgSrc] = useState('');
 
   const isOpen = activeDialog === 'about';
@@ -20,6 +21,7 @@ export function AboutDialog() {
   useEffect(() => {
     if (isOpen) {
       window.electronAPI?.app?.getVersion?.().then((v: string) => setVersion(v || '0.2.0')).catch(() => setVersion('0.2.0'));
+      window.electronAPI?.app?.getCommitInfo?.().then((info: { shortHash: string; date: string } | null) => setCommitInfo(info)).catch(() => {});
       // Load image as base64 data URL via IPC (bypasses CSP/protocol restrictions)
       window.electronAPI?.app?.getAssetDataUrl?.('assets/img/marleerose.jpg')
         .then((dataUrl: string | null) => { if (dataUrl) setImgSrc(dataUrl); })
@@ -168,7 +170,7 @@ export function AboutDialog() {
             borderColor: isKuroryuu ? 'rgba(201, 162, 39, 0.15)' : 'var(--border)',
           }}
         >
-          v{version || '0.2.0'} · Electron {electronVersion} · Node {nodeVersion} · {platform}
+          v{version || '0.2.0'}{commitInfo ? ` · ${commitInfo.shortHash} · ${commitInfo.date}` : ''} · Electron {electronVersion} · Node {nodeVersion} · {platform}
         </div>
       </div>
     </KuroryuuDialog>

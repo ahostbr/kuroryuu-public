@@ -71,12 +71,31 @@ const isDev = process.env.NODE_ENV === 'development' || !!process.env.ELECTRON_R
 const WINDOW_WIDTH = 1400;
 const WINDOW_HEIGHT = 900;
 
-/** Get version from git tags, fallback to package.json version */
+/** Get version from git tags with build number, fallback to package.json */
 function getGitVersion(): string {
   try {
-    return execSync('git describe --tags --abbrev=0', { encoding: 'utf-8', timeout: 3000 }).trim().replace(/^v/, '');
+    const desc = execSync('git describe --tags', { encoding: 'utf-8', timeout: 3000 }).trim();
+    // Format: "v0.2.0" (on tag) or "v0.2.0-53-ge0dced8" (53 commits past tag)
+    const match = desc.match(/^v?(\d+\.\d+\.\d+)(?:-(\d+)-g[a-f0-9]+)?$/);
+    if (match) {
+      const base = match[1];
+      const commits = match[2];
+      return commits ? `${base}.${commits}` : base;
+    }
+    return desc.replace(/^v/, '');
   } catch {
     return app.getVersion();
+  }
+}
+
+/** Get latest commit short hash and date */
+function getCommitInfo(): { shortHash: string; date: string } | null {
+  try {
+    const log = execSync('git log -1 --format="%h|%as"', { encoding: 'utf-8', timeout: 3000 }).trim();
+    const [shortHash, date] = log.split('|');
+    return { shortHash, date };
+  } catch {
+    return null;
   }
 }
 
@@ -1505,6 +1524,7 @@ function setupFsIpc(): void {
   });
 
   ipcMain.handle('app:getVersion', () => getGitVersion());
+  ipcMain.handle('app:getCommitInfo', () => getCommitInfo());
 
   // Changelog: Save to file
   ipcMain.handle('changelog:saveToFile', async (_, content: string, version: string) => {
@@ -3672,6 +3692,8 @@ function createWindow(): void {
   }
 
   mainWindow.on('ready-to-show', () => {
+    // Re-apply title after HTML loads (HTML <title> overrides BrowserWindow title)
+    mainWindow?.setTitle(`Kuroryuu v${getGitVersion()} - kuroryuu.com`);
     // Set icon again when window is ready (ensures taskbar icon updates)
     if (process.platform === 'win32' && !appIcon.isEmpty()) {
       mainWindow?.setIcon(appIcon);

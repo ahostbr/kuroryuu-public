@@ -1375,9 +1375,12 @@ const api = {
    * Get app configuration and paths
    */
   app: {
-    /** Get app version (from git tags, fallback to package.json) */
+    /** Get app version (from git tags with build number, fallback to package.json) */
     getVersion: (): Promise<string> =>
       ipcRenderer.invoke('app:getVersion'),
+    /** Get latest git commit info (short hash + date) */
+    getCommitInfo: (): Promise<{ shortHash: string; date: string } | null> =>
+      ipcRenderer.invoke('app:getCommitInfo'),
     /** Get project root path (from KURORYUU_ROOT env or resolved) */
     getProjectRoot: (): Promise<string> =>
       ipcRenderer.invoke('app:getProjectRoot'),
