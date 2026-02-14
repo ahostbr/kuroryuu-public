@@ -283,6 +283,22 @@ export function registerBootstrapHandlers(): void {
     return PROJECT_ROOT;
   });
 
+  // Read a project asset file as a base64 data URL (for images in renderer)
+  ipcMain.handle('app:getAssetDataUrl', async (_event, relativePath: string) => {
+    const safePath = path.normalize(relativePath).replace(/\.\./g, '');
+    const fullPath = path.join(PROJECT_ROOT, safePath);
+    if (!fs.existsSync(fullPath)) return null;
+    const buf = fs.readFileSync(fullPath);
+    const ext = path.extname(fullPath).toLowerCase().slice(1);
+    const mime = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+      : ext === 'png' ? 'image/png'
+      : ext === 'gif' ? 'image/gif'
+      : ext === 'svg' ? 'image/svg+xml'
+      : ext === 'webp' ? 'image/webp'
+      : 'application/octet-stream';
+    return `data:${mime};base64,${buf.toString('base64')}`;
+  });
+
   // Launch the Tray Companion app (Electron app, not Python)
   // Pass { debug: true } to show terminal window for debugging
   ipcMain.handle('app:launchTrayCompanion', async (_event, options?: { debug?: boolean }) => {

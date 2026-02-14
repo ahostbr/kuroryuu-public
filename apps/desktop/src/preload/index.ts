@@ -1381,6 +1381,9 @@ const api = {
     /** Get project root path (from KURORYUU_ROOT env or resolved) */
     getProjectRoot: (): Promise<string> =>
       ipcRenderer.invoke('app:getProjectRoot'),
+    /** Read a project asset as a base64 data URL */
+    getAssetDataUrl: (relativePath: string): Promise<string | null> =>
+      ipcRenderer.invoke('app:getAssetDataUrl', relativePath),
     /** Launch the Tray Companion app (pass { debug: true } to show terminal) */
     launchTrayCompanion: (options?: { debug?: boolean }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('app:launchTrayCompanion', options),

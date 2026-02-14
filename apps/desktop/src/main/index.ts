@@ -3964,6 +3964,7 @@ app.whenReady().then(async () => {
     return net.fetch('file:///' + filePath);
   });
 
+
   // Handle deep links on macOS
   app.on('open-url', (event, url) => {
     event.preventDefault();

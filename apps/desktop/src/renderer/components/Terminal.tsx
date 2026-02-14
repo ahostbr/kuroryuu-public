@@ -422,12 +422,9 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
       // Only handle keydown events (ignore keyup to prevent double-firing)
       if (event.type !== 'keydown') return true;
 
-      // Shift+Tab: show notification to use PM button (Claude Code Windows bug workaround)
-      // See: https://github.com/anthropics/claude-code/issues/3390
+      // Shift+Tab: handled by document capture listener (writes CSI Z to PTY)
+      // Return false so xterm doesn't also process it
       if (event.shiftKey && event.key === 'Tab') {
-        event.preventDefault();
-        event.stopPropagation();
-        toast.info('Shift+Tab WiP - use PM button. Maybe try having your Claude fix this LOL... I tried 10+ hours on this bug SMH', 1500);
         return false;
       }
 
@@ -464,7 +461,7 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
 
   // Document-level capture listener for Shift+Tab
   // Chromium captures Shift+Tab for focus navigation before xterm can see it
-  // Show notification to use PM button instead (Claude Code Windows bug workaround)
+  // We intercept at capture phase, kill the browser behavior, and forward to PTY
   useEffect(() => {
     if (!termId) return;
 
@@ -476,7 +473,11 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
-        toast.info('Shift+Tab WiP - use PM button. Maybe try having your Claude fix this LOL... I tried 10+ hours on this bug SMH', 1500);
+        // Forward Shift+Tab escape sequence (CSI Z) directly to PTY
+        const currentTermId = termIdRef.current;
+        if (currentTermId) {
+          window.electronAPI.pty.write(currentTermId, '\x1b[Z');
+        }
       }
     };
 

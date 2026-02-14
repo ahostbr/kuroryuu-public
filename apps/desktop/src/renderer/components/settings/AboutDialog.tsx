@@ -20,12 +20,10 @@ export function AboutDialog() {
   useEffect(() => {
     if (isOpen) {
       window.electronAPI?.app?.getVersion?.().then((v: string) => setVersion(v || '0.2.0')).catch(() => setVersion('0.2.0'));
-      // Resolve image path from project root via IPC
-      window.electronAPI?.app?.getProjectRoot?.().then((root: string) => {
-        if (root) {
-          setImgSrc(`file:///${root.replace(/\\/g, '/')}/assets/img/marleerose.jpg`);
-        }
-      }).catch(() => {});
+      // Load image as base64 data URL via IPC (bypasses CSP/protocol restrictions)
+      window.electronAPI?.app?.getAssetDataUrl?.('assets/img/marleerose.jpg')
+        .then((dataUrl: string | null) => { if (dataUrl) setImgSrc(dataUrl); })
+        .catch(() => {});
     }
   }, [isOpen]);
 
