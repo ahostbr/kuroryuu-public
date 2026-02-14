@@ -130,11 +130,44 @@ Task({
 
 Spawn all teammates in ONE message — do NOT spawn them sequentially.
 
-**Teammate prompts should include**:
-- Their specific role and focus area
-- Reference to TaskList for discovering their assigned work
-- Clear scope boundaries (which files/areas they own)
-- Relevant file paths from codebase exploration
+**Teammate prompts MUST include** (in this order):
+1. The **Kuroryuu MCP Bootstrap** block (see below)
+2. Their specific role and focus area
+3. Reference to TaskList for discovering their assigned work
+4. Clear scope boundaries (which files/areas they own)
+5. Relevant file paths from codebase exploration
+
+### Kuroryuu MCP Bootstrap (inject into EVERY teammate prompt)
+
+Prepend this block to every teammate's prompt verbatim, replacing `{TEAMMATE_NAME}` and `{TEAM_NAME}`:
+
+```
+## Kuroryuu Integration (REQUIRED)
+
+You are part of team "{TEAM_NAME}". You have access to Kuroryuu MCP tools. Use them.
+
+### On Start (do this FIRST before any task work)
+1. Register your session:
+   k_session(action="start", agent_id="{TEAMMATE_NAME}", cli_type="claude")
+2. Check collective memory for relevant patterns:
+   k_collective(action="query_patterns", query="<your task type>", limit=5)
+
+### During Work
+- Update your working memory as goals/blockers change:
+  k_session(action="update_memory", agent_id="{TEAMMATE_NAME}", active_goal="<current task>", blockers=["<any>"], next_steps=["<planned>"])
+- Log significant progress:
+  k_session(action="log", message="<what you did>")
+
+### On Task Completion
+- Record what worked (or didn't) to collective memory:
+  k_collective(action="record_success", task_type="<type>", approach="<what you did>", evidence="<outcome>")
+  OR
+  k_collective(action="record_failure", task_type="<type>", approach="<what you tried>", reason="<why it failed>")
+
+### On Shutdown
+- End your session:
+  k_session(action="end", summary="<what you accomplished>")
+```
 
 ## Step 5: Assign Tasks
 
@@ -329,25 +362,44 @@ Default to Sonnet. Use Opus for architecture/complex reasoning. Use Haiku for si
 
 ## Team Lead Behavior
 
-After spawning, you ARE the team lead:
+After spawning, you ARE the team lead. Register yourself first:
 
-1. **Monitor messages** — Teammate messages auto-deliver to you
+```
+k_session(action="start", agent_id="team-lead", cli_type="claude")
+k_collective(action="query_patterns", query="<team task type>", limit=5)
+```
+
+Then:
+
+1. **Monitor messages** — Teammate messages auto-deliver to you via SendMessage
 2. **Handle idle** — Normal; teammates are waiting for input
 3. **Reassign** — When a teammate finishes, check TaskList for remaining work
 4. **Unblock** — If stuck, help or redirect approach
 5. **Coordinate** — Ensure parallel pieces integrate cleanly
-6. **Shutdown** — When done, send shutdown_request to each, then cleanup
+6. **Record outcomes** — After all tasks complete, record the team result:
+   ```
+   k_collective(action="record_success", task_type="team_workflow", approach="<team composition + strategy>", evidence="<what was delivered>")
+   ```
+7. **Shutdown** — When done, send shutdown_request to each, then cleanup
 
 ## Cleanup Protocol
 
 When all work is complete:
 
-1. Shutdown each teammate:
+1. Record team outcome to collective:
+   ```
+   k_collective(action="record_success", task_type="team_workflow", approach="<composition + strategy>", evidence="<deliverables>")
+   ```
+2. Shutdown each teammate:
    ```
    SendMessage({ type: "shutdown_request", recipient: "<name>", content: "All tasks complete" })
    ```
-2. Wait for approvals
-3. Cleanup:
+3. Wait for approvals (teammates will call `k_session(action="end")` on their way out)
+4. End your own session:
+   ```
+   k_session(action="end", summary="<team summary>")
+   ```
+5. Cleanup:
    ```
    Teammate({ operation: "cleanup" })
    ```
