@@ -277,51 +277,51 @@ def _is_memory_injection_enabled() -> bool:
     """Check if smart session start (memory injection) is enabled in kuroPlugin config.
 
     Reads .claude/settings.json → kuroPlugin.features.smartSessionStart.
-    Defaults to True if the key doesn't exist (opt-out, not opt-in).
+    Defaults to False if the key doesn't exist (opt-in after assistant creation).
     """
     settings_path = get_project_root() / ".claude" / "settings.json"
     try:
         if settings_path.exists():
             data = json.loads(settings_path.read_text(encoding="utf-8"))
             features = data.get("kuroPlugin", {}).get("features", {})
-            return features.get("smartSessionStart", True)
+            return features.get("smartSessionStart", False)
     except Exception:
         pass
-    return True
+    return False
 
 
 def _is_auto_checkpoint_enabled() -> bool:
     """Check if auto-checkpoint on session end is enabled.
 
     Reads .claude/settings.json → kuroPlugin.features.autoCheckpointOnEnd.
-    Defaults to True if the key doesn't exist.
+    Defaults to False if the key doesn't exist.
     """
     settings_path = get_project_root() / ".claude" / "settings.json"
     try:
         if settings_path.exists():
             data = json.loads(settings_path.read_text(encoding="utf-8"))
             features = data.get("kuroPlugin", {}).get("features", {})
-            return features.get("autoCheckpointOnEnd", True)
+            return features.get("autoCheckpointOnEnd", False)
     except Exception:
         pass
-    return True
+    return False
 
 
 def _is_previously_enabled() -> bool:
     """Check if 'Previously' transcript extraction is enabled.
 
     Reads .claude/settings.json → kuroPlugin.features.previouslySection.
-    Defaults to True if the key doesn't exist.
+    Defaults to False if the key doesn't exist.
     """
     settings_path = get_project_root() / ".claude" / "settings.json"
     try:
         if settings_path.exists():
             data = json.loads(settings_path.read_text(encoding="utf-8"))
             features = data.get("kuroPlugin", {}).get("features", {})
-            return features.get("previouslySection", True)
+            return features.get("previouslySection", False)
     except Exception:
         pass
-    return True
+    return False
 
 
 def _build_resumption_context(agent_id: str) -> str:

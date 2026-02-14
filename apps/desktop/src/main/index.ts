@@ -55,6 +55,7 @@ import { registerBackupHandlers } from './ipc/backup-handlers';
 import { registerMarketingHandlers } from './ipc/marketing-handlers';
 import { registerLLMAppsHandlers } from './ipc/llm-apps-handlers';
 import { getTaskService } from './services/task-service';
+import { pluginSyncService } from './services/plugin-sync-service';
 import { registerPCControlHandlers, cleanup as cleanupPCControl, setMainWindow as setPCControlMainWindow, initializeState as initPCControlState } from './integrations/pccontrol-service';
 import { registerPythonHandlers, setMainWindow as setPythonMainWindow } from './integrations/python-service';
 import { transcribeAudio, voiceChat, type STTEngine } from './audio-service';
@@ -4290,6 +4291,9 @@ app.whenReady().then(async () => {
   setupClaudeTeamsIpc(mainWindow!);
   registerSdkAgentHandlers(mainWindow!, ptyManager);
 
+  // Start global plugin sync service (keeps ~/.claude/plugins/kuro-global/ in sync)
+  pluginSyncService.start();
+
   // === CodeEditor Window IPC ===
   ipcMain.handle('code-editor:open', () => {
     createCodeEditorWindow();
@@ -4676,6 +4680,7 @@ async function performShutdownSequence(win: BrowserWindow) {
       name: 'Cleaning up file watchers...',
       fn: async () => {
         console.log('[Main] Step 4/8: Cleaning up file watchers');
+        pluginSyncService.stop();
         fileWatcher.dispose();
       },
       progress: 70
@@ -4765,6 +4770,7 @@ app.on('before-quit', async (event) => {
   } else {
     // No window available, just do basic cleanup
     console.log('[Main] before-quit: No window, doing basic cleanup');
+    pluginSyncService.stop();
     ptyManager?.dispose();
     fileWatcher.dispose();
     await cleanupGraphiti();

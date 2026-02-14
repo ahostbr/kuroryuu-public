@@ -8,7 +8,8 @@ $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
 try {
     # Get project root (current working directory)
-    $projectRoot = (Get-Location).Path
+    # Resolve project root: env var (for global plugin) or current directory (for project plugin)
+    $projectRoot = if ($env:KURORYUU_PROJECT_ROOT) { $env:KURORYUU_PROJECT_ROOT } else { (Get-Location).Path }
 
     # Setup logging
     $logFile = Join-Path $projectRoot "ai\hooks\export_debug.log"

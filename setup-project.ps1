@@ -45,7 +45,7 @@ Write-Host "Project Root: $ProjectRoot" -ForegroundColor White
 Write-Host ""
 
 $stepNum = 1
-$totalSteps = 12
+$totalSteps = 13
 
 # ============================================================================
 # Step 1: Set persistent environment variable
@@ -562,6 +562,27 @@ if (Test-Path $ffmpegBin) {
         Write-Host "  Download manually from: https://github.com/BtbN/FFmpeg-Builds/releases" -ForegroundColor Yellow
         Write-Host "  Extract to: $ffmpegDir" -ForegroundColor Yellow
     }
+}
+
+# ============================================================================
+# Step 13: Sync Kuro plugin to global ~/.claude
+# ============================================================================
+Write-Host ""
+Write-Host "[$stepNum/$totalSteps] Syncing Kuro plugin to global ~/.claude..." -ForegroundColor Yellow
+$stepNum++
+
+$syncScript = Join-Path $ProjectRoot "scripts\sync-global-plugin.ps1"
+if (Test-Path $syncScript) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $syncScript -ProjectRoot $ProjectRoot -Force
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "  Plugin synced to ~/.claude/plugins/kuro-global/" -ForegroundColor Green
+    } elseif ($LASTEXITCODE -eq 2) {
+        Write-Host "  Plugin already up-to-date" -ForegroundColor Green
+    } else {
+        Write-Host "  WARNING: Plugin sync failed (exit code $LASTEXITCODE)" -ForegroundColor DarkYellow
+    }
+} else {
+    Write-Host "  WARNING: sync-global-plugin.ps1 not found" -ForegroundColor DarkYellow
 }
 
 # ============================================================================

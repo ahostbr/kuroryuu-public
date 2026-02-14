@@ -28,7 +28,8 @@ if (-not $sessionId) {
 }
 
 # Project root is where .claude/ directory exists (current working dir for Claude Code)
-$projectRoot = (Get-Location).Path
+# Resolve project root: env var (for global plugin) or current directory (for project plugin)
+$projectRoot = if ($env:KURORYUU_PROJECT_ROOT) { $env:KURORYUU_PROJECT_ROOT } else { (Get-Location).Path }
 $flagPath = Join-Path $projectRoot "ai\.claude_mode\$sessionId"
 if (-not (Test-Path $flagPath)) {
     exit 0  # Claude Mode not enabled

@@ -15,7 +15,8 @@ param()
 # ============================================================================
 # Configuration
 # ============================================================================
-$projectRoot = (Get-Location).Path
+# Resolve project root: env var (for global plugin) or current directory (for project plugin)
+$projectRoot = if ($env:KURORYUU_PROJECT_ROOT) { $env:KURORYUU_PROJECT_ROOT } else { (Get-Location).Path }
 $todoPath = Join-Path $projectRoot "ai\todo.md"
 $logFile = Join-Path $projectRoot "ai\hooks\claude-task-debug.log"
 $taskMapFile = Join-Path $projectRoot "ai\hooks\task_id_map.json"
