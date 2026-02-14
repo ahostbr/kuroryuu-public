@@ -146,13 +146,15 @@ export function AboutDialog() {
             <img
               src={imgSrc}
               alt="Marlee Rose"
-              className="rounded-lg"
               style={{
-                maxWidth: '220px',
-                border: isKuroryuu ? '2px solid rgba(201, 162, 39, 0.3)' : '2px solid var(--border)',
+                width: '160px',
+                height: '160px',
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: isKuroryuu ? '3px solid rgba(201, 162, 39, 0.5)' : '3px solid var(--border)',
                 boxShadow: isKuroryuu
-                  ? '0 4px 20px rgba(201, 162, 39, 0.15)'
-                  : '0 4px 12px rgba(0,0,0,0.2)',
+                  ? '0 4px 24px rgba(201, 162, 39, 0.25)'
+                  : '0 4px 16px rgba(0,0,0,0.3)',
               }}
             />
           </div>
