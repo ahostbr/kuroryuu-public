@@ -403,7 +403,10 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
       // Use ref to get CURRENT termId (avoids stale closure after navigation)
       const currentTermId = termIdRef.current;
       if (currentTermId) {
-        window.electronAPI.pty.write(currentTermId, data);
+        // Catch rejected writes — pty.write fires during xterm's blur event when React
+        // unmounts the textarea (removeChild → _handleTextAreaBlur → onData), but the PTY
+        // may already be destroyed. This is expected during unmount, safe to ignore.
+        window.electronAPI.pty.write(currentTermId, data).catch(() => {});
       }
     });
 
@@ -447,7 +450,7 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
           // Use ref to get CURRENT termId (avoids stale closure after navigation)
           const currentTermId = termIdRef.current;
           if (text && currentTermId) {
-            window.electronAPI.pty.write(currentTermId, text);
+            window.electronAPI.pty.write(currentTermId, text).catch(() => {});
           }
         }).catch(() => {
           // Clipboard read failed - silently ignore
@@ -476,7 +479,7 @@ export function Terminal({ id: initialId, terminalId, onReady, onTermRef, cwd, c
         // Forward Shift+Tab escape sequence (CSI Z) directly to PTY
         const currentTermId = termIdRef.current;
         if (currentTermId) {
-          window.electronAPI.pty.write(currentTermId, '\x1b[Z');
+          window.electronAPI.pty.write(currentTermId, '\x1b[Z').catch(() => {});
         }
       }
     };

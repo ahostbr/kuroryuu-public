@@ -67,6 +67,23 @@ Check freshness first: `k_rag(action="status")`, `k_repo_intel(action="status")`
 Kuroryuu Dependency's Mapping Ref:
 'Docs\reviews\kuroryuu-dep-map-2026-02-07.md'
 
+## Agent-Initiated TTS (k_tts)
+
+Use `k_tts` to speak to Ryan when completing work, announcing results, or needing attention.
+
+```
+k_tts(action="speak", text="Build complete, all tests passing.")
+k_tts(action="smart", text="Long detailed content...", context="Code review")
+```
+
+- **speak**: Direct text-to-speech (fire-and-forget, returns immediately)
+- **smart**: AI-summarizes via Gateway first (~20 words), then speaks
+- **wait=True**: Block until playback finishes
+- Voice: Sonia (en-GB), uses existing TTS queue for overlap prevention
+- Smart fallback: if Gateway down, speaks first sentence directly
+
+---
+
 ## PTY Reading (HARD RULE)
 
 **Use `max_lines=5-10` for `k_pty term_read`.** Start small, work up only if needed.
@@ -192,6 +209,9 @@ Note: Direct `wsl rm -f "/mnt/e/..."` from Git Bash fails because the path gets 
 3. Confirm: `KURORYUU-aware. Session: {session_id}. Ready.`
 
 ##Claude.md Version
+2026-02-15
+- Added Agent-Initiated TTS section (k_tts: speak + smart actions)
+
 2026-02-11
 - Added Session IDs vs Todo IDs section (session #N ≠ ai/todo.md T###)
 - Added PTY Reading section

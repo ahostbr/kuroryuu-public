@@ -2,7 +2,7 @@
 
 > Minimal startup. MUST READ : `KURORYUU_LAWS_INDEX.md`
 >
-> **Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 16 MCP tools → 118 actions
+> **Hackathon Stats:** 23 days | 437 sessions | 431 tasks | 17 MCP tools → 120 actions
 
 ## Quick Start
 
@@ -228,6 +228,25 @@ Is this task-specific with no reuse value? → YES → Skip
 → Create focused, right-sized task (see §2.3.2 auto-sizing)
 → See KURORYUU_LEADER.md §2.3.1 and §2.3.2
 
+### "I want to speak to Ryan" (Agent-Initiated TTS)
+```
+k_tts(action="speak", text="Hello Ryan, the build is complete.")
+```
+→ Fire-and-forget (returns immediately, audio plays ~2-3s later)
+→ Uses Edge TTS (Sonia voice), existing TTS queue prevents overlap
+
+**Smart mode** — AI-summarizes long text first:
+```
+k_tts(action="smart", text="Refactored 3 files, extracted hook into shared util, all tests passing.", context="Code review")
+```
+→ Gateway generates ~20-word summary, then speaks it
+→ Falls back to direct speech if Gateway unavailable
+
+**Blocking mode** — wait for playback to finish:
+```
+k_tts(action="speak", text="Done.", wait=True)
+```
+
 ### "I'm ending session"
 ```
 k_session(action="end", session_id="...", summary="...")
@@ -326,7 +345,7 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 
 ---
 
-## Tool Quick Ref (17 Tools → 126 Actions)
+## Tool Quick Ref (18 Tools → 128 Actions)
 
 | Tool | Actions | Key Actions |
 |------|---------|-------------|
@@ -345,6 +364,7 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 | `k_checkpoint` | 4 | save, load, list, delete |
 | `k_thinker_channel` | 3 | send_line, read, list |
 | `k_MCPTOOLSEARCH` | 2 | search, list |
+| `k_tts` | 2 | speak, smart |
 | `k_help` | - | Help system |
 
 **OPT-IN:** `k_pccontrol` (PowerShell desktop automation) requires explicit enable via Desktop Settings.
@@ -424,7 +444,7 @@ k_pty(action="term_read", session_id="<pty_session_id>", mode="tail")
 ### Apps (Code Only - NO docs inside)
 | What | Where |
 |------|-------|
-| MCP Core (16 tools, 118 actions) | `apps/mcp_core/` |
+| MCP Core (18 tools, 128 actions) | `apps/mcp_core/` |
 | Gateway (21 routers) | `apps/gateway/` |
 | Desktop (235 components) | `apps/desktop/` |
 | Web | `apps/web/` |

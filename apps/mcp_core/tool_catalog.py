@@ -388,6 +388,23 @@ def _init_catalog() -> None:
         category="messaging",
     )
 
+    # k_tts - Text-to-speech
+    register_tool_metadata(
+        name="k_tts",
+        description="Speak text aloud via Edge TTS. Actions: speak (direct), smart (AI-summarized first)",
+        keywords=[
+            "speak", "tts", "voice", "audio", "say", "announce", "speech",
+            "text-to-speech", "edge-tts", "sonia", "play", "sound", "smart", "summary"
+        ],
+        actions=["speak", "smart"],
+        examples=[
+            "k_tts(action='speak', text='Hello Ryan, the build is complete.')",
+            "k_tts(action='smart', text='Refactored 3 files, extracted buildCliConfig into shared util, all imports updated.')",
+            "k_tts(action='smart', text='Found 2 bugs in restic backup password handling.', context='Code review session')",
+        ],
+        category="audio",
+    )
+
     # k_help - Tool help system
     register_tool_metadata(
         name="k_help",
