@@ -42,14 +42,26 @@ export function RecordingIndicator({ variant = 'compact', onClick }: RecordingIn
     return (
       <button
         onClick={onClick}
-        className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/15 rounded-full border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/50 transition-all cursor-pointer group"
+        style={{
+          background: 'color-mix(in srgb, var(--cp-crimson) 15%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--cp-crimson) 30%, transparent)',
+        }}
+        className="flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all cursor-pointer group hover:bg-opacity-25"
         title="Recording in progress - Click to open Capture panel"
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--cp-crimson) 25%, transparent)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--cp-crimson) 50%, transparent)';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--cp-crimson) 15%, transparent)';
+          (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--cp-crimson) 30%, transparent)';
+        }}
       >
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: 'var(--cp-crimson)' }}></span>
+          <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: 'var(--cp-crimson)' }}></span>
         </span>
-        <span className="text-red-400 text-[9px] font-bold tracking-wider group-hover:text-red-300">
+        <span className="text-[9px] font-bold tracking-wider" style={{ color: 'color-mix(in srgb, var(--cp-crimson) 80%, transparent)' }}>
           REC
         </span>
       </button>
@@ -58,20 +70,32 @@ export function RecordingIndicator({ variant = 'compact', onClick }: RecordingIn
 
   if (variant === 'floating') {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-500/20 rounded-lg border border-red-500/40 animate-pulse">
-        <Circle size={10} fill="currentColor" className="text-red-500 animate-ping" />
-        <span className="text-red-400 text-xs font-bold tracking-wider">REC</span>
-        <span className="text-red-300 text-xs font-mono">{formatDuration(duration)}</span>
+      <div
+        className="flex items-center gap-2 px-3 py-1.5 rounded-lg animate-pulse"
+        style={{
+          background: 'color-mix(in srgb, var(--cp-crimson) 20%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--cp-crimson) 40%, transparent)',
+        }}
+      >
+        <Circle size={10} fill="currentColor" className="animate-ping" style={{ color: 'var(--cp-crimson)' }} />
+        <span className="text-xs font-bold tracking-wider" style={{ color: 'color-mix(in srgb, var(--cp-crimson) 80%, transparent)' }}>REC</span>
+        <span className="text-xs font-mono" style={{ color: 'color-mix(in srgb, var(--cp-crimson) 70%, transparent)' }}>{formatDuration(duration)}</span>
       </div>
     )
   }
 
   // Compact variant (default)
   return (
-    <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/20 rounded-full border border-red-500/40 animate-pulse">
-      <Circle size={8} fill="currentColor" className="text-red-500 animate-ping" />
-      <span className="text-red-400 text-[10px] font-bold tracking-wider">REC</span>
-      <span className="text-red-300 text-[10px] font-mono">{formatDuration(duration)}</span>
+    <div
+      className="flex items-center gap-1.5 px-2 py-0.5 rounded-full animate-pulse"
+      style={{
+        background: 'color-mix(in srgb, var(--cp-crimson) 20%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--cp-crimson) 40%, transparent)',
+      }}
+    >
+      <Circle size={8} fill="currentColor" className="animate-ping" style={{ color: 'var(--cp-crimson)' }} />
+      <span className="text-[10px] font-bold tracking-wider" style={{ color: 'color-mix(in srgb, var(--cp-crimson) 80%, transparent)' }}>REC</span>
+      <span className="text-[10px] font-mono" style={{ color: 'color-mix(in srgb, var(--cp-crimson) 70%, transparent)' }}>{formatDuration(duration)}</span>
     </div>
   )
 }

@@ -176,56 +176,6 @@ DEFAULT_TEMPLATE = """# PRD: {title}
 """
 
 # ============================================================================
-# LLM Generation
-# ============================================================================
-async def generate_prd_content(title: str, description: str, scope: str, 
-                                include_tech: bool, include_acceptance: bool) -> str:
-    """Generate PRD content using LLM."""
-    from ..llm import get_backend, LLMMessage
-    from ..llm.backends.base import LLMConfig
-    
-    backend = get_backend("lmstudio")
-    
-    sections = ["Overview", "Requirements"]
-    if include_tech:
-        sections.append("Technical Specification")
-    if include_acceptance:
-        sections.append("Acceptance Criteria")
-    
-    prompt = f"""Generate a Product Requirements Document (PRD) for:
-
-Title: {title}
-Description: {description}
-Scope: {scope}
-
-Include these sections: {', '.join(sections)}
-
-For each section, provide detailed, actionable content.
-Use markdown formatting.
-Be specific and technical where appropriate.
-Include at least 3-5 bullet points per subsection.
-
-Start with "## Overview" and continue through all sections."""
-
-    messages = [
-        LLMMessage(role="system", content="You are a senior product manager writing detailed PRDs."),
-        LLMMessage(role="user", content=prompt)
-    ]
-    
-    config = LLMConfig(
-        model="devstral-small-2-2512",
-        temperature=0.5,
-        max_tokens=4000
-    )
-    
-    response = ""
-    async for event in backend.stream_chat(messages, config):
-        if event.type == "delta" and event.text:
-            response += event.text
-    
-    return response
-
-# ============================================================================
 # Endpoints
 # ============================================================================
 @router.get("/status")
@@ -458,14 +408,121 @@ async def get_prd(prd_id: str) -> Dict[str, Any]:
         "status": "active" if "active" in str(path) else "archived"
     }
 
+class PRDUpdateRequest(BaseModel):
+    """Request to update PRD content."""
+    content: str
+
+@router.put("/{prd_id}")
+async def update_prd(prd_id: str, request: PRDUpdateRequest) -> Dict[str, Any]:
+    """Update PRD content."""
+    path = get_active_dir() / f"{prd_id}.md"
+    if not path.exists():
+        return {"ok": False, "error": "PRD not found"}
+
+    path.write_text(request.content, encoding="utf-8")
+    return {"ok": True, "message": f"Updated {prd_id}"}
+
 @router.post("/{prd_id}/archive")
 async def archive_prd(prd_id: str) -> Dict[str, Any]:
     """Archive a PRD."""
     source = get_active_dir() / f"{prd_id}.md"
     if not source.exists():
         return {"ok": False, "error": "PRD not found in active"}
-    
+
     dest = get_archive_dir() / f"{prd_id}.md"
     source.rename(dest)
-    
+
     return {"ok": True, "message": f"Archived {prd_id}"}
+
+# ============================================================================
+# Session Management
+# ============================================================================
+def get_sessions_dir() -> Path:
+    """Get sessions storage directory."""
+    sessions_dir = get_prd_dir() / "sessions"
+    sessions_dir.mkdir(parents=True, exist_ok=True)
+    return sessions_dir
+
+class PRDSessionSaveRequest(BaseModel):
+    """Request to save a PRD session."""
+    name: str
+    description: Optional[str] = ""
+    prds: List[Dict[str, Any]]
+
+@router.post("/sessions")
+async def save_session(request: PRDSessionSaveRequest) -> Dict[str, Any]:
+    """Save current PRD session."""
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        session_id = f"session_{timestamp}"
+
+        session_data = {
+            "id": session_id,
+            "name": request.name,
+            "description": request.description,
+            "created_at": datetime.now().isoformat(),
+            "prd_count": len(request.prds),
+            "prds": request.prds,
+        }
+
+        session_path = get_sessions_dir() / f"{session_id}.json"
+        session_path.write_text(json.dumps(session_data, indent=2), encoding="utf-8")
+
+        return {"ok": True, "session_id": session_id}
+    except Exception as e:
+        import traceback
+        error_msg = f"Failed to save session: {str(e)}\n{traceback.format_exc()}"
+        return {"ok": False, "error": error_msg}
+
+@router.get("/sessions")
+async def list_sessions() -> Dict[str, Any]:
+    """List all saved PRD sessions."""
+    try:
+        sessions = []
+        for path in get_sessions_dir().glob("*.json"):
+            data = json.loads(path.read_text(encoding="utf-8"))
+            sessions.append({
+                "id": data.get("id", path.stem),
+                "name": data.get("name", "Unnamed Session"),
+                "description": data.get("description", ""),
+                "created_at": data.get("created_at", ""),
+                "prd_count": data.get("prd_count", 0),
+            })
+
+        # Sort by created_at descending
+        sessions.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        return {"ok": True, "sessions": sessions}
+    except Exception as e:
+        import traceback
+        error_msg = f"Failed to list sessions: {str(e)}\n{traceback.format_exc()}"
+        return {"ok": False, "error": error_msg, "sessions": []}
+
+@router.get("/sessions/{session_id}")
+async def load_session(session_id: str) -> Dict[str, Any]:
+    """Load a saved PRD session."""
+    try:
+        session_path = get_sessions_dir() / f"{session_id}.json"
+        if not session_path.exists():
+            return {"ok": False, "error": "Session not found"}
+
+        data = json.loads(session_path.read_text(encoding="utf-8"))
+        return {"ok": True, "prds": data.get("prds", [])}
+    except Exception as e:
+        import traceback
+        error_msg = f"Failed to load session: {str(e)}\n{traceback.format_exc()}"
+        return {"ok": False, "error": error_msg}
+
+@router.delete("/sessions/{session_id}")
+async def delete_session(session_id: str) -> Dict[str, Any]:
+    """Delete a saved PRD session."""
+    try:
+        session_path = get_sessions_dir() / f"{session_id}.json"
+        if not session_path.exists():
+            return {"ok": False, "error": "Session not found"}
+
+        session_path.unlink()
+        return {"ok": True, "message": f"Deleted session {session_id}"}
+    except Exception as e:
+        import traceback
+        error_msg = f"Failed to delete session: {str(e)}\n{traceback.format_exc()}"
+        return {"ok": False, "error": error_msg}

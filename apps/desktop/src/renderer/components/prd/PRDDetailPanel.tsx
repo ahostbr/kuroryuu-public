@@ -20,10 +20,12 @@ import {
 } from 'lucide-react';
 import type { PRD, PRDStatus, WorkflowType } from '../../types/prd';
 import { MarkdownRenderer } from '../code-editor/MarkdownRenderer';
+import { EditorPane } from '../editdoc/EditorPane';
 import { WorkflowGraph } from './workflow-graph/WorkflowGraph';
 import { QuizmasterPlanDialog } from './QuizmasterPlanDialog';
 import { cn } from '../../lib/utils';
 import { toast } from '../ui/toast';
+import { usePRDStore } from '../../stores/prd-store';
 
 interface PRDDetailPanelProps {
   prd: PRD;
@@ -375,11 +377,14 @@ export function PRDDetailPanel({
           />
         </div>
       ) : (
-        /* PRD Content - Scrollable */
-        <div className="flex-1 overflow-y-auto px-4 py-4">
-          <div className="prose prose-sm prose-invert max-w-none">
-            <MarkdownRenderer content={prd.content} />
-          </div>
+        /* PRD Content - Editable */
+        <div className="flex-1 overflow-hidden">
+          <EditorPane
+            content={prd.content}
+            onChange={(newContent: string) => usePRDStore.getState().updatePRDContent(prd.id, newContent)}
+            language="markdown"
+            readOnly={false}
+          />
         </div>
       )}
 

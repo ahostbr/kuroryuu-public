@@ -1779,7 +1779,7 @@ const api = {
   },
   /**
    * Auto-Updater API
-   * Automatic updates from shadows-and-shurikens.com
+   * Automatic updates from GitHub Releases
    */
   updater: {
     /** Check for updates manually */

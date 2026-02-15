@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { toast } from '../ui/toast';
 import { useCaptureStore } from '@/stores/capture-store';
+import { useSettingsStore } from '@/stores/settings-store';
 import { DRAGON_ASCII } from '@/constants/dragon-ascii';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -90,6 +91,9 @@ export const CapturePanel: React.FC = () => {
   const globalStartRecording = useCaptureStore((s) => s.startRecording);
   const globalStopRecording = useCaptureStore((s) => s.stopRecording);
   const setDigestActive = useCaptureStore((s) => s.setDigestActive);
+
+  // Imperial mode setting
+  const imperialMode = useSettingsStore((s) => s.appSettings.captureImperialMode);
 
   // Local UI state (not recording state - that's in global store)
   const [selectedMode, setSelectedMode] = useState<CaptureMode>('desktop');
@@ -359,12 +363,14 @@ export const CapturePanel: React.FC = () => {
       }}
     >
       {/* Scanlines */}
-      <div
-        className="absolute inset-0 pointer-events-none z-[1]"
-        style={{
-          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
-        }}
-      />
+      {imperialMode && (
+        <div
+          className="absolute inset-0 pointer-events-none z-[1]"
+          style={{
+            background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
+          }}
+        />
+      )}
       {/* Vignette */}
       <div
         className="absolute inset-0 pointer-events-none z-[2]"
@@ -373,21 +379,23 @@ export const CapturePanel: React.FC = () => {
         }}
       />
       {/* Subtle dragon ghost */}
-      <pre
-        aria-hidden="true"
-        className="absolute pointer-events-none select-none leading-[1.1] z-[1]"
-        style={{
-          fontSize: 'clamp(0.18rem, 0.35vw, 0.3rem)',
-          color: 'color-mix(in srgb, var(--cp-crimson) 6%, transparent)',
-          fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          whiteSpace: 'pre',
-        }}
-      >
-        {DRAGON_ASCII}
-      </pre>
+      {imperialMode && (
+        <pre
+          aria-hidden="true"
+          className="absolute pointer-events-none select-none leading-[1.1] z-[1]"
+          style={{
+            fontSize: 'clamp(0.18rem, 0.35vw, 0.3rem)',
+            color: 'color-mix(in srgb, var(--cp-crimson) 6%, transparent)',
+            fontFamily: 'ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, monospace',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            whiteSpace: 'pre',
+          }}
+        >
+          {DRAGON_ASCII}
+        </pre>
+      )}
 
       {/* ── Content layer ── */}
       <div className="relative z-[3] h-full flex flex-col">
@@ -454,7 +462,7 @@ export const CapturePanel: React.FC = () => {
               className="font-mono text-sm uppercase tracking-[0.15em]"
               style={{ color: isRecording ? 'color-mix(in srgb, var(--cp-crimson) 80%, transparent)' : 'color-mix(in srgb, var(--cp-accent) 60%, transparent)' }}
             >
-              龍眼 Capture
+              {imperialMode ? '龍眼 Capture' : 'Capture'}
             </span>
             {isRecording && (
               <span
@@ -640,7 +648,7 @@ export const CapturePanel: React.FC = () => {
                 className="cp-term-btn cp-term-btn--stop w-full flex items-center justify-center gap-2 py-4"
               >
                 <StopCircle size={15} />
-                &gt; Terminate Recording
+                {imperialMode ? '> Terminate Recording' : 'Stop Recording'}
               </button>
             )}
 

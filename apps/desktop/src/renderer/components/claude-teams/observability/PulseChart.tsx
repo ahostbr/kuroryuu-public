@@ -2,7 +2,7 @@
  * PulseChart - Canvas-based real-time bar chart showing events per second
  * Reads theme colors at render time via CSS custom properties
  */
-import { useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
 import { useObservabilityStore } from '../../../stores/observability-store';
 import type { ObservabilityTimeRange } from '../../../types/observability';
 
@@ -28,6 +28,10 @@ function getBucketSizeMs(timeRange: ObservabilityTimeRange): number {
 
 function getThemeColor(el: HTMLElement, varName: string, fallback: string): string {
   const val = getComputedStyle(el).getPropertyValue(varName).trim();
+  // Detect bare HSL values (e.g. "0 0% 4%") and wrap in hsl()
+  if (val && /^\d+\s+\d+%\s+\d+%$/.test(val)) {
+    return `hsl(${val})`;
+  }
   return val || fallback;
 }
 
@@ -36,6 +40,7 @@ export function PulseChart() {
   const timeRange = useObservabilityStore((s) => s.timeRange);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [, forceRender] = useState(0);
 
   // Build time-series buckets with adaptive sizing
   const bucketSizeMs = getBucketSizeMs(timeRange);
@@ -147,8 +152,7 @@ export function PulseChart() {
     if (!container) return;
 
     const observer = new ResizeObserver(() => {
-      // Force re-render by updating buckets reference
-      useObservabilityStore.getState(); // trigger
+      forceRender(n => n + 1);
     });
     observer.observe(container);
     return () => observer.disconnect();

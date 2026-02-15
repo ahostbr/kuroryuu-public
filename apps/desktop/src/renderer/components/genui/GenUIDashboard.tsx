@@ -14,11 +14,21 @@ interface GenUIDashboardProps {
   onReset: () => void;
 }
 
-const ZONE_ICONS: Record<string, string> = {
+const ZONE_ICONS_IMPERIAL: Record<string, string> = {
   hero: '\u9F8D',     // Dragon kanji
   metrics: '\u2261',  // Triple bar
   insights: '\u25C8', // Diamond
   content: '\u25A0',  // Square
+  media: '\u25B6',    // Play
+  resources: '\u2192', // Arrow
+  tags: '\u00B7',     // Middle dot
+};
+
+const ZONE_ICONS_CLEAN: Record<string, string> = {
+  hero: '\u2605',     // Star
+  metrics: '\u2261',  // Triple bar
+  insights: '\u25C6', // Diamond (no fill)
+  content: '\u25A1',  // Square (no fill)
   media: '\u25B6',    // Play
   resources: '\u2192', // Arrow
   tags: '\u00B7',     // Middle dot
@@ -42,11 +52,12 @@ export const GenUIDashboard: React.FC<GenUIDashboardProps> = ({
   );
 
   let componentIndex = 0;
+  const ZONE_ICONS = imperialMode ? ZONE_ICONS_IMPERIAL : ZONE_ICONS_CLEAN;
 
   return (
     <div className="h-full flex flex-col" style={{ background: 'var(--background)' }}>
       {/* Scanline overlay */}
-      <div className="absolute inset-0 genui-scanlines z-[1] pointer-events-none" />
+      {imperialMode && <div className="absolute inset-0 genui-scanlines z-[1] pointer-events-none" />}
 
       {/* Header Bar */}
       <div

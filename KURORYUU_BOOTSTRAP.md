@@ -228,7 +228,8 @@ Is this task-specific with no reuse value? → YES → Skip
 → Create focused, right-sized task (see §2.3.2 auto-sizing)
 → See KURORYUU_LEADER.md §2.3.1 and §2.3.2
 
-### "I want to speak to Ryan" (Agent-Initiated TTS)
+### "I want to speak to Ryan" / "Use TTS" (Agent-Initiated TTS)
+**When Ryan requests TTS in any form — ALWAYS use `k_tts`. This is the only TTS workflow.**
 ```
 k_tts(action="speak", text="Hello Ryan, the build is complete.")
 ```

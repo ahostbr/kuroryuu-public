@@ -6,8 +6,6 @@ export { DiffViewer } from './DiffViewer';
 export { MergeViewWrapper } from './MergeViewWrapper';
 export { KuroryuuDesktopAssistantPanel } from './Kuroryuu_Desktop_Assistant_Panel';
 export type { AssistantPanelProps } from './Kuroryuu_Desktop_Assistant_Panel';
-/** @deprecated Use KuroryuuDesktopAssistantPanel instead */
-export { LMStudioPanel } from './LMStudioPanel';
 export { MarkdownRenderer } from './MarkdownRenderer';
 export { ToolCallCard, ToolCallInline } from './ToolCallCard';
 export type { ToolCallData, ToolCallStatus } from './ToolCallCard';

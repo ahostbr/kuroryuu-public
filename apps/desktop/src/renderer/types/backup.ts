@@ -170,10 +170,11 @@ export interface BackupStatus {
 // API RESPONSES
 // ============================================================================
 
-export interface BackupApiResponse<T = unknown> {
+export interface BackupApiResponse {
   ok: boolean;
-  data?: T;
   error?: string;
+  message?: string;
+  [key: string]: unknown;
 }
 
 export interface ListSnapshotsResponse {

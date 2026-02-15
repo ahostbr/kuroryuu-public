@@ -9,7 +9,7 @@
  * 4. Initialize repository
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   FolderOpen,
   Lock,
@@ -47,6 +47,7 @@ interface StepProps {
   onBack?: () => void;
   config: Partial<BackupConfig>;
   setConfig: (config: Partial<BackupConfig>) => void;
+  passwordRef?: React.MutableRefObject<string>;
 }
 
 // ============================================================================
@@ -285,7 +286,7 @@ function SourceStep({ onNext, onBack, config, setConfig }: StepProps) {
   );
 }
 
-function PasswordStep({ onNext, onBack, config, setConfig }: StepProps) {
+function PasswordStep({ onNext, onBack, config, setConfig, passwordRef }: StepProps) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -306,7 +307,9 @@ function PasswordStep({ onNext, onBack, config, setConfig }: StepProps) {
     }
 
     // Store password temporarily (will be used in initialize step)
-    (window as any).__backupPassword = password;
+    if (passwordRef) {
+      passwordRef.current = password;
+    }
     onNext();
   };
 
@@ -488,7 +491,7 @@ function ExclusionsStep({ onNext, onBack, config, setConfig }: StepProps) {
   );
 }
 
-function InitializeStep({ onBack, config }: StepProps) {
+function InitializeStep({ onBack, config, passwordRef }: StepProps) {
   const { saveConfig, initRepository, ensureRestic, setShowSetupWizard } = useBackupStore();
   const [status, setStatus] = useState<'idle' | 'restic' | 'init' | 'saving' | 'done' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -514,7 +517,7 @@ function InitializeStep({ onBack, config }: StepProps) {
 
       // Step 2: Initialize repository
       setStatus('init');
-      const password = (window as any).__backupPassword;
+      const password = passwordRef?.current;
       if (!password) {
         throw new Error('Password not set. Please go back and set a password.');
       }
@@ -529,7 +532,9 @@ function InitializeStep({ onBack, config }: StepProps) {
       await saveConfig(config as BackupConfig);
 
       // Clean up password
-      delete (window as any).__backupPassword;
+      if (passwordRef) {
+        passwordRef.current = '';
+      }
 
       setStatus('done');
     } catch (err) {
@@ -700,6 +705,7 @@ function ProgressItem({
 export function SetupWizard() {
   const [step, setStep] = useState<WizardStep>('welcome');
   const [config, setConfig] = useState<Partial<BackupConfig>>({});
+  const passwordRef = useRef<string>('');
 
   const steps: WizardStep[] = ['welcome', 'source', 'password', 'exclusions', 'initialize'];
   const currentIndex = steps.indexOf(step);
@@ -724,6 +730,7 @@ export function SetupWizard() {
       onBack: handleBack,
       config,
       setConfig,
+      passwordRef,
     };
 
     switch (step) {

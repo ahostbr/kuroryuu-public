@@ -5,7 +5,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { useCodeEditorStore } from './stores/code-editor-store';
-import { useLMStudioChatStore } from './stores/lmstudio-chat-store';
+import { useAssistantChatStore } from './stores/assistant-store';
 import {
   ActivityBar,
   EditorTabs,
@@ -49,7 +49,7 @@ export default function CodeEditorApp() {
     openFile,
   } = useCodeEditorStore();
 
-  const { setEditorContext, setPanelOpen } = useLMStudioChatStore();
+  const { setEditorContext, setPanelOpen } = useAssistantChatStore();
 
   // Activity bar state - controls which LEFT sidebar view is active
   const [activeView, setActiveView] = useState<ActivityView | null>('explorer');

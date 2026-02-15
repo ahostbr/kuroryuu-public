@@ -1,65 +1,55 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMarketingStore } from '../../stores/marketing-store';
+import { useSpawnTerminalAgent } from '../../hooks/useSpawnTerminalAgent';
 import { Terminal } from '../Terminal';
 
-const MARKETING_CMD = 'claude @ai/skills/marketing/MARKETING_BOOTSTRAP.md';
-
 /**
- * MarketingTerminal — Matches TerminalGrid's PTY creation pattern:
+ * MarketingTerminal — Spawns a Marketing Specialist agent via unified hook.
  *
- * - First mount (no ptyId): Terminal component creates PTY via usePtyProcess
- *   AFTER fitAddon.fit() measures the container. This ensures the PTY starts
- *   at the correct cols/rows for the actual container size.
+ * Uses useSpawnTerminalAgent to create the PTY and register the agent in
+ * agent-config-store (visible in TerminalGrid + Gateway heartbeat).
  *
- * - Subsequent mounts (ptyId stored): Terminal reconnects to existing PTY
- *   via pty.subscribe() and syncs dimensions with pty.resize().
- *
- * Previous approach created PTY upfront with hardcoded cols:120, rows:30
- * which caused dimension mismatch when the container was a different size.
+ * - First mount: spawns agent, stores ptyId
+ * - Subsequent mounts: reconnects Terminal to existing ptyId
  */
 export function MarketingTerminal() {
   const terminalPtyId = useMarketingStore((s) => s.terminalPtyId);
   const setTerminalPtyId = useMarketingStore((s) => s.setTerminalPtyId);
-  const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
-  const cmdWrittenRef = useRef(false);
+  const { spawn } = useSpawnTerminalAgent();
+  const spawnedRef = useRef(false);
 
-  // Resolve project root so PTY starts in the correct directory
+  // Spawn agent on first mount (only if no existing ptyId)
   useEffect(() => {
-    window.electronAPI?.app?.getProjectRoot?.()
-      .then((root: string) => setProjectRoot(root))
-      .catch(() => {/* fallback: undefined lets PTY use its default */});
-  }, []);
+    if (terminalPtyId || spawnedRef.current) return;
+    spawnedRef.current = true;
 
-  const handleReady = (ptyId: string) => {
-    console.log('[Marketing] Terminal ready:', ptyId);
+    spawn({
+      name: 'Marketing Specialist',
+      role: 'specialist',
+      capabilities: ['marketing'],
+      promptPath: 'ai/skills/marketing/MARKETING_BOOTSTRAP.md',
+      onReady: (ptyId) => {
+        console.log('[Marketing] Agent spawned:', ptyId);
+        setTerminalPtyId(ptyId);
+      },
+    }).catch((err) => {
+      console.error('[Marketing] Failed to spawn agent:', err);
+      spawnedRef.current = false;
+    });
+  }, [terminalPtyId, spawn, setTerminalPtyId]);
 
-    // Store ptyId for reconnection on re-mount
-    if (!terminalPtyId) {
-      setTerminalPtyId(ptyId);
-    }
-
-    // Pre-type the claude command (no Enter — user decides when to launch)
-    if (!cmdWrittenRef.current) {
-      cmdWrittenRef.current = true;
-      setTimeout(() => {
-        window.electronAPI.pty.write(ptyId, MARKETING_CMD);
-      }, 800);
-    }
-  };
+  if (!terminalPtyId) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+        Spawning Marketing Specialist...
+      </div>
+    );
+  }
 
   return (
     <Terminal
-      id={terminalPtyId || undefined}
-      terminalId={`marketing-${terminalPtyId || 'pending'}`}
-      onReady={handleReady}
-      cwd={projectRoot}
-      cliConfig={{
-        env: {
-          KURORYUU_AGENT_ID: 'marketing-specialist',
-          KURORYUU_AGENT_NAME: 'Marketing Specialist',
-          KURORYUU_AGENT_ROLE: 'specialist',
-        },
-      }}
+      id={terminalPtyId}
+      terminalId={`marketing-${terminalPtyId}`}
     />
   );
 }

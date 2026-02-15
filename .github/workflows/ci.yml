@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [master, 'release/*']
+  pull_request:
+    branches: [master]
+
+jobs:
+  typecheck:
+    name: TypeScript Type Check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: cd apps/desktop && npm ci
+      - run: cd apps/desktop && npx tsc --noEmit
+
+  test-desktop:
+    name: Desktop Unit Tests
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: cd apps/desktop && npm ci
+      - run: cd apps/desktop && npx vitest run --reporter=verbose
+
+  test-gateway:
+    name: Gateway API Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v4
+      - run: cd apps/gateway && uv sync
+      - run: cd apps/gateway && uv run python -m pytest tests/ -v
+
+  build:
+    name: Build Desktop
+    runs-on: windows-latest
+    needs: [typecheck, test-desktop]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: cd apps/desktop && npm ci
+      - run: cd apps/desktop && npm run build
+      - run: cd apps/desktop && npx electron-builder --win -c.win.signAndEditExecutable=false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-build
+          path: apps/desktop/dist/*.exe
+          retention-days: 7

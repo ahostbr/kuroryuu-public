@@ -24,6 +24,21 @@ except ImportError:
     from backup.downloader import ensure_restic, get_restic_version, is_restic_installed
     from backup.snapshot_utils import build_snapshot_chain, enrich_snapshot
 
+# Module-level password cache — persists across MCP calls within same process
+_cached_password: str | None = None
+
+
+def _get_configured_wrapper(password: str = "", **kwargs) -> tuple:
+    """Get BackupConfig + ResticWrapper with password persistence."""
+    global _cached_password
+    config = BackupConfig()
+    config.load()
+    pw = password or _cached_password
+    if pw:
+        config.set_cached_password(pw)
+        _cached_password = pw
+    return config, ResticWrapper(config)
+
 
 # ============================================================================
 # Action implementations
@@ -48,6 +63,7 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
             "diff": "Compare snapshots. Params: snapshot_id (required), compare_to (default: latest)",
             "check": "Verify repository integrity",
             "forget": "Remove snapshot. Params: snapshot_id (required), prune (bool)",
+            "forget_policy": "Apply retention policy and prune. Uses config retention.* settings",
             "prune": "Compact repository (reclaim space)",
             "config": "Get/set configuration. Params: key, value, get_all",
             "status": "Check setup status (binary, repo, config)",
@@ -59,8 +75,7 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
 
 def _action_status(**kwargs: Any) -> Dict[str, Any]:
     """Check backup system status."""
-    config = BackupConfig()
-    config.load()
+    config, _ = _get_configured_wrapper(**kwargs)
 
     # Check binary
     binary_installed = is_restic_installed()
@@ -119,11 +134,14 @@ def _action_init(
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Initialize a new Restic repository."""
+    global _cached_password
     if not password:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "password is required"}
 
     config = BackupConfig()
     config.load()
+    _cached_password = password
+    config.set_cached_password(password)
 
     # Set repo path if provided
     if repo_path:
@@ -171,19 +189,12 @@ def _action_backup(
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Create a new backup snapshot."""
-    config = BackupConfig()
-    config.load()
+    config, wrapper = _get_configured_wrapper(password=password)
 
     # Use provided source or configured source
     backup_source = source_path or config.get("backup.source_path")
     if not backup_source:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "source_path is required"}
-
-    # Cache password if provided
-    if password:
-        config.set_cached_password(password)
-
-    wrapper = ResticWrapper(config)
 
     # Generate session ID for background mode
     session_id = str(uuid.uuid4())[:8] if background else None
@@ -226,13 +237,7 @@ def _action_list(
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """List all snapshots with git-like metadata."""
-    config = BackupConfig()
-    config.load()
-
-    if password:
-        config.set_cached_password(password)
-
-    wrapper = ResticWrapper(config)
+    config, wrapper = _get_configured_wrapper(password=password)
     result = wrapper.list_snapshots(limit=limit)
 
     if not result.get("ok"):
@@ -268,13 +273,7 @@ def _action_restore(
     if not target_path:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "target_path is required"}
 
-    config = BackupConfig()
-    config.load()
-
-    if password:
-        config.set_cached_password(password)
-
-    wrapper = ResticWrapper(config)
+    config, wrapper = _get_configured_wrapper(password=password)
 
     session_id = str(uuid.uuid4())[:8] if background else None
 
@@ -317,13 +316,7 @@ def _action_diff(
     if not snapshot_id:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "snapshot_id is required"}
 
-    config = BackupConfig()
-    config.load()
-
-    if password:
-        config.set_cached_password(password)
-
-    wrapper = ResticWrapper(config)
+    config, wrapper = _get_configured_wrapper(password=password)
     result = wrapper.diff_snapshot(snapshot_id, compare_to)
 
     if not result.get("ok"):
@@ -350,13 +343,7 @@ def _action_diff(
 
 def _action_check(password: str = "", **kwargs: Any) -> Dict[str, Any]:
     """Verify repository integrity."""
-    config = BackupConfig()
-    config.load()
-
-    if password:
-        config.set_cached_password(password)
-
-    wrapper = ResticWrapper(config)
+    config, wrapper = _get_configured_wrapper(password=password)
     result = wrapper.check_integrity()
 
     if result.get("ok"):
@@ -383,13 +370,7 @@ def _action_forget(
     if not snapshot_id:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "snapshot_id is required"}
 
-    config = BackupConfig()
-    config.load()
-
-    if password:
-        config.set_cached_password(password)
-
-    wrapper = ResticWrapper(config)
+    config, wrapper = _get_configured_wrapper(password=password)
     result = wrapper.forget_snapshot(snapshot_id, prune=prune)
 
     if result.get("ok"):
@@ -407,13 +388,7 @@ def _action_forget(
 
 def _action_prune(password: str = "", **kwargs: Any) -> Dict[str, Any]:
     """Compact repository to reclaim space."""
-    config = BackupConfig()
-    config.load()
-
-    if password:
-        config.set_cached_password(password)
-
-    wrapper = ResticWrapper(config)
+    config, wrapper = _get_configured_wrapper(password=password)
     result = wrapper.prune_repository()
 
     if result.get("ok"):
@@ -437,8 +412,7 @@ def _action_config(
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Get or set configuration values."""
-    config = BackupConfig()
-    config.load()
+    config, _ = _get_configured_wrapper(**kwargs)
 
     # Get all config
     if get_all:
@@ -475,6 +449,34 @@ def _action_config(
     return {"ok": False, "error_code": "INVALID_PARAMS", "message": "Provide key, or get_all=True"}
 
 
+def _action_forget_policy(password: str = "", **kwargs: Any) -> Dict[str, Any]:
+    """Remove old snapshots based on retention policy."""
+    config, wrapper = _get_configured_wrapper(password=password)
+
+    retention = {
+        "keep_last": config.get("retention.keep_last", 30),
+        "keep_daily": config.get("retention.keep_daily", 7),
+        "keep_weekly": config.get("retention.keep_weekly", 4),
+        "keep_monthly": config.get("retention.keep_monthly", 6),
+    }
+
+    result = wrapper.forget_by_policy(retention, prune=True)
+
+    if result.get("ok"):
+        return {
+            "ok": True,
+            "message": "Retention policy applied",
+            "retention": retention,
+            "output": result.get("output"),
+        }
+    else:
+        return {
+            "ok": False,
+            "error_code": "FORGET_POLICY_FAILED",
+            "message": result.get("error"),
+        }
+
+
 # ============================================================================
 # Routed tool
 # ============================================================================
@@ -490,6 +492,7 @@ ACTION_HANDLERS = {
     "diff": _action_diff,
     "check": _action_check,
     "forget": _action_forget,
+    "forget_policy": _action_forget_policy,
     "prune": _action_prune,
     "config": _action_config,
 }
@@ -523,7 +526,7 @@ def k_backup(
 ) -> Dict[str, Any]:
     """Kuroryuu Restic Backup Manager.
 
-    Routed tool with actions: help, status, init, backup, list, restore, diff, check, forget, prune, config
+    Routed tool with actions: help, status, init, backup, list, restore, diff, check, forget, forget_policy, prune, config
 
     Args:
         action: Action to perform (required)
@@ -597,14 +600,14 @@ def register_backup_tools(registry: "ToolRegistry") -> None:
         name="k_backup",
         description=(
             "Restic backup management with git-like snapshots. "
-            "Actions: help, status, init, backup, list, restore, diff, check, forget, prune, config"
+            "Actions: help, status, init, backup, list, restore, diff, check, forget, forget_policy, prune, config"
         ),
         input_schema={
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["help", "status", "init", "backup", "list", "restore", "diff", "check", "forget", "prune", "config"],
+                    "enum": ["help", "status", "init", "backup", "list", "restore", "diff", "check", "forget", "forget_policy", "prune", "config"],
                     "description": "Action to perform",
                 },
                 "password": {

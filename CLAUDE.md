@@ -67,9 +67,9 @@ Check freshness first: `k_rag(action="status")`, `k_repo_intel(action="status")`
 Kuroryuu Dependency's Mapping Ref:
 'Docs\reviews\kuroryuu-dep-map-2026-02-07.md'
 
-## Agent-Initiated TTS (k_tts)
+## Agent-Initiated TTS (k_tts) (HARD RULE)
 
-Use `k_tts` to speak to Ryan when completing work, announcing results, or needing attention.
+**When Ryan says "use TTS", "speak", "say it", "announce", or any variation requesting voice output — ALWAYS use `k_tts`.** This is the canonical TTS workflow. No other method.
 
 ```
 k_tts(action="speak", text="Build complete, all tests passing.")

@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLMStudioChatStore, type ChatMessage, type ToolCallData, type ImageAttachment } from '../../stores/lmstudio-chat-store';
+import { useAssistantChatStore, type ChatMessage, type ToolCallData, type ImageAttachment } from '../../stores/assistant-store';
 import type { RichCard } from '../../types/insights';
 import { chatLock, type AssistantViewType } from '../../utils/cross-window-lock';
 import { useCodeEditorStore } from '../../stores/code-editor-store';
@@ -347,7 +347,7 @@ function MessageBubble({
 // Token usage bar
 // ============================================================================
 function TokenUsageBar() {
-  const { contextInfo } = useLMStudioChatStore();
+  const { contextInfo } = useAssistantChatStore();
 
   if (contextInfo.usedTokens === 0) return null;
 
@@ -610,6 +610,7 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
     includeContext,
     availableTools,
     toolsLoading,
+    contextInfo,
     testConnection,
     loadModels,
     loadTools,
@@ -622,7 +623,10 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
     setIncludeContext,
     toggleConversationList,
     createNewConversation,
-  } = useLMStudioChatStore();
+    ptySessionId,
+    setPtySessionId,
+    sendMessageViaPty,
+  } = useAssistantChatStore();
 
   // TTS hook
   const { speak, stop, isSpeaking, speakingMessageId } = useTTS();
@@ -667,29 +671,11 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   const [showSidebar, setShowSidebar] = useState(isFullscreen); // Expanded by default in fullscreen
   const [sidebarView, setSidebarView] = useState<'conversations' | 'files' | 'terminal'>('conversations');
 
-  // PTY session state for Terminal tab (Claude CLI PTY integration)
-  const [ptySessionId, setPtySessionId] = useState<string | null>(() => {
-    // Restore from localStorage if available
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('insights-pty-session');
-    }
-    return null;
-  });
-
-  // Persist PTY session ID to localStorage when it changes
-  useEffect(() => {
-    if (ptySessionId) {
-      localStorage.setItem('insights-pty-session', ptySessionId);
-    }
-  }, [ptySessionId]);
-
   // Handler for when terminal panel creates/connects to a PTY
   const handlePtyReady = useCallback((ptyId: string, sessionId?: string) => {
     console.log('[AssistantPanel] PTY ready:', { ptyId, sessionId });
     setPtySessionId(ptyId);
-    // Also sync to the chat store for message sending
-    useLMStudioChatStore.getState().setPtySessionId(ptyId);
-  }, []);
+  }, [setPtySessionId]);
 
   // Slash command menu state
   const [showSlashMenu, setShowSlashMenu] = useState(false);
@@ -791,6 +777,14 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
     }
   }, [isFullscreen, isPanelOpen]);
 
+  // Context usage warning at 70%
+  const contextPercentage = contextInfo?.percentage || 0;
+  useEffect(() => {
+    if (contextPercentage >= 0.7 && contextPercentage < 0.85) {
+      toast.warning('Context getting full. Use /compact to save context.');
+    }
+  }, [contextPercentage]);
+
   const handleConnect = async () => {
     setIsConnecting(true);
     await testConnection();
@@ -851,9 +845,6 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
   // Get provider info
   const currentProviderInfo = PROVIDERS.find(p => p.id === domainConfig.provider);
   const isProviderHealthy = providerHealth[domainConfig.provider] ?? false;
-
-  // Get PTY-related state from store
-  const { sendMessageViaPty, setPtySessionId: storePtySessionId } = useLMStudioChatStore();
 
   // Check if current provider is PTY-based
   const isPtyProvider = domainConfig.provider === 'claude-cli-pty';
@@ -975,10 +966,10 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
 
       // Context Management
       case '/context': {
-        const tokenCount = messages.reduce((acc, m) => acc + (m.content?.length || 0) / 4, 0);
-        const maxTokens = 128000;
-        const percent = Math.round((tokenCount / maxTokens) * 100);
-        toast.info(`Context: ~${Math.round(tokenCount)} / ${maxTokens} tokens (${percent}%)`);
+        const { contextInfo } = useAssistantChatStore.getState();
+        const tokenCount = contextInfo.usedTokens || messages.reduce((acc, m) => acc + (m.content?.length || 0) / 4, 0);
+        const percent = Math.round((tokenCount / contextInfo.maxTokens) * 100);
+        toast.info(`Context: ~${Math.round(tokenCount)} / ${contextInfo.maxTokens.toLocaleString()} tokens (${percent}%)`);
         setInput('');
         break;
       }
@@ -987,7 +978,14 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
         if (messages.length < 5) {
           toast.info('History too short to compact');
         } else {
-          toast.info('Compacting not yet implemented');
+          toast.info('Compacting conversation...');
+          useAssistantChatStore.getState().compactHistory()
+            .then((count) => {
+              if (count) toast.success(`Compacted ${count} messages into summary`);
+            })
+            .catch((err) => {
+              toast.error(`Compact failed: ${err.message}`);
+            });
         }
         setInput('');
         break;
@@ -1033,14 +1031,21 @@ export function KuroryuuDesktopAssistantPanel({ mode = 'panel', onClose }: Assis
       }
 
       case '/hooks':
-        toast.info('Hook configuration coming soon');
+        toast.info('Hooks config: ai/hooks.json — View in Settings or edit directly');
         setInput('');
         break;
 
-      case '/memory':
-        toast.info('Memory files coming soon');
+      case '/memory': {
+        const memoryInfo = [
+          'Memory locations:',
+          '• CLAUDE.md (project root)',
+          '• ai/identity/memory.md (Ash)',
+          '• ~/.claude/projects/*/memory/ (auto)',
+        ].join('\n');
+        toast.info(memoryInfo, { duration: 5000 });
         setInput('');
         break;
+      }
 
       // Default: insert command text
       default:

@@ -131,6 +131,46 @@ function deriveEventTypeStats(events: HookEvent[]): Record<string, number> {
   return counts;
 }
 
+/**
+ * Shared selector: filter events by filters and search query
+ * Used by EventTimeline and ObservabilityVisualTimeline
+ */
+export function selectFilteredEvents(state: ObservabilityState): HookEvent[] {
+  let result = state.events;
+  if (state.filters.sourceApp) {
+    result = result.filter((e) => e.source_app === state.filters.sourceApp);
+  }
+  if (state.filters.sessionId) {
+    result = result.filter((e) => e.session_id === state.filters.sessionId);
+  }
+  if (state.filters.eventType) {
+    result = result.filter((e) => e.hook_event_type === state.filters.eventType);
+  }
+  if (state.filters.toolName) {
+    result = result.filter((e) => e.tool_name?.includes(state.filters.toolName));
+  }
+  if (state.searchQuery) {
+    const q = state.searchQuery.toLowerCase();
+    try {
+      const regex = new RegExp(state.searchQuery, 'i');
+      result = result.filter(
+        (e) =>
+          regex.test(e.hook_event_type) ||
+          regex.test(e.tool_name || '') ||
+          regex.test(JSON.stringify(e.payload))
+      );
+    } catch {
+      result = result.filter(
+        (e) =>
+          e.hook_event_type.toLowerCase().includes(q) ||
+          (e.tool_name || '').toLowerCase().includes(q) ||
+          JSON.stringify(e.payload).toLowerCase().includes(q)
+      );
+    }
+  }
+  return result;
+}
+
 export const useObservabilityStore = create<ObservabilityState>((set, get) => ({
   events: [],
   isConnected: false,

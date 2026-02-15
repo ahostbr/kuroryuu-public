@@ -162,7 +162,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
               textTransform: 'uppercase',
             }}>
-              {'\u25C8'} Kuroryuu GenUI Engine {'\u25C8'}
+              {imperialMode ? '\u25C8 Kuroryuu GenUI Engine \u25C8' : 'GenUI Engine'}
             </span>
             <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, color-mix(in srgb, var(--g-accent) 40%, transparent), transparent)' }} />
           </div>
@@ -176,7 +176,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               textShadow: 'none',
-              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontFamily: imperialMode ? "Georgia, 'Times New Roman', serif" : "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             }}
           >
             Generative UI
@@ -188,7 +188,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
             color: 'color-mix(in srgb, var(--g-accent) 45%, transparent)',
             textTransform: 'uppercase',
           }}>
-            Transform Markdown into Imperial Dashboards
+            {imperialMode ? 'Transform Markdown into Imperial Dashboards' : 'Transform Markdown into Interactive Dashboards'}
           </p>
 
           {/* Theme toggle button */}

@@ -19,10 +19,11 @@ import { AgentsEmptyState } from './AgentsEmptyState';
 import { AgentsTab } from '../command-center/tabs/AgentsTab';
 import { SpawnAgentDialog } from './SpawnAgentDialog';
 import { AssistantPanel } from '../personal-assistant';
+import { CLIAgentsPanel } from './CLIAgentsPanel';
 import { toast } from '../ui/toast';
 import type { SDKAgentConfig } from '../../types/sdk-agent';
 
-type ViewTab = 'sessions' | 'flow' | 'terminal-agents' | 'assistant';
+type ViewTab = 'sessions' | 'flow' | 'terminal-agents' | 'cli-agents' | 'assistant';
 type DetailTab = 'terminal' | 'messages';
 
 export function KuroryuuAgents() {
@@ -308,6 +309,17 @@ export function KuroryuuAgents() {
               Terminal Agents
             </button>
             <button
+              onClick={() => setActiveTab('cli-agents')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                activeTab === 'cli-agents'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+              }`}
+            >
+              <TerminalSquare className="w-3.5 h-3.5" />
+              CLI Agents
+            </button>
+            <button
               onClick={() => {
                 setActiveTab('assistant');
                 clearNewActionCount();
@@ -403,6 +415,10 @@ export function KuroryuuAgents() {
       ) : activeTab === 'terminal-agents' ? (
         <div className="flex-1 overflow-hidden">
           <AgentsTab />
+        </div>
+      ) : activeTab === 'cli-agents' ? (
+        <div className="flex-1 overflow-hidden">
+          <CLIAgentsPanel />
         </div>
       ) : activeTab === 'sessions' ? (
         <div className="flex-1 flex overflow-hidden">

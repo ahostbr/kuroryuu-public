@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { ActivityLogEntry } from '../../types/genui';
+import { useSettingsStore } from '../../stores/settings-store';
 
 interface GenUILoadingProps {
   progress: number;
@@ -22,6 +23,7 @@ export function GenUILoading({
   componentCount,
   onCancel
 }: GenUILoadingProps) {
+  const imperialMode = useSettingsStore((s) => s.appSettings.genuiImperialMode);
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,9 +67,9 @@ export function GenUILoading({
             fontWeight: 700,
             letterSpacing: '0.08em',
             color: 'color-mix(in srgb, var(--g-fg) 90%, transparent)',
-            fontFamily: "Georgia, 'Times New Roman', serif",
+            fontFamily: imperialMode ? "Georgia, 'Times New Roman', serif" : "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
           }}>
-            Forging Dashboard
+            {imperialMode ? 'Forging Dashboard' : 'Creating Dashboard'}
           </h2>
           <p style={{
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
@@ -76,7 +78,7 @@ export function GenUILoading({
             color: 'color-mix(in srgb, var(--g-muted) 50%, transparent)',
             textTransform: 'uppercase',
           }}>
-            The imperial engine is processing your content
+            {imperialMode ? 'The imperial engine is processing your content' : 'Processing your content...'}
           </p>
         </div>
 
@@ -254,7 +256,7 @@ export function GenUILoading({
             textTransform: 'uppercase',
             marginBottom: '8px',
           }}>
-            Components Forged
+            {imperialMode ? 'Components Forged' : 'Components Created'}
           </div>
           <div style={{
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",

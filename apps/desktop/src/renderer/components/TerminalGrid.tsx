@@ -20,6 +20,7 @@ import { useSettings, type MicSettings } from '../hooks/useSettings';
 // Layout settings type (for persistence)
 type LayoutSettings = { gridLayout: 'auto' | '2x2' | '3x3'; layoutMode: 'grid' | 'splitter' | 'window'; };
 import { useIsThemedStyle } from '../hooks/useTheme';
+import { buildCliConfig as buildCliConfigFromAgent, getTerminalCwd as resolveTerminalCwd } from '../utils/build-cli-config';
 import { fileLogger } from '../utils/file-logger';
 import { toast } from './ui/toast';
 import { useKuroryuuDialog } from '../hooks/useKuroryuuDialog';
@@ -963,112 +964,31 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
   }, []);
 
   // Build CLI config from AgentConfig for PTY spawn
-  // Returns { cmd, args, env } - env always includes agent identity even for shell
-  const buildCliConfig = useCallback((terminalAgentId: string | undefined, terminal?: TerminalInstance): { cmd?: string; args?: string[]; env: Record<string, string> } | undefined => {
-    if (!terminalAgentId) {
-      return undefined;
-    }
+  // Delegates to shared utility — returns { cmd, args, env }
+  const buildCliConfig = useCallback((terminalAgentId: string | undefined, terminal?: TerminalInstance) => {
+    if (!terminalAgentId) return undefined;
 
     // PRIORITY 1: Use agentConfig from terminal instance (avoids race condition)
     // PRIORITY 2: Fall back to store lookup
-    let agentConfig = terminal?.agentConfig;
+    const agentConfig = terminal?.agentConfig
+      || (terminalAgentId === leaderAgent?.id ? leaderAgent : workerAgents.find(w => w.id === terminalAgentId));
 
-    if (!agentConfig) {
-      // Find the AgentConfig (from agent-config-store, not agent-store)
-      agentConfig = terminalAgentId === leaderAgent?.id
-        ? leaderAgent
-        : workerAgents.find(w => w.id === terminalAgentId);
-    }
-
-    // Build agent identity environment variables (always included)
-    const agentEnv: Record<string, string> = {
+    return buildCliConfigFromAgent(agentConfig) || { env: {
       KURORYUU_AGENT_ID: terminalAgentId,
-      KURORYUU_AGENT_NAME: agentConfig?.name || 'Unknown',
-      KURORYUU_AGENT_ROLE: agentConfig?.role || 'worker',
-    };
-
-    // If no CLI provider or shell mode, return just the env (no cmd/args)
-    if (!agentConfig?.cliProvider || agentConfig.cliProvider === 'shell') {
-      return { env: agentEnv };
-    }
-
-    const cmd = agentConfig.cliPath || agentConfig.cliProvider;
-    const args: string[] = [];
-
-    if (agentConfig.cliProvider === 'claude') {
-      // Thinker/Specialist: use their specific @ files, not the standard worker bootstrap
-      if (agentConfig.thinkerBasePath || agentConfig.thinkerPersonaPath || agentConfig.specialistPromptPath) {
-        // Thinker @ files
-        if (agentConfig.thinkerBasePath) {
-          args.push(`@${agentConfig.thinkerBasePath}`);
-        }
-        if (agentConfig.thinkerPersonaPath) {
-          args.push(`@${agentConfig.thinkerPersonaPath}`);
-        }
-        // Specialist @ file
-        if (agentConfig.specialistPromptPath) {
-          args.push(`@${agentConfig.specialistPromptPath}`);
-        }
-      } else {
-        // Standard worker/leader: use bootstrap file OR Ralph files
-        const isLeader = agentConfig.role === 'leader';
-
-        // Ralph mode: ONLY load Ralph files (skip KURORYUU_LEADER.md)
-        if (isLeader && agentConfig.ralphMode) {
-          args.push('@ai/prompts/ralph/ralph_prime.md');
-          args.push('@ai/prompts/ralph/ralph_loop.md');
-          args.push('@ai/prompts/ralph/ralph_intervention.md');
-        } else {
-          // Normal mode: use bootstrap file
-          const bootstrapFile = isLeader ? 'KURORYUU_LEADER.md' : 'KURORYUU_WORKER.md';
-          args.push(`@${bootstrapFile}`);
-        }
-      }
-
-      // Add any additional @files from wizard
-      if (agentConfig.atFiles?.length) {
-        agentConfig.atFiles.forEach(f => args.push(f.startsWith('@') ? f : `@${f}`));
-      }
-    }
-
-    // Kiro and kuroryuu have their own args but no system prompt support
-    if (agentConfig.cliProvider === 'kuroryuu') {
-      args.push('--role', 'worker');
-    }
-
-    return { cmd, args, env: agentEnv };
+      KURORYUU_AGENT_NAME: 'Unknown',
+      KURORYUU_AGENT_ROLE: 'worker',
+    } };
   }, [leaderAgent, workerAgents]);
 
-  // Get terminal working directory based on worktree mode
-  // Returns worktree path if configured, otherwise projectRoot
+  // Get terminal working directory — delegates to shared utility
   const getTerminalCwd = useCallback((terminalAgentId: string | undefined): string => {
-    if (!terminalAgentId) {
-      return projectRoot;
-    }
+    if (!terminalAgentId) return projectRoot;
 
-    // Find the AgentConfig
     const agentConfig = terminalAgentId === leaderAgent?.id
       ? leaderAgent
       : workerAgents.find(w => w.id === terminalAgentId);
 
-    if (!agentConfig?.worktreeMode) {
-      // No worktree mode = default to main project directory
-      return projectRoot;
-    }
-
-    if (agentConfig.worktreeMode === 'shared' && agentConfig.worktreePath) {
-      // Shared mode: use the configured worktree path
-      return agentConfig.worktreePath;
-    }
-
-    // Per-worker mode: TODO - create worktree on demand
-    // For now, fall back to projectRoot (worktree creation will be added later)
-    if (agentConfig.worktreeMode === 'per-worker') {
-      console.warn('[TerminalGrid] Per-worker worktree mode not yet implemented, using projectRoot');
-      return projectRoot;
-    }
-
-    return projectRoot;
+    return resolveTerminalCwd(agentConfig, projectRoot);
   }, [projectRoot, leaderAgent, workerAgents]);
 
   // Get status color

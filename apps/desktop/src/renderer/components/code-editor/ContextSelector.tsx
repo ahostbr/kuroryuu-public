@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useMemo, memo } from 'react';
-import { useLMStudioChatStore } from '../../stores/lmstudio-chat-store';
+import { useAssistantChatStore } from '../../stores/assistant-store';
 import { useCodeEditorStore } from '../../stores/code-editor-store';
 import {
   FileCode,
@@ -150,7 +150,7 @@ function TokenDisplay({
 export const ContextSelector = memo(function ContextSelector({
   onContextChange,
 }: ContextSelectorProps) {
-  const { editorContext, includeContext, setIncludeContext } = useLMStudioChatStore();
+  const { editorContext, includeContext, setIncludeContext } = useAssistantChatStore();
   const { changedFiles } = useCodeEditorStore();
 
   const [isExpanded, setIsExpanded] = useState(false);

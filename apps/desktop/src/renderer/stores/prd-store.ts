@@ -74,6 +74,7 @@ interface PRDStore {
   selectPRD: (id: string | null) => void;
   addPRD: (prd: Omit<PRD, 'id' | 'created_at' | 'updated_at'>) => string;
   updatePRD: (id: string, updates: Partial<PRD>) => void;
+  updatePRDContent: (id: string, content: string) => void;
   dismissPRD: (id: string) => void;
   dismissAll: () => void;
 
@@ -174,6 +175,29 @@ export const usePRDStore = create<PRDStore>()(
 
   updatePRDStatus: (id: string, status: PRDStatus) => {
     get().updatePRD(id, { status });
+  },
+
+  updatePRDContent: async (id: string, content: string) => {
+    // Update local state immediately
+    get().updatePRD(id, { content });
+
+    // Persist to Gateway
+    try {
+      const res = await fetch(`http://127.0.0.1:8200/v1/prd/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      const result = await res.json();
+
+      if (!result.ok) {
+        console.error('Failed to update PRD content:', result.error);
+        toast.error('Failed to save PRD content');
+      }
+    } catch (error) {
+      console.error('Error updating PRD content:', error);
+      toast.error('Failed to save PRD content');
+    }
   },
 
   dismissPRD: (id) => {
@@ -408,12 +432,11 @@ export const usePRDStore = create<PRDStore>()(
   loadSessions: async () => {
     set({ isLoadingSessions: true });
     try {
-      // TODO: Implement API call when backend is ready
-      // const result = await gatewayClient.prd.listSessions();
-      // if (result.ok && result.data) {
-      //   set({ sessions: result.data });
-      // }
-      set({ sessions: [] });
+      const res = await fetch('http://127.0.0.1:8200/v1/prd/sessions');
+      const result = await res.json();
+      if (result.ok && result.sessions) {
+        set({ sessions: result.sessions });
+      }
     } catch (e) {
       console.error('Failed to load PRD sessions:', e);
     } finally {
@@ -425,17 +448,22 @@ export const usePRDStore = create<PRDStore>()(
     const { prds } = get();
 
     try {
-      // TODO: Implement API call when backend is ready
-      // const result = await gatewayClient.prd.saveSession(name, description, prds);
-      // if (result.ok && result.data) {
-      //   set({ currentSessionId: result.data.session_id });
-      //   get().loadSessions();
-      //   toast.success(`Session "${name}" saved successfully`);
-      //   return result.data.session_id;
-      // }
-      console.log('Save PRD session:', name, description, prds.length, 'PRDs');
-      toast.info('Session save not yet implemented (backend pending)');
-      return null;
+      const res = await fetch('http://127.0.0.1:8200/v1/prd/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, description, prds }),
+      });
+      const result = await res.json();
+
+      if (result.ok && result.session_id) {
+        set({ currentSessionId: result.session_id });
+        get().loadSessions();
+        toast.success(`Session "${name}" saved successfully`);
+        return result.session_id;
+      } else {
+        toast.error('Failed to save session');
+        return null;
+      }
     } catch (e) {
       console.error('Failed to save PRD session:', e);
       toast.error('Failed to save session');
@@ -445,19 +473,20 @@ export const usePRDStore = create<PRDStore>()(
 
   loadSession: async (sessionId: string) => {
     try {
-      // TODO: Implement API call when backend is ready
-      // const result = await gatewayClient.prd.loadSession(sessionId);
-      // if (result.ok && result.data) {
-      //   set({
-      //     prds: result.data.prds,
-      //     currentSessionId: sessionId,
-      //     isSessionManagerOpen: false,
-      //     selectedPrdId: null,
-      //   });
-      //   toast.success('Session loaded successfully');
-      // }
-      console.log('Load PRD session:', sessionId);
-      toast.info('Session load not yet implemented (backend pending)');
+      const res = await fetch(`http://127.0.0.1:8200/v1/prd/sessions/${sessionId}`);
+      const result = await res.json();
+
+      if (result.ok && result.prds) {
+        set({
+          prds: result.prds,
+          currentSessionId: sessionId,
+          isSessionManagerOpen: false,
+          selectedPrdId: null,
+        });
+        toast.success('Session loaded successfully');
+      } else {
+        toast.error('Failed to load session');
+      }
     } catch (e) {
       console.error('Failed to load PRD session:', e);
       toast.error('Failed to load session');
@@ -466,17 +495,20 @@ export const usePRDStore = create<PRDStore>()(
 
   deleteSession: async (sessionId: string) => {
     try {
-      // TODO: Implement API call when backend is ready
-      // const result = await gatewayClient.prd.deleteSession(sessionId);
-      // if (result.ok) {
-      //   if (get().currentSessionId === sessionId) {
-      //     set({ currentSessionId: null });
-      //   }
-      //   get().loadSessions();
-      //   toast.success('Session deleted successfully');
-      // }
-      console.log('Delete PRD session:', sessionId);
-      toast.info('Session delete not yet implemented (backend pending)');
+      const res = await fetch(`http://127.0.0.1:8200/v1/prd/sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
+      const result = await res.json();
+
+      if (result.ok) {
+        if (get().currentSessionId === sessionId) {
+          set({ currentSessionId: null });
+        }
+        get().loadSessions();
+        toast.success('Session deleted successfully');
+      } else {
+        toast.error('Failed to delete session');
+      }
     } catch (e) {
       console.error('Failed to delete PRD session:', e);
       toast.error('Failed to delete session');

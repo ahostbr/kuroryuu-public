@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g., 0.3.0)'
+        required: true
+      channel:
+        description: 'Release channel'
+        default: 'stable'
+        type: choice
+        options:
+          - stable
+          - beta
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: cd apps/desktop && npm ci
+      - run: cd apps/desktop && npx tsc --noEmit
+      - run: cd apps/desktop && npx vitest run
+      - run: cd apps/desktop && npm run build
+      - run: cd apps/desktop && npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        run: gh release create "v${{ inputs.version }}" --title "v${{ inputs.version }}" --generate-notes apps/desktop/dist/*.exe
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

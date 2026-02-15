@@ -269,10 +269,23 @@ export class BackupService {
    */
   async getStatus(): Promise<BackupStatus> {
     try {
-      const result = (await callBackupTool('status')) as BackupApiResponse<BackupStatus>;
+      const result = (await callBackupTool('status')) as Record<string, any>;
 
-      if (result.ok && result.data) {
-        return result.data;
+      if (result.ok) {
+        const restic = result.restic || {};
+        const repository = result.repository || {};
+        const config = result.config || {};
+        return {
+          is_configured: config.source_configured || false,
+          repository_exists: repository.exists || false,
+          repository_accessible: repository.initialized || false,
+          restic_installed: restic.installed || false,
+          restic_version: restic.version || null,
+          config_path: getConfigFilePath(),
+          binary_path: restic.path || path.join(getResticBinDir(), process.platform === 'win32' ? 'restic.exe' : 'restic'),
+          snapshot_count: 0,
+          last_backup_time: null,
+        };
       }
 
       // Return default status on error
@@ -392,23 +405,20 @@ export class BackupService {
       if (message) params.message = message;
       if (tags?.length) params.tags = tags;
 
-      const result = (await callBackupTool('backup', params)) as BackupApiResponse<{
-        session_id: string;
-        snapshot_id?: string;
-      }>;
+      const result = (await callBackupTool('backup', params)) as Record<string, any>;
 
       return {
         ok: result.ok,
-        session_id: result.data?.session_id || '',
-        snapshot_id: result.data?.snapshot_id,
-        error: result.error,
+        session_id: result.session_id || '',
+        snapshot_id: result.snapshot_id,
+        error: result.error || result.message,
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const msg = error instanceof Error ? error.message : 'Unknown error';
       return {
         ok: false,
         session_id: '',
-        error: message,
+        error: msg,
       };
     }
   }
@@ -418,15 +428,12 @@ export class BackupService {
    */
   async listSnapshots(limit = 50): Promise<ListSnapshotsResponse> {
     try {
-      const result = (await callBackupTool('list', { limit })) as BackupApiResponse<{
-        snapshots: BackupSnapshot[];
-        total_count: number;
-      }>;
+      const result = (await callBackupTool('list', { limit })) as Record<string, any>;
 
       return {
         ok: result.ok,
-        snapshots: result.data?.snapshots || [],
-        total_count: result.data?.total_count || 0,
+        snapshots: result.snapshots || [],
+        total_count: result.total_count || result.count || 0,
       };
     } catch (error) {
       console.error('[BackupService] listSnapshots failed:', error);
@@ -446,10 +453,16 @@ export class BackupService {
       const params: Record<string, unknown> = { snapshot_id: snapshotId };
       if (compareTo) params.compare_to = compareTo;
 
-      const result = (await callBackupTool('diff', params)) as BackupApiResponse<SnapshotDiff>;
+      const result = (await callBackupTool('diff', params)) as Record<string, any>;
 
-      if (result.ok && result.data) {
-        return result.data;
+      if (result.ok) {
+        return {
+          snapshot_id: result.snapshot_id,
+          compare_to: result.compare_to,
+          added: result.added || [],
+          removed: result.removed || [],
+          modified: result.modified || [],
+        };
       }
 
       return null;
@@ -472,25 +485,23 @@ export class BackupService {
         snapshot_id: snapshotId,
         target_path: targetPath,
       };
-      if (includePaths?.length) params.include_paths = includePaths;
+      if (includePaths?.length) params.include = includePaths;
 
-      const result = (await callBackupTool('restore', params)) as BackupApiResponse<{
-        restored_files: number;
-      }>;
+      const result = (await callBackupTool('restore', params)) as Record<string, any>;
 
       return {
         ok: result.ok,
-        restored_files: result.data?.restored_files || 0,
+        restored_files: result.restored_files || 0,
         target_path: targetPath,
-        error: result.error,
+        error: result.error || result.message,
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error';
+      const msg = error instanceof Error ? error.message : 'Unknown error';
       return {
         ok: false,
         restored_files: 0,
         target_path: targetPath,
-        error: message,
+        error: msg,
       };
     }
   }

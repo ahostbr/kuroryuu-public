@@ -4,7 +4,7 @@
  */
 import type { CodingAgentSession } from './coding-agents-store';
 
-const DB_NAME = 'kuroryuu-coding-agents';
+const DB_NAME = 'kuroryuu-cli-agents';
 const DB_VERSION = 1;
 const SESSIONS_STORE = 'sessions';
 

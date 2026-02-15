@@ -1,7 +1,7 @@
 /**
  * Rich Card Parsers - Shared utility for parsing MCP tool results into RichCard format
  *
- * Used by both Insights.tsx and lmstudio-chat-store.ts
+ * Used by both Insights.tsx and assistant-store.ts
  */
 
 import type {

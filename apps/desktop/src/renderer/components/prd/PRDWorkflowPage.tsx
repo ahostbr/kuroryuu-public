@@ -4,16 +4,18 @@
  * Main orchestrator for the workflow-first PRD experience.
  * Layout: [PRD Selector (left)] + [WorkflowGraph (center)] + [Node Detail Panel (right slide-in)]
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePRDStore } from '../../stores/prd-store';
 import { PRDSelector } from './PRDSelector';
 import { PRDGenerateDialog } from './PRDGenerateDialog';
 import { PRDGenerationProgress } from './PRDGenerationProgress';
 import { PRDSessionManager } from './PRDSessionManager';
+import { PRDList } from './PRDList';
 import { WorkflowGraph } from './workflow-graph/WorkflowGraph';
 import { WorkflowNodeDetailPanel } from './workflow-graph/WorkflowNodeDetailPanel';
 import type { WorkflowType, PRDStatus } from '../../types/prd';
 import { cn } from '../../lib/utils';
+import { Network, LayoutGrid } from 'lucide-react';
 
 // Status badge component
 function StatusBadge({ status }: { status: PRDStatus }) {
@@ -82,6 +84,7 @@ export function PRDWorkflowPage() {
   } = usePRDStore();
 
   const selectedPRD = prds.find(p => p.id === selectedPrdId);
+  const [viewMode, setViewMode] = useState<'graph' | 'card'>('graph');
 
   // Get executing workflow for selected PRD
   const executingWorkflow = selectedPrdId ? executingWorkflows[selectedPrdId] : undefined;
@@ -127,16 +130,64 @@ export function PRDWorkflowPage() {
       {/* Left: PRD Selector (collapsible, collapsed by default) */}
       <PRDSelector />
 
-      {/* Center: Workflow Graph (ALWAYS visible) */}
-      <div className="flex-1 relative overflow-hidden bg-background">
-        {selectedPRD && <PRDStatusHeader />}
-        <WorkflowGraph
-          prdId={selectedPRD?.id}
-          currentStatus={selectedPRD?.status}
-          onWorkflowExecute={handleNodeClick}
-          isExecuting={!!executingWorkflow}
-          executingWorkflow={executingWorkflow?.workflow || null}
-        />
+      {/* Center: Workflow Graph or Card View */}
+      <div className="flex-1 relative overflow-hidden bg-background flex flex-col">
+        {/* View Toggle Header */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b border-border bg-card/50">
+          {selectedPRD && (
+            <div className="px-6 py-2 bg-card border border-border rounded-lg shadow-sm">
+              <h2 className="text-sm font-semibold text-foreground max-w-md truncate">
+                {selectedPRD.title}
+              </h2>
+              <div className="flex items-center gap-2 mt-1">
+                <StatusBadge status={selectedPRD.status} />
+                <ScopeBadge scope={selectedPRD.scope} />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('graph')}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                viewMode === 'graph'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-foreground hover:bg-muted'
+              )}
+            >
+              <Network className="w-4 h-4" />
+              Graph View
+            </button>
+            <button
+              onClick={() => setViewMode('card')}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                viewMode === 'card'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-foreground hover:bg-muted'
+              )}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              Card View
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <div className="flex-1 overflow-hidden">
+          {viewMode === 'graph' ? (
+            <WorkflowGraph
+              prdId={selectedPRD?.id}
+              currentStatus={selectedPRD?.status}
+              onWorkflowExecute={handleNodeClick}
+              isExecuting={!!executingWorkflow}
+              executingWorkflow={executingWorkflow?.workflow || null}
+            />
+          ) : (
+            <PRDList />
+          )}
+        </div>
       </div>
 
       {/* Right: Node Detail Panel (slide-in) */}

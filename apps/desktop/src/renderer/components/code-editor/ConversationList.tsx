@@ -5,7 +5,7 @@
  */
 
 import { useState, memo } from 'react';
-import { useLMStudioChatStore, type Conversation } from '../../stores/lmstudio-chat-store';
+import { useAssistantChatStore, type Conversation } from '../../stores/assistant-store';
 import {
   Plus,
   MessageSquare,
@@ -162,7 +162,7 @@ export function ConversationList() {
     deleteConversation,
     renameConversation,
     exportConversationAsMarkdown,
-  } = useLMStudioChatStore();
+  } = useAssistantChatStore();
 
   const handleExport = (convId: string) => {
     const markdown = exportConversationAsMarkdown(convId);

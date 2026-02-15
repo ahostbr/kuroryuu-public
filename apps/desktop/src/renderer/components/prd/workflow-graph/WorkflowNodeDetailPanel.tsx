@@ -9,6 +9,7 @@ import { X, Play, MessageCircleQuestion, Clock, CheckCircle2, AlertCircle, Termi
 import { usePRDStore } from '../../../stores/prd-store';
 import { getWorkflowNodeMeta, WORKFLOW_NODE_META } from './workflow-graph-data';
 import { WorkflowErrorModal, WorkflowError } from './WorkflowErrorModal';
+import { useSpawnTerminalAgent } from '../../../hooks/useSpawnTerminalAgent';
 import { toast } from '../../ui/toast';
 import { cn } from '../../../lib/utils';
 import type { WorkflowType, PRDStatus } from '../../../types/prd';
@@ -95,6 +96,7 @@ export function WorkflowNodeDetailPanel() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [workflowError, setWorkflowError] = useState<WorkflowError | null>(null);
+  const { spawn } = useSpawnTerminalAgent();
 
   const selectedPRD = prds.find(p => p.id === selectedPrdId);
   const nodeMeta = getWorkflowNodeMeta(selectedWorkflowNode);
@@ -114,6 +116,15 @@ export function WorkflowNodeDetailPanel() {
   const handleExecute = useCallback(async () => {
     if (!selectedWorkflowNode || !selectedPRD || !workflowAvailable) return;
 
+    // Special case: execute-formula uses formula system instead of prompt
+    if (selectedWorkflowNode === 'execute-formula') {
+      const prdStore = usePRDStore.getState();
+      prdStore.executePRDWithFormula(selectedPRD.id);
+      closeNodeDetailPanel();
+      setIsExecuting(false);
+      return;
+    }
+
     // Get the prompt config for this workflow
     const promptConfig = WORKFLOW_PROMPT_MAP[selectedWorkflowNode];
     if (!promptConfig) {
@@ -123,31 +134,22 @@ export function WorkflowNodeDetailPanel() {
 
     setIsExecuting(true);
     try {
-      const projectRoot = process.env.KURORYUU_PROJECT_ROOT || process.env.KURORYUU_ROOT || process.cwd();
-      const workflowId = `workflow_${selectedWorkflowNode}_${Date.now()}`;
+      const workflowLabel = nodeMeta?.label || selectedWorkflowNode;
 
-      // Create PTY with Claude CLI directly (same pattern as quizmaster)
-      const pty = await window.electronAPI.pty.create({
-        cwd: projectRoot,
-        cols: 120,
-        rows: 30,
-        cmd: 'claude',
-        args: [`@${promptConfig.path}`],
+      // Spawn via unified hook — registers in agent-config-store + Gateway heartbeat
+      const agent = await spawn({
+        name: `${workflowLabel} Workflow`,
+        promptPath: promptConfig.path,
+        capabilities: ['prd', 'workflow', selectedWorkflowNode],
         env: {
-          KURORYUU_AGENT_ID: workflowId,
-          KURORYUU_AGENT_NAME: `${nodeMeta?.label || selectedWorkflowNode} Workflow`,
-          KURORYUU_AGENT_ROLE: 'worker',
           KURORYUU_PRD_ID: selectedPRD.id,
           KURORYUU_PRD_STATUS: selectedPRD.status,
         },
-        ownerAgentId: workflowId,
-        ownerRole: 'worker',
-        label: `${nodeMeta?.label || selectedWorkflowNode} - ${selectedPRD.title}`,
       });
 
       // Track the executing workflow in store
       const prdStore = usePRDStore.getState();
-      prdStore.setExecutingWorkflow(selectedPRD.id, selectedWorkflowNode, pty.id);
+      prdStore.setExecutingWorkflow(selectedPRD.id, selectedWorkflowNode, agent.ptyId);
 
       // Send minimal PRD context after Claude starts (configurable delay for testing)
       const contextDelayMs = parseInt(process.env.PRD_WORKFLOW_DELAY_MS || '3000', 10);
@@ -157,17 +159,16 @@ Status: ${selectedPRD.status}
 Scope: ${selectedPRD.scope}
 
 ${promptConfig.type === 'quizmaster' ? 'Help me plan the implementation.' : 'Execute this workflow step.'}`;
-        window.electronAPI.pty.write(pty.id, contextPrompt);
-        window.electronAPI.pty.write(pty.id, '\r');
+        window.electronAPI.pty.write(agent.ptyId, contextPrompt);
+        window.electronAPI.pty.write(agent.ptyId, '\r');
       }, contextDelayMs);
 
       // Toast with "View Terminal" action
-      toast.success(`Started ${nodeMeta?.label || selectedWorkflowNode}`, {
+      toast.success(`Started ${workflowLabel}`, {
         action: {
           label: 'View Terminal',
           onClick: () => {
-            // Navigate to terminals page
-            window.dispatchEvent(new CustomEvent('focus-terminal', { detail: { ptyId: pty.id } }));
+            window.dispatchEvent(new CustomEvent('focus-terminal', { detail: { ptyId: agent.ptyId } }));
           },
         },
       });

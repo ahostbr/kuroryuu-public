@@ -2,9 +2,9 @@
  * EventTimeline - Scrollable event list with auto-scroll
  * Renders hook events as cards with emoji, tool name, session dot, and timestamp
  */
-import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { ChevronDown, ChevronRight, Copy, ClipboardCheck } from 'lucide-react';
-import { useObservabilityStore } from '../../../stores/observability-store';
+import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import {
   HOOK_EVENT_EMOJIS,
   TOOL_EMOJIS,
@@ -153,9 +153,7 @@ function EventRow({ event, tick }: { event: HookEvent; tick: number }) {
 }
 
 export function EventTimeline() {
-  const events = useObservabilityStore((s) => s.events);
-  const filters = useObservabilityStore((s) => s.filters);
-  const searchQuery = useObservabilityStore((s) => s.searchQuery);
+  const filteredEvents = useObservabilityStore(selectFilteredEvents);
   const isPaused = useObservabilityStore((s) => s.isPaused);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAutoScroll = useRef(true);
@@ -166,43 +164,6 @@ export function EventTimeline() {
     const interval = setInterval(() => setTick((t) => t + 1), 10000);
     return () => clearInterval(interval);
   }, []);
-
-  // Filter events
-  const filteredEvents = useMemo(() => {
-    let result = events;
-    if (filters.sourceApp) {
-      result = result.filter((e) => e.source_app === filters.sourceApp);
-    }
-    if (filters.sessionId) {
-      result = result.filter((e) => e.session_id === filters.sessionId);
-    }
-    if (filters.eventType) {
-      result = result.filter((e) => e.hook_event_type === filters.eventType);
-    }
-    if (filters.toolName) {
-      result = result.filter((e) => e.tool_name?.includes(filters.toolName));
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      try {
-        const regex = new RegExp(searchQuery, 'i');
-        result = result.filter(
-          (e) =>
-            regex.test(e.hook_event_type) ||
-            regex.test(e.tool_name || '') ||
-            regex.test(JSON.stringify(e.payload))
-        );
-      } catch {
-        result = result.filter(
-          (e) =>
-            e.hook_event_type.toLowerCase().includes(q) ||
-            (e.tool_name || '').toLowerCase().includes(q) ||
-            JSON.stringify(e.payload).toLowerCase().includes(q)
-        );
-      }
-    }
-    return result;
-  }, [events, filters, searchQuery]);
 
   // Auto-scroll to top on new events
   useEffect(() => {

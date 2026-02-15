@@ -8,7 +8,7 @@
  */
 import { useMemo, useState, useCallback } from 'react';
 import { RotateCw, Palette } from 'lucide-react';
-import { useObservabilityStore } from '../../../stores/observability-store';
+import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import { eventsToTimelineData } from './observability-timeline-adapter';
 import { TimelineSVG } from '../timeline/TimelineSVG';
 import { TimelineReactFlow } from '../timeline/TimelineReactFlow';
@@ -21,52 +21,13 @@ import {
 import type { TimelineRendererProps } from '../timeline/timeline-types';
 
 export function ObservabilityVisualTimeline() {
-  const events = useObservabilityStore((s) => s.events);
-  const filters = useObservabilityStore((s) => s.filters);
-  const searchQuery = useObservabilityStore((s) => s.searchQuery);
+  const filteredEvents = useObservabilityStore(selectFilteredEvents);
   const timelineStyle = useObservabilityStore((s) => s.visualTimelineStyle);
   const colorMode = useObservabilityStore((s) => s.visualTimelineColorMode);
   const cycleStyle = useObservabilityStore((s) => s.cycleVisualTimelineStyle);
   const cycleColorMode = useObservabilityStore((s) => s.cycleVisualTimelineColorMode);
 
   const [expandedNodeId, setExpandedNodeId] = useState<string | null>(null);
-
-  // Filter events (same logic as EventTimeline)
-  const filteredEvents = useMemo(() => {
-    let result = events;
-    if (filters.sourceApp) {
-      result = result.filter((e) => e.source_app === filters.sourceApp);
-    }
-    if (filters.sessionId) {
-      result = result.filter((e) => e.session_id === filters.sessionId);
-    }
-    if (filters.eventType) {
-      result = result.filter((e) => e.hook_event_type === filters.eventType);
-    }
-    if (filters.toolName) {
-      result = result.filter((e) => e.tool_name?.includes(filters.toolName));
-    }
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      try {
-        const regex = new RegExp(searchQuery, 'i');
-        result = result.filter(
-          (e) =>
-            regex.test(e.hook_event_type) ||
-            regex.test(e.tool_name || '') ||
-            regex.test(JSON.stringify(e.payload)),
-        );
-      } catch {
-        result = result.filter(
-          (e) =>
-            e.hook_event_type.toLowerCase().includes(q) ||
-            (e.tool_name || '').toLowerCase().includes(q) ||
-            JSON.stringify(e.payload).toLowerCase().includes(q),
-        );
-      }
-    }
-    return result;
-  }, [events, filters, searchQuery]);
 
   // Adapt to timeline data
   const data = useMemo(() => eventsToTimelineData(filteredEvents), [filteredEvents]);
