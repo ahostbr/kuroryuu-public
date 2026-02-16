@@ -3,6 +3,7 @@
  * Reads theme colors at render time via CSS custom properties
  */
 import { useEffect, useRef, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import type { ObservabilityTimeRange } from '../../../types/observability';
 
@@ -36,7 +37,7 @@ function getThemeColor(el: HTMLElement, varName: string, fallback: string): stri
 }
 
 export function PulseChart() {
-  const filteredEvents = useObservabilityStore(selectFilteredEvents);
+  const filteredEvents = useObservabilityStore(useShallow(selectFilteredEvents));
   const timeRange = useObservabilityStore((s) => s.timeRange);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

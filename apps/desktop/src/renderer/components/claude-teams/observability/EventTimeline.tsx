@@ -3,6 +3,7 @@
  * Renders hook events as cards with emoji, tool name, session dot, and timestamp
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { ChevronDown, ChevronRight, Copy, ClipboardCheck } from 'lucide-react';
 import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import {
@@ -153,7 +154,7 @@ function EventRow({ event, tick }: { event: HookEvent; tick: number }) {
 }
 
 export function EventTimeline() {
-  const filteredEvents = useObservabilityStore(selectFilteredEvents);
+  const filteredEvents = useObservabilityStore(useShallow(selectFilteredEvents));
   const isPaused = useObservabilityStore((s) => s.isPaused);
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAutoScroll = useRef(true);

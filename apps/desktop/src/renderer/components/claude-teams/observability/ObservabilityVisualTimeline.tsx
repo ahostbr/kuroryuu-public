@@ -7,6 +7,7 @@
  * used by Claude Teams timeline.
  */
 import { useMemo, useState, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { RotateCw, Palette } from 'lucide-react';
 import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import { eventsToTimelineData } from './observability-timeline-adapter';
@@ -25,7 +26,7 @@ import {
 import type { TimelineRendererProps } from '../timeline/timeline-types';
 
 export function ObservabilityVisualTimeline() {
-  const filteredEvents = useObservabilityStore(selectFilteredEvents);
+  const filteredEvents = useObservabilityStore(useShallow(selectFilteredEvents));
   const timelineStyle = useObservabilityStore((s) => s.visualTimelineStyle);
   const colorMode = useObservabilityStore((s) => s.visualTimelineColorMode);
   const cycleStyle = useObservabilityStore((s) => s.cycleVisualTimelineStyle);

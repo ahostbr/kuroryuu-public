@@ -2,11 +2,12 @@
  * ToolAnalytics - Tool usage breakdown with bar chart and table
  */
 import { useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import { TOOL_EMOJIS } from '../../../types/observability';
 
 export function ToolAnalytics() {
-  const filteredEvents = useObservabilityStore(selectFilteredEvents);
+  const filteredEvents = useObservabilityStore(useShallow(selectFilteredEvents));
   const timeRange = useObservabilityStore((s) => s.timeRange);
   const setFilters = useObservabilityStore((s) => s.setFilters);
   const [sortMode, setSortMode] = useState<'count' | 'alpha'>('count');
