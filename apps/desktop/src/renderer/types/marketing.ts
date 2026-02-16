@@ -1,29 +1,16 @@
 /**
  * Marketing Page Types
- * Types for the marketing workflow: research -> positioning -> copy -> landing -> lead magnet -> SEO -> ads -> traffic
  */
 
-// 8-phase marketing workflow
-export type MarketingPhase =
+// Tool navigation IDs
+export type MarketingToolId =
   | 'research'
-  | 'positioning'
-  | 'copywriting'
-  | 'landing-page'
-  | 'lead-magnet'
-  | 'seo-content'
-  | 'ads'
-  | 'traffic';
-
-export const MARKETING_PHASES: { id: MarketingPhase; label: string }[] = [
-  { id: 'research', label: 'Research' },
-  { id: 'positioning', label: 'Positioning' },
-  { id: 'copywriting', label: 'Copywriting' },
-  { id: 'landing-page', label: 'Landing Page' },
-  { id: 'lead-magnet', label: 'Lead Magnet' },
-  { id: 'seo-content', label: 'SEO Content' },
-  { id: 'ads', label: 'Ads' },
-  { id: 'traffic', label: 'Traffic' },
-];
+  | 'scraper'
+  | 'image-gen'
+  | 'voiceover'
+  | 'music-gen'
+  | 'video-render'
+  | 'gallery';
 
 // Tool installation status (google-image-gen, claude-code-video-toolkit)
 export interface ToolStatus {
@@ -94,7 +81,7 @@ export interface MarketingSkill {
   name: string;
   description: string;
   path: string;
-  phase: MarketingPhase;
+  phase?: string;
 }
 
 // Setup wizard state

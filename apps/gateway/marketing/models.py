@@ -140,7 +140,7 @@ class AssetInfo(BaseModel):
     type: str = Field(description="Asset type: image, audio, video")
     name: str = Field(description="Human-readable name")
     path: str = Field(description="Absolute path to asset file")
-    created_at: str = Field(description="ISO 8601 timestamp")
+    createdAt: str = Field(description="ISO 8601 timestamp")
     size: int = Field(description="File size in bytes")
     metadata: dict[str, Any] = Field(default_factory=dict, description="Asset metadata (prompt, style, etc.)")
 

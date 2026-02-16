@@ -69,10 +69,9 @@ export function useSpawnTerminalAgent() {
       enabled: true,
       cliProvider: options.cliProvider || 'claude',
       claudeModeEnabled: options.claudeMode ?? (options.cliProvider || 'claude') === 'claude',
-      atFiles: [
-        ...(options.promptPath ? [options.promptPath] : []),
-        ...(options.atFiles || []),
-      ],
+      // Map promptPath to specialistPromptPath so buildCliConfig skips worker/leader bootstrap
+      specialistPromptPath: options.promptPath,
+      atFiles: options.atFiles || [],
     };
 
     // Register in agent-config-store (visible in TerminalGrid's worker list)

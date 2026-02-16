@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import type {
-  MarketingPhase,
   ToolStatus,
   ResearchResult,
   ScrapeResult,
@@ -18,17 +17,9 @@ interface MarketingStore {
   setupState: SetupState;
   setSetupComplete: (v: boolean) => void;
 
-  // View
-  showSkillsSidebar: boolean;
-  showToolsPanel: boolean;
-  toolsPanelTab: 'tools' | 'gallery';
-  layoutMode: 'grid' | 'splitter' | 'window';
-  activePhase: MarketingPhase;
-  setShowSkillsSidebar: (v: boolean) => void;
-  setShowToolsPanel: (v: boolean) => void;
-  setToolsPanelTab: (tab: 'tools' | 'gallery') => void;
-  setLayoutMode: (mode: 'grid' | 'splitter' | 'window') => void;
-  setActivePhase: (phase: MarketingPhase) => void;
+  // View (layout state now managed by TerminalWorkspace)
+  lightboxAssetId: string | null;
+  setLightboxAssetId: (id: string | null) => void;
 
   // Terminal
   terminalPtyId: string | null;
@@ -81,20 +72,9 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
   },
   setSetupComplete: (v) => set({ setupComplete: v }),
 
-  // View
-  showSkillsSidebar: true,
-  showToolsPanel: false,
-  toolsPanelTab: 'tools',
-  layoutMode: 'window',
-  activePhase: 'research',
-  setShowSkillsSidebar: (v) => set({ showSkillsSidebar: v }),
-  setShowToolsPanel: (v) => set({ showToolsPanel: v }),
-  setToolsPanelTab: (tab) => set({ toolsPanelTab: tab }),
-  setLayoutMode: (mode) => {
-    set({ layoutMode: mode });
-    window.electronAPI?.settings?.set?.('ui.marketingLayout', mode).catch(console.error);
-  },
-  setActivePhase: (phase) => set({ activePhase: phase }),
+  // View (layout state now managed by TerminalWorkspace)
+  lightboxAssetId: null,
+  setLightboxAssetId: (id) => set({ lightboxAssetId: id }),
 
   // Terminal
   terminalPtyId: null,

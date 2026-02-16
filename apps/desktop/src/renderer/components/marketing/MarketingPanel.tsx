@@ -16,6 +16,8 @@ export function MarketingPanel() {
         if (result.complete) {
           setSetupComplete(true);
           setState('workspace');
+          // Inject API keys from Integrations panel into Gateway
+          window.electronAPI.marketing.injectKeys?.().catch(console.error);
         } else {
           setState('setup');
         }
@@ -42,6 +44,8 @@ export function MarketingPanel() {
         onComplete={() => {
           setSetupComplete(true);
           setState('workspace');
+          // Inject API keys from Integrations panel into Gateway
+          window.electronAPI.marketing.injectKeys?.().catch(console.error);
         }}
       />
     );

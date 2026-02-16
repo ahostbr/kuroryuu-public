@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import pathlib
 import json
 from datetime import datetime
@@ -49,6 +50,22 @@ async def generate_image(
         yield json.dumps({
             "type": "error",
             "error": f"google-image-gen-api-starter not found at {IMAGE_GEN_DIR}. Clone it first."
+        })
+        return
+
+    # Check for API key (.env file or environment)
+    env_file = IMAGE_GEN_DIR / ".env"
+    has_env_key = env_file.exists()
+    has_os_key = bool(os.environ.get("GOOGLE_AI_API_KEY"))
+    if not has_env_key and not has_os_key:
+        yield json.dumps({
+            "type": "error",
+            "error": (
+                "GOOGLE_AI_API_KEY not configured. "
+                "Create tools/marketing/google-image-gen-api-starter/.env with: "
+                "GOOGLE_AI_API_KEY=your_key_here  "
+                "(Get key from https://aistudio.google.com/apikey)"
+            ),
         })
         return
 
@@ -104,9 +121,12 @@ async def generate_image(
 
         # Check if output file exists
         if not output_path.exists():
+            # Include stdout — main.py prints errors but exits 0
+            stdout_msg = stdout.decode().strip() if stdout else ""
             yield json.dumps({
                 "type": "error",
-                "error": f"Output file not created: {output_path}"
+                "error": f"Output file not created. Tool output: {stdout_msg}" if stdout_msg
+                    else f"Output file not created: {output_path}",
             })
             return
 

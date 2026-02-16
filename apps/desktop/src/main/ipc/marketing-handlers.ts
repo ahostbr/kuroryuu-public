@@ -6,6 +6,7 @@ import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn, execSync } from 'child_process';
+import { getApiKey as tokenGetApiKey } from '../integrations/token-store';
 
 const PROJECT_ROOT = process.env.KURORYUU_ROOT || path.resolve(__dirname, '../../../..');
 const TOOLS_DIR = path.join(PROJECT_ROOT, 'tools', 'marketing');
@@ -385,6 +386,40 @@ export function registerMarketingHandlers(): void {
       return { ok: true };
     } catch (err) {
       console.error('[Marketing] saveSetup error:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
+
+  // Inject API keys from token store into Gateway
+  ipcMain.handle('marketing:injectKeys', async () => {
+    try {
+      const keys: Record<string, string> = {};
+
+      const elKey = tokenGetApiKey('elevenlabs');
+      if (elKey) keys.ELEVENLABS_API_KEY = elKey;
+
+      const googleKey = tokenGetApiKey('google');
+      if (googleKey) keys.GOOGLE_AI_API_KEY = googleKey;
+
+      if (Object.keys(keys).length === 0) {
+        return { ok: true, injected: [] };
+      }
+
+      const res = await fetch('http://127.0.0.1:8200/v1/marketing/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys }),
+      });
+
+      if (!res.ok) {
+        return { ok: false, error: `Gateway returned ${res.status}` };
+      }
+
+      const data = await res.json();
+      console.log('[Marketing] Injected API keys into Gateway:', data.injected);
+      return { ok: true, injected: data.injected };
+    } catch (err) {
+      console.error('[Marketing] injectKeys error:', err);
       return { ok: false, error: String(err) };
     }
   });

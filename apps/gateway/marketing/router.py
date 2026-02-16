@@ -1,6 +1,7 @@
 """Marketing Router - FastAPI endpoints for Marketing module.
 
 Endpoints:
+- POST /v1/marketing/config         - Inject API keys (called by Desktop after startup)
 - POST /v1/marketing/research       - Research engine (Perplexity replacement)
 - POST /v1/marketing/scrape         - Web scraper (Firecrawl replacement)
 - GET  /v1/marketing/tools/status   - Tool installation status
@@ -17,6 +18,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
@@ -52,6 +54,34 @@ from .tool_manager import (
 logger = logging.getLogger("marketing.router")
 
 router = APIRouter(prefix="/v1/marketing", tags=["marketing"])
+
+
+# ---------------------------------------------------------------------------
+# Config / API Key Injection (called by Desktop after Gateway startup)
+# ---------------------------------------------------------------------------
+
+# Allowed env vars that can be set via this endpoint
+_ALLOWED_KEYS = {"ELEVENLABS_API_KEY", "GOOGLE_AI_API_KEY"}
+
+
+@router.post("/config")
+async def config_endpoint(body: dict[str, Any]) -> dict[str, Any]:
+    """Inject API keys from Desktop's token store into Gateway env.
+
+    Called by Desktop after Gateway health check passes.
+    Only whitelisted key names are accepted.
+
+    Body: { "keys": { "ELEVENLABS_API_KEY": "...", "GOOGLE_AI_API_KEY": "..." } }
+    """
+    keys = body.get("keys", {})
+    injected = []
+    for name, value in keys.items():
+        if name in _ALLOWED_KEYS and isinstance(value, str) and value:
+            os.environ[name] = value
+            injected.append(name)
+            logger.info(f"Injected API key: {name}")
+
+    return {"ok": True, "injected": injected}
 
 
 # ---------------------------------------------------------------------------

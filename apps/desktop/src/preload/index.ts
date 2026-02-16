@@ -2556,6 +2556,8 @@ const api = {
       ipcRenderer.invoke('marketing:getSetupState'),
     saveSetup: (state: unknown): Promise<{ ok: boolean }> =>
       ipcRenderer.invoke('marketing:saveSetup', state),
+    injectKeys: (): Promise<{ ok: boolean; injected?: string[]; error?: string }> =>
+      ipcRenderer.invoke('marketing:injectKeys'),
   },
   /**
    * LLM Apps API

@@ -180,7 +180,7 @@ def list_assets() -> list[dict[str, Any]]:
             "type": asset_type,
             "name": file_path.stem,
             "path": str(file_path),
-            "created_at": datetime.fromtimestamp(stat.st_ctime).isoformat(),
+            "createdAt": datetime.fromtimestamp(stat.st_ctime).isoformat(),
             "size": stat.st_size,
             "metadata": metadata,
         })
