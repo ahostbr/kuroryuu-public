@@ -8,6 +8,7 @@ import type {
   ActiveJob,
   SetupState,
 } from '../types/marketing';
+import { toast } from '../components/ui/toast';
 
 const GATEWAY = 'http://127.0.0.1:8200';
 
@@ -231,11 +232,7 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
             get().removeJob(jobId);
             await get().loadAssets();
             set({ imageLoading: false });
-            // Toast notification (import needed)
-            if (typeof window !== 'undefined') {
-              const { toast } = await import('../components/ui/toast');
-              toast.success('Image generated successfully!');
-            }
+            toast.success('Image generated successfully!');
             return;
           } else if (data.type === 'error') {
             get().updateJob(jobId, { status: 'error', message: data.error });
@@ -294,10 +291,7 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
             get().removeJob(jobId);
             await get().loadAssets();
             set({ voiceoverLoading: false });
-            if (typeof window !== 'undefined') {
-              const { toast } = await import('../components/ui/toast');
-              toast.success('Voiceover generated successfully!');
-            }
+            toast.success('Voiceover generated successfully!');
             return;
           } else if (data.type === 'error') {
             get().updateJob(jobId, { status: 'error', message: data.error });
@@ -356,10 +350,7 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
             get().removeJob(jobId);
             await get().loadAssets();
             set({ musicLoading: false });
-            if (typeof window !== 'undefined') {
-              const { toast } = await import('../components/ui/toast');
-              toast.success('Music generated successfully!');
-            }
+            toast.success('Music generated successfully!');
             return;
           } else if (data.type === 'error') {
             get().updateJob(jobId, { status: 'error', message: data.error });
@@ -418,10 +409,7 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
             get().removeJob(jobId);
             await get().loadAssets();
             set({ videoLoading: false });
-            if (typeof window !== 'undefined') {
-              const { toast } = await import('../components/ui/toast');
-              toast.success('Video rendered successfully!');
-            }
+            toast.success('Video rendered successfully!');
             return;
           } else if (data.type === 'error') {
             get().updateJob(jobId, { status: 'error', message: data.error });

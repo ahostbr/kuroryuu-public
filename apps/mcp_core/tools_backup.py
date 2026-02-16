@@ -12,6 +12,7 @@ Actions: help, init, backup, list, restore, diff, check, forget, prune, config
 
 from __future__ import annotations
 
+import threading
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -26,17 +27,19 @@ except ImportError:
 
 # Module-level password cache — persists across MCP calls within same process
 _cached_password: str | None = None
+_password_lock = threading.Lock()
 
 
 def _get_configured_wrapper(password: str = "", **kwargs) -> tuple:
     """Get BackupConfig + ResticWrapper with password persistence."""
     global _cached_password
-    config = BackupConfig()
-    config.load()
-    pw = password or _cached_password
-    if pw:
-        config.set_cached_password(pw)
-        _cached_password = pw
+    with _password_lock:
+        config = BackupConfig()
+        config.load()
+        pw = password or _cached_password
+        if pw:
+            config.set_cached_password(pw)
+            _cached_password = pw
     return config, ResticWrapper(config)
 
 
@@ -140,7 +143,6 @@ def _action_init(
 
     config = BackupConfig()
     config.load()
-    _cached_password = password
     config.set_cached_password(password)
 
     # Set repo path if provided
@@ -165,6 +167,9 @@ def _action_init(
     result = wrapper.init_repository(password)
 
     if result.get("ok"):
+        # Only cache password after successful init
+        with _password_lock:
+            _cached_password = password
         return {
             "ok": True,
             "message": "Repository initialized successfully",

@@ -59,6 +59,9 @@ export default function CodeEditorApp() {
   const [showAIPanel, setShowAIPanel] = useState(false);
   // Minimap toggle (T425)
   const [showMinimap, setShowMinimap] = useState(false);
+  // Cursor position for status bar
+  const [cursorLine, setCursorLine] = useState(1);
+  const [cursorCol, setCursorCol] = useState(1);
   // Track if file explorer is empty
   const [explorerIsEmpty, setExplorerIsEmpty] = useState(false);
 
@@ -387,6 +390,7 @@ export default function CodeEditorApp() {
                     key={activeFile.path}
                     content={activeFile.content}
                     onChange={handleContentChange}
+                    onCursorChange={(line, col) => { setCursorLine(line); setCursorCol(col); }}
                     onSave={handleSave}
                     onGoToDefinition={handleGoToDefinition}
                     onFindReferences={handleFindReferences}
@@ -445,7 +449,7 @@ export default function CodeEditorApp() {
             <>
               {/* Line:Col */}
               <span className="text-muted-foreground hover:text-foreground cursor-pointer">
-                Ln 1, Col 1
+                Ln {cursorLine}, Col {cursorCol}
               </span>
 
               {/* Spaces/Tabs */}

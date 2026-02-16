@@ -3,7 +3,7 @@
  * Reads theme colors at render time via CSS custom properties
  */
 import { useEffect, useRef, useMemo, useState } from 'react';
-import { useObservabilityStore } from '../../../stores/observability-store';
+import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import type { ObservabilityTimeRange } from '../../../types/observability';
 
 const TIME_RANGE_SECONDS: Record<ObservabilityTimeRange, number> = {
@@ -36,7 +36,7 @@ function getThemeColor(el: HTMLElement, varName: string, fallback: string): stri
 }
 
 export function PulseChart() {
-  const events = useObservabilityStore((s) => s.events);
+  const filteredEvents = useObservabilityStore(selectFilteredEvents);
   const timeRange = useObservabilityStore((s) => s.timeRange);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,13 +45,17 @@ export function PulseChart() {
   // Build time-series buckets with adaptive sizing
   const bucketSizeMs = getBucketSizeMs(timeRange);
   const buckets = useMemo(() => {
-    const now = Date.now();
+    if (filteredEvents.length === 0) return [];
+
+    // Derive time range from actual event timestamps instead of Date.now()
+    const timestamps = filteredEvents.map((e) => e.timestamp);
+    const maxTs = Math.max(...timestamps);
     const rangeMs = TIME_RANGE_SECONDS[timeRange] * 1000;
-    const startMs = now - rangeMs;
+    const startMs = maxTs - rangeMs;
     const numBuckets = Math.ceil(rangeMs / bucketSizeMs);
     const result = new Array(numBuckets).fill(0);
 
-    for (const event of events) {
+    for (const event of filteredEvents) {
       if (event.timestamp >= startMs) {
         const idx = Math.floor((event.timestamp - startMs) / bucketSizeMs);
         if (idx >= 0 && idx < numBuckets) {
@@ -60,7 +64,7 @@ export function PulseChart() {
       }
     }
     return result;
-  }, [events, timeRange, bucketSizeMs]);
+  }, [filteredEvents, timeRange, bucketSizeMs]);
 
   // Canvas render loop
   useEffect(() => {

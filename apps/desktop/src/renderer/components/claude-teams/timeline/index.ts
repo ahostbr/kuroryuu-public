@@ -4,6 +4,10 @@
 export { TimelineView } from './TimelineView';
 export { TimelineToolbar } from './TimelineToolbar';
 export { TimelineTaskCard } from './TimelineTaskCard';
+export { TimelineDensityRidge } from './TimelineDensityRidge';
+export { TimelineCompactStrip } from './TimelineCompactStrip';
+export { TimelineSpiralClock } from './TimelineSpiralClock';
+export { TimelineFlameStack } from './TimelineFlameStack';
 
 export type {
   TimelineStyle,
@@ -25,6 +29,7 @@ export {
   normalizeToTimeline,
   resolveNodeColor,
   computeLayout,
+  computeBuckets,
   formatDuration,
   formatTime,
   getThemeColors,
@@ -34,3 +39,5 @@ export {
   rainbowArcPoints,
   quadraticBezierPoint,
 } from './timeline-utils';
+
+export type { TimeBucket } from './timeline-utils';

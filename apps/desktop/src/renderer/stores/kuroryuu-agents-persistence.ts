@@ -2,7 +2,7 @@
  * Kuroryuu Agents Persistence - IndexedDB storage for session archival
  * Archives completed sessions so they survive app restart
  */
-const DB_NAME = 'kuroryuu-coding-agents';
+const DB_NAME = 'kuroryuu-sdk-agents';
 const DB_VERSION = 1;
 const SESSIONS_STORE = 'sessions';
 

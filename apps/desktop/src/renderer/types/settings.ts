@@ -36,7 +36,7 @@ export interface IntegrationSettings {
 }
 
 // Graphiti Observability Hub Settings
-export type GraphitiRetentionPeriod = '1h' | '24h' | '7d' | 'unlimited';
+export type GraphitiRetentionPeriod = '1h' | '24h' | '7d' | '30d' | '90d' | 'unlimited';
 
 export interface GraphitiSettings {
   enabled: boolean;              // Opt-in toggle (default: false)

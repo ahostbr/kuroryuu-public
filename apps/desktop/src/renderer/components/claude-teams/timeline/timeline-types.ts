@@ -10,13 +10,19 @@ import type { TeamMember, TeamTaskStatus } from '../../../types/claude-teams';
 // TIMELINE STYLE & COLOR MODE
 // ============================================================================
 
-export type TimelineStyle = 'svg-spine' | 'reactflow-swim' | 'echarts-dots' | 'canvas-arc';
+export type TimelineStyle =
+  | 'svg-spine' | 'reactflow-swim' | 'echarts-dots' | 'canvas-arc'
+  | 'density-ridge' | 'compact-strip' | 'spiral-clock' | 'flame-stack';
 
 export const TIMELINE_STYLES: TimelineStyle[] = [
   'svg-spine',
   'reactflow-swim',
   'echarts-dots',
   'canvas-arc',
+  'density-ridge',
+  'compact-strip',
+  'spiral-clock',
+  'flame-stack',
 ];
 
 export const TIMELINE_STYLE_LABELS: Record<TimelineStyle, string> = {
@@ -24,6 +30,10 @@ export const TIMELINE_STYLE_LABELS: Record<TimelineStyle, string> = {
   'reactflow-swim': 'Swimlane',
   'echarts-dots': 'Dot Chart',
   'canvas-arc': 'Rainbow Arc',
+  'density-ridge': 'Density Ridge',
+  'compact-strip': 'Compact Strip',
+  'spiral-clock': 'Spiral Clock',
+  'flame-stack': 'Flame Stack',
 };
 
 export type TimelineColorMode = 'status' | 'agent' | 'priority' | 'rainbow';

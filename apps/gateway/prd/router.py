@@ -14,6 +14,7 @@ from pathlib import Path
 import json
 import asyncio
 import os
+import re
 
 # Import prompt building logic
 from .prompts import build_prd_prompt
@@ -393,6 +394,8 @@ async def list_prds(status: str = "all") -> Dict[str, Any]:
 @router.get("/{prd_id}")
 async def get_prd(prd_id: str) -> Dict[str, Any]:
     """Get a specific PRD."""
+    if err := _validate_id(prd_id, "PRD ID"):
+        return err
     # Check active
     path = get_active_dir() / f"{prd_id}.md"
     if not path.exists():
@@ -415,6 +418,10 @@ class PRDUpdateRequest(BaseModel):
 @router.put("/{prd_id}")
 async def update_prd(prd_id: str, request: PRDUpdateRequest) -> Dict[str, Any]:
     """Update PRD content."""
+    if err := _validate_id(prd_id, "PRD ID"):
+        return err
+    if not request.content.strip():
+        return {"ok": False, "error": "Content cannot be empty"}
     path = get_active_dir() / f"{prd_id}.md"
     if not path.exists():
         return {"ok": False, "error": "PRD not found"}
@@ -425,6 +432,8 @@ async def update_prd(prd_id: str, request: PRDUpdateRequest) -> Dict[str, Any]:
 @router.post("/{prd_id}/archive")
 async def archive_prd(prd_id: str) -> Dict[str, Any]:
     """Archive a PRD."""
+    if err := _validate_id(prd_id, "PRD ID"):
+        return err
     source = get_active_dir() / f"{prd_id}.md"
     if not source.exists():
         return {"ok": False, "error": "PRD not found in active"}
@@ -437,6 +446,14 @@ async def archive_prd(prd_id: str) -> Dict[str, Any]:
 # ============================================================================
 # Session Management
 # ============================================================================
+_SAFE_ID_RE = re.compile(r'^[a-zA-Z0-9_\-]+$')
+
+def _validate_id(identifier: str, label: str = "ID") -> Optional[Dict[str, Any]]:
+    """Validate an identifier to prevent path traversal. Returns error dict or None if valid."""
+    if not identifier or not _SAFE_ID_RE.match(identifier):
+        return {"ok": False, "error": f"Invalid {label} format"}
+    return None
+
 def get_sessions_dir() -> Path:
     """Get sessions storage directory."""
     sessions_dir = get_prd_dir() / "sessions"
@@ -500,6 +517,8 @@ async def list_sessions() -> Dict[str, Any]:
 @router.get("/sessions/{session_id}")
 async def load_session(session_id: str) -> Dict[str, Any]:
     """Load a saved PRD session."""
+    if err := _validate_id(session_id, "session ID"):
+        return err
     try:
         session_path = get_sessions_dir() / f"{session_id}.json"
         if not session_path.exists():
@@ -515,6 +534,8 @@ async def load_session(session_id: str) -> Dict[str, Any]:
 @router.delete("/sessions/{session_id}")
 async def delete_session(session_id: str) -> Dict[str, Any]:
     """Delete a saved PRD session."""
+    if err := _validate_id(session_id, "session ID"):
+        return err
     try:
         session_path = get_sessions_dir() / f"{session_id}.json"
         if not session_path.exists():

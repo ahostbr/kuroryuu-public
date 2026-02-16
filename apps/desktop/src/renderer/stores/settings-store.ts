@@ -31,7 +31,7 @@ const isThemeId = (v: unknown): v is ThemeId => isString(v) && ['oscura-midnight
 const isUIScale = (v: unknown): v is UIScale => isNumber(v) && [0.8, 0.9, 1, 1.1, 1.2].includes(v);
 const isLanguage = (v: unknown): v is Language => isString(v) && ['en', 'ja', 'pt-BR'].includes(v);
 const isTerminalFont = (v: unknown): v is TerminalFont => isString(v) && ['JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Monaco', 'Menlo', 'Consolas'].includes(v);
-const isGraphitiRetention = (v: unknown): v is GraphitiRetentionPeriod => isString(v) && ['7d', '30d', '90d', 'forever'].includes(v);
+const isGraphitiRetention = (v: unknown): v is GraphitiRetentionPeriod => isString(v) && ['1h', '24h', '7d', '30d', '90d', 'unlimited'].includes(v);
 
 type SettingsDialog = 'app' | 'project' | 'claude-profiles' | 'model-config' | 'domain-config' | 'integrations' | 'about' | null;
 

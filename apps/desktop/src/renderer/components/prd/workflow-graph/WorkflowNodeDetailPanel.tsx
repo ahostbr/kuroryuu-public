@@ -190,54 +190,91 @@ ${promptConfig.type === 'quizmaster' ? 'Help me plan the implementation.' : 'Exe
     }
   }, [selectedWorkflowNode, selectedPRD, workflowAvailable, nodeMeta, closeNodeDetailPanel]);
 
-  // Handle quizmaster launch
+  // Handle quizmaster launch — uses unified spawn hook (Wave 3)
+  // Registers in agent-config-store + Gateway heartbeat, visible in TerminalGrid
   const handleLaunchQuizmaster = useCallback(async () => {
     if (!selectedPRD) return;
 
     try {
-      // Get quizmaster prompt path (returns relative path)
       const result = await window.electronAPI.quizmaster.getPromptPath();
       if (!result.ok || !result.promptPath) {
         toast.error('Failed to get quizmaster prompt path');
         return;
       }
 
-      const projectRoot = process.env.KURORYUU_PROJECT_ROOT || process.env.KURORYUU_ROOT || process.cwd();
-      const quizmasterId = `quizmaster_${Date.now()}`;
+      const quizmasterDelayMs = parseInt(process.env.PRD_WORKFLOW_DELAY_MS || '3000', 10);
 
-      // Create PTY with Claude CLI directly (not shell) - avoids text garbling
-      // The @ file is passed as CLI arg, not typed afterwards
-      const pty = await window.electronAPI.pty.create({
-        cwd: projectRoot,
-        cols: 120,
-        rows: 30,
-        cmd: 'claude',
-        args: [`@${result.promptPath}`],
+      const agent = await spawn({
+        name: 'Quizmaster Planning',
+        capabilities: ['prd', 'quizmaster'],
+        promptPath: result.promptPath,
         env: {
-          KURORYUU_AGENT_ID: quizmasterId,
-          KURORYUU_AGENT_NAME: 'Quizmaster Planning',
-          KURORYUU_AGENT_ROLE: 'worker',
+          KURORYUU_PRD_ID: selectedPRD.id,
         },
-        ownerAgentId: quizmasterId,
-        ownerRole: 'worker',
-        label: 'Quizmaster Planning Session'
+        onReady: (ptyId) => {
+          // Send context about the PRD after Claude starts
+          setTimeout(() => {
+            const contextPrompt = `I'm planning: ${selectedPRD.title}\n\nCurrent PRD content:\n${selectedPRD.content.substring(0, 500)}...\n\nHelp me clarify requirements.`;
+            window.electronAPI.pty.write(ptyId, contextPrompt);
+            window.electronAPI.pty.write(ptyId, '\r');
+          }, quizmasterDelayMs);
+        },
       });
 
-      // Send context about the PRD after Claude starts (configurable delay for testing)
-      const quizmasterDelayMs = parseInt(process.env.PRD_WORKFLOW_DELAY_MS || '3000', 10);
-      setTimeout(() => {
-        const contextPrompt = `I'm planning: ${selectedPRD.title}\n\nCurrent PRD content:\n${selectedPRD.content.substring(0, 500)}...\n\nHelp me clarify requirements.`;
-        window.electronAPI.pty.write(pty.id, contextPrompt);
-        window.electronAPI.pty.write(pty.id, '\r');
-      }, quizmasterDelayMs);
-
-      toast.success('Quizmaster session started - check terminal');
+      toast.success('Quizmaster session started', {
+        action: {
+          label: 'View Terminal',
+          onClick: () => {
+            window.dispatchEvent(new CustomEvent('focus-terminal', { detail: { ptyId: agent.ptyId } }));
+          },
+        },
+      });
       closeNodeDetailPanel();
     } catch (err) {
       console.error('[Quizmaster] Failed to launch:', err);
       toast.error('Failed to launch quizmaster');
     }
-  }, [selectedPRD, closeNodeDetailPanel]);
+  }, [selectedPRD, closeNodeDetailPanel, spawn]);
+
+  // ----- DEPRECATED: Raw PTY quizmaster launch (pre-Wave 3) -----
+  // KEY REVERT POINT: If useSpawnTerminalAgent causes issues with quizmaster,
+  // revert handleLaunchQuizmaster above back to this version.
+  // This bypasses agent-config-store and Gateway heartbeat but is battle-tested.
+  // const handleLaunchQuizmaster_DEPRECATED = useCallback(async () => {
+  //   if (!selectedPRD) return;
+  //   try {
+  //     const result = await window.electronAPI.quizmaster.getPromptPath();
+  //     if (!result.ok || !result.promptPath) {
+  //       toast.error('Failed to get quizmaster prompt path');
+  //       return;
+  //     }
+  //     const projectRoot = process.env.KURORYUU_PROJECT_ROOT || process.env.KURORYUU_ROOT || process.cwd();
+  //     const quizmasterId = `quizmaster_${Date.now()}`;
+  //     const pty = await window.electronAPI.pty.create({
+  //       cwd: projectRoot, cols: 120, rows: 30, cmd: 'claude',
+  //       args: [`@${result.promptPath}`],
+  //       env: {
+  //         KURORYUU_AGENT_ID: quizmasterId,
+  //         KURORYUU_AGENT_NAME: 'Quizmaster Planning',
+  //         KURORYUU_AGENT_ROLE: 'worker',
+  //       },
+  //       ownerAgentId: quizmasterId, ownerRole: 'worker',
+  //       label: 'Quizmaster Planning Session'
+  //     });
+  //     const quizmasterDelayMs = parseInt(process.env.PRD_WORKFLOW_DELAY_MS || '3000', 10);
+  //     setTimeout(() => {
+  //       const contextPrompt = `I'm planning: ${selectedPRD.title}\n\nCurrent PRD content:\n${selectedPRD.content.substring(0, 500)}...\n\nHelp me clarify requirements.`;
+  //       window.electronAPI.pty.write(pty.id, contextPrompt);
+  //       window.electronAPI.pty.write(pty.id, '\r');
+  //     }, quizmasterDelayMs);
+  //     toast.success('Quizmaster session started - check terminal');
+  //     closeNodeDetailPanel();
+  //   } catch (err) {
+  //     console.error('[Quizmaster] Failed to launch:', err);
+  //     toast.error('Failed to launch quizmaster');
+  //   }
+  // }, [selectedPRD, closeNodeDetailPanel]);
+  // ----- END DEPRECATED -----
 
   // Don't render if not open or no node selected
   if (!isNodeDetailPanelOpen || !selectedWorkflowNode || !nodeMeta) {

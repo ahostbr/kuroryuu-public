@@ -2,33 +2,14 @@
  * ToolAnalytics - Tool usage breakdown with bar chart and table
  */
 import { useMemo, useState } from 'react';
-import { useObservabilityStore } from '../../../stores/observability-store';
+import { useObservabilityStore, selectFilteredEvents } from '../../../stores/observability-store';
 import { TOOL_EMOJIS } from '../../../types/observability';
 
-const TIME_RANGE_SECONDS: Record<string, number> = {
-  '1m': 60,
-  '3m': 180,
-  '5m': 300,
-  '10m': 600,
-  '30m': 1800,
-  '1h': 3600,
-  '6h': 21600,
-  '24h': 86400,
-};
-
 export function ToolAnalytics() {
-  const events = useObservabilityStore((s) => s.events);
+  const filteredEvents = useObservabilityStore(selectFilteredEvents);
   const timeRange = useObservabilityStore((s) => s.timeRange);
   const setFilters = useObservabilityStore((s) => s.setFilters);
   const [sortMode, setSortMode] = useState<'count' | 'alpha'>('count');
-
-  // Filter events by time range
-  const filteredEvents = useMemo(() => {
-    const now = Date.now();
-    const rangeMs = TIME_RANGE_SECONDS[timeRange] * 1000;
-    const startMs = now - rangeMs;
-    return events.filter((e) => e.timestamp >= startMs);
-  }, [events, timeRange]);
 
   // Compute stats from filtered events
   const toolStats = useMemo(() => {

@@ -14,6 +14,10 @@ import { TimelineSVG } from '../timeline/TimelineSVG';
 import { TimelineReactFlow } from '../timeline/TimelineReactFlow';
 import { TimelineECharts } from '../timeline/TimelineECharts';
 import { TimelineCanvas } from '../timeline/TimelineCanvas';
+import { TimelineDensityRidge } from '../timeline/TimelineDensityRidge';
+import { TimelineCompactStrip } from '../timeline/TimelineCompactStrip';
+import { TimelineSpiralClock } from '../timeline/TimelineSpiralClock';
+import { TimelineFlameStack } from '../timeline/TimelineFlameStack';
 import {
   TIMELINE_STYLE_LABELS,
   TIMELINE_COLOR_MODE_LABELS,
@@ -56,6 +60,14 @@ export function ObservabilityVisualTimeline() {
         return <TimelineECharts {...rendererProps} />;
       case 'canvas-arc':
         return <TimelineCanvas {...rendererProps} />;
+      case 'density-ridge':
+        return <TimelineDensityRidge {...rendererProps} />;
+      case 'compact-strip':
+        return <TimelineCompactStrip {...rendererProps} />;
+      case 'spiral-clock':
+        return <TimelineSpiralClock {...rendererProps} />;
+      case 'flame-stack':
+        return <TimelineFlameStack {...rendererProps} />;
       default:
         return <TimelineSVG {...rendererProps} />;
     }

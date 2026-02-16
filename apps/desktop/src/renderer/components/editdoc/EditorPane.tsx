@@ -11,7 +11,9 @@ import { EditorState } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightActiveLine } from '@codemirror/view';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { syntaxHighlighting, defaultHighlightStyle, foldGutter, foldKeymap } from '@codemirror/language';
+import { syntaxHighlighting, defaultHighlightStyle, foldGutter, foldKeymap, bracketMatching, indentOnInput } from '@codemirror/language';
+import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search';
 import { getLanguageExtension } from './languageLoader';
 
 interface EditorPaneProps {
@@ -157,7 +159,17 @@ const kuroryuuTheme = EditorView.theme({
   },
 });
 
-// Minimap component (T425)
+// Resolve a CSS variable to a usable color string (handles HSL values, hsl(), rgb(), hex)
+function resolveCSSColor(styles: CSSStyleDeclaration, varName: string, fallback: string): string {
+  const raw = styles.getPropertyValue(varName).trim();
+  if (!raw) return fallback;
+  // Already a full color function or hex
+  if (raw.startsWith('hsl(') || raw.startsWith('rgb(') || raw.startsWith('#')) return raw;
+  // Raw HSL values like "220 13% 10%" — wrap in hsl()
+  return `hsl(${raw})`;
+}
+
+// Minimap component (T425 — rewritten with DPI scaling, ResizeObserver, drag-to-scroll)
 interface MinimapProps {
   content: string;
   viewportTop: number;
@@ -169,75 +181,132 @@ interface MinimapProps {
 function Minimap({ content, viewportTop, viewportHeight, totalLines, onScroll }: MinimapProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(300);
+  const isDraggingRef = useRef(false);
 
-  // Draw minimap
+  // Track container height with ResizeObserver
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height);
+      }
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
+
+  // Draw minimap with DPI-aware canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || containerHeight <= 0) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Resolve CSS variables from computed styles (canvas can't parse CSS vars directly)
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = 76;
+    const cssHeight = containerHeight;
+
+    // Set backing store size (sharp on HiDPI)
+    canvas.width = cssWidth * dpr;
+    canvas.height = cssHeight * dpr;
+    // Set CSS display size
+    canvas.style.width = `${cssWidth}px`;
+    canvas.style.height = `${cssHeight}px`;
+    // Scale context so drawing uses CSS pixels
+    ctx.scale(dpr, dpr);
+
+    // Resolve CSS colors robustly
     const styles = getComputedStyle(document.documentElement);
-    const cardColor = styles.getPropertyValue('--card').trim() || '0 0% 12%';
-    const mutedFgColor = styles.getPropertyValue('--muted-foreground').trim() || '0 0% 50%';
-    const primaryColor = styles.getPropertyValue('--primary').trim() || '210 100% 50%';
+    const bgColor = resolveCSSColor(styles, '--card', 'hsl(0 0% 12%)');
+    const lineColor = resolveCSSColor(styles, '--muted-foreground', 'hsl(0 0% 50%)');
+    const vpFill = resolveCSSColor(styles, '--primary', 'hsl(210 100% 50%)');
 
     const lines = content.split('\n');
-    const lineHeight = 2;
-    const width = canvas.width;
-    const height = lines.length * lineHeight;
+    // Scale line height so content fits vertically in container
+    const minLineH = 1.5;
+    const maxLineH = 3;
+    const lineHeight = Math.max(minLineH, Math.min(maxLineH, cssHeight / Math.max(lines.length, 1)));
 
-    // Set canvas height
-    canvas.height = Math.max(height, 100);
+    // Clear canvas
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, cssWidth, cssHeight);
 
-    // Clear canvas with background color
-    ctx.fillStyle = `hsl(${cardColor})`;
-    ctx.fillRect(0, 0, width, canvas.height);
-
-    // Draw lines representation
-    ctx.fillStyle = `hsl(${mutedFgColor} / 0.3)`;
+    // Draw line representations
     lines.forEach((line, i) => {
+      const y = i * lineHeight;
+      if (y > cssHeight) return; // clip beyond visible area
       const trimmed = line.trimStart();
       const indent = line.length - trimmed.length;
-      const lineWidth = Math.min(trimmed.length * 0.8, width - 4);
+      const lineWidth = Math.min(trimmed.length * 0.8, cssWidth - 4);
       if (lineWidth > 0) {
-        ctx.fillRect(2 + indent * 0.5, i * lineHeight, lineWidth, lineHeight - 0.5);
+        // Tint keywords/comments differently for slight syntax awareness
+        const opacity = trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('*') ? 0.15 : 0.35;
+        ctx.globalAlpha = opacity;
+        ctx.fillStyle = lineColor;
+        ctx.fillRect(2 + indent * 0.8, y, lineWidth, Math.max(lineHeight - 0.5, 1));
       }
     });
+    ctx.globalAlpha = 1;
 
     // Draw viewport indicator
-    const vpTop = (viewportTop / totalLines) * canvas.height;
-    const vpHeight = Math.max((viewportHeight / totalLines) * canvas.height, 20);
-    ctx.fillStyle = `hsl(${primaryColor} / 0.2)`;
-    ctx.fillRect(0, vpTop, width, vpHeight);
-    ctx.strokeStyle = `hsl(${primaryColor} / 0.5)`;
-    ctx.strokeRect(0, vpTop, width, vpHeight);
-  }, [content, viewportTop, viewportHeight, totalLines]);
+    const contentRenderHeight = lines.length * lineHeight;
+    const scale = contentRenderHeight > 0 ? Math.min(cssHeight / contentRenderHeight, 1) : 1;
+    const vpTop = viewportTop * lineHeight * scale;
+    const vpH = Math.max(viewportHeight * lineHeight * scale, 16);
+    ctx.fillStyle = vpFill;
+    ctx.globalAlpha = 0.15;
+    ctx.fillRect(0, vpTop, cssWidth, vpH);
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = vpFill;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, vpTop + 0.5, cssWidth - 1, vpH - 1);
+    ctx.globalAlpha = 1;
+  }, [content, viewportTop, viewportHeight, totalLines, containerHeight]);
 
-  // Handle click to scroll
-  const handleClick = (e: React.MouseEvent) => {
+  // Compute clicked line from mouse Y position
+  const lineFromMouseY = useCallback((clientY: number): number => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    if (!canvas) return 0;
     const rect = canvas.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const clickedLine = Math.floor((y / canvas.height) * totalLines);
-    onScroll(clickedLine);
-  };
+    const y = clientY - rect.top;
+    const ratio = y / rect.height;
+    return Math.floor(ratio * totalLines);
+  }, [totalLines]);
+
+  // Click-to-jump
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isDraggingRef.current = true;
+    onScroll(lineFromMouseY(e.clientY));
+  }, [onScroll, lineFromMouseY]);
+
+  // Drag-to-scroll
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      onScroll(lineFromMouseY(e.clientY));
+    };
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onScroll, lineFromMouseY]);
 
   return (
     <div
       ref={containerRef}
-      className="w-[80px] h-full border-l border-border bg-card/50 cursor-pointer overflow-hidden"
-      onClick={handleClick}
+      className="w-[80px] h-full border-l border-border bg-card/50 cursor-pointer overflow-hidden select-none"
+      onMouseDown={handleMouseDown}
     >
-      <canvas
-        ref={canvasRef}
-        width={76}
-        className="w-full"
-      />
+      <canvas ref={canvasRef} />
     </div>
   );
 }
@@ -359,11 +428,16 @@ export function EditorPane({
       highlightActiveLineGutter(),
       highlightActiveLine(),
       history(),
+      bracketMatching(),
+      closeBrackets(),
+      indentOnInput(),
+      highlightSelectionMatches(),
+      search(),
       getLanguageExtension(language),
       syntaxHighlighting(defaultHighlightStyle),
       oneDark,
       kuroryuuTheme,
-      keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap]),
+      keymap.of([...defaultKeymap, ...historyKeymap, ...foldKeymap, ...closeBracketsKeymap, ...searchKeymap]),
       saveKeymap,
       updateListener,
       EditorView.lineWrapping,
@@ -394,6 +468,16 @@ export function EditorPane({
     });
 
     viewRef.current = view;
+
+    // Initialize minimap viewport state from initial geometry
+    requestAnimationFrame(() => {
+      if (view.scrollDOM) {
+        const scrollTop = view.scrollDOM.scrollTop;
+        const lineH = view.defaultLineHeight || 18;
+        setViewportTop(Math.floor(scrollTop / lineH));
+        setViewportHeight(Math.ceil(view.scrollDOM.clientHeight / lineH));
+      }
+    });
 
     // Add event listeners for Go to Definition
     const editorDom = editorRef.current;

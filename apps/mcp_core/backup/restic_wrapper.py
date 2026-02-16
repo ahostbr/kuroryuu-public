@@ -451,6 +451,36 @@ class ResticWrapper:
 
         return self.run_command(args, timeout=600)
 
+    def forget_by_policy(
+        self,
+        retention: Dict[str, int],
+        prune: bool = True,
+    ) -> Dict[str, Any]:
+        """Remove old snapshots based on retention policy.
+
+        Args:
+            retention: Dict with keep_last, keep_daily, keep_weekly, keep_monthly
+            prune: Also prune after forget to reclaim space
+
+        Returns:
+            {ok, output, ...} or {ok: False, error}
+        """
+        args = ["forget"]
+
+        if retention.get("keep_last"):
+            args.extend(["--keep-last", str(retention["keep_last"])])
+        if retention.get("keep_daily"):
+            args.extend(["--keep-daily", str(retention["keep_daily"])])
+        if retention.get("keep_weekly"):
+            args.extend(["--keep-weekly", str(retention["keep_weekly"])])
+        if retention.get("keep_monthly"):
+            args.extend(["--keep-monthly", str(retention["keep_monthly"])])
+
+        if prune:
+            args.append("--prune")
+
+        return self.run_command(args, timeout=3600)
+
     def prune_repository(self) -> Dict[str, Any]:
         """Prune repository to reclaim unused space."""
         return self.run_command(["prune"], timeout=3600)

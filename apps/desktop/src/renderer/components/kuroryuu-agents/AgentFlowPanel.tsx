@@ -25,6 +25,7 @@ import { AgentFlowControls } from './AgentFlowControls';
 import { AgentsEmptyState } from './AgentsEmptyState';
 import { SpawnAgentDialog } from './SpawnAgentDialog';
 import { SdkMessageRenderer } from './SdkMessageRenderer';
+import { Terminal } from '../Terminal';
 import { SessionManagerModal } from './SessionManagerModal';
 import type { SDKAgentConfig } from '../../types/sdk-agent';
 import type { ThemeId } from '../../types/settings';
@@ -344,7 +345,16 @@ export function AgentFlowPanel(_props: AgentFlowPanelProps) {
                 </button>
               </div>
             </div>
-            <SdkMessageRenderer sessionId={selectedSession.id} />
+            {selectedSession.ptyId ? (
+              <div className="flex-1 overflow-hidden">
+                <Terminal
+                  id={selectedSession.ptyId}
+                  terminalId={`agent-flow-${selectedSession.id}`}
+                />
+              </div>
+            ) : (
+              <SdkMessageRenderer sessionId={selectedSession.id} />
+            )}
           </div>
         )}
       </div>

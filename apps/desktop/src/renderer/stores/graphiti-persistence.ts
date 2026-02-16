@@ -1,6 +1,6 @@
 /**
  * Graphiti Event Persistence - IndexedDB storage for event archival
- * Supports configurable retention periods: 1h, 24h, 7d, unlimited
+ * Supports configurable retention periods: 1h, 24h, 7d, 30d, 90d, unlimited
  */
 import type { GraphitiEvent, GraphitiRetentionPeriod } from '../types/graphiti-event';
 
@@ -17,6 +17,8 @@ const RETENTION_MS: Record<GraphitiRetentionPeriod, number> = {
   '1h': 60 * 60 * 1000,
   '24h': 24 * 60 * 60 * 1000,
   '7d': 7 * 24 * 60 * 60 * 1000,
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
   'unlimited': Infinity,
 };
 

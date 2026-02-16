@@ -185,7 +185,7 @@ export interface GraphitiMetricsSnapshot {
 // Data Retention Config
 // ============================================================================
 
-export type GraphitiRetentionPeriod = '1h' | '24h' | '7d' | 'unlimited';
+export type GraphitiRetentionPeriod = '1h' | '24h' | '7d' | '30d' | '90d' | 'unlimited';
 
 export interface GraphitiConfig {
   enabled: boolean;                     // Opt-in toggle

@@ -188,6 +188,61 @@ export function computeLayout(nodeCount: number): TimelineLayout {
 }
 
 // ============================================================================
+// TIME BUCKET AGGREGATION (for high-density renderers)
+// ============================================================================
+
+export interface TimeBucket {
+  startMs: number;
+  endMs: number;
+  nodes: TimelineNode[];
+}
+
+/**
+ * Group nodes into time buckets of `bucketMs` milliseconds.
+ * Returns sorted array of buckets (only non-empty ones).
+ */
+export function computeBuckets(nodes: TimelineNode[], bucketMs: number): TimeBucket[] {
+  if (nodes.length === 0 || bucketMs <= 0) return [];
+
+  const sorted = [...nodes].sort((a, b) => a.timestamp - b.timestamp);
+  const minTs = sorted[0].timestamp;
+  const maxTs = sorted[sorted.length - 1].timestamp;
+  const range = maxTs - minTs;
+
+  // If all events share the same timestamp, return a single bucket
+  if (range === 0) {
+    return [{ startMs: minTs, endMs: minTs + bucketMs, nodes: sorted }];
+  }
+
+  const bucketCount = Math.ceil(range / bucketMs) + 1;
+  const bucketMap = new Map<number, TimelineNode[]>();
+
+  for (const node of sorted) {
+    const idx = Math.floor((node.timestamp - minTs) / bucketMs);
+    const existing = bucketMap.get(idx);
+    if (existing) {
+      existing.push(node);
+    } else {
+      bucketMap.set(idx, [node]);
+    }
+  }
+
+  const buckets: TimeBucket[] = [];
+  for (let i = 0; i < bucketCount; i++) {
+    const nodesInBucket = bucketMap.get(i);
+    if (nodesInBucket && nodesInBucket.length > 0) {
+      buckets.push({
+        startMs: minTs + i * bucketMs,
+        endMs: minTs + (i + 1) * bucketMs,
+        nodes: nodesInBucket,
+      });
+    }
+  }
+
+  return buckets;
+}
+
+// ============================================================================
 // PATH GENERATORS (for SVG/Canvas renderers)
 // ============================================================================
 

@@ -421,7 +421,7 @@ class AgentRegistry:
                 data = json.load(f)
             
             self._leader_id = data.get("leader_id")
-            self._heartbeat_timeout = data.get("heartbeat_timeout", 1.0)
+            self._heartbeat_timeout = data.get("heartbeat_timeout", 30.0)
             
             for aid, agent_data in data.get("agents", {}).items():
                 # Parse datetime strings
