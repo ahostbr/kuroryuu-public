@@ -40,10 +40,53 @@ FOR each incomplete task in todo.md:
 
        WAIT 5s and continue monitoring
 
+  3.5. STAGE + COMMIT
+     After <promise>DONE</promise> detected AND completion file verified:
+
+     a. Verify completion file: ai/ralph/results/T{id}.done.json
+        → Read summary and files_modified from .done.json
+
+     b. Check for changes:
+        git status --porcelain
+        → If no changes: log "no changes to commit", skip to step 4
+
+     c. Capture diffstat:
+        git diff --stat
+        → Store for commit trailer
+
+     d. Build structured commit message:
+        Subject: T{id}: {summary from .done.json} (max 72 chars)
+        Body: bullet list from .done.json summary
+        Trailers: Request: {task_description} (max 100 chars)
+                  Task: T{id}
+
+     e. Stage specific files:
+        git add {files from git status --porcelain} (NEVER git add -A)
+
+     f. Commit via HEREDOC:
+        git commit -m "$(cat <<'EOF'
+        T{id}: {summary}
+
+        - {change 1}
+        - {change 2}
+
+        Request: {task_description}
+        Task: T{id}
+        EOF
+        )"
+
+     g. Capture commit hash:
+        commit_hash = git rev-parse --short HEAD
+
+     h. Update sidecar (ai/task-meta.json):
+        Write commit_hash + committed_at for this task ID
+
+     i. Update state (ai/ralph/state.json):
+        Append { task_id, commit_hash, committed_at } to git_workflow.commits
+
   4. FINALIZE TASK
      Mark task [x] in todo.md (use TaskUpdate)
-     Log to ai/ralph/activity.md
-     Verify completion file exists: ai/ralph/results/T{id}.done.json
+     Log to ai/ralph/activity.md (include commit hash)
 
   5. NEXT ITERATION
      Update ai/ralph/state.json
@@ -69,6 +112,10 @@ Send this to worker via k_pty:
 
 Execute this task. When FULLY COMPLETE:
 1. Run `/ralph_done` to signal completion
+
+**IMPORTANT: Do NOT run `git commit` or `git add`.**
+Ralph handles all commits after verification.
+Leave your changes unstaged — Ralph will review and commit them.
 
 If STUCK and need help:
 - Run `/ralph_stuck your question here`
@@ -212,6 +259,7 @@ Append to `ai/ralph/activity.md`:
 
 **Task:** {task_id}: {description}
 **Status:** {complete|stuck|blocked}
+**Commit:** {commit_hash} (or "skipped" if no changes)
 **Duration:** {duration}
 **Notes:** {any_notes}
 

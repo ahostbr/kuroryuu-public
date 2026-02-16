@@ -73,6 +73,26 @@ Read `ai/todo.md` and identify incomplete tasks in `## Claude Tasks` section.
 
 Parse format: `- [ ] T###: description @agent [worklog: pending] (created: timestamp)`
 
+### Step 4.5: Initialize Git Workflow
+
+Establish the structured commit protocol for this session.
+
+**Commit format for all tasks:**
+- Subject: `T###: imperative-mood-summary` (max 72 chars)
+- Body: bullet list of changes
+- Trailers: `Request:` (original task desc, max 100 chars) + `Task: T###`
+
+**Who commits:** Ralph commits AFTER worker signals DONE. Worker does NOT commit.
+This ensures consistent commit messages and gives Ralph control over staging.
+
+**Worker instructions:** When sending task prompts, always include:
+> "Do NOT run git commit or git add. Ralph handles all commits after verification."
+
+**Traceability:**
+- `git log --grep="Task: T085"` → find all commits for a task
+- `git log --grep="^T085:"` → quick filter by task ID prefix
+- `ai/task-meta.json` stores `commit_hash` + `committed_at` per task
+
 ### Step 5: Verify Worker Ready
 
 ```python
@@ -97,6 +117,12 @@ Create `ai/ralph/state.json`:
   "started_at": "{{timestamp}}",
   "capabilities": {
     "desktop_automation": true|false
+  },
+  "git_workflow": {
+    "commit_format": "T###: summary",
+    "committer": "ralph",
+    "auto_commit": false,
+    "commits": []
   }
 }
 ```
@@ -133,6 +159,11 @@ TASKS
 ├── Pending: {{count}}
 ├── First Task: {{task_id}}: {{description}}
 └── Source: ai/todo.md
+
+GIT WORKFLOW
+├── Commit Format: T###: summary
+├── Committer: Ralph (after DONE signal)
+└── Auto-commit: {{yes|no}}
 
 READY TO BEGIN LOOP
 ═══════════════════════════════════════════════════════════════════
