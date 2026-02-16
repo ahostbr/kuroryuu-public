@@ -287,6 +287,7 @@ ALLOWED_DOT_DIRS: Set[str] = {
 REFERENCE_DIRS: Set[str] = {
     "Docs/CaseStudies",
     "Docs/CaseStudies/REPOS",
+    "ai/exports",
 }
 
 

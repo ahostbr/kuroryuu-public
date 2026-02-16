@@ -365,10 +365,14 @@ export class BackupService {
         }
       }
 
+      // Python returns error details in "message" field (not "error"),
+      // so check both to avoid swallowing diagnostic info
+      const errorDetail = result.error || (typeof result.message === 'string' ? result.message : undefined);
+
       return {
         ok: result.ok,
-        message: result.ok ? 'Repository initialized successfully' : 'Failed to initialize repository',
-        error: result.error,
+        message: result.ok ? 'Repository initialized successfully' : (errorDetail || 'Failed to initialize repository'),
+        error: result.ok ? undefined : errorDetail,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

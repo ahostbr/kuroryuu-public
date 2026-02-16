@@ -280,6 +280,18 @@ if ($SkipPython) {
         }
     }
 
+    # Install PyTorch with CUDA support (required by sentence-transformers for k_rag semantic search)
+    Write-Host ""
+    Write-Host "  Installing PyTorch (CUDA)..." -ForegroundColor Cyan
+    Write-Host "  This is ~2.5GB and may take a few minutes on first install." -ForegroundColor DarkGray
+    $ErrorActionPreference = "Continue"
+    if ($useUv) {
+        & uv pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 --python $venvPython 2>&1
+    } else {
+        & $pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128 2>&1
+    }
+    $ErrorActionPreference = "Stop"
+
     # Install desktop app Python dependencies (voice input, audio transcription, TTS)
     Write-Host ""
     Write-Host "  Installing desktop speech/audio dependencies..." -ForegroundColor Cyan

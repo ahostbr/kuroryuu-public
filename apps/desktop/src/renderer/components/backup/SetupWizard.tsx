@@ -524,7 +524,9 @@ function InitializeStep({ onBack, config, passwordRef }: StepProps) {
 
       const initResult = await initRepository(password);
       if (!initResult) {
-        throw new Error('Failed to initialize repository');
+        // The store sets the actual error detail — use it instead of a generic message
+        const storeError = useBackupStore.getState().error;
+        throw new Error(storeError || 'Failed to initialize repository');
       }
 
       // Step 3: Save config

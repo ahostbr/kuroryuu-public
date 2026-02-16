@@ -177,12 +177,32 @@ def _action_init(
             "binary_path": binary_result.get("path"),
             "binary_version": binary_result.get("version"),
         }
-    else:
-        return {
-            "ok": False,
-            "error_code": "INIT_FAILED",
-            "message": result.get("error") or result.get("output"),
-        }
+
+    # Handle "already initialized" — previous partial setup left repo data
+    # but config never got marked as initialized
+    error_output = result.get("error") or result.get("output") or ""
+    if "already" in error_output.lower() or "config file already exists" in error_output.lower():
+        # Verify the repo is actually accessible with this password
+        check_result = wrapper.run_command(["snapshots", "--json"], password=password, timeout=30)
+        if check_result.get("ok"):
+            # Repo works — mark as initialized and succeed
+            config.set("repository.initialized", True)
+            config.set_password(password)
+            with _password_lock:
+                _cached_password = password
+            return {
+                "ok": True,
+                "message": "Repository was already initialized — verified and linked",
+                "repo_path": str(config.get_repo_path()),
+                "binary_path": binary_result.get("path"),
+                "binary_version": binary_result.get("version"),
+            }
+
+    return {
+        "ok": False,
+        "error_code": "INIT_FAILED",
+        "message": error_output,
+    }
 
 
 def _action_backup(
