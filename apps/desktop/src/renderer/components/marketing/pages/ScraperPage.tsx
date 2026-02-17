@@ -97,7 +97,7 @@ export function ScraperPage() {
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-medium text-zinc-400">{lastScrape.title}</span>
               <div className="flex items-center gap-3 text-xs text-zinc-500">
-                <span>{lastScrape.wordCount} words</span>
+                <span>{lastScrape.word_count} words</span>
                 <span>{lastScrape.mode} mode</span>
               </div>
             </div>

@@ -59,32 +59,35 @@ export function CLISpawnDialog({ isOpen, onClose }: CLISpawnDialogProps) {
 
     setIsSpawning(true);
     try {
-      // Build full command with args
-      const fullCommand = args.trim() ? `${command} ${args}` : command;
+      // Build config for Electron IPC (PTY-based terminal spawning)
+      const config = {
+        prompt: args.trim() || `Run ${command}`,
+        cwd: workdir || undefined,
+        permissionMode: 'bypassPermissions',
+        executionBackend: 'cli',
+        executionMode: pty ? 'pty' : undefined,
+        cliCommand: command.trim(),
+        cliArgs: args.trim() ? args.trim().split(/\s+/) : undefined,
+        cliType: selectedPreset.id,
+      };
 
-      // Call Gateway MCP k_bash
-      const response = await fetch('http://127.0.0.1:8200/v1/mcp/call', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tool: 'k_bash',
-          arguments: {
-            command: fullCommand,
-            workdir: workdir || undefined,
-            pty,
-            background: true,
-          },
-        }),
-      });
+      // Use Electron IPC to spawn via PTY (same path as SpawnAgentDialog)
+      const api = (window as unknown as {
+        electronAPI: { sdkAgent: {
+          start: (config: unknown) => Promise<{ ok: boolean; sessionId?: string; error?: string }>;
+        }}
+      }).electronAPI;
 
-      if (!response.ok) {
-        throw new Error(`Gateway error: ${response.status}`);
+      const result = await api.sdkAgent.start(config);
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to spawn CLI agent');
       }
 
-      const data = await response.json();
-      console.log('[CLISpawnDialog] Spawned session:', data);
+      console.log('[CLISpawnDialog] Spawned PTY session:', result.sessionId);
 
-      // Close dialog on success
+      // Close dialog — auto-navigation to Sessions tab is handled by
+      // the cli:session-spawned IPC event listener in KuroryuuAgents.tsx
       onClose();
 
       // Reset form

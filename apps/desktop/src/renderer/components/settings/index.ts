@@ -12,6 +12,7 @@ export { IntegrationsDialog } from './IntegrationsDialog';
 export { AboutDialog } from './AboutDialog';
 export { CLIProxySection } from './CLIProxySection';
 export { CLIProxyWizard } from './CLIProxyWizard';
+export { LauncherCard } from './LauncherCard';
 export { useSettingsStore } from '../../stores/settings-store';
 export { useDomainConfigStore } from '../../stores/domain-config-store';
 

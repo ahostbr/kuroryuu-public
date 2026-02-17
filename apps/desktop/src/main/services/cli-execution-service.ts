@@ -66,6 +66,27 @@ function resolveClaudePath(): string {
   return 'claude';
 }
 
+/**
+ * Resolve any CLI executable path. For Claude, delegates to resolveClaudePath().
+ * For others, uses `where` on Windows or returns the command as-is.
+ */
+function resolveCliPath(command: string): string {
+  if (command === 'claude') return resolveClaudePath();
+
+  if (process.platform === 'win32') {
+    try {
+      const result = execSync(`where ${command}`, { windowsHide: true, encoding: 'utf-8' }).trim();
+      const firstLine = result.split(/\r?\n/)[0].trim();
+      if (firstLine && existsSync(firstLine)) {
+        console.log(`[CliExec] resolveCliPath(${command}): found via 'where': ${firstLine}`);
+        return firstLine;
+      }
+    } catch { /* not in PATH */ }
+  }
+
+  return command;
+}
+
 // -------------------------------------------------------------------
 // Internal session state
 // -------------------------------------------------------------------
@@ -94,6 +115,12 @@ export interface CliAgentConfig {
   timeoutMinutes?: number;
   dangerouslySkipPermissions?: boolean;
   permissionMode?: string;
+  /** For non-Claude CLIs: the executable command (e.g., 'codex', 'aider', 'kiro') */
+  cliCommand?: string;
+  /** For non-Claude CLIs: explicit args to pass */
+  cliArgs?: string[];
+  /** CLI type identifier for tracking (e.g., 'codex', 'aider', 'kiro', 'custom') */
+  cliType?: string;
 }
 
 // -------------------------------------------------------------------
@@ -112,7 +139,7 @@ export function getCliExecutionService(): CliExecutionService {
 export class CliExecutionService {
   private sessions = new Map<string, CliInternalSession>();
   private mainWindow: BrowserWindow | null = null;
-  private maxConcurrent = 1;
+  private maxConcurrent = 5;
   private ptyManager: PtyManager | null = null;
 
   setMainWindow(window: BrowserWindow): void {
@@ -436,6 +463,160 @@ export class CliExecutionService {
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
       console.error(`[CliExec] Failed to spawn PTY for ${sessionId}:`, errMsg, { ptyCmd, ptyArgs, cwd });
+      this.markSessionDone(sessionId, 'error', errMsg);
+      return { ok: false, error: errMsg };
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Start (Generic CLI in PTY mode — for Codex, Kiro, Aider, custom commands)
+  // ---------------------------------------------------------------------------
+
+  async startGenericPty(config: CliAgentConfig): Promise<{ ok: boolean; sessionId?: string; error?: string }> {
+    if (!this.ptyManager) {
+      return { ok: false, error: 'PTY manager not available' };
+    }
+
+    // For Claude, delegate to the Claude-specific path
+    if (!config.cliCommand || config.cliCommand === 'claude') {
+      return this.startAgentPty(config);
+    }
+
+    // Check concurrent limit
+    const activeSessions = this.getActiveSessions();
+    if (activeSessions.length >= this.maxConcurrent) {
+      return {
+        ok: false,
+        error: `CLI concurrent limit reached (${this.maxConcurrent}). Stop an existing session first.`,
+      };
+    }
+
+    const cliCommand = config.cliCommand;
+
+    // Validate the CLI command exists before spawn attempt
+    if (process.platform === 'win32') {
+      try {
+        execSync(`where ${cliCommand}`, { windowsHide: true, encoding: 'utf-8' });
+      } catch {
+        return {
+          ok: false,
+          error: `CLI command '${cliCommand}' not found in PATH. Is it installed?`,
+        };
+      }
+    }
+
+    const sessionId = CLI_SESSION_PREFIX + randomUUID().slice(0, 12);
+    const cwd = config.cwd || PROJECT_ROOT;
+    const now = Date.now();
+
+    const session: SDKAgentSession = {
+      id: sessionId,
+      backend: 'cli',
+      status: 'starting',
+      prompt: config.prompt,
+      model: config.cliType || cliCommand,
+      cwd,
+      startedAt: now,
+      totalCostUsd: 0,
+      numTurns: 0,
+      usage: {
+        inputTokens: 0,
+        outputTokens: 0,
+        cacheReadInputTokens: 0,
+        cacheCreationInputTokens: 0,
+      },
+      toolCalls: [],
+      subagentCount: 0,
+    };
+
+    const internal: CliInternalSession = {
+      session,
+      process: null,
+      messages: [],
+      timeoutTimer: null,
+      stderr: '',
+    };
+
+    this.sessions.set(sessionId, internal);
+    this.emitStatusChange(sessionId, 'starting');
+
+    // Resolve the CLI path
+    const resolvedCmd = resolveCliPath(cliCommand);
+    console.log(`[CliExec] Resolved ${cliCommand} path for PTY: ${resolvedCmd}`);
+
+    // Use explicit args from config (user-provided), don't auto-build
+    const cliArgs: string[] = config.cliArgs ? [...config.cliArgs] : [];
+
+    // Windows: wrap through cmd.exe for ConPTY compatibility
+    const isWindows = process.platform === 'win32';
+    let ptyCmd: string;
+    let ptyArgs: string[];
+
+    if (isWindows) {
+      const quotedArgs = cliArgs.map(arg => {
+        if (arg.includes('@') || arg.includes(' ') || arg.includes('"')) {
+          return `"${arg.replace(/"/g, '""')}"`;
+        }
+        return arg;
+      });
+      ptyCmd = 'cmd.exe';
+      ptyArgs = ['/c', resolvedCmd, ...quotedArgs];
+      console.log(`[CliExec] Generic PTY spawn: cmd.exe /c ${resolvedCmd} ${quotedArgs.join(' ')}`);
+    } else {
+      ptyCmd = resolvedCmd;
+      ptyArgs = cliArgs;
+    }
+
+    try {
+      const ptyProcess: PtyProcess = this.ptyManager.create({
+        cmd: ptyCmd,
+        args: ptyArgs,
+        cwd,
+        env: {
+          KURORYUU_AGENT_ID: sessionId,
+          KURORYUU_AGENT_SESSION: sessionId,
+        },
+        ownerSessionId: sessionId,
+        label: `CLI: ${cliCommand} ${config.prompt.slice(0, 40)}`,
+      });
+
+      internal.ptyId = ptyProcess.id;
+      session.ptyId = ptyProcess.id;
+
+      // PTY exit handler
+      const exitHandler = ({ id, exitCode }: { id: string; exitCode: number }) => {
+        if (id !== ptyProcess.id) return;
+        this.ptyManager?.removeListener('exit', exitHandler);
+
+        const sess = this.sessions.get(sessionId);
+        if (sess && (sess.session.status === 'starting' || sess.session.status === 'running')) {
+          if (exitCode === 0) {
+            this.markSessionDone(sessionId, 'completed');
+          } else {
+            this.markSessionDone(sessionId, 'error', `PTY exited with code ${exitCode}`);
+          }
+        }
+      };
+      this.ptyManager.on('exit', exitHandler);
+
+      // Timeout
+      const timeoutMinutes = config.timeoutMinutes ?? 60;
+      if (timeoutMinutes > 0) {
+        internal.timeoutTimer = setTimeout(() => {
+          console.log(`[CliExec] Generic PTY session ${sessionId} timed out after ${timeoutMinutes}m`);
+          this.killProcess(sessionId);
+          this.markSessionDone(sessionId, 'error', `Timed out after ${timeoutMinutes} minute(s)`);
+        }, timeoutMinutes * 60 * 1000);
+      }
+
+      internal.session.status = 'running';
+      this.emitStatusChange(sessionId, 'running');
+
+      console.log(`[CliExec] Started generic PTY session ${sessionId}: ${ptyCmd} ${ptyArgs.join(' ')}`);
+      return { ok: true, sessionId };
+    } catch (err) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.error(`[CliExec] Failed to spawn generic PTY for ${sessionId}:`, errMsg, { ptyCmd, ptyArgs, cwd });
       this.markSessionDone(sessionId, 'error', errMsg);
       return { ok: false, error: errMsg };
     }

@@ -16,12 +16,16 @@ import {
   Database,
   AlertTriangle,
   Code,
+  Plug,
+  Cpu,
 } from 'lucide-react';
 import { BackupRestorePanel } from './BackupRestorePanel';
 import { FullResetDialog } from './FullResetDialog';
-import { useState } from 'react';
+import { LauncherCard } from './LauncherCard';
+import { useState, useEffect } from 'react';
 import { toast } from '../ui/toaster';
 import { useSettingsStore } from '../../stores/settings-store';
+import { useDomainConfigStore } from '../../stores/domain-config-store';
 import {
   THEMES,
   UI_SCALE_OPTIONS,
@@ -177,6 +181,7 @@ function Toggle({
 export function AppSettingsDialog() {
   const {
     activeDialog,
+    openDialog,
     closeDialog,
     appSettings,
     setTheme,
@@ -197,6 +202,8 @@ export function AppSettingsDialog() {
 
   const [isLaunchingTrayCompanion, setIsLaunchingTrayCompanion] = useState(false);
   const [showFullResetDialog, setShowFullResetDialog] = useState(false);
+  const [integrationsCount, setIntegrationsCount] = useState(0);
+  const [domainConfigSummary, setDomainConfigSummary] = useState('');
 
   const isOpen = activeDialog === 'app';
   const { isKuroryuu, isGrunge } = useIsThemedStyle();
@@ -206,6 +213,51 @@ export function AppSettingsDialog() {
     closeDialog();
   };
 
+  // Load status data when dialog opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Load integrations count
+    const loadIntegrations = async () => {
+      try {
+        const statuses = await window.electronAPI.auth.getAllStatuses();
+        const connectedCount = Object.values(statuses).filter((s: any) => s.connected).length;
+        setIntegrationsCount(connectedCount);
+      } catch (err) {
+        setIntegrationsCount(0);
+      }
+    };
+
+    // Load domain config summary
+    const loadDomainConfig = () => {
+      const store = useDomainConfigStore.getState();
+      const configs = store.configs;
+      const customizedCount = Object.values(configs).filter(
+        (c) => c.provider !== 'gateway-auto'
+      ).length;
+
+      // Find most common provider
+      const providers = Object.values(configs).map((c) => c.provider);
+      const providerCounts: Record<string, number> = {};
+      providers.forEach((p) => {
+        providerCounts[p] = (providerCounts[p] || 0) + 1;
+      });
+      const mostCommon = Object.entries(providerCounts).sort(
+        ([, a], [, b]) => b - a
+      )[0]?.[0];
+
+      const providerName = mostCommon === 'gateway-auto' ? 'Auto' : mostCommon;
+      setDomainConfigSummary(
+        customizedCount > 0
+          ? `${providerName} (${customizedCount} customized)`
+          : `${providerName} (all default)`
+      );
+    };
+
+    loadIntegrations();
+    loadDomainConfig();
+  }, [isOpen]);
+
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <Dialog.Portal>
@@ -214,7 +266,7 @@ export function AppSettingsDialog() {
           <ThemedFrame
             variant={isKuroryuu ? 'dragon' : 'grunge-square'}
             size="lg"
-            className="w-[550px] max-h-[85vh] overflow-hidden flex flex-col"
+            className="w-[900px] max-h-[85vh] overflow-hidden flex flex-col"
             contentClassName="flex-1 flex flex-col min-h-0"
           >
             {/* Header */}
@@ -234,6 +286,105 @@ export function AppSettingsDialog() {
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto min-h-0 p-4">
+            {/* Quick Access Launcher Cards */}
+            <div className="mb-6 pb-6 border-b border-border">
+              <h3 className="text-sm font-medium text-foreground mb-3">Quick Access</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {/* Integrations Card */}
+                <LauncherCard
+                  icon={Plug}
+                  title="Integrations"
+                  description="API keys and OAuth connections"
+                  status={{
+                    type: integrationsCount > 0 ? 'success' : 'info',
+                    text: `${integrationsCount} connected`,
+                  }}
+                  actionLabel="Configure"
+                  onAction={() => {
+                    closeDialog();
+                    setTimeout(() => {
+                      openDialog('integrations');
+                    }, 100);
+                  }}
+                />
+
+                {/* Domain Config Card */}
+                <LauncherCard
+                  icon={Cpu}
+                  title="Domain Config"
+                  description="Provider & model per domain"
+                  status={{
+                    type: 'info',
+                    text: domainConfigSummary || 'Loading...',
+                  }}
+                  actionLabel="Configure"
+                  onAction={() => {
+                    closeDialog();
+                    setTimeout(() => {
+                      useDomainConfigStore.getState().openDialog();
+                    }, 100);
+                  }}
+                />
+
+                {/* Tray Companion Card */}
+                <LauncherCard
+                  icon={Bot}
+                  title="Tray Companion"
+                  description="System tray integration"
+                  status={{
+                    type: appSettings.integrations?.trayCompanion?.launchOnStartup
+                      ? 'success'
+                      : 'info',
+                    text: `Launch on startup: ${
+                      appSettings.integrations?.trayCompanion?.launchOnStartup ? 'On' : 'Off'
+                    }`,
+                  }}
+                  actionLabel="Launch Now"
+                  onAction={async () => {
+                    setIsLaunchingTrayCompanion(true);
+                    try {
+                      const result = await window.electronAPI?.app?.launchTrayCompanion?.({ debug: false });
+                      if (result?.ok) {
+                        toast.success('Tray companion launched successfully');
+                      } else {
+                        toast.error(result?.error || 'Failed to launch tray companion');
+                      }
+                    } catch (err: any) {
+                      toast.error(`Error: ${err.message || 'Failed to launch tray companion'}`);
+                    } finally {
+                      setIsLaunchingTrayCompanion(false);
+                    }
+                  }}
+                >
+                  {/* Inline toggle for launch on startup */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Launch on startup</span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTrayCompanionLaunchOnStartup(
+                          !appSettings.integrations?.trayCompanion?.launchOnStartup
+                        );
+                      }}
+                      className={`relative w-9 h-5 rounded-full transition-colors ${
+                        appSettings.integrations?.trayCompanion?.launchOnStartup
+                          ? 'bg-primary'
+                          : 'bg-secondary'
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background transition-transform ${
+                          appSettings.integrations?.trayCompanion?.launchOnStartup
+                            ? 'translate-x-4'
+                            : ''
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </LauncherCard>
+              </div>
+            </div>
+
             {/* Theme */}
             <SettingSection
               icon={Palette}
@@ -365,44 +516,6 @@ export function AppSettingsDialog() {
                   label="Enable rich tool visualizations"
                 />
 {/* Show welcome & Enable animations - always on, hidden from settings */}
-              </div>
-            </SettingSection>
-
-            {/* Tray Companion */}
-            <SettingSection
-              icon={Bot}
-              title="Tray Companion"
-              description="System tray integration with TTS and voice controls"
-            >
-              <div className="space-y-3">
-                <Toggle
-                  enabled={appSettings.integrations?.trayCompanion?.launchOnStartup ?? false}
-                  onChange={setTrayCompanionLaunchOnStartup}
-                  label="Launch on startup"
-                />
-                <button
-                  onClick={async (e) => {
-                    const debug = e.shiftKey;
-                    setIsLaunchingTrayCompanion(true);
-                    try {
-                      const result = await window.electronAPI?.app?.launchTrayCompanion?.({ debug });
-                      if (result?.ok) {
-                        toast.success(debug ? 'Tray companion launched (debug mode)' : 'Tray companion launched successfully');
-                      } else {
-                        toast.error(result?.error || 'Failed to launch tray companion');
-                      }
-                    } catch (err: any) {
-                      toast.error(`Error: ${err.message || 'Failed to launch tray companion'}`);
-                    } finally {
-                      setIsLaunchingTrayCompanion(false);
-                    }
-                  }}
-                  disabled={isLaunchingTrayCompanion}
-                  title="Shift+click for debug mode (shows terminal)"
-                  className="w-full px-3 py-2 text-sm bg-primary/20 text-primary border border-primary/30 rounded-lg hover:bg-primary/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLaunchingTrayCompanion ? 'Launching...' : 'Launch Tray Companion Now'}
-                </button>
               </div>
             </SettingSection>
 

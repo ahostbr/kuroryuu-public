@@ -1,200 +1,77 @@
 /**
- * CLIAgentsPanel - Clean panel for CLI agent sessions
+ * CLIAgentsPanel - Panel for CLI agent sessions
  *
- * Shows CLI agent sessions spawned via k_bash and monitored via k_process.
- * Three sections: Running, Completed, Archived
+ * Shows CLI agent sessions spawned via Electron IPC PTY.
+ * Uses kuroryuu-agents-store (IPC events) instead of k_process polling.
+ * After spawn, auto-navigates to Sessions tab for terminal view.
  */
 import { useEffect, useState } from 'react';
 import {
   Play,
   Square,
   Archive,
-  ChevronDown,
-  ChevronRight,
   Trash2,
   Clock,
   FolderOpen,
+  ExternalLink,
   Terminal as TerminalIcon
 } from 'lucide-react';
-import { useCodingAgentsStore } from '../../stores/coding-agents-store';
-import type { CodingAgentSession } from '../../stores/coding-agents-store';
-import type { ArchivedSession } from '../../stores/coding-agents-persistence';
+import { useKuroryuuAgentsStore } from '../../stores/kuroryuu-agents-store';
 import { CLISpawnDialog } from './CLISpawnDialog';
 
 export function CLIAgentsPanel() {
   const {
     sessions,
     archivedSessions,
-    selectedSessionId,
-    selectSession,
-    killSession,
+    stopAgent,
     deleteArchived,
-    getSessionLog,
-    getArchivedLog,
-    startPolling,
-    stopPolling,
-  } = useCodingAgentsStore();
+    subscribe,
+    unsubscribe,
+  } = useKuroryuuAgentsStore();
 
   const [showSpawnDialog, setShowSpawnDialog] = useState(false);
-  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
-  const [sessionLogs, setSessionLogs] = useState<Record<string, string>>({});
 
-  // Start polling on mount
+  // Subscribe to IPC events on mount
   useEffect(() => {
-    startPolling(5000);
-    return () => stopPolling();
-  }, [startPolling, stopPolling]);
+    subscribe();
+    return () => unsubscribe();
+  }, [subscribe, unsubscribe]);
 
-  // Separate sessions by status
-  const runningSessions = sessions.filter(s => s.running);
-  const completedSessions = sessions.filter(s => !s.running);
+  // Filter to CLI-backend sessions only
+  const cliSessions = sessions.filter(s => s.backend === 'cli');
+  const runningSessions = cliSessions.filter(s => s.status === 'starting' || s.status === 'running');
+  const completedSessions = cliSessions.filter(s => s.status !== 'starting' && s.status !== 'running');
 
-  // Filter archived sessions that aren't in the live sessions list
-  const liveSessionIds = new Set(sessions.map(s => s.id));
-  const displayedArchived = archivedSessions.filter(a => !liveSessionIds.has(a.id));
+  // Filter archived sessions to CLI ones
+  const liveIds = new Set(cliSessions.map(s => s.id));
+  const cliArchived = archivedSessions.filter(a =>
+    a.id.startsWith('cli-') && !liveIds.has(a.id)
+  );
 
-  const toggleExpand = async (sessionId: string, isArchived: boolean) => {
-    const newExpanded = new Set(expandedSessions);
-
-    if (expandedSessions.has(sessionId)) {
-      newExpanded.delete(sessionId);
-    } else {
-      newExpanded.add(sessionId);
-
-      // Load logs if not already loaded
-      if (!sessionLogs[sessionId]) {
-        if (isArchived) {
-          const log = getArchivedLog(sessionId);
-          if (log) {
-            setSessionLogs(prev => ({ ...prev, [sessionId]: log }));
-          }
-        } else {
-          const log = await getSessionLog(sessionId, 0, 500);
-          setSessionLogs(prev => ({ ...prev, [sessionId]: log }));
-        }
-      }
-    }
-
-    setExpandedSessions(newExpanded);
-  };
-
-  const handleKill = async (sessionId: string) => {
-    await killSession(sessionId);
+  const handleStop = async (sessionId: string) => {
+    await stopAgent(sessionId);
   };
 
   const handleDelete = async (sessionId: string) => {
     await deleteArchived(sessionId);
-    setExpandedSessions(prev => {
-      const next = new Set(prev);
-      next.delete(sessionId);
-      return next;
-    });
   };
 
-  const renderSessionCard = (session: CodingAgentSession, isArchived: boolean = false) => {
-    const isExpanded = expandedSessions.has(session.id);
-    const log = sessionLogs[session.id] || '';
+  // Navigate to Sessions tab to view terminal
+  const viewInSessions = (sessionId: string) => {
+    // Use the store's selectSession + dispatch tab change
+    // The parent KuroryuuAgents component listens to selectedSessionId
+    useKuroryuuAgentsStore.getState().selectSession(sessionId);
 
-    return (
-      <div
-        key={session.id}
-        className="rounded-lg border border-zinc-700 bg-zinc-800/50 overflow-hidden"
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-3 hover:bg-zinc-700/30 transition-colors">
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <button
-              onClick={() => toggleExpand(session.id, isArchived)}
-              className="p-1 hover:bg-zinc-600 rounded transition-colors flex-shrink-0"
-            >
-              {isExpanded ? (
-                <ChevronDown className="w-4 h-4 text-zinc-400" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-zinc-400" />
-              )}
-            </button>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-mono text-xs text-primary truncate">
-                  {session.id.slice(0, 12)}
-                </span>
-                <span className={`px-2 py-0.5 rounded-full text-xs flex-shrink-0 ${
-                  session.running
-                    ? 'bg-green-500/20 text-green-400'
-                    : session.exit_code === 0
-                      ? 'bg-blue-500/20 text-blue-400'
-                      : 'bg-red-500/20 text-red-400'
-                }`}>
-                  {session.running ? 'running' : session.exit_code === 0 ? 'completed' : `error (${session.exit_code})`}
-                </span>
-              </div>
-              <div className="text-sm text-zinc-300 truncate font-mono">
-                {session.command}
-              </div>
-              <div className="flex items-center gap-3 mt-1 text-xs text-zinc-500">
-                <span className="flex items-center gap-1">
-                  <FolderOpen className="w-3 h-3" />
-                  {session.workdir || '/'}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {new Date(session.started_at).toLocaleString()}
-                </span>
-                {session.pty && (
-                  <span className="flex items-center gap-1">
-                    <TerminalIcon className="w-3 h-3" />
-                    PTY
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {session.running ? (
-              <button
-                onClick={() => handleKill(session.id)}
-                className="p-2 rounded hover:bg-red-500/20 transition-colors text-red-400"
-                title="Kill session"
-              >
-                <Square className="w-4 h-4" />
-              </button>
-            ) : isArchived ? (
-              <button
-                onClick={() => handleDelete(session.id)}
-                className="p-2 rounded hover:bg-red-500/20 transition-colors text-red-400"
-                title="Delete archived session"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Expanded Log Viewer */}
-        {isExpanded && (
-          <div className="border-t border-zinc-700 bg-zinc-900/50 p-3">
-            <div className="bg-zinc-950 rounded border border-zinc-700 overflow-auto max-h-64">
-              <pre className="p-3 text-xs font-mono text-zinc-300 whitespace-pre-wrap">
-                {log || <span className="text-zinc-500 italic">No logs available</span>}
-              </pre>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderArchivedCard = (archived: ArchivedSession) => {
-    return renderSessionCard(archived.session, true);
+    // Dispatch custom event to switch to sessions tab
+    window.dispatchEvent(new CustomEvent('kuroryuu-agents:switch-tab', {
+      detail: { tab: 'sessions', sessionId }
+    }));
   };
 
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-zinc-700">
+      <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3">
           <TerminalIcon className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-semibold">CLI Agents</h2>
@@ -215,12 +92,15 @@ export function CLIAgentsPanel() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {sessions.length === 0 && displayedArchived.length === 0 ? (
+        {cliSessions.length === 0 && cliArchived.length === 0 ? (
           <div className="text-center py-12">
-            <TerminalIcon className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-            <p className="text-zinc-400 text-sm">No CLI agent sessions</p>
-            <p className="text-zinc-500 text-xs mt-2">
+            <TerminalIcon className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground text-sm">No CLI agent sessions</p>
+            <p className="text-muted-foreground/60 text-xs mt-2">
               Click "Spawn" to start a CLI agent (Claude, Codex, Kiro, Aider, etc.)
+            </p>
+            <p className="text-muted-foreground/40 text-xs mt-1">
+              Sessions open in the Sessions tab with a terminal view
             </p>
           </div>
         ) : (
@@ -228,11 +108,63 @@ export function CLIAgentsPanel() {
             {/* Running Sessions */}
             {runningSessions.length > 0 && (
               <div>
-                <h3 className="text-xs uppercase tracking-wider text-zinc-500 mb-3 font-semibold">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-semibold">
                   Running ({runningSessions.length})
                 </h3>
                 <div className="space-y-2">
-                  {runningSessions.map(session => renderSessionCard(session))}
+                  {runningSessions.map(session => (
+                    <div
+                      key={session.id}
+                      className="rounded-lg border border-border bg-card overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between p-3 hover:bg-secondary/30 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-xs text-primary truncate">
+                              {session.id.slice(0, 12)}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-400">
+                              {session.status}
+                            </span>
+                            {session.ptyId && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-500/20 text-amber-400">
+                                PTY
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-sm text-foreground/80 truncate">
+                            {session.prompt}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <FolderOpen className="w-3 h-3" />
+                              {session.cwd || '/'}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(session.startedAt).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <button
+                            onClick={() => viewInSessions(session.id)}
+                            className="p-2 rounded hover:bg-primary/20 transition-colors text-primary"
+                            title="View terminal in Sessions tab"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleStop(session.id)}
+                            className="p-2 rounded hover:bg-red-500/20 transition-colors text-red-400"
+                            title="Stop session"
+                          >
+                            <Square className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -240,24 +172,102 @@ export function CLIAgentsPanel() {
             {/* Completed Sessions */}
             {completedSessions.length > 0 && (
               <div>
-                <h3 className="text-xs uppercase tracking-wider text-zinc-500 mb-3 font-semibold">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-semibold">
                   Completed ({completedSessions.length})
                 </h3>
                 <div className="space-y-2">
-                  {completedSessions.map(session => renderSessionCard(session))}
+                  {completedSessions.map(session => (
+                    <div
+                      key={session.id}
+                      className="rounded-lg border border-border bg-card overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between p-3 hover:bg-secondary/30 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-xs text-primary truncate">
+                              {session.id.slice(0, 12)}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${
+                              session.status === 'completed'
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {session.status}
+                            </span>
+                          </div>
+                          <div className="text-sm text-foreground/80 truncate">
+                            {session.prompt}
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {new Date(session.startedAt).toLocaleString()}
+                            </span>
+                            {session.totalCostUsd > 0 && (
+                              <span>${session.totalCostUsd.toFixed(4)}</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <button
+                            onClick={() => viewInSessions(session.id)}
+                            className="p-2 rounded hover:bg-primary/20 transition-colors text-primary"
+                            title="View in Sessions tab"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
             {/* Archived Sessions */}
-            {displayedArchived.length > 0 && (
+            {cliArchived.length > 0 && (
               <div>
-                <h3 className="text-xs uppercase tracking-wider text-zinc-500 mb-3 font-semibold flex items-center gap-1.5">
+                <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-3 font-semibold flex items-center gap-1.5">
                   <Archive className="w-3 h-3" />
-                  Archived ({displayedArchived.length})
+                  Archived ({cliArchived.length})
                 </h3>
                 <div className="space-y-2">
-                  {displayedArchived.map(archived => renderArchivedCard(archived))}
+                  {cliArchived.map(archived => (
+                    <div
+                      key={archived.id}
+                      className="rounded-lg border border-border bg-card overflow-hidden"
+                    >
+                      <div className="flex items-center justify-between p-3 hover:bg-secondary/30 transition-colors">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-mono text-xs text-primary truncate">
+                              {archived.id.slice(0, 12)}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${
+                              archived.session.exit_code === 0
+                                ? 'bg-blue-500/20 text-blue-400'
+                                : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {archived.session.exit_code === 0 ? 'OK' : `Exit ${archived.session.exit_code}`}
+                            </span>
+                          </div>
+                          <div className="text-sm text-foreground/80 truncate">
+                            {archived.session.command}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {new Date(archived.archived_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDelete(archived.id)}
+                          className="p-2 rounded hover:bg-red-500/20 transition-colors text-red-400 flex-shrink-0"
+                          title="Delete archived session"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

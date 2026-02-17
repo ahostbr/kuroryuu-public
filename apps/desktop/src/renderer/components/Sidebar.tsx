@@ -8,7 +8,6 @@ import {
   Terminal,
   GitBranch,
   Settings,
-  Plug,
   Share2,
   Sparkles,
   Layers,
@@ -27,14 +26,12 @@ import {
   ScrollText,
   Code2,
   Radio,
-  Cpu,
   Users,
   Calendar,
   Megaphone,
   Info,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
-import { useDomainConfigStore } from '../stores/domain-config-store';
 import { useIsThemedStyle } from '../hooks/useTheme';
 import { useCaptureStore } from '../stores/capture-store';
 import { RecordingIndicator } from './capture/RecordingIndicator';
@@ -524,22 +521,6 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
         <div className={`border-t border-border/50 p-2 space-y-1 transition-opacity duration-300 ${isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
           }`}>
           <button
-            onClick={() => openDialog('integrations')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-          >
-            <Plug className="w-4 h-4" />
-            <span className="text-sm">Integrations</span>
-          </button>
-
-          <button
-            onClick={() => useDomainConfigStore.getState().openDialog()}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-          >
-            <Cpu className="w-4 h-4" />
-            <span className="text-sm">Domain Config</span>
-          </button>
-
-          <button
             onClick={() => onSelectView('claude-tasks')}
             className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 ${activeView === 'claude-tasks'
               ? 'bg-secondary text-primary'
@@ -551,16 +532,6 @@ export function Sidebar({ activeView, onSelectView }: SidebarProps) {
             <span className="text-[10px] text-muted-foreground/60 font-mono ml-auto opacity-0 group-hover:opacity-100">
               C
             </span>
-          </button>
-
-          {/* Launch Tray Companion - Shift+click for debug mode (shows terminal) */}
-          <button
-            onClick={(e) => window.electronAPI?.app?.launchTrayCompanion?.({ debug: e.shiftKey })}
-            title="Launch Tray Companion (Shift+click for debug mode)"
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-all duration-150"
-          >
-            <Bot className="w-4 h-4" />
-            <span className="text-sm">Tray Companion</span>
           </button>
 
           <button

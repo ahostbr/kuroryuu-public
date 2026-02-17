@@ -142,7 +142,7 @@ export function GalleryLightbox() {
 
           {(asset.type === 'copy' || asset.type === 'page') && (
             <div className="bg-zinc-800 rounded-lg p-6 max-h-[70vh] overflow-y-auto text-sm text-zinc-300">
-              {asset.metadata?.content || 'No preview available'}
+              {(asset.metadata?.content as string) || 'No preview available'}
             </div>
           )}
         </div>
@@ -155,7 +155,7 @@ export function GalleryLightbox() {
               {asset.type}
             </span>
             <span className="text-xs text-zinc-500">{formatSize(asset.size)}</span>
-            <span className="text-xs text-zinc-500">{formatDate(asset.created_at)}</span>
+            <span className="text-xs text-zinc-500">{formatDate(asset.createdAt)}</span>
           </div>
 
           <div className="flex items-center gap-2">

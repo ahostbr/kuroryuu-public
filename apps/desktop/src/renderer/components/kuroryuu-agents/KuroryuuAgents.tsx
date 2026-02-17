@@ -152,7 +152,7 @@ export function KuroryuuAgents() {
     document.addEventListener('mouseup', onUp);
   }, [win]);
 
-  // Auto-navigate to sessions tab when CLI spawns
+  // Auto-navigate to sessions tab when CLI spawns (IPC event)
   useEffect(() => {
     const api = (window as unknown as { electronAPI: { sdkAgent: {
       onCliSessionSpawned?: (cb: (sid: string) => void) => () => void;
@@ -166,6 +166,21 @@ export function KuroryuuAgents() {
     });
 
     return off;
+  }, [selectSession]);
+
+  // Listen for tab-switch requests from child panels (e.g., CLIAgentsPanel "View in Sessions")
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.tab) {
+        setActiveTab(detail.tab);
+      }
+      if (detail?.sessionId) {
+        selectSession(detail.sessionId);
+      }
+    };
+    window.addEventListener('kuroryuu-agents:switch-tab', handler);
+    return () => window.removeEventListener('kuroryuu-agents:switch-tab', handler);
   }, [selectSession]);
 
   // Listen for heartbeat completion events (badge + toast)

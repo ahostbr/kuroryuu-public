@@ -27,7 +27,13 @@ export function registerSdkAgentHandlers(mainWindow: BrowserWindow, ptyManager?:
   }
 
   // ── Start a new agent session ──────────────────────────────────────────
-  ipcMain.handle('sdk-agent:start', async (_event, config: SDKAgentConfig & { executionBackend?: string; executionMode?: string }) => {
+  ipcMain.handle('sdk-agent:start', async (_event, config: SDKAgentConfig & {
+    executionBackend?: string;
+    executionMode?: string;
+    cliCommand?: string;
+    cliArgs?: string[];
+    cliType?: string;
+  }) => {
     try {
       // Route by backend
       if (config.executionBackend === 'cli') {
@@ -39,13 +45,30 @@ export function registerSdkAgentHandlers(mainWindow: BrowserWindow, ptyManager?:
           timeoutMinutes: undefined as number | undefined,
           dangerouslySkipPermissions: config.permissionMode === 'bypassPermissions' || !config.permissionMode,
           permissionMode: config.permissionMode,
+          cliCommand: config.cliCommand,
+          cliArgs: config.cliArgs,
+          cliType: config.cliType,
         };
 
+        let result;
         // Route to PTY or JSONL based on executionMode
         if (config.executionMode === 'pty') {
-          return cli.startAgentPty(cliConfig);
+          // Non-Claude CLIs use the generic PTY path
+          if (config.cliCommand && config.cliCommand !== 'claude') {
+            result = await cli.startGenericPty(cliConfig);
+          } else {
+            result = await cli.startAgentPty(cliConfig);
+          }
+        } else {
+          result = await cli.startAgent(cliConfig);
         }
-        return cli.startAgent(cliConfig);
+
+        // Emit cli:session-spawned for auto-navigation to Sessions tab
+        if (result.ok && result.sessionId) {
+          mainWindow.webContents.send('cli:session-spawned', result.sessionId);
+        }
+
+        return result;
       }
       const sessionId = await sdk.startAgent(config);
       return { ok: true, sessionId };

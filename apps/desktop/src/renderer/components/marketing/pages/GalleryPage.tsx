@@ -121,7 +121,7 @@ export function GalleryPage() {
                   <div className="flex items-center gap-2 text-xs text-zinc-500">
                     <span>{formatSize(asset.size)}</span>
                     <span>•</span>
-                    <span>{formatDate(asset.created_at)}</span>
+                    <span>{formatDate(asset.createdAt)}</span>
                   </div>
                 </div>
               );

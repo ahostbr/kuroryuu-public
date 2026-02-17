@@ -163,7 +163,7 @@ export class PtyManager extends EventEmitter {
 
     // npm-global CLI commands need to be wrapped through shell on Windows
     // because node-pty's ConPTY cannot properly handle stdin for .cmd shim files
-    const npmGlobalCommands = ['kiro', 'kuroryuu', 'copilot', 'claude'];
+    const npmGlobalCommands = ['kiro', 'kuroryuu', 'copilot', 'claude', 'codex', 'aider'];
     const needsShellWrapper = options.cmd &&
       npmGlobalCommands.some(c => options.cmd!.toLowerCase().includes(c));
 
