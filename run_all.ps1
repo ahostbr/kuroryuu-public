@@ -80,7 +80,20 @@ foreach ($port in @($McpPort, $GatewayPort)) {
     if ($existing) {
         Write-Warn "  Port $port in use, attempting to free..."
         $existing | ForEach-Object {
-            Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue
+            $pid = $_.OwningProcess
+            # Kill children first (e.g. uvicorn worker)
+            Get-CimInstance Win32_Process -Filter "ParentProcessId = $pid" -ErrorAction SilentlyContinue | ForEach-Object {
+                Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            # Kill parent if it's a python process (e.g. uvicorn master)
+            $procInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $pid" -ErrorAction SilentlyContinue
+            if ($procInfo -and $procInfo.ParentProcessId) {
+                $parentProc = Get-Process -Id $procInfo.ParentProcessId -ErrorAction SilentlyContinue
+                if ($parentProc -and $parentProc.ProcessName -eq "python") {
+                    Stop-Process -Id $parentProc.Id -Force -ErrorAction SilentlyContinue
+                }
+            }
+            Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
         }
         Start-Sleep -Milliseconds 500
     }

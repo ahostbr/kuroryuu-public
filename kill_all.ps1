@@ -28,6 +28,20 @@ foreach ($port in @($McpPort, $GatewayPort, $PtyDaemonPort)) {
             $proc = Get-Process -Id $conn.OwningProcess -ErrorAction SilentlyContinue
             if ($proc) {
                 Write-Warn "  Killing $($proc.ProcessName) (PID: $($proc.Id)) on port $port"
+                # Kill children first (e.g. uvicorn worker spawned by parent)
+                Get-CimInstance Win32_Process -Filter "ParentProcessId = $($proc.Id)" -ErrorAction SilentlyContinue | ForEach-Object {
+                    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+                }
+                # Kill parent that spawned the listener (e.g. uvicorn master)
+                $parent = Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue
+                if ($parent -and $parent.ParentProcessId) {
+                    $parentProc = Get-Process -Id $parent.ParentProcessId -ErrorAction SilentlyContinue
+                    if ($parentProc -and $parentProc.ProcessName -eq "python") {
+                        Write-Warn "  Killing parent $($parentProc.ProcessName) (PID: $($parentProc.Id))"
+                        Stop-Process -Id $parentProc.Id -Force -ErrorAction SilentlyContinue
+                        $killed++
+                    }
+                }
                 Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
                 $killed++
             }
