@@ -734,7 +734,7 @@ def main() -> None:
     print()
     
     uvicorn.run(
-        "server:app",
+        app,
         host=HOST,
         port=PORT,
         reload=False,

@@ -88,11 +88,19 @@ function checkTcpPort(port: number, host = '127.0.0.1'): Promise<boolean> {
  * Kill process by port (Windows)
  */
 function killByPort(port: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Use netstat to find PID, then taskkill
-    const cmd = `powershell -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"`;
+  return new Promise((resolve) => {
+    // Kill the port owner AND its parent/child process tree
+    // (uvicorn spawns a child worker that owns the port; killing only the child leaves the parent alive)
+    const cmd = `powershell -NoProfile -Command "` +
+      `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | ForEach-Object {` +
+      ` $pid = $_.OwningProcess;` +
+      ` Get-CimInstance Win32_Process -Filter \\"ParentProcessId = $pid\\" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue };` +
+      ` $info = Get-CimInstance Win32_Process -Filter \\"ProcessId = $pid\\" -ErrorAction SilentlyContinue;` +
+      ` if ($info -and $info.ParentProcessId) { $p = Get-Process -Id $info.ParentProcessId -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'python') { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } };` +
+      ` Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue` +
+      ` }"`;
 
-    exec(cmd, (error) => {
+    exec(cmd, () => {
       // Ignore errors - process may already be stopped
       resolve();
     });
