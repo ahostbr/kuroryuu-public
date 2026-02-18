@@ -49,7 +49,7 @@ const TABS: { id: BackupView; label: string; icon: React.ElementType }[] = [
 // ============================================================================
 
 function OverviewDashboard() {
-  const { status, config, loadStatus, loadSnapshots, snapshots, snapshotsLoading } = useBackupStore();
+  const { status, statusError, config, loadStatus, loadSnapshots, snapshots, snapshotsLoading } = useBackupStore();
 
   useEffect(() => {
     loadStatus();
@@ -65,6 +65,15 @@ function OverviewDashboard() {
 
   return (
     <div className="space-y-6">
+      {statusError && (
+        <div className="flex items-center gap-3 p-4 rounded-lg border border-amber-500/30 bg-amber-500/10">
+          <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-500">Status Unavailable</p>
+            <p className="text-xs text-muted-foreground">{statusError}</p>
+          </div>
+        </div>
+      )}
       {/* Status Cards */}
       <div className="grid grid-cols-3 gap-4">
         {/* Repository Status */}

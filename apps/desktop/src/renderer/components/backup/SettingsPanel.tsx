@@ -4,7 +4,6 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Settings,
   FolderOpen,
   Filter,
   Clock,
@@ -133,7 +132,6 @@ export function SettingsPanel() {
     config,
     status,
     saveConfig,
-    loadConfig,
     loadStatus,
     pruneRepository,
     checkIntegrity,
@@ -150,9 +148,8 @@ export function SettingsPanel() {
   } | null>(null);
 
   useEffect(() => {
-    loadConfig();
     loadStatus();
-  }, [loadConfig, loadStatus]);
+  }, [loadStatus]);
 
   useEffect(() => {
     if (config) {
@@ -211,8 +208,10 @@ export function SettingsPanel() {
 
   if (!localConfig) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <RefreshCw className="w-6 h-6 text-primary animate-spin" />
+      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+        <AlertCircle className="w-6 h-6 mb-2" />
+        <p className="text-sm">No configuration loaded</p>
+        <p className="text-xs mt-1">Complete setup from the Overview tab first.</p>
       </div>
     );
   }

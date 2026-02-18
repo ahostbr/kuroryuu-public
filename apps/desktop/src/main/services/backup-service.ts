@@ -112,13 +112,18 @@ async function callBackupTool(action: string, params: Record<string, unknown> = 
   };
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const response = await fetch(`${MCP_CORE_URL}/mcp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(request),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`MCP request failed: ${response.status} ${response.statusText}`);

@@ -27,6 +27,7 @@ export interface BackupState {
 
   // Status
   status: BackupStatus | null;
+  statusError: string | null;
   resticStatus: ResticBinaryStatus | null;
 
   // Snapshots
@@ -94,6 +95,7 @@ export const useBackupStore = create<BackupState>((set, get) => ({
   isConfigured: false,
   isLoading: false,
   status: null,
+  statusError: null,
   resticStatus: null,
   snapshots: [],
   selectedSnapshotId: null,
@@ -186,10 +188,13 @@ export const useBackupStore = create<BackupState>((set, get) => ({
     try {
       const result = await window.electronAPI.backup.getStatus();
       if (result.ok && result.data) {
-        set({ status: result.data });
+        set({ status: result.data, statusError: null });
+      } else {
+        set({ statusError: result.error || 'Status unavailable' });
       }
     } catch (err) {
       console.error('[BackupStore] loadStatus failed:', err);
+      set({ statusError: 'Cannot reach MCP Core — is the server running?' });
     }
   },
 
