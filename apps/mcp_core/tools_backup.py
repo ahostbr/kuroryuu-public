@@ -83,6 +83,7 @@ def _action_status(**kwargs: Any) -> Dict[str, Any]:
     # Check binary
     binary_installed = is_restic_installed()
     binary_version = get_restic_version() if binary_installed else None
+    binary_path = str(get_binary_path()) if binary_installed else None
 
     # Check repository
     repo_path = config.get_repo_path()
@@ -97,7 +98,7 @@ def _action_status(**kwargs: Any) -> Dict[str, Any]:
         "restic": {
             "installed": binary_installed,
             "version": binary_version,
-            "path": None,
+            "path": binary_path,
             "downloaded": False,
         },
         "repository": {

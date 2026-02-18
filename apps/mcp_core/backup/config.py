@@ -45,6 +45,7 @@ def get_default_config() -> Dict[str, Any]:
             "path": str(get_default_repo_path()),
             "type": "local",
             "password_hash": None,
+            "password": None, # Persistent plaintext password
             "initialized": False,
             "last_check": None,
         },
@@ -163,6 +164,8 @@ class BackupConfig:
             try:
                 with self.config_path.open("r", encoding="utf-8") as f:
                     self._config = json.load(f)
+                # Load persistent password if available
+                self._password = self.get("repository.password")
             except (json.JSONDecodeError, OSError):
                 self._config = get_default_config()
                 self.save()
@@ -210,10 +213,11 @@ class BackupConfig:
         self.save()
 
     def set_password(self, password: str) -> None:
-        """Set repository password (stores hash, caches plaintext in memory)."""
+        """Set repository password (stores hash + plaintext, caches plaintext in memory)."""
         self._password = password
         password_hash = _hash_password(password)
         self.set("repository.password_hash", password_hash)
+        self.set("repository.password", password) # Save persistent plaintext password
 
     def verify_password(self, password: str) -> bool:
         """Verify password against stored hash."""

@@ -87,6 +87,7 @@ function injectBridge(html: string): string {
 
 export function PlaygroundViewer({ html, fileName, onPromptCapture }: PlaygroundViewerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const blobUrlRef = useRef<string | null>(null);
 
   const handleMessage = useCallback((event: MessageEvent) => {
     // Only accept messages from our iframe
@@ -101,7 +102,24 @@ export function PlaygroundViewer({ html, fileName, onPromptCapture }: Playground
     return () => window.removeEventListener('message', handleMessage);
   }, [handleMessage]);
 
-  const injectedHTML = injectBridge(html);
+  // Use blob URL instead of srcDoc to avoid parent CSP blocking inline scripts
+  useEffect(() => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+    }
+    const injectedHTML = injectBridge(html);
+    const blob = new Blob([injectedHTML], { type: 'text/html' });
+    blobUrlRef.current = URL.createObjectURL(blob);
+    if (iframeRef.current) {
+      iframeRef.current.src = blobUrlRef.current;
+    }
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+    };
+  }, [html]);
 
   return (
     <div className="flex flex-col h-full w-full">
@@ -134,11 +152,10 @@ export function PlaygroundViewer({ html, fileName, onPromptCapture }: Playground
         </span>
       </div>
 
-      {/* Sandboxed iframe */}
+      {/* Sandboxed iframe — uses blob URL to get its own CSP origin */}
       <iframe
         ref={iframeRef}
         sandbox="allow-scripts"
-        srcDoc={injectedHTML}
         title="Claude Playground"
         style={{
           width: '100%',

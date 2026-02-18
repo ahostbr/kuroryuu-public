@@ -23,10 +23,23 @@ import { useBackupProgress } from '../../hooks/useBackupProgress';
 // ============================================================================
 
 function BackupProgressDisplay() {
-  const { backupProgress, backupSummary, backupError, isBackupRunning } = useBackupStore();
+  const { backupProgress, backupSummary, backupError, isBackupRunning, error } = useBackupStore();
 
-  if (!isBackupRunning && !backupSummary && !backupError) {
+  if (!isBackupRunning && !backupSummary && !backupError && !error) {
     return null;
+  }
+
+  // Show general store error (e.g. startup failure)
+  if (error && !isBackupRunning) {
+    return (
+      <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+        <div className="flex items-center gap-2 text-red-500 mb-2">
+          <AlertCircle className="w-5 h-5" />
+          <span className="font-medium">Startup Failed</span>
+        </div>
+        <p className="text-sm text-red-400">{error}</p>
+      </div>
+    );
   }
 
   // Show error

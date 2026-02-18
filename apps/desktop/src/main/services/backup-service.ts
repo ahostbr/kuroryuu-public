@@ -405,7 +405,9 @@ export class BackupService {
    */
   async createBackup(message?: string, tags?: string[]): Promise<CreateBackupResponse> {
     try {
-      const params: Record<string, unknown> = {};
+      const params: Record<string, unknown> = {
+        background: true, // Enable streaming
+      };
       if (message) params.message = message;
       if (tags?.length) params.tags = tags;
 
