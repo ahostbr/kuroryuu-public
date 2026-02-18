@@ -29,7 +29,7 @@ from typing import Optional
 
 # Lock file location
 _SCRIPT_DIR = Path(__file__).parent.resolve()
-_PROJECT_ROOT = _SCRIPT_DIR.parent.parent.parent.parent.parent  # Navigate to project root
+_PROJECT_ROOT = _SCRIPT_DIR.parent.parent.parent.parent.parent.parent  # .claude/plugins/kuro/hooks/utils/tts → project root (6 levels)
 _LOCK_DIR = _PROJECT_ROOT / "ai" / "data" / "tts_queue"
 _LOCK_FILE = _LOCK_DIR / "tts.lock"
 
