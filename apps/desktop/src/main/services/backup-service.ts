@@ -361,6 +361,7 @@ export class BackupService {
         // Update config to mark as initialized
         if (this.config) {
           this.config.repository.initialized = true;
+          // Save to disk so it persists across restarts/reloads
           await this.saveConfig(this.config);
         }
       }

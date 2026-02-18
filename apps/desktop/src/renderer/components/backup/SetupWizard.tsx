@@ -34,6 +34,7 @@ import {
   Database,
 } from 'lucide-react';
 import { useBackupStore } from '../../stores/backup-store';
+import { useSettingsStore } from '../../stores/settings-store';
 import type { BackupConfig } from '../../types/backup';
 
 // ============================================================================
@@ -191,7 +192,8 @@ function SetupStepPreview({
 }
 
 function SourceStep({ onNext, onBack, config, setConfig }: StepProps) {
-  const [sourcePath, setSourcePath] = useState(config?.backup?.source_path || '');
+  const { projectSettings } = useSettingsStore();
+  const [sourcePath, setSourcePath] = useState(config?.backup?.source_path || projectSettings.projectPath || '');
   const [error, setError] = useState<string | null>(null);
 
   const handleSelectFolder = async () => {
@@ -531,7 +533,14 @@ function InitializeStep({ onBack, config, passwordRef }: StepProps) {
 
       // Step 3: Save config
       setStatus('saving');
-      await saveConfig(config as BackupConfig);
+      const finalConfig = {
+        ...config,
+        repository: {
+          ...config.repository,
+          initialized: true,
+        },
+      } as BackupConfig;
+      await saveConfig(finalConfig);
 
       // Clean up password
       if (passwordRef) {

@@ -192,8 +192,8 @@ class BackupConfig:
         parts = key.split(".")
         value = self._config
         for part in parts:
-            if isinstance(value, dict):
-                value = value.get(part, default)
+            if isinstance(value, dict) and part in value:
+                value = value[part]
             else:
                 return default
         return value
