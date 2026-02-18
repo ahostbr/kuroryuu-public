@@ -13,6 +13,22 @@ export interface ActivityLogEntry {
   message: string;
 }
 
+export type RenderMode = 'components' | 'playground';
+
+export interface FeedbackEntry {
+  timestamp: string;
+  promptText: string;
+  sentTo: 'clipboard' | 'claude-pty';
+  targetPtyId?: string;
+}
+
+export interface PlaygroundFile {
+  name: string;
+  path: string;
+  size: number;
+  mtime: string;
+}
+
 export interface DashboardState {
   markdownContent: string;
   documentTitle: string;
@@ -25,6 +41,13 @@ export interface DashboardState {
   currentStep: string;
   activityLog: ActivityLogEntry[];
   errorMessage: string | null;
+
+  // Playground mode fields
+  renderMode: RenderMode;
+  playgroundHTML: string | null;
+  playgroundFileName: string | null;
+  promptOutput: string | null;
+  feedbackHistory: FeedbackEntry[];
 }
 
 export interface JsonPatch {

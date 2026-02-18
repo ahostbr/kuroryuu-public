@@ -33,6 +33,10 @@ _PROJECT_ROOT = _SCRIPT_DIR.parent.parent.parent.parent.parent.parent  # .claude
 _LOCK_DIR = _PROJECT_ROOT / "ai" / "data" / "tts_queue"
 _LOCK_FILE = _LOCK_DIR / "tts.lock"
 
+# TTS should never hold a lock longer than this (seconds).
+# Covers: smart summary (~10s) + audio gen (~5s) + playback (~60s) + buffer.
+_MAX_LOCK_AGE = 120
+
 # Global file handle for the lock
 _lock_file_handle: Optional[object] = None
 
@@ -40,6 +44,62 @@ _lock_file_handle: Optional[object] = None
 def _ensure_lock_dir() -> None:
     """Ensure the lock directory exists."""
     _LOCK_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _is_pid_alive(pid: int) -> bool:
+    """Check if a process is still running. Safe on both Windows and Unix."""
+    if sys.platform == 'win32':
+        try:
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+            STILL_ACTIVE = 259
+            handle = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            if not handle:
+                return False  # Can't open → dead
+            try:
+                exit_code = ctypes.c_ulong()
+                if kernel32.GetExitCodeProcess(handle, ctypes.byref(exit_code)):
+                    return exit_code.value == STILL_ACTIVE
+                return False  # GetExitCodeProcess failed → assume dead
+            finally:
+                kernel32.CloseHandle(handle)
+        except Exception:
+            return False
+    else:
+        try:
+            os.kill(pid, 0)  # Signal 0 = check existence (safe on Unix)
+            return True
+        except (OSError, ProcessLookupError):
+            return False
+
+
+def _get_lock_age() -> Optional[float]:
+    """Get the age of the current lock in seconds, or None if no lock."""
+    if not _LOCK_FILE.exists():
+        return None
+    try:
+        info = _read_lock_info()
+        if info and "timestamp" in info:
+            lock_time = datetime.fromisoformat(info["timestamp"])
+            return (datetime.now() - lock_time).total_seconds()
+        return time.time() - _LOCK_FILE.stat().st_mtime
+    except Exception:
+        return None
+
+
+def _force_remove_lock() -> bool:
+    """Force-remove the lock file. Returns True if removed."""
+    try:
+        _LOCK_FILE.unlink()
+        return True
+    except OSError:
+        try:
+            os.replace(str(_LOCK_FILE), str(_LOCK_FILE) + ".dead")
+            Path(str(_LOCK_FILE) + ".dead").unlink(missing_ok=True)
+            return True
+        except OSError:
+            return False
 
 
 def _write_lock_info(agent_id: str) -> None:
@@ -82,6 +142,9 @@ def acquire_tts_lock(agent_id: str, timeout: int = 30) -> bool:
 
     _ensure_lock_dir()
 
+    # Pre-flight: clear any obviously stale locks before entering retry loop
+    _cleanup_stale_lock_if_needed()
+
     start_time = time.time()
     retry_interval = 0.1
     max_retry_interval = 1.0
@@ -94,11 +157,8 @@ def acquire_tts_lock(agent_id: str, timeout: int = 30) -> bool:
         try:
             # Try to create lock file exclusively
             if sys.platform == 'win32':
-                # Windows: use exclusive file creation (cross-process)
-                # O_EXCL fails if file exists - true cross-process lock
                 lock_file_tmp = str(_LOCK_FILE) + f".{os.getpid()}"
                 try:
-                    # Create our temp lock file
                     fd = os.open(lock_file_tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
                     lock_info = json.dumps({
                         "agent_id": agent_id,
@@ -111,35 +171,34 @@ def acquire_tts_lock(agent_id: str, timeout: int = 30) -> bool:
                     # Try to rename to actual lock file (atomic on Windows)
                     try:
                         os.rename(lock_file_tmp, str(_LOCK_FILE))
-                        _lock_file_handle = str(_LOCK_FILE)  # Store path, not fd
+                        _lock_file_handle = str(_LOCK_FILE)
                         return True
                     except OSError:
-                        # Lock file exists - check if holder is still alive
+                        # Lock file exists - check if holder is dead or lock is ancient
                         try:
-                            with open(_LOCK_FILE, 'r') as f:
-                                info = json.load(f)
-                            holder_pid = info.get('pid')
-                            if holder_pid:
-                                # Check if process is still running
-                                import ctypes
-                                kernel32 = ctypes.windll.kernel32
-                                SYNCHRONIZE = 0x00100000
-                                handle = kernel32.OpenProcess(SYNCHRONIZE, False, holder_pid)
-                                if handle:
-                                    kernel32.CloseHandle(handle)
-                                    # Process still running - can't acquire
-                                    os.unlink(lock_file_tmp)
-                                else:
-                                    # Process dead - take over lock
-                                    os.replace(lock_file_tmp, str(_LOCK_FILE))
-                                    _lock_file_handle = str(_LOCK_FILE)
-                                    return True
-                        except:
-                            pass
-                        try:
+                            info = _read_lock_info()
+                            holder_pid = info.get('pid') if info else None
+                            lock_age = _get_lock_age()
+
+                            # Force-take if lock exceeds max age (process hung or killed)
+                            if lock_age is not None and lock_age > _MAX_LOCK_AGE:
+                                os.replace(lock_file_tmp, str(_LOCK_FILE))
+                                _lock_file_handle = str(_LOCK_FILE)
+                                return True
+
+                            # Force-take if holder PID is dead
+                            if holder_pid and not _is_pid_alive(holder_pid):
+                                os.replace(lock_file_tmp, str(_LOCK_FILE))
+                                _lock_file_handle = str(_LOCK_FILE)
+                                return True
+
+                            # Holder is alive and lock is fresh - can't acquire
                             os.unlink(lock_file_tmp)
-                        except:
-                            pass
+                        except Exception:
+                            try:
+                                os.unlink(lock_file_tmp)
+                            except OSError:
+                                pass
                 except OSError:
                     pass
             else:
@@ -175,13 +234,11 @@ def release_tts_lock(agent_id: str) -> None:
 
     try:
         if sys.platform == 'win32':
-            # Windows: _lock_file_handle is the path string, just delete the file
             try:
                 os.unlink(_lock_file_handle)
-            except:
+            except OSError:
                 pass
         else:
-            # Unix: _lock_file_handle is the fd
             import fcntl
             fcntl.flock(_lock_file_handle, fcntl.LOCK_UN)
             os.close(_lock_file_handle)
@@ -203,30 +260,20 @@ def is_tts_locked() -> bool:
     if not _LOCK_FILE.exists():
         return False
 
+    # Check age first — ancient locks are stale regardless
+    lock_age = _get_lock_age()
+    if lock_age is not None and lock_age > _MAX_LOCK_AGE:
+        _force_remove_lock()
+        return False
+
     try:
         if sys.platform == 'win32':
-            # Windows: check if lock file exists and holder is still alive
-            try:
-                with open(_LOCK_FILE, 'r') as f:
-                    info = json.load(f)
-                holder_pid = info.get('pid')
-                if holder_pid:
-                    import ctypes
-                    kernel32 = ctypes.windll.kernel32
-                    SYNCHRONIZE = 0x00100000
-                    handle = kernel32.OpenProcess(SYNCHRONIZE, False, holder_pid)
-                    if handle:
-                        kernel32.CloseHandle(handle)
-                        return True  # Process still running
-                    else:
-                        # Process dead - lock is stale
-                        try:
-                            os.unlink(_LOCK_FILE)
-                        except:
-                            pass
-                        return False
-            except:
-                return False
+            info = _read_lock_info()
+            holder_pid = info.get('pid') if info else None
+            if holder_pid and _is_pid_alive(holder_pid):
+                return True
+            # Dead or unreadable — stale
+            _force_remove_lock()
             return False
         else:
             import fcntl
@@ -243,6 +290,22 @@ def is_tts_locked() -> bool:
         return False
 
 
+def _cleanup_stale_lock_if_needed() -> None:
+    """Quick check: if lock exists and is stale (dead PID or too old), remove it."""
+    if not _LOCK_FILE.exists():
+        return
+
+    lock_age = _get_lock_age()
+    if lock_age is not None and lock_age > _MAX_LOCK_AGE:
+        _force_remove_lock()
+        return
+
+    info = _read_lock_info()
+    if info and "pid" in info:
+        if not _is_pid_alive(info["pid"]):
+            _force_remove_lock()
+
+
 def cleanup_stale_locks(max_age_seconds: int = 60) -> None:
     """
     Remove locks older than max age.
@@ -254,30 +317,17 @@ def cleanup_stale_locks(max_age_seconds: int = 60) -> None:
         return
 
     try:
-        lock_info = _read_lock_info()
+        lock_age = _get_lock_age()
+        if lock_age is None:
+            return
 
-        if lock_info and "timestamp" in lock_info:
-            try:
-                lock_time = datetime.fromisoformat(lock_info["timestamp"])
-                age = (datetime.now() - lock_time).total_seconds()
-            except (ValueError, TypeError):
-                age = time.time() - _LOCK_FILE.stat().st_mtime
-        else:
-            age = time.time() - _LOCK_FILE.stat().st_mtime
+        if lock_age > max_age_seconds:
+            info = _read_lock_info()
+            if info and "pid" in info:
+                if _is_pid_alive(info["pid"]):
+                    return  # Process genuinely alive and holding lock
 
-        if age > max_age_seconds:
-            if lock_info and "pid" in lock_info:
-                pid = lock_info["pid"]
-                try:
-                    os.kill(pid, 0)
-                    return
-                except (OSError, ProcessLookupError):
-                    pass
-
-            try:
-                _LOCK_FILE.unlink()
-            except OSError:
-                pass
+            _force_remove_lock()
 
     except OSError:
         pass

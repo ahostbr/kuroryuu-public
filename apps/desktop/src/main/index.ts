@@ -101,7 +101,7 @@ function getCommitInfo(): { shortHash: string; date: string } | null {
 
 let mainWindow: BrowserWindow | null = null;
 let codeEditorWindow: BrowserWindow | null = null;
-let genUIWindow: BrowserWindow | null = null;
+let playgroundWindow: BrowserWindow | null = null;
 let ptyManager: PtyManager | null = null;
 let ptyBridge: PtyBridge | null = null;
 let ttsModule: TTSModule | null = null;
@@ -3820,12 +3820,12 @@ function createCodeEditorWindow(): void {
 }
 
 /**
- * Create a separate GenUI window for Generative UI dashboards.
- * Uses hash routing (#/genui) to display the GenUI panel.
+ * Create a separate Playground window for Claude Playground dashboards.
+ * Uses hash routing (#/playground) to display the Playground panel.
  */
-function createGenUIWindow(): void {
-  if (genUIWindow && !genUIWindow.isDestroyed()) {
-    genUIWindow.focus();
+function createPlaygroundWindow(): void {
+  if (playgroundWindow && !playgroundWindow.isDestroyed()) {
+    playgroundWindow.focus();
     return;
   }
 
@@ -3835,14 +3835,14 @@ function createGenUIWindow(): void {
     ? join(__dirname, '../../resources/Kuroryuu_ico.ico')
     : join(__dirname, '../../resources/Kuroryuu_png.png');
 
-  genUIWindow = new BrowserWindow({
+  playgroundWindow = new BrowserWindow({
     width: Math.min(1400, screenWidth - 100),
     height: Math.min(900, screenHeight - 100),
     minWidth: 800,
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    title: 'Kuroryuu Generative UI',
+    title: 'Claude Playground',
     icon: iconPath,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -3852,28 +3852,28 @@ function createGenUIWindow(): void {
     }
   });
 
-  genUIWindow.setMenu(null);
+  playgroundWindow.setMenu(null);
 
-  genUIWindow.on('ready-to-show', () => {
-    genUIWindow?.show();
+  playgroundWindow.on('ready-to-show', () => {
+    playgroundWindow?.show();
     if (isDev) {
-      genUIWindow?.webContents.openDevTools();
+      playgroundWindow?.webContents.openDevTools();
     }
   });
 
-  genUIWindow.on('closed', () => {
-    genUIWindow = null;
+  playgroundWindow.on('closed', () => {
+    playgroundWindow = null;
   });
 
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
-    genUIWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/genui`);
+    playgroundWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#/playground`);
   } else {
-    genUIWindow.loadFile(join(__dirname, '../renderer/index.html'), {
-      hash: '/genui'
+    playgroundWindow.loadFile(join(__dirname, '../renderer/index.html'), {
+      hash: '/playground'
     });
   }
 
-  console.log('[Main] GenUI window created');
+  console.log('[Main] Playground window created');
 }
 
 /**
@@ -4323,10 +4323,40 @@ app.whenReady().then(async () => {
     return { ok: true };
   });
 
-  // === GenUI Window IPC ===
-  ipcMain.handle('genui:open', () => {
-    createGenUIWindow();
+  // === Playground Window IPC ===
+  ipcMain.handle('playground:open', () => {
+    createPlaygroundWindow();
     return { ok: true };
+  });
+
+  ipcMain.handle('playground:list', async () => {
+    const { existsSync, readdirSync, statSync } = await import('fs');
+    const { join: pjoin } = await import('path');
+    const projectRoot = pjoin(__dirname, '..', '..', '..', '..');
+    const dir = pjoin(projectRoot, 'playgrounds');
+    if (!existsSync(dir)) return [];
+    try {
+      return readdirSync(dir)
+        .filter(f => f.endsWith('.html'))
+        .map(f => {
+          const full = pjoin(dir, f);
+          const stat = statSync(full);
+          return { name: f, path: full, size: stat.size, mtime: stat.mtime.toISOString() };
+        })
+        .sort((a, b) => b.mtime.localeCompare(a.mtime));
+    } catch { return []; }
+  });
+
+  ipcMain.handle('playground:read', async (_event, filePath: string) => {
+    const { readFileSync } = await import('fs');
+    const { normalize, join: pjoin } = await import('path');
+    const projectRoot = pjoin(__dirname, '..', '..', '..', '..');
+    const playgroundsDir = normalize(pjoin(projectRoot, 'playgrounds'));
+    const normalized = normalize(filePath);
+    if (!normalized.startsWith(playgroundsDir)) {
+      throw new Error('Path outside playgrounds directory');
+    }
+    return readFileSync(normalized, 'utf-8');
   });
 
   // === Git IPC Handlers ===

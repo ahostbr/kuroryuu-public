@@ -54,7 +54,7 @@ export interface AppSettings {
   enableAnimations: boolean;
   matrixRainOpacity: number; // 0-100, only used when Matrix theme active
   kuroryuuDecorativeFrames: boolean; // Opt-in decorative dragon frames for Kuroryuu theme
-  genuiImperialMode: boolean; // Use imperial styling in GenUI panels
+  genuiImperialMode: boolean; // Use imperial styling in Playground panels
   captureImperialMode: boolean; // Use imperial styling in Capture panel
   enableRichToolVisualizations: boolean; // Opt-in rich visualization cards for MCP tool outputs
   devMode: boolean; // Enable dev features: keyboard shortcuts, HMR

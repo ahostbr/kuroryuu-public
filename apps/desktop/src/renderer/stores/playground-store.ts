@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { A2UIComponent, ActivityLogEntry, DashboardState, JsonPatch } from '../types/genui';
+import type { A2UIComponent, ActivityLogEntry, DashboardState, JsonPatch, PlaygroundFile, FeedbackEntry, RenderMode } from '../types/genui';
 import { getDomainConfig } from './domain-config-store';
 
 const ZONE_ORDER = ['hero', 'metrics', 'insights', 'content', 'media', 'resources', 'tags'];
@@ -32,13 +32,22 @@ function applyJsonPatch(components: A2UIComponent[], patches: JsonPatch[]): A2UI
   return result;
 }
 
-interface GenUIState extends DashboardState {
+interface PlaygroundStoreState extends DashboardState {
   componentsByZone: Record<string, A2UIComponent[]>;
+  playgroundFiles: PlaygroundFile[];
 
   generateDashboard: (markdown: string, layoutOverride?: string) => Promise<void>;
   reset: () => void;
   applySnapshot: (snapshot: Partial<DashboardState>) => void;
   applyDelta: (patches: JsonPatch[]) => void;
+
+  // Playground mode actions
+  setRenderMode: (mode: RenderMode) => void;
+  loadPlaygroundHTML: (filePath: string) => Promise<void>;
+  capturePromptOutput: (text: string) => void;
+  sendFeedback: (ptyId: string) => Promise<void>;
+  refreshPlaygroundFiles: () => Promise<void>;
+  addFeedbackEntry: (entry: FeedbackEntry) => void;
 }
 
 const initialState: DashboardState = {
@@ -53,11 +62,17 @@ const initialState: DashboardState = {
   currentStep: '',
   activityLog: [],
   errorMessage: null,
+  renderMode: 'components',
+  playgroundHTML: null,
+  playgroundFileName: null,
+  promptOutput: null,
+  feedbackHistory: [],
 };
 
-export const useGenUIStore = create<GenUIState>((set, get) => ({
+export const usePlaygroundStore = create<PlaygroundStoreState>((set, get) => ({
   ...initialState,
   componentsByZone: {},
+  playgroundFiles: [],
 
   generateDashboard: async (markdown: string, layoutOverride?: string) => {
     set({
@@ -161,11 +176,11 @@ export const useGenUIStore = create<GenUIState>((set, get) => ({
     }
   },
 
-  reset: () => set({ ...initialState, componentsByZone: {} }),
+  reset: () => set({ ...initialState, componentsByZone: {}, playgroundFiles: [] }),
 
   applySnapshot: (snapshot) => {
     set(state => {
-      const updates: Partial<GenUIState> = {};
+      const updates: Partial<PlaygroundState> = {};
 
       if (snapshot.status !== undefined) updates.status = snapshot.status;
       if (snapshot.progress !== undefined) updates.progress = snapshot.progress;
@@ -193,5 +208,65 @@ export const useGenUIStore = create<GenUIState>((set, get) => ({
         componentsByZone: groupByZone(newComponents),
       };
     });
+  },
+
+  // Playground mode actions
+  setRenderMode: (mode) => set({ renderMode: mode }),
+
+  loadPlaygroundHTML: async (filePath: string) => {
+    try {
+      const html = await (window as any).electronAPI?.playground?.read?.(filePath);
+      if (!html) throw new Error('Failed to read playground file');
+      const fileName = filePath.split(/[\\/]/).pop() || 'playground.html';
+      set({
+        renderMode: 'playground',
+        playgroundHTML: html,
+        playgroundFileName: fileName,
+        status: 'complete',
+        promptOutput: null,
+      });
+    } catch (err: any) {
+      set({
+        status: 'error',
+        errorMessage: err.message || 'Failed to load playground file',
+      });
+    }
+  },
+
+  capturePromptOutput: (text: string) => {
+    set({ promptOutput: text });
+  },
+
+  sendFeedback: async (ptyId: string) => {
+    const { promptOutput } = get();
+    if (!promptOutput) return;
+    try {
+      await (window as any).electronAPI?.pty?.write?.(ptyId, promptOutput + '\r');
+      const entry: FeedbackEntry = {
+        timestamp: new Date().toISOString(),
+        promptText: promptOutput,
+        sentTo: 'claude-pty',
+        targetPtyId: ptyId,
+      };
+      get().addFeedbackEntry(entry);
+      set({ promptOutput: null });
+    } catch (err: any) {
+      console.error('[PlaygroundStore] Failed to send feedback:', err);
+    }
+  },
+
+  refreshPlaygroundFiles: async () => {
+    try {
+      const files = await (window as any).electronAPI?.playground?.list?.();
+      set({ playgroundFiles: files || [] });
+    } catch {
+      set({ playgroundFiles: [] });
+    }
+  },
+
+  addFeedbackEntry: (entry: FeedbackEntry) => {
+    set(state => ({
+      feedbackHistory: [...state.feedbackHistory.slice(-19), entry],
+    }));
   },
 }));

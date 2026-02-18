@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { A2UIComponent } from '../../types/genui';
 
-interface GenUISourceViewProps {
+interface PlaygroundSourceViewProps {
   markdown: string;
   components: A2UIComponent[];
   onClose: () => void;
 }
 
-export const GenUISourceView: React.FC<GenUISourceViewProps> = ({
+export const PlaygroundSourceView: React.FC<PlaygroundSourceViewProps> = ({
   markdown,
   components,
   onClose

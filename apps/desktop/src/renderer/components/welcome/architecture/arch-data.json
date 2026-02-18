@@ -169,13 +169,13 @@
     },
     {
       "id": "genui",
-      "label": "GenUI Engine",
+      "label": "Playground Engine",
       "x": 0.74,
       "y": 0.60,
       "w": 0.18,
       "h": 0.11,
-      "title": "GenUI Engine (A2UI)",
-      "bodyMd": "**What you're seeing:** AI-powered generative UI engine.\n\n**Why it matters:** Natural language to interactive dashboards.\n\n• 51 A2UI components across 11 categories\n• 3-stage pipeline: analyze, layout, generate\n• Zone-based dashboard rendering\n• SSE streaming with JSON Patch updates\n• Imperial/Theme-aware CSS variable theming",
+      "title": "Claude Playground (A2UI)",
+      "bodyMd": "**What you're seeing:** AI-powered Claude Playground engine.\n\n**Why it matters:** Natural language to interactive dashboards.\n\n• 51 A2UI components across 11 categories\n• 3-stage pipeline: analyze, layout, generate\n• Zone-based dashboard rendering\n• SSE streaming with JSON Patch updates\n• Imperial/Theme-aware CSS variable theming",
       "color": "#f472b6",
       "icon": "sparkles"
     }
@@ -226,7 +226,7 @@
     },
     {
       "id": "genui-flow",
-      "label": "GenUI Flow",
+      "label": "Playground Flow",
       "components": ["desktop", "gateway", "genui"]
     },
     {

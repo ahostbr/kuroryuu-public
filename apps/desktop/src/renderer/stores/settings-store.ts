@@ -101,7 +101,7 @@ const defaultAppSettings: AppSettings = {
   enableAnimations: true,
   matrixRainOpacity: 40,
   kuroryuuDecorativeFrames: false, // Opt-in decorative dragon frames
-  genuiImperialMode: true, // Imperial mode on by default
+  genuiImperialMode: true, // Imperial mode on by default for Playground
   captureImperialMode: true, // Imperial mode on by default for Capture
   enableRichToolVisualizations: false, // Opt-in rich tool visualizations
   devMode: false, // Dev mode: keyboard shortcuts + HMR

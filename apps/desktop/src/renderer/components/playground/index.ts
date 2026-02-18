@@ -1,5 +1,5 @@
 /**
- * GenUI - Generative UI System
+ * Playground - Claude Playground System
  * Barrel export for A2UI component system
  */
 
@@ -26,11 +26,13 @@ export {
 export type { Zone, LayoutWidth } from './LayoutEngine';
 
 // Panel components
-export { GenUIPanel } from './GenUIPanel';
-export { GenUIInput } from './GenUIInput';
-export { GenUILoading } from './GenUILoading';
-export { GenUIDashboard } from './GenUIDashboard';
-export { GenUISourceView } from './GenUISourceView';
+export { PlaygroundPanel } from './PlaygroundPanel';
+export { PlaygroundInput } from './PlaygroundInput';
+export { PlaygroundLoading } from './PlaygroundLoading';
+export { PlaygroundDashboard } from './PlaygroundDashboard';
+export { PlaygroundSourceView } from './PlaygroundSourceView';
+export { PlaygroundViewer } from './PlaygroundViewer';
+export { FeedbackBar } from './FeedbackBar';
 
 // Re-export all component categories
 export * from './a2ui/Data';

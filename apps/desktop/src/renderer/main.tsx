@@ -9,11 +9,11 @@ initE2ETestHooks();
 
 // Check for code editor window route
 const isCodeEditorWindow = window.location.hash === '#/code-editor';
-const isGenUIWindow = window.location.hash === '#/genui';
+const isPlaygroundWindow = window.location.hash === '#/playground';
 
 // Lazy load CodeEditorApp only when needed
 const CodeEditorApp = React.lazy(() => import('./CodeEditorApp'));
-const GenUIApp = React.lazy(() => import('./GenUIApp'));
+const ClaudePlaygroundApp = React.lazy(() => import('./ClaudePlaygroundApp'));
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -28,16 +28,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       }>
         <CodeEditorApp />
       </React.Suspense>
-    ) : isGenUIWindow ? (
+    ) : isPlaygroundWindow ? (
       <React.Suspense fallback={
         <div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-muted-foreground">Loading Generative UI...</span>
+            <span className="text-sm text-muted-foreground">Loading Claude Playground...</span>
           </div>
         </div>
       }>
-        <GenUIApp />
+        <ClaudePlaygroundApp />
       </React.Suspense>
     ) : (
       <App />

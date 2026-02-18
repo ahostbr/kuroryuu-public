@@ -1861,13 +1861,19 @@ const api = {
   },
 
   /**
-   * GenUI Window API
-   * Opens a separate Generative UI window for dashboard generation
+   * Playground Window API
+   * Opens a separate Claude Playground window for dashboard generation
    */
-  genui: {
-    /** Open the GenUI window (creates or focuses existing) */
+  playground: {
+    /** Open the Playground window (creates or focuses existing) */
     open: (): Promise<{ ok: boolean }> =>
-      ipcRenderer.invoke('genui:open'),
+      ipcRenderer.invoke('playground:open'),
+    /** List available playground HTML files */
+    list: (): Promise<Array<{ name: string; path: string; size: number; mtime: string }>> =>
+      ipcRenderer.invoke('playground:list'),
+    /** Read playground HTML content (path must be under playgrounds/) */
+    read: (filePath: string): Promise<string> =>
+      ipcRenderer.invoke('playground:read', filePath),
   },
 
   /**

@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { ActivityLogEntry } from '../../types/genui';
 import { useSettingsStore } from '../../stores/settings-store';
 
-interface GenUILoadingProps {
+interface PlaygroundLoadingProps {
   progress: number;
   currentStep: string;
   activityLog: ActivityLogEntry[];
@@ -16,13 +16,13 @@ const STEPS = [
   { key: 'Component Generation', icon: '\u25C8', label: 'GENERATE' }
 ];
 
-export function GenUILoading({
+export function PlaygroundLoading({
   progress,
   currentStep,
   activityLog,
   componentCount,
   onCancel
-}: GenUILoadingProps) {
+}: PlaygroundLoadingProps) {
   const imperialMode = useSettingsStore((s) => s.appSettings.genuiImperialMode);
   const logEndRef = useRef<HTMLDivElement>(null);
 

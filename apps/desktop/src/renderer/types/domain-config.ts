@@ -136,7 +136,7 @@ export const DOMAINS: DomainInfo[] = [
 
   {
     id: 'genui',
-    label: 'Generative UI',
+    label: 'Claude Playground',
     description: 'A2UI dashboard generation from markdown',
     icon: '✨',
     category: 'generation',

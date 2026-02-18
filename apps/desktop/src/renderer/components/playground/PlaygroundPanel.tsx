@@ -1,16 +1,21 @@
 /**
- * GenUIPanel - Main orchestrator for the Generative UI standalone window.
- * Routes between 3 states: idle (input) -> loading (analyzing/generating) -> complete (dashboard)
+ * PlaygroundPanel - Main orchestrator for the Claude Playground standalone window.
+ * Routes between states: idle (input) -> loading (analyzing/generating) -> complete (dashboard | playground)
+ * Two render modes:
+ *   - components: Markdown -> Gateway SSE -> A2UI React components -> zone layout
+ *   - playground: Claude-generated HTML -> sandboxed iframe -> prompt output -> feedback
  */
 import React, { useState } from 'react';
-import { useGenUI } from '../../hooks/useGenUI';
+import { usePlayground } from '../../hooks/usePlayground';
 import { useSettingsStore } from '../../stores/settings-store';
-import { GenUIInput } from './GenUIInput';
-import { GenUILoading } from './GenUILoading';
-import { GenUIDashboard } from './GenUIDashboard';
-import { GenUISourceView } from './GenUISourceView';
+import { PlaygroundInput } from './PlaygroundInput';
+import { PlaygroundLoading } from './PlaygroundLoading';
+import { PlaygroundDashboard } from './PlaygroundDashboard';
+import { PlaygroundSourceView } from './PlaygroundSourceView';
+import { PlaygroundViewer } from './PlaygroundViewer';
+import { FeedbackBar } from './FeedbackBar';
 
-export function GenUIPanel(): React.ReactElement {
+export function PlaygroundPanel(): React.ReactElement {
   const imperialMode = useSettingsStore((s) => s.appSettings.genuiImperialMode);
 
   const {
@@ -30,7 +35,16 @@ export function GenUIPanel(): React.ReactElement {
     isLoading,
     isComplete,
     isError,
-  } = useGenUI();
+    // Playground mode
+    renderMode,
+    playgroundHTML,
+    playgroundFileName,
+    promptOutput,
+    feedbackHistory,
+    capturePromptOutput,
+    sendFeedback,
+    addFeedbackEntry,
+  } = usePlayground();
 
   const [showSource, setShowSource] = useState(false);
   const [lastMarkdown, setLastMarkdown] = useState('');
@@ -51,6 +65,16 @@ export function GenUIPanel(): React.ReactElement {
     if (lastMarkdown) {
       setShowSource(false);
       generateDashboard(lastMarkdown);
+    }
+  };
+
+  const handleCopyFeedback = () => {
+    if (promptOutput) {
+      addFeedbackEntry({
+        timestamp: new Date().toISOString(),
+        promptText: promptOutput,
+        sentTo: 'clipboard',
+      });
     }
   };
 
@@ -91,7 +115,7 @@ export function GenUIPanel(): React.ReactElement {
   if (isIdle) {
     return (
       <div className={rootClass}>
-        <GenUIInput onGenerate={handleGenerate} />
+        <PlaygroundInput onGenerate={handleGenerate} />
       </div>
     );
   }
@@ -100,7 +124,7 @@ export function GenUIPanel(): React.ReactElement {
   if (isLoading) {
     return (
       <div className={rootClass}>
-        <GenUILoading
+        <PlaygroundLoading
           progress={progress}
           currentStep={currentStep}
           activityLog={activityLog}
@@ -111,12 +135,50 @@ export function GenUIPanel(): React.ReactElement {
     );
   }
 
-  // Complete state — show dashboard or source
+  // Complete state — show dashboard, source, or playground iframe
   if (isComplete) {
+    // Playground mode: sandboxed iframe + feedback bar
+    if (renderMode === 'playground' && playgroundHTML) {
+      return (
+        <div className={`${rootClass} flex flex-col`}>
+          <PlaygroundViewer
+            html={playgroundHTML}
+            fileName={playgroundFileName || undefined}
+            onPromptCapture={capturePromptOutput}
+          />
+          <FeedbackBar
+            promptOutput={promptOutput}
+            feedbackHistory={feedbackHistory}
+            onSend={sendFeedback}
+            onCopy={handleCopyFeedback}
+          />
+          {/* Back button overlay */}
+          <button
+            onClick={handleReset}
+            className="absolute top-2 right-2 z-50"
+            style={{
+              fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+              fontSize: '0.6rem',
+              letterSpacing: '0.1em',
+              padding: '4px 10px',
+              borderRadius: '3px',
+              border: '1px solid color-mix(in srgb, var(--g-accent) 20%, transparent)',
+              background: 'color-mix(in srgb, var(--g-card) 90%, transparent)',
+              color: 'color-mix(in srgb, var(--g-accent) 60%, transparent)',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+            }}
+          >
+            {'\u2190'} Back
+          </button>
+        </div>
+      );
+    }
+
     if (showSource) {
       return (
         <div className={rootClass}>
-          <GenUISourceView
+          <PlaygroundSourceView
             markdown={lastMarkdown}
             components={components}
             onClose={() => setShowSource(false)}
@@ -127,7 +189,7 @@ export function GenUIPanel(): React.ReactElement {
 
     return (
       <div className={rootClass}>
-        <GenUIDashboard
+        <PlaygroundDashboard
           documentTitle={documentTitle}
           documentType={documentType}
           layoutType={layoutType}
@@ -143,9 +205,9 @@ export function GenUIPanel(): React.ReactElement {
   // Fallback
   return (
     <div className={rootClass}>
-      <GenUIInput onGenerate={handleGenerate} />
+      <PlaygroundInput onGenerate={handleGenerate} />
     </div>
   );
 }
 
-export default GenUIPanel;
+export default PlaygroundPanel;

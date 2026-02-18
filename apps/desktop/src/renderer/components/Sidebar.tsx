@@ -77,7 +77,7 @@ export type View =
   | 'claude-tasks'
   | 'claude-teams'
   | 'kuroryuu-agents'
-  | 'genui'
+  | 'playground'
   | 'scheduler'
   | 'llm-apps'
   | 'marketing';
@@ -123,7 +123,7 @@ const navGroups: NavGroup[] = [
       { id: 'insights', label: 'ChatBot', icon: Brain, shortcut: 'N' },
       { id: 'claude-teams', label: 'Claude Teams', icon: Users, shortcut: 'A' },
       { id: 'kuroryuu-agents', label: 'Kuroryuu Agents', icon: Bot, shortcut: 'U' },
-      { id: 'genui', label: 'Generative UI', icon: Sparkles, shortcut: 'G' },
+      { id: 'playground', label: 'Claude Playground', icon: Sparkles, shortcut: 'G' },
       { id: 'llm-apps', label: 'LLM Apps', icon: Layers, shortcut: 'X' },
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
     ],
@@ -206,8 +206,8 @@ function SidebarGroup({
             <button
               key={item.id}
               onClick={() => {
-                if (item.id === 'genui') {
-                  window.electronAPI?.genui?.open();
+                if (item.id === 'playground') {
+                  window.electronAPI?.playground?.open();
                   return;
                 }
                 onSelectView(item.id);

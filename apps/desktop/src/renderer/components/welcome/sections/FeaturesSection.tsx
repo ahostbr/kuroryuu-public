@@ -272,7 +272,7 @@ const features: Feature[] = [
   {
     id: 'generative-ui',
     icon: Sparkles,
-    title: 'Generative UI',
+    title: 'Claude Playground',
     shortDesc: 'AI-powered dashboard generation with 51 themed components',
     longDesc: "Describe what you want to see and get a zone-based dashboard rendered from 51 A2UI components. Supports imperial/theme-aware mode toggle.",
     bullets: [
@@ -381,9 +381,9 @@ const features: Feature[] = [
     icon: SlidersHorizontal,
     title: 'Domain Config',
     shortDesc: 'Per-domain AI model and provider configuration',
-    longDesc: 'Configure which LLM model and provider to use for different operations like chat, GenUI, code review, and more.',
+    longDesc: 'Configure which LLM model and provider to use for different operations like chat, Playground, code review, and more.',
     bullets: [
-      'Per-domain model selection (chat, genui, code-review, etc.)',
+      'Per-domain model selection (chat, playground, code-review, etc.)',
       'Source-grouped provider dropdown (Claude, OpenAI, Gemini)',
       'CLIProxyAPI integration for model routing',
     ],

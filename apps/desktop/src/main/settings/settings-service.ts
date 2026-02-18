@@ -314,7 +314,7 @@ export class SettingsService {
       }
     }
 
-    // Notify ALL renderer windows (main + GenUI + CodeEditor)
+    // Notify ALL renderer windows (main + Playground + CodeEditor)
     for (const win of BrowserWindow.getAllWindows()) {
       if (!win.isDestroyed()) {
         try {

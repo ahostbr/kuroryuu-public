@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useSettingsStore } from '../../stores/settings-store';
+import { usePlayground } from '../../hooks/usePlayground';
+import type { RenderMode, PlaygroundFile } from '../../types/genui';
 
-interface GenUIInputProps {
+interface PlaygroundInputProps {
   onGenerate: (markdown: string, layoutOverride?: string) => void;
 }
 
@@ -97,13 +99,19 @@ const SAMPLE_BUTTONS = [
   { key: 'api', label: 'API Docs', icon: '\u25B6', color: 'rgba(34,197,94,0.6)' },
 ] as const;
 
-export function GenUIInput({ onGenerate }: GenUIInputProps) {
+export function PlaygroundInput({ onGenerate }: PlaygroundInputProps) {
   const [markdown, setMarkdown] = useState('');
   const [layoutOverride, setLayoutOverride] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const imperialMode = useSettingsStore((s) => s.appSettings.genuiImperialMode);
   const toggleMode = useSettingsStore((s) => s.setGenUIImperialMode);
+
+  const { renderMode, setRenderMode, playgroundFiles, refreshPlaygroundFiles, loadPlaygroundHTML } = usePlayground();
+
+  useEffect(() => {
+    refreshPlaygroundFiles();
+  }, []);
 
   const handleGenerate = () => {
     if (!markdown.trim()) return;
@@ -162,7 +170,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
               textTransform: 'uppercase',
             }}>
-              {imperialMode ? '\u25C8 Kuroryuu GenUI Engine \u25C8' : 'GenUI Engine'}
+              {imperialMode ? '\u25C8 Kuroryuu Playground Engine \u25C8' : 'Playground Engine'}
             </span>
             <div style={{ width: '60px', height: '1px', background: 'linear-gradient(90deg, color-mix(in srgb, var(--g-accent) 40%, transparent), transparent)' }} />
           </div>
@@ -179,7 +187,7 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
               fontFamily: imperialMode ? "Georgia, 'Times New Roman', serif" : "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
             }}
           >
-            Generative UI
+            Claude Playground
           </h1>
           <p style={{
             fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
@@ -212,6 +220,168 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
             </button>
           </div>
         </div>
+
+        {/* Mode Toggle */}
+        <div className="flex justify-center gap-1"
+          style={{
+            padding: '3px',
+            borderRadius: '4px',
+            background: 'color-mix(in srgb, var(--g-card) 60%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)',
+            display: 'inline-flex',
+            margin: '0 auto',
+          }}
+        >
+          {([
+            { mode: 'components' as RenderMode, label: 'Component Mode', icon: '\u25A0' },
+            { mode: 'playground' as RenderMode, label: 'Playground Mode', icon: '\u25B6' },
+          ]).map(({ mode, label, icon }) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setRenderMode(mode);
+                if (mode === 'playground') refreshPlaygroundFiles();
+              }}
+              style={{
+                fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                fontSize: '0.6rem',
+                letterSpacing: '0.1em',
+                padding: '5px 16px',
+                borderRadius: '3px',
+                border: 'none',
+                background: renderMode === mode
+                  ? 'color-mix(in srgb, var(--g-accent) 15%, transparent)'
+                  : 'transparent',
+                color: renderMode === mode
+                  ? 'color-mix(in srgb, var(--g-accent) 80%, transparent)'
+                  : 'color-mix(in srgb, var(--g-muted) 50%, transparent)',
+                cursor: 'pointer',
+                textTransform: 'uppercase',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              {icon} {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Playground Mode: File picker */}
+        {renderMode === 'playground' && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span style={{
+                fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                fontSize: '0.6rem',
+                letterSpacing: '0.15em',
+                color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
+                textTransform: 'uppercase',
+              }}>
+                Load Playground
+              </span>
+              <div style={{ flex: 1, height: '1px', background: 'color-mix(in srgb, var(--g-accent) 6%, transparent)' }} />
+              <button
+                onClick={() => refreshPlaygroundFiles()}
+                style={{
+                  fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                  fontSize: '0.55rem',
+                  padding: '2px 8px',
+                  borderRadius: '3px',
+                  border: '1px solid color-mix(in srgb, var(--g-accent) 15%, transparent)',
+                  background: 'transparent',
+                  color: 'color-mix(in srgb, var(--g-accent) 40%, transparent)',
+                  cursor: 'pointer',
+                }}
+              >
+                Refresh
+              </button>
+            </div>
+
+            {playgroundFiles.length === 0 ? (
+              <div
+                className="text-center py-8 rounded"
+                style={{
+                  border: '1px dashed color-mix(in srgb, var(--g-accent) 15%, transparent)',
+                  background: 'color-mix(in srgb, var(--g-card) 50%, transparent)',
+                }}
+              >
+                <div style={{
+                  fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                  fontSize: '0.7rem',
+                  color: 'color-mix(in srgb, var(--g-muted) 50%, transparent)',
+                  marginBottom: '8px',
+                }}>
+                  No playground files found
+                </div>
+                <div style={{
+                  fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                  fontSize: '0.6rem',
+                  color: 'color-mix(in srgb, var(--g-muted) 30%, transparent)',
+                }}>
+                  Ask Claude to create one with /k-playground or /playground
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {playgroundFiles.map((file) => (
+                  <button
+                    key={file.path}
+                    onClick={() => loadPlaygroundHTML(file.path)}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded transition-all duration-200"
+                    style={{
+                      background: 'color-mix(in srgb, var(--g-card) 80%, transparent)',
+                      border: '1px solid color-mix(in srgb, var(--g-accent) 8%, transparent)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--g-accent) 25%, transparent)';
+                      (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--g-accent) 4%, transparent)';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.borderColor = 'color-mix(in srgb, var(--g-accent) 8%, transparent)';
+                      (e.currentTarget as HTMLElement).style.background = 'color-mix(in srgb, var(--g-card) 80%, transparent)';
+                    }}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span style={{ color: 'color-mix(in srgb, var(--g-accent) 50%, transparent)', fontSize: '1rem' }}>{'\u25B6'}</span>
+                      <div>
+                        <div style={{
+                          fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                          fontSize: '0.7rem',
+                          color: 'color-mix(in srgb, var(--g-fg) 80%, transparent)',
+                        }}>
+                          {file.name}
+                        </div>
+                        <div style={{
+                          fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                          fontSize: '0.55rem',
+                          color: 'color-mix(in srgb, var(--g-muted) 40%, transparent)',
+                        }}>
+                          {(file.size / 1024).toFixed(1)} KB
+                        </div>
+                      </div>
+                    </div>
+                    <span style={{
+                      fontFamily: "ui-monospace, 'Share Tech Mono', monospace",
+                      fontSize: '0.55rem',
+                      color: 'color-mix(in srgb, var(--g-muted) 30%, transparent)',
+                    }}>
+                      {new Date(file.mtime).toLocaleDateString()}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Bottom decorative line */}
+            <div className="flex items-center justify-center pt-4">
+              <div style={{ width: '120px', height: '1px', background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 15%, transparent), transparent)' }} />
+            </div>
+          </div>
+        )}
+
+        {/* Component Mode: Markdown input (existing) */}
+        {renderMode === 'components' && (<>
 
         {/* Textarea — Terminal-Style */}
         <div
@@ -467,6 +637,8 @@ export function GenUIInput({ onGenerate }: GenUIInputProps) {
         <div className="flex items-center justify-center pt-4">
           <div style={{ width: '120px', height: '1px', background: 'linear-gradient(90deg, transparent, color-mix(in srgb, var(--g-accent) 15%, transparent), transparent)' }} />
         </div>
+
+        </>)}
       </div>
     </div>
   );

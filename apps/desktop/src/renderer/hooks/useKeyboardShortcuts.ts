@@ -47,7 +47,7 @@ export function useKeyboardShortcuts(
       'n': 'insights',
       'a': 'claude-teams',
       'u': 'kuroryuu-agents',
-      'g': 'genui',
+      'g': 'playground',
       't': 'terminals',
       // MONITOR
       'p': 'capture',
