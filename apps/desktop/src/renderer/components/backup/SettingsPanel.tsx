@@ -306,15 +306,23 @@ export function SettingsPanel() {
             <span className="text-muted-foreground">Status</span>
             <span
               className={
-                status?.repository_accessible ? 'text-green-500' : 'text-amber-500'
+                status === null
+                  ? 'text-muted-foreground'
+                  : status.repository_accessible
+                    ? 'text-green-500'
+                    : 'text-amber-500'
               }
             >
-              {status?.repository_accessible ? 'Accessible' : 'Inaccessible'}
+              {status === null
+                ? 'Checking...'
+                : status.repository_accessible
+                  ? 'Accessible'
+                  : 'Inaccessible'}
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Snapshots</span>
-            <span className="text-foreground">{status?.snapshot_count || 0}</span>
+            <span className="text-foreground">{status === null ? '—' : status.snapshot_count}</span>
           </div>
         </div>
       </section>

@@ -208,6 +208,24 @@ export class BackupService {
 
     await fs.mkdir(settingsDir, { recursive: true });
 
+    // Preserve Python-managed fields (password, password_hash) that the
+    // TypeScript BackupConfig type doesn't include. Without this, every
+    // saveConfig call wipes the password persisted by MCP Core's init.
+    try {
+      const existing = JSON.parse(await fs.readFile(configPath, 'utf-8'));
+      if (existing.repository) {
+        const repo = config.repository as Record<string, unknown>;
+        if (existing.repository.password && !repo.password) {
+          repo.password = existing.repository.password;
+        }
+        if (existing.repository.password_hash && !repo.password_hash) {
+          repo.password_hash = existing.repository.password_hash;
+        }
+      }
+    } catch {
+      // File doesn't exist yet or isn't valid JSON — continue with fresh save
+    }
+
     // Write to temp file first, then rename (atomic write)
     const tempPath = `${configPath}.tmp`;
     await fs.writeFile(tempPath, JSON.stringify(config, null, 2), 'utf-8');
@@ -293,31 +311,11 @@ export class BackupService {
         };
       }
 
-      // Return default status on error
-      return {
-        is_configured: !!this.config,
-        repository_exists: false,
-        repository_accessible: false,
-        restic_installed: false,
-        restic_version: null,
-        config_path: getConfigFilePath(),
-        binary_path: path.join(getResticBinDir(), process.platform === 'win32' ? 'restic.exe' : 'restic'),
-        snapshot_count: 0,
-        last_backup_time: null,
-      };
+      // MCP tool returned an error response
+      throw new Error(result.error || 'Backup status check failed');
     } catch (error) {
       console.error('[BackupService] getStatus failed:', error);
-      return {
-        is_configured: !!this.config,
-        repository_exists: false,
-        repository_accessible: false,
-        restic_installed: false,
-        restic_version: null,
-        config_path: getConfigFilePath(),
-        binary_path: path.join(getResticBinDir(), process.platform === 'win32' ? 'restic.exe' : 'restic'),
-        snapshot_count: 0,
-        last_backup_time: null,
-      };
+      throw error;
     }
   }
 

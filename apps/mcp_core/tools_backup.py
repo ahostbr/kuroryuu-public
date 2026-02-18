@@ -18,11 +18,11 @@ from typing import Any, Dict, List, Optional
 
 try:
     from .backup import BackupConfig, ResticWrapper
-    from .backup.downloader import ensure_restic, get_restic_version, is_restic_installed
+    from .backup.downloader import ensure_restic, get_binary_path, get_restic_version, is_restic_installed
     from .backup.snapshot_utils import build_snapshot_chain, enrich_snapshot
 except ImportError:
     from backup import BackupConfig, ResticWrapper
-    from backup.downloader import ensure_restic, get_restic_version, is_restic_installed
+    from backup.downloader import ensure_restic, get_binary_path, get_restic_version, is_restic_installed
     from backup.snapshot_utils import build_snapshot_chain, enrich_snapshot
 
 # Module-level password cache — persists across MCP calls within same process
@@ -168,7 +168,8 @@ def _action_init(
     result = wrapper.init_repository(password)
 
     if result.get("ok"):
-        # Only cache password after successful init
+        # Persist password to config AND module cache
+        config.set_password(password)
         with _password_lock:
             _cached_password = password
         return {
@@ -217,6 +218,14 @@ def _action_backup(
     """Create a new backup snapshot."""
     config, wrapper = _get_configured_wrapper(password=password)
 
+    # Pre-check: password must be available before starting restic
+    if not (password or _cached_password or wrapper.config.get_password()):
+        return {
+            "ok": False,
+            "error_code": "NO_PASSWORD",
+            "message": "Repository password not available. Re-enter via Settings or re-initialize.",
+        }
+
     # Use provided source or configured source
     backup_source = source_path or config.get("backup.source_path")
     if not backup_source:
@@ -225,19 +234,39 @@ def _action_backup(
     # Generate session ID for background mode
     session_id = str(uuid.uuid4())[:8] if background else None
 
+    if background:
+        # Run backup in a daemon thread so the HTTP request returns immediately.
+        # Progress/summary/error events are emitted to Gateway via WebSocket.
+        def _run_backup():
+            try:
+                wrapper.create_backup(
+                    source_path=backup_source,
+                    message=message or "Manual backup",
+                    tags=tags,
+                    session_id=session_id,
+                )
+            except Exception as exc:
+                try:
+                    from .backup.streaming import emit_error
+                except ImportError:
+                    from backup.streaming import emit_error
+                emit_error(session_id, str(exc))
+
+        thread = threading.Thread(target=_run_backup, daemon=True)
+        thread.start()
+
+        return {
+            "ok": True,
+            "message": "Backup started in background",
+            "session_id": session_id,
+        }
+
     result = wrapper.create_backup(
         source_path=backup_source,
         message=message or "Manual backup",
         tags=tags,
         session_id=session_id,
     )
-
-    if background:
-        return {
-            "ok": True,
-            "message": "Backup started in background",
-            "session_id": session_id,
-        }
 
     if result.get("ok"):
         summary = result.get("summary", {})

@@ -83,7 +83,11 @@ function OverviewDashboard() {
             <span className="text-sm font-medium text-foreground">Repository</span>
           </div>
           <div className="space-y-1">
-            {status?.repository_accessible ? (
+            {status === null && !statusError ? (
+              <span className="text-sm text-muted-foreground">Checking...</span>
+            ) : status === null && statusError ? (
+              <span className="text-sm text-muted-foreground">—</span>
+            ) : status?.repository_accessible ? (
               <>
                 <div className="flex items-center gap-2 text-green-500">
                   <CheckCircle2 className="w-4 h-4" />
@@ -109,7 +113,7 @@ function OverviewDashboard() {
             <span className="text-sm font-medium text-foreground">Snapshots</span>
           </div>
           <div className="text-2xl font-bold text-foreground">
-            {status?.snapshot_count ?? 0}
+            {status === null ? (statusError ? '—' : '...') : status.snapshot_count}
           </div>
           <p className="text-xs text-muted-foreground">
             Total backups stored
@@ -122,7 +126,11 @@ function OverviewDashboard() {
             <Shield className="w-5 h-5 text-blue-400" />
             <span className="text-sm font-medium text-foreground">Restic</span>
           </div>
-          {status?.restic_installed ? (
+          {status === null && !statusError ? (
+            <span className="text-sm text-muted-foreground">Checking...</span>
+          ) : status === null && statusError ? (
+            <span className="text-sm text-muted-foreground">—</span>
+          ) : status?.restic_installed ? (
             <>
               <div className="flex items-center gap-2 text-green-500">
                 <CheckCircle2 className="w-4 h-4" />

@@ -98,6 +98,7 @@ class ResticWrapper:
                 cmd,
                 env=env,
                 capture_output=capture_output,
+                stdin=subprocess.DEVNULL,
                 text=True,
                 timeout=timeout,
             )
@@ -187,6 +188,7 @@ class ResticWrapper:
                 env=env,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
                 text=True,
                 bufsize=1,
             )
