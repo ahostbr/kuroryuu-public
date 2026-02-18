@@ -85,10 +85,17 @@ export function useSpawnTerminalAgent() {
     if (!projectRoot) {
       try {
         projectRoot = await window.electronAPI?.app?.getProjectRoot?.();
-      } catch { /* fallback below */ }
+      } catch (err) {
+        console.warn('[useSpawnTerminalAgent] getProjectRoot IPC failed:', err);
+      }
     }
     if (!projectRoot) {
-      projectRoot = process.cwd();
+      // process.cwd() in Electron renderer is NOT the project root — never use it.
+      // Fall back to KURORYUU_ROOT env var which is set by the desktop app on startup.
+      projectRoot = process.env.KURORYUU_ROOT || process.env.KURORYUU_PROJECT_ROOT || '';
+      if (!projectRoot) {
+        console.error('[useSpawnTerminalAgent] Cannot resolve project root — no cwd, IPC failed, no env var');
+      }
     }
     const cwd = getTerminalCwd(agentConfig, projectRoot);
 
