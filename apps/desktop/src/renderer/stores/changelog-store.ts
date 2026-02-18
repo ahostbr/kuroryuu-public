@@ -174,8 +174,8 @@ export const useChangelogStore = create<ChangelogStore>((set, get) => ({
       const result = await gatewayClient.changelog.tasks();
 
       if (result.ok && result.data) {
-        const entries: ChangelogEntry[] = result.data.entries.map(e => ({
-          id: e.id,
+        const entries: ChangelogEntry[] = result.data.entries.map((e, i) => ({
+          id: `${e.id}-${i}`,
           type: e.type,
           title: e.title,
           description: e.description,

@@ -931,7 +931,7 @@ export function IntegrationsDialog() {
                   <Dialog.Content className="fixed inset-4 z-[60] flex items-center justify-center">
                     <div className="w-full max-w-4xl max-h-[90vh] overflow-auto bg-card border border-border rounded-lg shadow-2xl">
                       <div className="flex items-center justify-between p-3 border-b border-border">
-                        <h2 className="text-sm font-semibold text-foreground">Restic Backup Manager</h2>
+                        <Dialog.Title className="text-sm font-semibold text-foreground">Restic Backup Manager</Dialog.Title>
                         <button
                           onClick={() => setShowBackupManager(false)}
                           className="p-1.5 hover:bg-secondary rounded transition-colors"
