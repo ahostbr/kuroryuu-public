@@ -27,7 +27,6 @@ export function MarketingTerminal() {
       name: 'Marketing Specialist',
       role: 'specialist',
       capabilities: ['marketing'],
-      promptPath: 'ai/skills/marketing/MARKETING_BOOTSTRAP.md',
       onReady: (ptyId) => {
         console.log('[Marketing] Agent spawned:', ptyId);
         setTerminalPtyId(ptyId);

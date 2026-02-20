@@ -12,6 +12,7 @@ import {
   DollarSign,
   TrendingUp,
   Lightbulb,
+  BookOpen,
 } from 'lucide-react';
 import { useMarketingStore } from '../../stores/marketing-store';
 import { TerminalWorkspace } from '../shared/terminal-workspace';
@@ -39,6 +40,7 @@ const MARKETING_TOOLS: WorkspaceTool[] = [
 ];
 
 const MARKETING_SKILLS: WorkspaceSkill[] = [
+  { id: 'dofirst', label: 'DOFIRST', icon: BookOpen, file: 'MARKETING_BOOTSTRAP.md' },
   { id: 'positioning', label: 'Positioning', icon: Target, file: 'positioning.md' },
   { id: 'copywriting', label: 'Copywriting', icon: FileText, file: 'copywriting.md' },
   { id: 'seo-content', label: 'SEO Content', icon: Globe, file: 'seo_content.md' },

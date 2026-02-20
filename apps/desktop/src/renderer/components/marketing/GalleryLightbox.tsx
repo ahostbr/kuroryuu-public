@@ -116,7 +116,7 @@ export function GalleryLightbox() {
         <div className="flex items-center justify-center mb-4">
           {asset.type === 'image' && (
             <img
-              src={`file://${asset.path}`}
+              src={`http://127.0.0.1:8200/v1/marketing/assets/${asset.id}`}
               alt={asset.name}
               className="max-w-full max-h-[70vh] object-contain rounded-lg mx-auto"
             />
@@ -124,7 +124,7 @@ export function GalleryLightbox() {
 
           {asset.type === 'video' && (
             <video
-              src={`file://${asset.path}`}
+              src={`http://127.0.0.1:8200/v1/marketing/assets/${asset.id}`}
               controls
               className="max-w-full max-h-[70vh] rounded-lg mx-auto"
             />
@@ -133,7 +133,7 @@ export function GalleryLightbox() {
           {(asset.type === 'voiceover' || asset.type === 'music') && (
             <div className="w-full">
               <audio
-                src={`file://${asset.path}`}
+                src={`http://127.0.0.1:8200/v1/marketing/assets/${asset.id}`}
                 controls
                 className="w-full mt-8"
               />

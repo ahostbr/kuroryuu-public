@@ -117,7 +117,7 @@ export function ImageGenPage() {
               {assets.slice(0, 6).map((asset) => (
                 <img
                   key={asset.id}
-                  src={`file://${asset.path}`}
+                  src={`http://127.0.0.1:8200/v1/marketing/assets/${asset.id}`}
                   alt={asset.name}
                   className="w-full rounded-lg object-cover aspect-video cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => setLightboxAssetId(asset.id)}

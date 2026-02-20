@@ -108,7 +108,7 @@ export function GalleryPage() {
                   {/* Thumbnail for images */}
                   {asset.type === 'image' && (
                     <img
-                      src={`file://${asset.path}`}
+                      src={`http://127.0.0.1:8200/v1/marketing/assets/${asset.id}`}
                       alt={asset.name}
                       className="w-full h-32 object-cover rounded mb-2"
                     />

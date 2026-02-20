@@ -186,7 +186,7 @@ def list_assets() -> list[dict[str, Any]]:
         })
 
     # Sort by creation time (newest first)
-    assets.sort(key=lambda a: a["created_at"], reverse=True)
+    assets.sort(key=lambda a: a["createdAt"], reverse=True)
 
     return assets
 
