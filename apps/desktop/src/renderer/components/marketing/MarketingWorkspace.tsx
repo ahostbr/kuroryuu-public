@@ -46,6 +46,12 @@ const MARKETING_SKILLS: WorkspaceSkill[] = [
   { id: 'ad-creative', label: 'Ad Creative', icon: DollarSign, file: 'ad_creative.md' },
   { id: 'landing-page', label: 'Landing Page', icon: Lightbulb, file: 'landing_page.md' },
   { id: 'keyword-research', label: 'Keyword Research', icon: TrendingUp, file: 'keyword_research.md' },
+  { id: 'research', label: 'Research', icon: Search, file: 'research.md' },
+  { id: 'web-scraper', label: 'Web Scraper', icon: Globe, file: 'web_scraper.md' },
+  { id: 'image-gen-skill', label: 'Image Gen', icon: ImageIcon, file: 'image_gen.md' },
+  { id: 'voiceover-skill', label: 'Voiceover', icon: Mic, file: 'voiceover.md' },
+  { id: 'music-gen-skill', label: 'Music Gen', icon: Music, file: 'music_gen.md' },
+  { id: 'remotion-studio', label: 'Remotion Studio', icon: MonitorPlay, file: 'remotion_studio.md' },
 ];
 
 export function MarketingWorkspace() {
