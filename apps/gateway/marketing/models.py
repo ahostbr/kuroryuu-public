@@ -99,13 +99,6 @@ class MusicRequest(BaseModel):
     duration: int = Field(default=30, description="Duration in seconds", ge=5, le=180)
 
 
-class VideoRequest(BaseModel):
-    """Request for video rendering."""
-
-    template: str = Field(default="default", description="Remotion template name")
-    props: dict[str, Any] = Field(default_factory=dict, description="Template props (voiceover, music, images, etc.)")
-
-
 # ---------------------------------------------------------------------------
 # Tool Management
 # ---------------------------------------------------------------------------

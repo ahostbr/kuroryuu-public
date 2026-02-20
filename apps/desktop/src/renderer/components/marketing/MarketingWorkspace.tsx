@@ -4,7 +4,6 @@ import {
   Image as ImageIcon,
   Mic,
   Music,
-  Video,
   FolderOpen,
   MonitorPlay,
   Target,
@@ -25,7 +24,6 @@ import { ScraperPage } from './pages/ScraperPage';
 import { ImageGenPage } from './pages/ImageGenPage';
 import { VoiceoverPage } from './pages/VoiceoverPage';
 import { MusicGenPage } from './pages/MusicGenPage';
-import { VideoRenderPage } from './pages/VideoRenderPage';
 import { GalleryPage } from './pages/GalleryPage';
 import { StudioPage } from './pages/StudioPage';
 
@@ -35,7 +33,6 @@ const MARKETING_TOOLS: WorkspaceTool[] = [
   { id: 'image-gen', icon: ImageIcon, label: 'Image Generation', page: <ImageGenPage /> },
   { id: 'voiceover', icon: Mic, label: 'Voiceover', page: <VoiceoverPage /> },
   { id: 'music-gen', icon: Music, label: 'Music Generation', page: <MusicGenPage /> },
-  { id: 'video-render', icon: Video, label: 'Video Rendering', page: <VideoRenderPage /> },
   { id: 'studio', icon: MonitorPlay, label: 'Studio', page: <StudioPage /> },
   { id: 'gallery', icon: FolderOpen, label: 'Gallery', page: <GalleryPage />, bottom: true },
 ];

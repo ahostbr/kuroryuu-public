@@ -11,7 +11,6 @@ Endpoints:
 - POST /v1/marketing/generate/image - SSE image generation
 - POST /v1/marketing/generate/voiceover - SSE voiceover generation
 - POST /v1/marketing/generate/music - SSE music generation
-- POST /v1/marketing/generate/video - SSE video rendering
 - GET  /v1/marketing/skills         - List marketing skills
 """
 
@@ -32,7 +31,6 @@ from .models import (
     ImageGenRequest,
     VoiceoverRequest,
     MusicRequest,
-    VideoRequest,
     ToolStatusResponse,
     AssetsResponse,
     AssetInfo,
@@ -42,7 +40,7 @@ from .models import (
 from .research_engine import research
 from .web_scraper import scrape
 from .image_service import generate_image
-from .video_service import generate_voiceover, generate_music, render_video
+from .video_service import generate_voiceover, generate_music
 from .tool_manager import (
     get_tool_status,
     list_assets,
@@ -276,32 +274,6 @@ async def generate_music_endpoint(request: MusicRequest) -> StreamingResponse:
         async for event_json in generate_music(
             prompt=request.prompt,
             duration=request.duration,
-        ):
-            yield f"data: {event_json}\n\n"
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
-
-
-# ---------------------------------------------------------------------------
-# Video Rendering
-# ---------------------------------------------------------------------------
-
-@router.post("/generate/video")
-async def generate_video_endpoint(request: VideoRequest) -> StreamingResponse:
-    """Render video via Remotion (via video toolkit).
-
-    SSE event stream with progress and completion events.
-
-    Args:
-        request: VideoRequest with template, props
-
-    Returns:
-        StreamingResponse with SSE events
-    """
-    async def event_generator():
-        async for event_json in render_video(
-            template=request.template,
-            props=request.props,
         ):
             yield f"data: {event_json}\n\n"
 

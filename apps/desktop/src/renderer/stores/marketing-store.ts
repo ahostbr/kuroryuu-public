@@ -54,11 +54,9 @@ interface MarketingStore {
   imageLoading: boolean;
   voiceoverLoading: boolean;
   musicLoading: boolean;
-  videoLoading: boolean;
   generateImage: (prompt: string, style: string, aspectRatio: string) => Promise<void>;
   generateVoiceover: (text: string) => Promise<void>;
   generateMusic: (prompt: string, duration: number) => Promise<void>;
-  renderVideo: (template: string, props: Record<string, string>) => Promise<void>;
 }
 
 export const useMarketingStore = create<MarketingStore>((set, get) => ({
@@ -170,7 +168,6 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
   imageLoading: false,
   voiceoverLoading: false,
   musicLoading: false,
-  videoLoading: false,
 
   generateImage: async (prompt, style, aspectRatio) => {
     const jobId = crypto.randomUUID();
@@ -349,62 +346,4 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
     }
   },
 
-  renderVideo: async (template, props) => {
-    const jobId = crypto.randomUUID();
-    set({ videoLoading: true });
-    get().addJob({
-      id: jobId,
-      type: 'video',
-      status: 'running',
-      progress: 0,
-      message: 'Starting video rendering...',
-      startedAt: new Date().toISOString(),
-    });
-
-    try {
-      const res = await fetch(`${GATEWAY}/v1/marketing/generate/video`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ template, props }),
-      });
-
-      if (!res.ok) throw new Error(`Video rendering failed: ${res.status}`);
-
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = JSON.parse(line.slice(6));
-
-          if (data.type === 'progress') {
-            get().updateJob(jobId, { progress: data.progress, message: data.message });
-          } else if (data.type === 'complete') {
-            get().removeJob(jobId);
-            await get().loadAssets();
-            set({ videoLoading: false });
-            toast.success('Video rendered successfully!');
-            return;
-          } else if (data.type === 'error') {
-            get().updateJob(jobId, { status: 'error', message: data.error });
-            set({ videoLoading: false });
-            return;
-          }
-        }
-      }
-    } catch (e) {
-      console.error('[marketing] video rendering error:', e);
-      get().updateJob(jobId, { status: 'error', message: String(e) });
-      set({ videoLoading: false });
-    }
-  },
 }));

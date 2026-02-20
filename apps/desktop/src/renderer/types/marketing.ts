@@ -9,7 +9,6 @@ export type MarketingToolId =
   | 'image-gen'
   | 'voiceover'
   | 'music-gen'
-  | 'video-render'
   | 'gallery';
 
 // Tool installation status (google-image-gen, claude-code-video-toolkit)
@@ -68,7 +67,7 @@ export interface MarketingAsset {
 // SSE generation job
 export interface ActiveJob {
   id: string;
-  type: 'image' | 'voiceover' | 'music' | 'video' | 'research' | 'scrape';
+  type: 'image' | 'voiceover' | 'music' | 'research' | 'scrape';
   status: 'running' | 'complete' | 'error';
   progress: number;
   message: string;

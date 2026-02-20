@@ -3,7 +3,6 @@
 Interfaces with the cloned claude-code-video-toolkit repo for:
 - Voiceover generation (ElevenLabs)
 - Music generation
-- Video rendering (Remotion)
 
 Repository: tools/marketing/claude-code-video-toolkit/
 """
@@ -14,7 +13,6 @@ import asyncio
 import logging
 import pathlib
 import json
-import sys
 from datetime import datetime
 from typing import AsyncGenerator
 
@@ -178,125 +176,6 @@ async def generate_music(
 
     except Exception as e:
         logger.error(f"Music generation error: {e}")
-        yield json.dumps({"type": "error", "error": str(e)})
-
-
-# ---------------------------------------------------------------------------
-# Video rendering
-# ---------------------------------------------------------------------------
-
-async def render_video(
-    template: str = "default",
-    props: dict = None,
-) -> AsyncGenerator[str, None]:
-    """Render video via Remotion (via video toolkit).
-
-    Yields SSE events similar to voiceover.
-    """
-    if props is None:
-        props = {}
-
-    if not VIDEO_TOOLKIT_DIR.exists():
-        yield json.dumps({
-            "type": "error",
-            "error": f"claude-code-video-toolkit not found at {VIDEO_TOOLKIT_DIR}. Clone it first."
-        })
-        return
-
-    # Templates are standalone Remotion projects under templates/<name>/
-    templates_dir = VIDEO_TOOLKIT_DIR / "templates"
-    template_dir = templates_dir / template
-
-    if not template_dir.exists():
-        available = (
-            [d.name for d in templates_dir.iterdir() if d.is_dir() and (d / "package.json").exists()]
-            if templates_dir.exists() else []
-        )
-        yield json.dumps({
-            "type": "error",
-            "error": f"Template '{template}' not found. Available: {', '.join(available) or 'none'}",
-        })
-        return
-
-    pkg_path = template_dir / "package.json"
-    if not pkg_path.exists():
-        yield json.dumps({
-            "type": "error",
-            "error": f"Template '{template}' is missing package.json at {template_dir}",
-        })
-        return
-
-    # Derive composition ID from package.json render script
-    # Script format: "remotion render <CompositionId> ..."
-    with open(pkg_path) as f:
-        pkg = json.load(f)
-    render_script = pkg.get("scripts", {}).get("render", "")
-    parts = render_script.split()
-    composition_id = parts[2] if len(parts) >= 3 and parts[:2] == ["remotion", "render"] else template
-
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    yield json.dumps({"type": "progress", "progress": 10, "message": "Initializing video render..."})
-
-    try:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_filename = f"video_{timestamp}.mp4"
-        output_path = OUTPUT_DIR / output_filename
-
-        # Write props to temp JSON for Remotion
-        props_path = OUTPUT_DIR / f"props_{timestamp}.json"
-        with open(props_path, "w") as f:
-            json.dump(props, f)
-
-        # Each template is a standalone Remotion project — run from its directory
-        # On Windows, npx is a batch script (npx.cmd) — must use .cmd extension with create_subprocess_exec
-        npx_cmd = "npx.cmd" if sys.platform == "win32" else "npx"
-        cmd = [
-            npx_cmd, "remotion", "render",
-            "src/index.ts",
-            composition_id,
-            "--output", str(output_path),
-            "--props", str(props_path),
-        ]
-
-        yield json.dumps({"type": "progress", "progress": 30, "message": "Rendering video with Remotion..."})
-
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=str(template_dir),
-        )
-
-        stdout, stderr = await process.communicate()
-
-        # Cleanup temp props file
-        props_path.unlink(missing_ok=True)
-
-        if process.returncode != 0:
-            error_msg = stderr.decode() if stderr else "Video rendering failed"
-            logger.error(f"Video rendering failed: {error_msg}")
-            yield json.dumps({"type": "error", "error": error_msg})
-            return
-
-        yield json.dumps({"type": "progress", "progress": 90, "message": "Finalizing video..."})
-
-        if not output_path.exists():
-            yield json.dumps({"type": "error", "error": f"Output file not created: {output_path}"})
-            return
-
-        yield json.dumps({
-            "type": "complete",
-            "path": str(output_path),
-            "metadata": {
-                "template": template,
-                "props": props,
-                "created_at": datetime.now().isoformat(),
-            }
-        })
-
-    except Exception as e:
-        logger.error(f"Video rendering error: {e}")
         yield json.dumps({"type": "error", "error": str(e)})
 
 
