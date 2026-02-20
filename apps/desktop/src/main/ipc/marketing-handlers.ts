@@ -386,6 +386,17 @@ export function registerMarketingHandlers(): void {
     return await ensureUv();
   });
 
+  // Install Playwright browser binaries in the system Python environment
+  ipcMain.handle('marketing:installPlaywright', async () => {
+    try {
+      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+      const result = await runCommand(pythonCmd, ['-m', 'playwright', 'install', 'chromium'], PROJECT_ROOT);
+      return result;
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
+  });
+
   // Get tool installation status
   ipcMain.handle('marketing:getToolStatus', async () => {
     try {
@@ -574,9 +585,11 @@ export function registerMarketingHandlers(): void {
       const googleKey = tokenGetApiKey('google');
       if (googleKey) keys.GOOGLE_AI_API_KEY = googleKey;
 
-      if (Object.keys(keys).length === 0) {
-        return { ok: true, injected: [] };
-      }
+      const anthropicKey = tokenGetApiKey('anthropic') || process.env.ANTHROPIC_API_KEY;
+      if (anthropicKey) keys.ANTHROPIC_API_KEY = anthropicKey;
+
+      // Always set the backends chain so claude is available as the first fallback
+      keys.KURORYUU_LLM_BACKENDS = 'claude,lmstudio,cliproxyapi';
 
       const res = await fetch('http://127.0.0.1:8200/v1/marketing/config', {
         method: 'POST',

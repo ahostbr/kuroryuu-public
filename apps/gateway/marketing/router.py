@@ -61,7 +61,7 @@ router = APIRouter(prefix="/v1/marketing", tags=["marketing"])
 # ---------------------------------------------------------------------------
 
 # Allowed env vars that can be set via this endpoint
-_ALLOWED_KEYS = {"ELEVENLABS_API_KEY", "GOOGLE_AI_API_KEY"}
+_ALLOWED_KEYS = {"ELEVENLABS_API_KEY", "GOOGLE_AI_API_KEY", "ANTHROPIC_API_KEY", "KURORYUU_LLM_BACKENDS"}
 
 
 @router.post("/config")

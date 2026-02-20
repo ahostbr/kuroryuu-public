@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, Download, Settings2, Rocket, Terminal, RotateCcw } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Download, Settings2, Rocket, Terminal, RotateCcw, Globe } from 'lucide-react';
 import type { ToolStatus } from '../../types/marketing';
 
 interface MarketingSetupWizardProps {
@@ -30,6 +30,8 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
   const [installError, setInstallError] = useState<string | null>(null);
   const [uvInstalled, setUvInstalled] = useState<boolean | null>(null);
   const [uvInstalling, setUvInstalling] = useState(false);
+  const [playwrightInstalled, setPlaywrightInstalled] = useState<boolean | null>(null);
+  const [playwrightInstalling, setPlaywrightInstalling] = useState(false);
   const [gatewayOnline, setGatewayOnline] = useState(false);
   const [cliProxyConnected, setCliProxyConnected] = useState(false);
 
@@ -87,6 +89,21 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
       setUvInstalled(false);
     } finally {
       setUvInstalling(false);
+    }
+  };
+
+  const installPlaywright = async () => {
+    setPlaywrightInstalling(true);
+    setInstallError(null);
+    try {
+      const result = await window.electronAPI.marketing.installPlaywright();
+      setPlaywrightInstalled(result.ok);
+      if (!result.ok) setInstallError(result.error || 'Failed to install browser');
+    } catch (err) {
+      setInstallError(String(err));
+      setPlaywrightInstalled(false);
+    } finally {
+      setPlaywrightInstalling(false);
     }
   };
 
@@ -262,6 +279,45 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
                     )}
                   </button>
                 )}
+              </div>
+            </div>
+
+            {/* Playwright browser prerequisite */}
+            <div className="bg-zinc-800 rounded-lg p-4 border border-zinc-700 mb-2">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Globe className="w-4 h-4 text-blue-400" />
+                    <h3 className="font-medium">Web Browser (Playwright)</h3>
+                    {playwrightInstalled === true && <CheckCircle2 className="w-4 h-4 text-green-500" />}
+                    {playwrightInstalled === false && <XCircle className="w-4 h-4 text-red-500" />}
+                  </div>
+                  <p className="text-sm text-zinc-400">
+                    Required for Web Scraper. Downloads Chromium (~200MB).
+                  </p>
+                </div>
+                <button
+                  onClick={installPlaywright}
+                  disabled={playwrightInstalling || playwrightInstalled === true}
+                  className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  {playwrightInstalling ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Installing
+                    </>
+                  ) : playwrightInstalled === true ? (
+                    <>
+                      <CheckCircle2 className="w-3 h-3" />
+                      Installed
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-3 h-3" />
+                      Install Browser
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 

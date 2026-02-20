@@ -80,7 +80,7 @@ async function registerAgent(config: AgentConfig): Promise<boolean> {
       body: JSON.stringify({
         agent_id: config.id,
         model_name: config.modelName,
-        role: config.role,
+        role: config.role === 'leader' ? 'leader' : 'worker',
         capabilities: config.capabilities,
       }),
     });
