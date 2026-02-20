@@ -91,7 +91,10 @@ export const useMarketingStore = create<MarketingStore>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, mode }),
       });
-      if (!res.ok) throw new Error(`Research failed: ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as { detail?: string }).detail || `Research failed: ${res.status}`);
+      }
       const data = await res.json();
       set({ lastResearch: data, researchLoading: false });
     } catch (e) {

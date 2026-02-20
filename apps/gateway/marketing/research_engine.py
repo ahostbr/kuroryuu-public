@@ -288,10 +288,6 @@ async def _gateway_llm_call(
         messages.append(LLMMessage(role="system", content=system_prompt))
     messages.append(LLMMessage(role="user", content=prompt))
 
-    # If prefer_fast and no model override, try to use gemini-2.0-flash-exp
-    if prefer_fast and not model:
-        model = "gemini-2.0-flash-exp"
-
     config = LLMConfig(
         model=model or "",
         temperature=temperature,

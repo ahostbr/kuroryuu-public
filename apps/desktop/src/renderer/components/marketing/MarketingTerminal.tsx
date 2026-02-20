@@ -42,7 +42,7 @@ export function MarketingTerminal() {
 
   if (!terminalPtyId && !spawning) {
     return (
-      <div className="absolute inset-0 flex items-center justify-center bg-card">
+      <div className="h-full w-full flex items-center justify-center bg-card">
         <button
           onClick={handleStart}
           className="px-6 py-3 bg-primary hover:bg-primary/90 rounded-lg flex items-center gap-2 text-primary-foreground font-medium"
