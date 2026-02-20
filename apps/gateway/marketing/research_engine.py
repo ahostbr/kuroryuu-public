@@ -28,11 +28,11 @@ logger = logging.getLogger("marketing.research")
 
 # Optional dependency
 try:
-    from duckduckgo_search import DDGS
+    from ddgs import DDGS
     DDGS_AVAILABLE = True
 except ImportError:
     DDGS_AVAILABLE = False
-    logger.warning("duckduckgo-search not installed. Install with: pip install duckduckgo-search")
+    logger.warning("ddgs not installed. Install with: pip install ddgs")
 
 
 # ---------------------------------------------------------------------------

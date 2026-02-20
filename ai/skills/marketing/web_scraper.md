@@ -46,8 +46,7 @@ Content-Type: application/json
 # Extract competitor landing page as markdown
 curl -s -X POST http://127.0.0.1:8200/v1/marketing/scrape \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://competitor.com/pricing", "mode": "markdown"}' \
-  | python3 -c "import sys, json; d=json.load(sys.stdin); print(d['content'])"
+  -d '{"url": "https://competitor.com/pricing", "mode": "markdown"}'
 ```
 
 **GUI auto-display:** When you call this endpoint, the Web Scraper panel in the Desktop GUI automatically updates with the result.
@@ -78,7 +77,7 @@ for url in \
   curl -s -X POST http://127.0.0.1:8200/v1/marketing/scrape \
     -H "Content-Type: application/json" \
     -d "{\"url\": \"$url\", \"mode\": \"markdown\"}" \
-    | python3 -c "import sys, json; d=json.load(sys.stdin); print(d.get('content','ERROR')[:2000])"
+    | head -c 2000
   echo ""
 done
 ```

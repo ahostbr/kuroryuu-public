@@ -106,10 +106,24 @@ ai/artifacts/marketing/keyword_research/{niche}_keywords.md
 ## Instructions
 
 ### On Initial Load
-1. Greet user and explain the 8 phases
-2. Ask: "Which phase would you like to work on? Or should I recommend a workflow?"
-3. If user provides product/company context, route to Research first
-4. If user specifies a phase, **Read the sub-skill file FIRST**, then execute
+1. Greet user and explain the 8 strategic phases AND the 6 production tools
+2. Show two tables: (a) the 8 strategy phases, (b) the 6 production tools available via Gateway
+3. Ask: "Which phase would you like to work on? Or should I recommend a workflow?"
+4. If user provides product/company context, route to Research first
+5. If user specifies a phase or tool, **Read the sub-skill file FIRST**, then execute
+
+**Production tools to show in initial greeting:**
+
+| Tool | Skill File | What it does |
+|------|-----------|--------------|
+| Research | `ai/skills/marketing/research.md` | Web search + LLM synthesis (quick/deep/reason modes) |
+| Web Scraper | `ai/skills/marketing/web_scraper.md` | URL → clean Markdown for competitor analysis |
+| Image Gen | `ai/skills/marketing/image_gen.md` | AI image generation for ads and creative |
+| Voiceover | `ai/skills/marketing/voiceover.md` | ElevenLabs TTS for video narration |
+| Music Gen | `ai/skills/marketing/music_gen.md` | AI background music and SFX |
+| Remotion Studio | `ai/skills/marketing/remotion_studio.md` | Programmatic video production with React |
+
+Results auto-display in GUI panels when you call Gateway endpoints.
 
 ### During Execution (CRITICAL)
 1. **Before each phase:** `Read` the matching sub-skill file from the table above
@@ -164,7 +178,7 @@ Response:
 ```markdown
 ## Phase: Research
 
-> Research has no dedicated sub-skill — using WebSearch + Gateway tools.
+> Read: ai/skills/marketing/research.md (MUST load before executing)
 
 **Objective:** Understand market, competitors, and audience for PM SaaS.
 
