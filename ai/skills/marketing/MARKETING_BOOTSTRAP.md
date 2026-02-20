@@ -27,7 +27,7 @@ You have access to these Gateway endpoints:
 - `POST /v1/marketing/scrape` - Convert URL to clean Markdown
 - `POST /v1/marketing/generate/image` - AI image generation for ads and creative
 - `POST /v1/marketing/generate/voiceover` - AI voiceover for video ads
-- `POST /v1/marketing/generate/video` - Video rendering for ad creative
+- `POST /v1/marketing/generate/music` - AI music generation for video backgrounds
 
 Use `Bash` tool with curl to call these endpoints:
 ```bash
@@ -49,10 +49,18 @@ Each phase has a dedicated sub-skill file containing proven frameworks, template
 | Lead Magnet | `ai/skills/marketing/lead_magnet.md` | Calculators, audits, PDF guides, 7-email welcome sequence, tripwire offers, content upgrades |
 | Ad Creative | `ai/skills/marketing/ad_creative.md` | Hook-Story-Offer, static/video formats, platform-specific (Meta/Google/TikTok/YouTube), A/B testing |
 | Landing Page | `ai/skills/marketing/landing_page.md` | Above-fold structure, CTA optimization, mobile-first design, page speed, objection handling |
+| Research | `ai/skills/marketing/research.md` | Gateway research engine, modes (quick/deep/reason), citations, WebSearch fallback |
+| Web Scraper | `ai/skills/marketing/web_scraper.md` | URL→markdown, competitive intel workflow, bulk scraping, extract mode |
+| Image Gen | `ai/skills/marketing/image_gen.md` | Gateway SSE image generation, styles, aspect ratios, AI editing (image_edit.py), upscale |
+| Voiceover | `ai/skills/marketing/voiceover.md` | Gateway SSE voiceover, ElevenLabs voices (George/Rachel/Adam), models, voiceover.py |
+| Music Gen | `ai/skills/marketing/music_gen.md` | Gateway SSE music, music.py, SFX presets via sfx.py, ElevenLabs music.compose() |
+| Remotion Studio | `ai/skills/marketing/remotion_studio.md` | Studio panel, compositions, interpolate/spring animations, Series/Sequence, audio sync, render CLI |
 
 **How to load:** Use `Read` tool on the file path before starting each phase. For `@` references in conversation, use `@ai/skills/marketing/{skill}.md`.
 
-**Research and Traffic phases** have no dedicated sub-skill file — use WebSearch, Gateway tools, and general strategy knowledge for these.
+**Traffic phase** has no dedicated sub-skill file — use WebSearch and general strategy knowledge. Research, Web Scraper, Image Gen, Voiceover, Music Gen, and Remotion Studio all have dedicated sub-skill files above.
+
+**Results auto-display in GUI panels** — any Gateway call (GUI or agent curl) triggers the live event stream. The Research, Scraper, Image Gen, Voiceover, and Music Gen panels automatically update when you call their endpoints.
 
 ## Orchestration Rules
 

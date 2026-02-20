@@ -17,6 +17,7 @@ import { useMarketingStore } from '../../stores/marketing-store';
 import { TerminalWorkspace } from '../shared/terminal-workspace';
 import type { WorkspaceTool, WorkspaceSkill } from '../shared/terminal-workspace';
 import { MarketingTerminal } from './MarketingTerminal';
+import { useMarketingEvents } from '../../hooks/useMarketingEvents';
 
 // Tool pages
 import { ResearchPage } from './pages/ResearchPage';
@@ -50,6 +51,7 @@ const MARKETING_SKILLS: WorkspaceSkill[] = [
 export function MarketingWorkspace() {
   const terminalPtyId = useMarketingStore((s) => s.terminalPtyId);
   const setSetupComplete = useMarketingStore((s) => s.setSetupComplete);
+  useMarketingEvents();
 
   return (
     <TerminalWorkspace

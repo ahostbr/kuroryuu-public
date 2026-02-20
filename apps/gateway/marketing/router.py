@@ -11,11 +11,14 @@ Endpoints:
 - POST /v1/marketing/generate/image - SSE image generation
 - POST /v1/marketing/generate/voiceover - SSE voiceover generation
 - POST /v1/marketing/generate/music - SSE music generation
+- GET  /v1/marketing/events         - SSE live event bus (agent → GUI sync)
 - GET  /v1/marketing/skills         - List marketing skills
 """
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import os
 from typing import Any
@@ -48,6 +51,21 @@ from .tool_manager import (
     delete_asset,
     list_skills,
 )
+
+_event_subscribers: list[asyncio.Queue] = []
+
+
+async def _broadcast(event: dict) -> None:
+    """Push a completed artifact event to all active /events subscribers."""
+    dead = []
+    for q in _event_subscribers:
+        try:
+            q.put_nowait(json.dumps(event))
+        except asyncio.QueueFull:
+            dead.append(q)
+    for q in dead:
+        _event_subscribers.remove(q)
+
 
 logger = logging.getLogger("marketing.router")
 
@@ -99,12 +117,14 @@ async def research_endpoint(request: ResearchRequest) -> ResearchResponse:
         ResearchResponse with synthesized content and citations
     """
     try:
-        return await research(
+        result = await research(
             query=request.query,
             mode=request.mode,
             model=request.model,
             provider=request.provider,
         )
+        asyncio.create_task(_broadcast({"tool": "research", "type": "complete", **result.model_dump()}))
+        return result
     except Exception as e:
         logger.error(f"Research failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -127,12 +147,14 @@ async def scrape_endpoint(request: ScrapeRequest) -> ScrapeResponse:
         ScrapeResponse with scraped content
     """
     try:
-        return await scrape(
+        result = await scrape(
             url=request.url,
             mode=request.mode,
             model=request.model,
             provider=request.provider,
         )
+        asyncio.create_task(_broadcast({"tool": "scrape", "type": "complete", **result.model_dump()}))
+        return result
     except Exception as e:
         logger.error(f"Scraping failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -224,6 +246,9 @@ async def generate_image_endpoint(request: ImageGenRequest) -> StreamingResponse
             aspect_ratio=request.aspect_ratio,
         ):
             yield f"data: {event_json}\n\n"
+            event = json.loads(event_json)
+            if event.get("type") == "complete":
+                asyncio.create_task(_broadcast({"tool": "image", **event}))
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -250,6 +275,9 @@ async def generate_voiceover_endpoint(request: VoiceoverRequest) -> StreamingRes
             voice_id=request.voice_id,
         ):
             yield f"data: {event_json}\n\n"
+            event = json.loads(event_json)
+            if event.get("type") == "complete":
+                asyncio.create_task(_broadcast({"tool": "voiceover", **event}))
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -276,8 +304,45 @@ async def generate_music_endpoint(request: MusicRequest) -> StreamingResponse:
             duration=request.duration,
         ):
             yield f"data: {event_json}\n\n"
+            event = json.loads(event_json)
+            if event.get("type") == "complete":
+                asyncio.create_task(_broadcast({"tool": "music", **event}))
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+# ---------------------------------------------------------------------------
+# Live Event Stream (for agent → GUI synchronization)
+# ---------------------------------------------------------------------------
+
+@router.get("/events")
+async def events_stream() -> StreamingResponse:
+    """Persistent SSE stream. Broadcasts completed artifact events from any caller.
+
+    Allows the Desktop GUI panels to react to agent-initiated Gateway calls.
+    Events: {type: "complete", tool: "image"|"voiceover"|"music"|"research"|"scrape", ...}
+    """
+    q: asyncio.Queue = asyncio.Queue(maxsize=50)
+    _event_subscribers.append(q)
+
+    async def generator():
+        try:
+            yield 'data: {"type":"connected"}\n\n'
+            while True:
+                try:
+                    data = await asyncio.wait_for(q.get(), timeout=30)
+                    yield f"data: {data}\n\n"
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+        finally:
+            if q in _event_subscribers:
+                _event_subscribers.remove(q)
+
+    return StreamingResponse(
+        generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 # ---------------------------------------------------------------------------
