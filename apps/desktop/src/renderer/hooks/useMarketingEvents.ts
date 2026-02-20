@@ -18,22 +18,26 @@ export function useMarketingEvents(): void {
     es.onmessage = (e: MessageEvent) => {
       try {
         const event = JSON.parse(e.data as string) as Record<string, unknown>;
-        if (event['type'] !== 'complete') return;
+        if (event['type'] === 'connected') return;
 
         const tool = event['tool'] as string;
 
         switch (tool) {
           case 'research':
-            useMarketingStore.setState({
-              lastResearch: event as never,
-              researchLoading: false,
-            });
+            if (event['type'] === 'complete') {
+              useMarketingStore.setState({
+                lastResearch: event as never,
+                researchLoading: false,
+              });
+            }
             break;
           case 'scrape':
-            useMarketingStore.setState({
-              lastScrape: event as never,
-              scrapeLoading: false,
-            });
+            if (event['type'] === 'complete') {
+              useMarketingStore.setState({
+                lastScrape: event as never,
+                scrapeLoading: false,
+              });
+            }
             break;
           case 'image':
           case 'voiceover':

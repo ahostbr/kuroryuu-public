@@ -93,11 +93,15 @@ function killByPort(port: number): Promise<void> {
     // (uvicorn spawns a child worker that owns the port; killing only the child leaves the parent alive)
     const cmd = `powershell -NoProfile -Command "` +
       `Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | ForEach-Object {` +
-      ` $pid = $_.OwningProcess;` +
-      ` Get-CimInstance Win32_Process -Filter \\"ParentProcessId = $pid\\" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue };` +
-      ` $info = Get-CimInstance Win32_Process -Filter \\"ProcessId = $pid\\" -ErrorAction SilentlyContinue;` +
-      ` if ($info -and $info.ParentProcessId) { $p = Get-Process -Id $info.ParentProcessId -ErrorAction SilentlyContinue; if ($p -and $p.ProcessName -eq 'python') { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } };` +
-      ` Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue` +
+      ` $portPid = $_.OwningProcess;` +
+      ` $info = Get-CimInstance Win32_Process -Filter \\"ProcessId = $portPid\\" -ErrorAction SilentlyContinue;` +
+      ` if ($info -and $info.ParentProcessId) {` +
+      `   $p = Get-Process -Id $info.ParentProcessId -ErrorAction SilentlyContinue;` +
+      `   if ($p -and ($p.ProcessName -eq 'python' -or $p.ProcessName -eq 'powershell')) {` +
+      `     taskkill /PID $($p.Id) /T /F 2>$null` +
+      `   }` +
+      ` };` +
+      ` taskkill /PID $portPid /T /F 2>$null` +
       ` }"`;
 
     exec(cmd, () => {

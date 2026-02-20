@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import { watch, FSWatcher } from 'fs';
-import { join } from 'path';
+import { join, isAbsolute } from 'path';
 import { EventEmitter } from 'events';
 
 export type TaskStatus = 'backlog' | 'active' | 'delayed' | 'done';
@@ -245,7 +245,10 @@ export class TaskService extends EventEmitter {
 
     // Extract worklog
     const worklogMatch = rest.match(/\[worklog:\s*([^\]]+)\]/);
-    const worklog = worklogMatch && worklogMatch[1] !== 'pending' ? worklogMatch[1] : undefined;
+    const worklogRaw = worklogMatch && worklogMatch[1].trim() !== 'pending' ? worklogMatch[1].trim() : undefined;
+    const worklog = worklogRaw && this.projectRoot && !isAbsolute(worklogRaw)
+      ? join(this.projectRoot, worklogRaw)
+      : worklogRaw;
 
     // Extract checkpoint
     const checkpointMatch = rest.match(/\[checkpoint:\s*([^\]]+)\]/);
