@@ -40,8 +40,9 @@ curl -X POST http://127.0.0.1:8200/v1/marketing/generate/image \
   -d '{"prompt": "Professional SaaS dashboard screenshot, dark theme, modern UI", "style": "photorealistic", "aspect_ratio": "16:9"}' \
   --no-buffer 2>/dev/null | while IFS= read -r line; do
     [[ "$line" == data:* ]] && echo "${line#data: }"
-  done
+  done || true
 # Wait for: {"type":"complete","path":"/path/to/file","metadata":{...}}
+# Note: "|| true" prevents the bash while-read exit code 1 (normal when stdin closes)
 ```
 
 **GUI auto-display:** When complete, the Image Generation panel in the Desktop GUI automatically shows the generated image. No extra steps needed.

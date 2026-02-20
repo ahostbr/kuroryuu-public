@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useMarketingStore } from '../../../stores/marketing-store';
 
@@ -10,6 +10,11 @@ export function ImageGenPage() {
   const generateImage = useMarketingStore((s) => s.generateImage);
   const imageLoading = useMarketingStore((s) => s.imageLoading);
   const filteredJobs = useMarketingStore((s) => s.activeJobs).filter((j) => j.type === 'image');
+  const assets = useMarketingStore((s) => s.assets).filter((a) => a.type === 'image');
+  const loadAssets = useMarketingStore((s) => s.loadAssets);
+  const setLightboxAssetId = useMarketingStore((s) => s.setLightboxAssetId);
+
+  useEffect(() => { loadAssets(); }, [loadAssets]);
 
   const handleSubmit = () => {
     if (prompt.trim()) {
@@ -103,6 +108,24 @@ export function ImageGenPage() {
             </div>
           </div>
         ))}
+
+        {/* Recent images */}
+        {assets.length > 0 && (
+          <div className="space-y-2">
+            <h3 className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Recent Images</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {assets.slice(0, 6).map((asset) => (
+                <img
+                  key={asset.id}
+                  src={`file://${asset.path}`}
+                  alt={asset.name}
+                  className="w-full rounded-lg object-cover aspect-video cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setLightboxAssetId(asset.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -247,8 +247,7 @@ async def generate_image_endpoint(request: ImageGenRequest) -> StreamingResponse
         ):
             yield f"data: {event_json}\n\n"
             event = json.loads(event_json)
-            if event.get("type") == "complete":
-                asyncio.create_task(_broadcast({"tool": "image", **event}))
+            asyncio.create_task(_broadcast({"tool": "image", **event}))
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -276,8 +275,7 @@ async def generate_voiceover_endpoint(request: VoiceoverRequest) -> StreamingRes
         ):
             yield f"data: {event_json}\n\n"
             event = json.loads(event_json)
-            if event.get("type") == "complete":
-                asyncio.create_task(_broadcast({"tool": "voiceover", **event}))
+            asyncio.create_task(_broadcast({"tool": "voiceover", **event}))
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -305,8 +303,7 @@ async def generate_music_endpoint(request: MusicRequest) -> StreamingResponse:
         ):
             yield f"data: {event_json}\n\n"
             event = json.loads(event_json)
-            if event.get("type") == "complete":
-                asyncio.create_task(_broadcast({"tool": "music", **event}))
+            asyncio.create_task(_broadcast({"tool": "music", **event}))
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

@@ -13,6 +13,8 @@ import asyncio
 import logging
 import pathlib
 import json
+import tempfile
+import os
 from datetime import datetime
 from typing import AsyncGenerator
 
@@ -57,25 +59,33 @@ async def generate_voiceover(
         output_path = OUTPUT_DIR / output_filename
 
         # claude-code-video-toolkit: tools/voiceover.py
-        cmd = [
-            "uv", "run", "python",
-            str(VIDEO_TOOLKIT_DIR / "tools" / "voiceover.py"),
-            "--script", text,
-            "--output", str(output_path),
-        ]
-        if voice_id and voice_id != "default":
-            cmd.extend(["--voice", voice_id])
+        # --script expects a file path — write text to a temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8') as tf:
+            tf.write(text)
+            temp_script = tf.name
 
-        yield json.dumps({"type": "progress", "progress": 30, "message": "Calling ElevenLabs API..."})
+        try:
+            cmd = [
+                "uv", "run", "python",
+                str(VIDEO_TOOLKIT_DIR / "tools" / "voiceover.py"),
+                "--script", temp_script,
+                "--output", str(output_path),
+            ]
+            if voice_id and voice_id != "default":
+                cmd.extend(["--voice-id", voice_id])
 
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=str(VIDEO_TOOLKIT_DIR),
-        )
+            yield json.dumps({"type": "progress", "progress": 30, "message": "Calling ElevenLabs API..."})
 
-        stdout, stderr = await process.communicate()
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=str(VIDEO_TOOLKIT_DIR),
+            )
+
+            stdout, stderr = await process.communicate()
+        finally:
+            os.unlink(temp_script)
 
         if process.returncode != 0:
             error_msg = stderr.decode() if stderr else "Voiceover generation failed"

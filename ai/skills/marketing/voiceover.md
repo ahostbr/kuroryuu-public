@@ -34,7 +34,7 @@ curl -X POST http://127.0.0.1:8200/v1/marketing/generate/voiceover \
   -d '{"text": "Your product is costing you 10 hours a week. Here is how to fix that.", "voice_id": "JBFqnCBsd6RMkjVDRZzb"}' \
   --no-buffer 2>/dev/null | while IFS= read -r line; do
     [[ "$line" == data:* ]] && echo "${line#data: }"
-  done
+  done || true
 # Wait for: {"type":"complete","path":"/path/to/audio.mp3","metadata":{...}}
 ```
 

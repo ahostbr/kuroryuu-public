@@ -22,10 +22,12 @@ import {
   Send,
   X,
   PanelBottom,
+  Sparkles,
 } from 'lucide-react';
 import { useClaudeTeamsStore, setupClaudeTeamsIpcListeners } from '../../stores/claude-teams-store';
 import { useTeamFlowStore } from '../../stores/team-flow-store';
 import { TeamFlowPanel } from './TeamFlowPanel';
+import { OrbGraphView } from './OrbGraphView';
 import { TeammateDetailPanel } from './TeammateDetailPanel';
 import { TeamHistoryPanel } from './TeamHistoryPanel';
 import { TimelineView } from './timeline';
@@ -36,6 +38,7 @@ const VIEW_TABS: { id: FlowViewMode; label: string; icon: React.ElementType; rea
   { id: 'hub-spokes', label: 'Hub', icon: Network, ready: true },
   { id: 'hierarchy', label: 'Hierarchy', icon: GitBranch, ready: true },
   { id: 'timeline', label: 'Timeline', icon: Clock, ready: true },
+  { id: 'orb', label: 'Orb', icon: Sparkles, ready: true },
 ];
 
 export function ClaudeTeams() {
@@ -394,6 +397,8 @@ export function ClaudeTeams() {
             <div className="flex-1 overflow-hidden relative">
               {activeView === 'timeline' ? (
                 <TimelineView team={selectedTeam} />
+              ) : activeView === 'orb' ? (
+                <OrbGraphView team={selectedTeam} />
               ) : (
                 <TeamFlowPanel />
               )}

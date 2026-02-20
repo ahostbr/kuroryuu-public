@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useMarketingStore } from '../stores/marketing-store';
+import type { ActiveJob } from '../types/marketing';
 
 const GATEWAY = 'http://127.0.0.1:8200';
 
@@ -37,13 +38,28 @@ export function useMarketingEvents(): void {
           case 'image':
           case 'voiceover':
           case 'music': {
-            // Refresh asset gallery and clear matching running job
-            void useMarketingStore.getState().loadAssets();
-            useMarketingStore.setState((s) => ({
-              activeJobs: s.activeJobs.filter(
-                (j) => !(j.type === tool && j.status === 'running'),
-              ),
-            }));
+            const syntheticId = `external-${tool}`;
+            if (event['type'] === 'progress') {
+              const store = useMarketingStore.getState();
+              const existing = store.activeJobs.find((j) => j.id === syntheticId);
+              if (!existing) {
+                store.addJob({
+                  id: syntheticId,
+                  type: tool as ActiveJob['type'],
+                  status: 'running',
+                  progress: 0,
+                  message: 'Agent generating...',
+                  startedAt: new Date().toISOString(),
+                });
+              }
+              store.updateJob(syntheticId, {
+                progress: event['progress'] as number,
+                message: event['message'] as string,
+              });
+            } else if (event['type'] === 'complete') {
+              useMarketingStore.getState().removeJob(syntheticId);
+              void useMarketingStore.getState().loadAssets();
+            }
             break;
           }
           default:
