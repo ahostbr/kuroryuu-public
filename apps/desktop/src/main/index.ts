@@ -53,7 +53,7 @@ import { registerTaskHandlers } from './ipc/task-handlers';
 import { setupSchedulerIpc, cleanupSchedulerIpc } from './ipc/scheduler-handlers';
 import { setupIdentityIpc, cleanupIdentityIpc } from './ipc/identity-handlers';
 import { registerBackupHandlers } from './ipc/backup-handlers';
-import { registerMarketingHandlers } from './ipc/marketing-handlers';
+import { registerMarketingHandlers, killStudioServer } from './ipc/marketing-handlers';
 import { registerLLMAppsHandlers } from './ipc/llm-apps-handlers';
 import { getTaskService } from './services/task-service';
 import { pluginSyncService } from './services/plugin-sync-service';
@@ -4764,6 +4764,7 @@ async function performShutdownSequence(win: BrowserWindow) {
       name: 'Cleaning up file watchers...',
       fn: async () => {
         console.log('[Main] Step 4/8: Cleaning up file watchers');
+        killStudioServer();
         pluginSyncService.stop();
         fileWatcher.dispose();
       },
@@ -4854,6 +4855,7 @@ app.on('before-quit', async (event) => {
   } else {
     // No window available, just do basic cleanup
     console.log('[Main] before-quit: No window, doing basic cleanup');
+    killStudioServer();
     pluginSyncService.stop();
     ptyManager?.dispose();
     fileWatcher.dispose();

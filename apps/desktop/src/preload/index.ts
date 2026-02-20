@@ -2566,6 +2566,10 @@ const api = {
       ipcRenderer.invoke('marketing:saveSetup', state),
     injectKeys: (): Promise<{ ok: boolean; injected?: string[]; error?: string }> =>
       ipcRenderer.invoke('marketing:injectKeys'),
+    resetSetup: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('marketing:resetSetup'),
+    studioServer: (action: 'start' | 'stop' | 'status', template?: string): Promise<{ ok: boolean; running?: boolean; port?: number; template?: string; error?: string }> =>
+      ipcRenderer.invoke('marketing:studioServer', action, template),
   },
   /**
    * LLM Apps API

@@ -14,6 +14,7 @@ import asyncio
 import logging
 import pathlib
 import json
+import sys
 from datetime import datetime
 from typing import AsyncGenerator
 
@@ -202,6 +203,37 @@ async def render_video(
         })
         return
 
+    # Templates are standalone Remotion projects under templates/<name>/
+    templates_dir = VIDEO_TOOLKIT_DIR / "templates"
+    template_dir = templates_dir / template
+
+    if not template_dir.exists():
+        available = (
+            [d.name for d in templates_dir.iterdir() if d.is_dir() and (d / "package.json").exists()]
+            if templates_dir.exists() else []
+        )
+        yield json.dumps({
+            "type": "error",
+            "error": f"Template '{template}' not found. Available: {', '.join(available) or 'none'}",
+        })
+        return
+
+    pkg_path = template_dir / "package.json"
+    if not pkg_path.exists():
+        yield json.dumps({
+            "type": "error",
+            "error": f"Template '{template}' is missing package.json at {template_dir}",
+        })
+        return
+
+    # Derive composition ID from package.json render script
+    # Script format: "remotion render <CompositionId> ..."
+    with open(pkg_path) as f:
+        pkg = json.load(f)
+    render_script = pkg.get("scripts", {}).get("render", "")
+    parts = render_script.split()
+    composition_id = parts[2] if len(parts) >= 3 and parts[:2] == ["remotion", "render"] else template
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     yield json.dumps({"type": "progress", "progress": 10, "message": "Initializing video render..."})
@@ -216,12 +248,13 @@ async def render_video(
         with open(props_path, "w") as f:
             json.dump(props, f)
 
-        # claude-code-video-toolkit uses Remotion for video rendering
-        # npx remotion render <entry> <composition> --output <file> --props <json>
+        # Each template is a standalone Remotion project — run from its directory
+        # On Windows, npx is a batch script (npx.cmd) — must use .cmd extension with create_subprocess_exec
+        npx_cmd = "npx.cmd" if sys.platform == "win32" else "npx"
         cmd = [
-            "npx", "remotion", "render",
+            npx_cmd, "remotion", "render",
             "src/index.ts",
-            template,
+            composition_id,
             "--output", str(output_path),
             "--props", str(props_path),
         ]
@@ -232,7 +265,7 @@ async def render_video(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=str(VIDEO_TOOLKIT_DIR),
+            cwd=str(template_dir),
         )
 
         stdout, stderr = await process.communicate()

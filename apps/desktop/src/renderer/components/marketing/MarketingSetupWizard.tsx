@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, Download, Settings2, Rocket, Terminal } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Download, Settings2, Rocket, Terminal, RotateCcw } from 'lucide-react';
 import type { ToolStatus } from '../../types/marketing';
 
 interface MarketingSetupWizardProps {
@@ -139,15 +139,36 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
 
   const allToolsReady = TOOLS.every((t) => tools.find((ts) => ts.id === t.id)?.depsInstalled);
 
+  const resetSetup = async () => {
+    if (!confirm('Reset setup? This will clear installation state so you can re-run the wizard.')) return;
+    try {
+      await window.electronAPI.marketing.resetSetup();
+      setStage(1);
+      await loadToolStatus();
+    } catch (err) {
+      console.error('[Marketing] Reset failed:', err);
+    }
+  };
+
   return (
     <div className="w-full h-full bg-zinc-900 text-zinc-100 overflow-auto p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-amber-500 mb-2">Marketing Workspace Setup</h1>
-          <p className="text-zinc-400">
-            Install tools and configure your marketing automation workspace
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-amber-500 mb-2">Marketing Workspace Setup</h1>
+            <p className="text-zinc-400">
+              Install tools and configure your marketing automation workspace
+            </p>
+          </div>
+          <button
+            onClick={resetSetup}
+            title="Reset setup state and re-run wizard"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 bg-zinc-800 hover:bg-zinc-700 rounded transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" />
+            Reset
+          </button>
         </div>
 
         {/* Progress indicator */}

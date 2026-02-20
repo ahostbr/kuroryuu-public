@@ -5,7 +5,7 @@
 import { ipcMain } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { spawn, execSync } from 'child_process';
+import { spawn, execSync, ChildProcess } from 'child_process';
 import { getApiKey as tokenGetApiKey } from '../integrations/token-store';
 
 const PROJECT_ROOT = process.env.KURORYUU_ROOT || path.resolve(__dirname, '../../../..');
@@ -159,6 +159,38 @@ async function ensureUv(): Promise<{ ok: boolean; error?: string }> {
   return { ok: true };
 }
 
+// ---------------------------------------------------------------------------
+// Remotion Studio server (module-level — one studio at a time)
+// ---------------------------------------------------------------------------
+
+let studioProcess: ChildProcess | null = null;
+let studioTemplate: string | null = null;
+const STUDIO_PORT = 3000;
+
+export function killStudioServer(): void {
+  if (studioProcess && !studioProcess.killed) {
+    studioProcess.kill();
+    console.log('[Marketing] Killed Remotion Studio process');
+  }
+  studioProcess = null;
+  studioTemplate = null;
+}
+
+async function waitForStudio(proc: ChildProcess, port: number, timeoutMs: number): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (proc.exitCode !== null || proc.killed) return false;
+    try {
+      const res = await fetch(`http://localhost:${port}`, { signal: AbortSignal.timeout(1000) });
+      if (res.status >= 0) return true;
+    } catch {
+      // Not ready yet
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  return false;
+}
+
 const TOOL_DEFINITIONS = [
   {
     id: 'google-image-gen',
@@ -230,18 +262,26 @@ export function registerMarketingHandlers(): void {
         return { ok: false, error: 'Tool directory not found' };
       }
 
-      // Collect all install targets: root + first-level subdirs
+      // Collect all install targets: root + subdirs up to 2 levels deep
+      // (templates/product-demo and templates/sprint-review are 2 levels deep)
       const dirsToCheck = [fullPath];
-      try {
-        const entries = fs.readdirSync(fullPath, { withFileTypes: true });
-        for (const entry of entries) {
-          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
-            dirsToCheck.push(path.join(fullPath, entry.name));
+      const SKIP_DIRS = new Set(['.', 'node_modules', '.venv', '__pycache__', '.git']);
+      function collectSubdirs(dir: string, depth: number) {
+        if (depth > 2) return;
+        try {
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const entry of entries) {
+            if (entry.isDirectory() && !entry.name.startsWith('.') && !SKIP_DIRS.has(entry.name)) {
+              const subdir = path.join(dir, entry.name);
+              dirsToCheck.push(subdir);
+              collectSubdirs(subdir, depth + 1);
+            }
           }
+        } catch {
+          // Can't read dir — skip
         }
-      } catch {
-        // Can't read dir — proceed with root only
       }
+      collectSubdirs(fullPath, 1);
 
       let installedSomething = false;
       let needsUv = false;
@@ -386,6 +426,115 @@ export function registerMarketingHandlers(): void {
       return { ok: true };
     } catch (err) {
       console.error('[Marketing] saveSetup error:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
+
+  // Reset setup state — deletes setup JSON and deps markers so wizard re-runs from scratch
+  ipcMain.handle('marketing:resetSetup', async () => {
+    try {
+      // Delete setup state file
+      if (fs.existsSync(SETUP_STATE_FILE)) {
+        fs.unlinkSync(SETUP_STATE_FILE);
+        console.log('[Marketing] Deleted setup state:', SETUP_STATE_FILE);
+      }
+
+      // Delete deps markers from all tool directories
+      if (fs.existsSync(TOOLS_DIR)) {
+        const toolDirs = fs.readdirSync(TOOLS_DIR, { withFileTypes: true })
+          .filter((e) => e.isDirectory())
+          .map((e) => path.join(TOOLS_DIR, e.name));
+        for (const toolDir of toolDirs) {
+          const marker = path.join(toolDir, DEPS_MARKER);
+          if (fs.existsSync(marker)) {
+            fs.unlinkSync(marker);
+            console.log('[Marketing] Deleted deps marker:', marker);
+          }
+        }
+      }
+
+      return { ok: true };
+    } catch (err) {
+      console.error('[Marketing] resetSetup error:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
+
+  // Remotion Studio server — start/stop/status
+  ipcMain.handle('marketing:studioServer', async (_event, action: 'start' | 'stop' | 'status', template?: string) => {
+    try {
+      if (action === 'status') {
+        return {
+          ok: true,
+          running: studioProcess !== null && !studioProcess.killed && studioProcess.exitCode === null,
+          template: studioTemplate,
+          port: STUDIO_PORT,
+        };
+      }
+
+      if (action === 'stop') {
+        killStudioServer();
+        return { ok: true };
+      }
+
+      if (action === 'start') {
+        // Kill any existing process first
+        killStudioServer();
+
+        const tmpl = template || 'product-demo';
+        const templateDir = path.join(TOOLS_DIR, 'claude-code-video-toolkit', 'templates', tmpl);
+
+        if (!fs.existsSync(templateDir)) {
+          return { ok: false, error: `Template directory not found: ${templateDir}` };
+        }
+
+        // Prefer local remotion binary; fall back to npx
+        const localBin = process.platform === 'win32'
+          ? path.join(templateDir, 'node_modules', '.bin', 'remotion.cmd')
+          : path.join(templateDir, 'node_modules', '.bin', 'remotion');
+
+        const useNpx = !fs.existsSync(localBin);
+        const finalCmd = useNpx
+          ? (process.platform === 'win32' ? 'npx.cmd' : 'npx')
+          : localBin;
+        const finalArgs = useNpx ? ['remotion', 'studio'] : ['studio'];
+
+        console.log(`[Marketing] Starting Remotion Studio: ${finalCmd} ${finalArgs.join(' ')} in ${templateDir}`);
+
+        studioProcess = spawn(finalCmd, finalArgs, {
+          cwd: templateDir,
+          shell: process.platform === 'win32',
+          env: getSpawnEnv(),
+          detached: false,
+        });
+
+        studioTemplate = tmpl;
+
+        studioProcess.stdout?.on('data', (data) => {
+          console.log('[Marketing/Studio]', data.toString().trimEnd());
+        });
+        studioProcess.stderr?.on('data', (data) => {
+          console.log('[Marketing/Studio]', data.toString().trimEnd());
+        });
+        studioProcess.on('exit', (code) => {
+          console.log(`[Marketing] Remotion Studio exited with code ${code}`);
+          studioProcess = null;
+          studioTemplate = null;
+        });
+
+        // Wait up to 30 s for the studio HTTP server to respond
+        const ready = await waitForStudio(studioProcess, STUDIO_PORT, 30000);
+
+        if (!ready) {
+          killStudioServer();
+          return { ok: false, error: 'Remotion Studio did not respond within 30 seconds. Check that dependencies are installed.' };
+        }
+
+        return { ok: true, port: STUDIO_PORT };
+      }
+
+      return { ok: false, error: `Unknown action: ${action}` };
+    } catch (err) {
       return { ok: false, error: String(err) };
     }
   });
