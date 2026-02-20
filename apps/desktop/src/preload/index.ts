@@ -2473,6 +2473,8 @@ const api = {
     // Repository
     initRepo: (password: string): Promise<{ ok: boolean; message: string; error?: string }> =>
       ipcRenderer.invoke('backup:init-repo', password),
+    resetRepo: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('backup:reset'),
     verifyPassword: (password: string): Promise<{ ok: boolean; data?: { valid: boolean }; error?: string }> =>
       ipcRenderer.invoke('backup:verify-password', password),
 

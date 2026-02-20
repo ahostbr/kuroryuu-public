@@ -14,15 +14,17 @@ import {
   Archive,
   File,
   Clock,
+  RotateCcw,
 } from 'lucide-react';
 import { useBackupStore } from '../../stores/backup-store';
+import { useKuroryuuDialog } from '../../hooks/useKuroryuuDialog';
 import { useBackupProgress } from '../../hooks/useBackupProgress';
 
 // ============================================================================
 // Progress Display Component
 // ============================================================================
 
-function BackupProgressDisplay() {
+function BackupProgressDisplay({ onReinitialize }: { onReinitialize?: () => void }) {
   const { backupProgress, backupSummary, backupError, isBackupRunning, error } = useBackupStore();
 
   if (!isBackupRunning && !backupSummary && !backupError && !error) {
@@ -37,7 +39,16 @@ function BackupProgressDisplay() {
           <AlertCircle className="w-5 h-5" />
           <span className="font-medium">Startup Failed</span>
         </div>
-        <p className="text-sm text-red-400">{error}</p>
+        <p className="text-sm text-red-400">{typeof error === 'string' ? error : JSON.stringify(error)}</p>
+        {onReinitialize && (
+          <button
+            onClick={onReinitialize}
+            className="mt-3 flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-lg text-sm text-red-400 hover:text-red-300 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Re-initialize Repository
+          </button>
+        )}
       </div>
     );
   }
@@ -50,8 +61,8 @@ function BackupProgressDisplay() {
           <AlertCircle className="w-5 h-5" />
           <span className="font-medium">Backup Failed</span>
         </div>
-        <p className="text-sm text-red-400">{backupError.message}</p>
-        <p className="text-xs text-red-400/70 mt-1">Error code: {backupError.code}</p>
+        <p className="text-sm text-red-400">{typeof backupError.message === 'string' ? backupError.message : JSON.stringify(backupError.message)}</p>
+        <p className="text-xs text-red-400/70 mt-1">Error code: {String(backupError.code ?? 'UNKNOWN')}</p>
       </div>
     );
   }
@@ -68,20 +79,24 @@ function BackupProgressDisplay() {
           <div>
             <p className="text-muted-foreground">Snapshot</p>
             <code className="text-foreground font-mono text-xs">
-              {backupSummary.snapshot_id?.slice(0, 8)}
+              {String(backupSummary.snapshot_id ?? '').slice(0, 8) || '—'}
             </code>
           </div>
           <div>
             <p className="text-muted-foreground">Files</p>
             <p className="text-foreground">
-              <span className="text-green-500">+{backupSummary.files_new}</span>
+              <span className="text-green-500">+{Number(backupSummary.files_new) || 0}</span>
               {' '}
-              <span className="text-amber-500">~{backupSummary.files_changed}</span>
+              <span className="text-amber-500">~{Number(backupSummary.files_changed) || 0}</span>
             </p>
           </div>
           <div>
             <p className="text-muted-foreground">Duration</p>
-            <p className="text-foreground">{backupSummary.duration_seconds.toFixed(1)}s</p>
+            <p className="text-foreground">
+              {typeof backupSummary.duration_seconds === 'number'
+                ? backupSummary.duration_seconds.toFixed(1)
+                : '—'}s
+            </p>
           </div>
         </div>
       </div>
@@ -158,7 +173,8 @@ function BackupProgressDisplay() {
 // ============================================================================
 
 export function BackupNowPanel() {
-  const { config, isBackupRunning, startBackup, clearBackupState } = useBackupStore();
+  const { config, isBackupRunning, startBackup, clearBackupState, resetRepository } = useBackupStore();
+  const { confirmDestructive } = useKuroryuuDialog();
   const [message, setMessage] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
@@ -181,6 +197,18 @@ export function BackupNowPanel() {
     clearBackupState();
     await startBackup(message || undefined, tags.length > 0 ? tags : undefined);
     // Don't clear form - let user see what they backed up
+  };
+
+  const handleReinitialize = async () => {
+    const confirmed = await confirmDestructive({
+      title: 'Reset Backup Repository',
+      message: 'This will permanently delete the backup repository and all snapshots. You will need to set up a fresh repository through the wizard.',
+      confirmLabel: 'Delete & Reset',
+      cancelLabel: 'Cancel',
+    });
+    if (confirmed) {
+      await resetRepository();
+    }
   };
 
   return (
@@ -259,7 +287,7 @@ export function BackupNowPanel() {
       </div>
 
       {/* Progress Display */}
-      <BackupProgressDisplay />
+      <BackupProgressDisplay onReinitialize={handleReinitialize} />
 
       {/* Start Button */}
       <button

@@ -111,9 +111,13 @@ async function callBackupTool(action: string, params: Record<string, unknown> = 
     },
   };
 
+  // Backup/restore need longer timeout (unlock + startup check can take ~8s)
+  const slowActions = new Set(['backup', 'restore', 'init', 'reset', 'check', 'prune']);
+  const timeoutMs = slowActions.has(action) ? 30000 : 10000;
+
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const response = await fetch(`${MCP_CORE_URL}/mcp`, {
       method: 'POST',
@@ -214,7 +218,7 @@ export class BackupService {
     try {
       const existing = JSON.parse(await fs.readFile(configPath, 'utf-8'));
       if (existing.repository) {
-        const repo = config.repository as Record<string, unknown>;
+        const repo = config.repository as unknown as Record<string, unknown>;
         if (existing.repository.password && !repo.password) {
           repo.password = existing.repository.password;
         }
@@ -421,7 +425,7 @@ export class BackupService {
         ok: result.ok,
         session_id: result.session_id || '',
         snapshot_id: result.snapshot_id,
-        error: result.error || result.message,
+        error: result.ok ? undefined : (result.error || result.message),
       };
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -556,6 +560,23 @@ export class BackupService {
   async checkIntegrity(): Promise<BackupApiResponse> {
     try {
       const result = (await callBackupTool('check')) as BackupApiResponse;
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { ok: false, error: message };
+    }
+  }
+
+  /**
+   * Full reset: delete repo, wipe config, clear password cache
+   */
+  async resetRepository(): Promise<BackupApiResponse> {
+    try {
+      const result = (await callBackupTool('reset')) as BackupApiResponse;
+      if (result.ok) {
+        // Clear local config cache
+        this.config = null;
+      }
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

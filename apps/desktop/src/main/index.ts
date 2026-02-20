@@ -39,6 +39,7 @@ import { setupClaudeTeamsIpc } from './claude-teams-ipc';
 import { setupSecurityIpc } from './security-scanner';
 import { setupOrchestrationIpc } from './orchestration-client';
 import { mainLogger } from './utils/file-logger';
+import { hooksUseBash, toGitBashPath } from './utils/hook-paths';
 import { restartService, getServiceHealth, checkPtyDaemonHealth, stopService } from './service-manager';
 import { registerBootstrapHandlers, launchTrayCompanion } from './ipc/bootstrap-handlers';
 import { registerSdkAgentHandlers } from './ipc/sdk-agent-handlers';
@@ -656,6 +657,13 @@ function setupPtyIpcHandlersDaemon(): void {
         KURORYUU_SESSION_ID: agentId || `pty_leader_${Date.now()}`,
       };
       mainLogger.log('PTY-IPC', 'Injecting leader env vars for first terminal');
+    } else if (agentId) {
+      // Worker: inject KURORYUU_SESSION_ID so statusline shows Kuroryuu identity
+      // (without this, statusline falls back to Claude Code's internal session UUID)
+      options.env = {
+        ...options.env,
+        KURORYUU_SESSION_ID: agentId,
+      };
     }
 
     // Also set ownerAgentId if extracted from env
@@ -920,6 +928,13 @@ function setupPtyIpcHandlersEmbedded(): void {
         KURORYUU_SESSION_ID: agentId || `pty_leader_${Date.now()}`,
       };
       console.log('[PTY] Injecting leader env vars for first terminal (embedded)');
+    } else if (agentId) {
+      // Worker: inject KURORYUU_SESSION_ID so statusline shows Kuroryuu identity
+      // (without this, statusline falls back to Claude Code's internal session UUID)
+      options.env = {
+        ...options.env,
+        KURORYUU_SESSION_ID: agentId,
+      };
     }
 
     // Also set ownerAgentId if extracted from env
@@ -1921,11 +1936,18 @@ function setupKuroConfigIpc(): void {
         };
 
         // Dynamic UV path resolution - check env var first, then use platform-appropriate default
-        const uvPath = process.env.UV_PATH
-          ? process.env.UV_PATH.replace(/\\/g, '\\\\')
-          : (process.platform === 'win32'
-            ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
-            : 'uv');
+        // CC 2.1.47+ runs hooks via Git Bash — use /c/Users/... format instead of C:\\Users\\...
+        const useBash = hooksUseBash();
+        const rawUvPath = process.env.UV_PATH
+          || (process.platform === 'win32' ? join(os.homedir(), '.local', 'bin', 'uv.exe') : 'uv');
+        const uvPath = process.platform === 'win32'
+          ? (useBash ? toGitBashPath(rawUvPath) : rawUvPath.replace(/\\/g, '\\\\'))
+          : rawUvPath;
+        // Windows-native path for inside PowerShell -Command strings (PS doesn't understand /c/... paths)
+        const uvPathWindows = rawUvPath;
+        // CC 2.1.47+ runs hooks via Git Bash — CWD may not be project root,
+        // so prefix uv run commands with cd to $CLAUDE_PROJECT_DIR (set by CC for hooks)
+        const cdPrefix = useBash ? 'cd "$CLAUDE_PROJECT_DIR" && ' : '';
         const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
         const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
         const voice = config.tts.voice || 'en-GB-SoniaNeural';
@@ -1942,19 +1964,22 @@ function setupKuroConfigIpc(): void {
 
         // Observability: Python script via uv run (PowerShell corrupts Windows console input mode)
         const obsScript = (eventType: string) =>
-          `${uvPath} run .claude/plugins/kuro/hooks/observability/send_event.py "${eventType}"`;
+          `${cdPrefix}${uvPath} run .claude/plugins/kuro/hooks/observability/send_event.py "${eventType}"`;
         const obsTimeout = 5;
 
         // Update Stop hooks - always keep session log + transcript export, only toggle TTS
         {
           const stopHookEntries: Array<{ type: string; command: string; timeout: number }> = [
-            { type: 'command', command: `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`, timeout: 10 },
+            { type: 'command', command: useBash
+              ? `powershell -NoProfile -Command 'Add-Content -Path "ai/checkpoints/session_log.txt" -Value "Session completed: $(Get-Date -Format \"yyyy-MM-dd HH:mm:ss\")"'`
+              : `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`,
+              timeout: 10 },
             { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
           ];
           if (config.hooks.ttsOnStop && !skipProjectTts) {
             const ttsCommand = (useSmartTts || isElevenLabs)
-              ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
-              : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
+              ? `${cdPrefix}${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
+              : `${cdPrefix}${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
             stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
           }
           if (config.hooks.observability) {
@@ -1968,8 +1993,8 @@ function setupKuroConfigIpc(): void {
           const subStopHooks: Array<{ type: string; command: string; timeout: number }> = [];
           if (config.hooks.ttsOnSubagentStop && !skipProjectTts) {
             const ttsCommand = (useSmartTts || isElevenLabs)
-              ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
-              : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
+              ? `${cdPrefix}${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
+              : `${cdPrefix}${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
             subStopHooks.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
           }
           if (config.hooks.observability && subStopHooks.length > 0) {
@@ -1987,8 +2012,8 @@ function setupKuroConfigIpc(): void {
           const notifHooks: Array<{ type: string; command: string; timeout: number }> = [];
           if (config.hooks.ttsOnNotification && !skipProjectTts) {
             const ttsCommand = (useSmartTts || isElevenLabs)
-              ? `${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
-              : `${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
+              ? `${cdPrefix}${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
+              : `${cdPrefix}${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
             notifHooks.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
           }
           if (config.hooks.observability && notifHooks.length > 0) {
@@ -2005,8 +2030,8 @@ function setupKuroConfigIpc(): void {
         const postHooks: Array<{ matcher: string; hooks: Array<{ type: string; command: string; timeout: number }> }> = [];
 
         // Write/Edit hooks for logging
-        postHooks.push({ matcher: 'Write', hooks: [{ type: 'command', command: 'cmd /c echo WRITE >> ai/hooks/hook_fired.txt', timeout: 5 }] });
-        postHooks.push({ matcher: 'Edit', hooks: [{ type: 'command', command: 'cmd /c echo EDIT >> ai/hooks/hook_fired.txt', timeout: 5 }] });
+        postHooks.push({ matcher: 'Write', hooks: [{ type: 'command', command: 'echo WRITE >> ai/hooks/hook_fired.txt', timeout: 5 }] });
+        postHooks.push({ matcher: 'Edit', hooks: [{ type: 'command', command: 'echo EDIT >> ai/hooks/hook_fired.txt', timeout: 5 }] });
 
         // Task sync hooks
         if (config.hooks.taskSync) {
@@ -2021,14 +2046,18 @@ function setupKuroConfigIpc(): void {
           if (config.validators.ruff) {
             validatorHooks.push({
               type: 'command',
-              command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}"`,
+              command: useBash
+                ? `powershell.exe -NoProfile -Command '$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match "\\.py$"){${uvPathWindows} run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}'`
+                : `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ruff_validator.py $f}"`,
               timeout: config.validators.timeout,
             });
           }
           if (config.validators.ty) {
             validatorHooks.push({
               type: 'command',
-              command: `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ty_validator.py $f}"`,
+              command: useBash
+                ? `powershell.exe -NoProfile -Command '$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match "\\.py$"){${uvPathWindows} run .claude/plugins/kuro/hooks/validators/ty_validator.py $f}'`
+                : `powershell.exe -NoProfile -Command "$f=$env:TOOL_INPUT_FILE_PATH; if($f -and $f -match '\\\\.py$'){${uvPath} run .claude/plugins/kuro/hooks/validators/ty_validator.py $f}"`,
               timeout: config.validators.timeout,
             });
           }
@@ -2042,7 +2071,7 @@ function setupKuroConfigIpc(): void {
 
         // Add inbox polling to PostToolUse catch-all (piggyback on existing or create new)
         if (config.hooks.inboxPolling) {
-          const inboxCmd = { type: 'command', command: `${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 };
+          const inboxCmd = { type: 'command', command: `${cdPrefix}${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 };
           const catchAll = postHooks.find(h => h.matcher === '');
           if (catchAll) {
             catchAll.hooks.push(inboxCmd);
@@ -2065,7 +2094,7 @@ function setupKuroConfigIpc(): void {
             upsHooks.push({ type: 'command', command: obsScript('UserPromptSubmit'), timeout: obsTimeout });
           }
           if (config.hooks.inboxPolling && upsHooks.length > 0) {
-            upsHooks.push({ type: 'command', command: `${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 });
+            upsHooks.push({ type: 'command', command: `${cdPrefix}${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 });
           }
           if (upsHooks.length > 0) {
             hooks.UserPromptSubmit = [{ hooks: upsHooks }];
@@ -2148,18 +2177,20 @@ function setupKuroConfigIpc(): void {
           const ttsTimeout = isElevenLabs ? 90000 : 30000;
           const messages = (tts.messages as Record<string, string>) || {};
 
-          const uvPath = process.env.UV_PATH
-            ? process.env.UV_PATH.replace(/\\/g, '\\\\')
-            : (process.platform === 'win32'
-              ? os.homedir().replace(/\\/g, '\\\\') + '\\\\.local\\\\bin\\\\uv.exe'
-              : 'uv');
+          const useBash2 = hooksUseBash();
+          const rawUvPath2 = process.env.UV_PATH
+            || (process.platform === 'win32' ? join(os.homedir(), '.local', 'bin', 'uv.exe') : 'uv');
+          const uvPath2 = process.platform === 'win32'
+            ? (useBash2 ? toGitBashPath(rawUvPath2) : rawUvPath2.replace(/\\/g, '\\\\'))
+            : rawUvPath2;
+          const cdPrefix2 = useBash2 ? 'cd "$CLAUDE_PROJECT_DIR" && ' : '';
           const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
           const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
 
           const makeTtsCmd = (msg: string, type: string, extraArgs = '') => {
             return (useSmartTts || isElevenLabs)
-              ? `${uvPath} run ${smartTtsScript} "${msg}" --type ${type}${extraArgs} --voice "${voice}"`
-              : `${uvPath} run ${simpleTtsScript} "${msg}" --voice "${voice}"`;
+              ? `${cdPrefix2}${uvPath2} run ${smartTtsScript} "${msg}" --type ${type}${extraArgs} --voice "${voice}"`
+              : `${cdPrefix2}${uvPath2} run ${simpleTtsScript} "${msg}" --voice "${voice}"`;
           };
 
           if (ttsHooks.ttsOnStop) {

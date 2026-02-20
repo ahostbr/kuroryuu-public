@@ -231,29 +231,59 @@ def _action_backup(
     if not backup_source:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "source_path is required"}
 
+    # Clear stale locks from previous crashed/killed runs
+    wrapper.run_command(["unlock"], timeout=15)
+
     # Generate session ID for background mode
     session_id = str(uuid.uuid4())[:8] if background else None
 
     if background:
         # Run backup in a daemon thread so the HTTP request returns immediately.
-        # Progress/summary/error events are emitted to Gateway via WebSocket.
+        # We use a startup_event to wait briefly and catch immediate failures
+        # (wrong password, binary not found, etc.) before returning "ok".
+        startup_event = threading.Event()
+        startup_error: List[str] = []
+
         def _run_backup():
             try:
-                wrapper.create_backup(
+                result = wrapper.create_backup(
                     source_path=backup_source,
                     message=message or "Manual backup",
                     tags=tags,
                     session_id=session_id,
                 )
+                if not result.get("ok"):
+                    err_msg = result.get("error") or result.get("output", "Unknown error")
+                    startup_error.append(str(err_msg))
+                    try:
+                        from .backup.streaming import emit_error
+                    except ImportError:
+                        from backup.streaming import emit_error
+                    emit_error(session_id, str(err_msg))
             except Exception as exc:
+                startup_error.append(str(exc))
                 try:
                     from .backup.streaming import emit_error
                 except ImportError:
                     from backup.streaming import emit_error
                 emit_error(session_id, str(exc))
+            finally:
+                startup_event.set()
 
         thread = threading.Thread(target=_run_backup, daemon=True)
         thread.start()
+
+        # Wait briefly for immediate failures (missing binary, bad password, etc.)
+        # If backup takes longer than 5s to fail, it's actually running.
+        startup_event.wait(timeout=5)
+
+        if startup_event.is_set() and startup_error:
+            return {
+                "ok": False,
+                "error_code": "BACKUP_FAILED",
+                "message": startup_error[0][:500],
+                "session_id": session_id,
+            }
 
         return {
             "ok": True,
@@ -532,6 +562,55 @@ def _action_forget_policy(password: str = "", **kwargs: Any) -> Dict[str, Any]:
         }
 
 
+def _action_reset(**kwargs: Any) -> Dict[str, Any]:
+    """Full reset: delete repo directory, wipe config, clear password cache."""
+    global _cached_password
+    import shutil
+
+    config = BackupConfig()
+    config.load()
+
+    repo_path = config.get_repo_path()
+    config_dir = config.config_dir
+
+    errors: List[str] = []
+
+    # 1. Delete the restic repo directory
+    if repo_path.exists():
+        try:
+            shutil.rmtree(str(repo_path))
+        except Exception as exc:
+            errors.append(f"Failed to delete repo at {repo_path}: {exc}")
+
+    # 2. Delete the config directory (backup_config.json + exclusions.txt)
+    if config_dir.exists():
+        try:
+            shutil.rmtree(str(config_dir))
+        except Exception as exc:
+            errors.append(f"Failed to delete config at {config_dir}: {exc}")
+
+    # 3. Clear in-memory password cache
+    with _password_lock:
+        _cached_password = None
+
+    if errors:
+        return {
+            "ok": False,
+            "error_code": "RESET_PARTIAL",
+            "message": "Reset completed with errors",
+            "errors": errors,
+        }
+
+    return {
+        "ok": True,
+        "message": "Repository and configuration deleted. Ready for fresh setup.",
+        "deleted": {
+            "repo_path": str(repo_path),
+            "config_dir": str(config_dir),
+        },
+    }
+
+
 # ============================================================================
 # Routed tool
 # ============================================================================
@@ -550,6 +629,7 @@ ACTION_HANDLERS = {
     "forget_policy": _action_forget_policy,
     "prune": _action_prune,
     "config": _action_config,
+    "reset": _action_reset,
 }
 
 

@@ -129,6 +129,21 @@ export async function registerBackupHandlers(mainWindow: BrowserWindow): Promise
     }
   });
 
+  // Full reset (delete repo + config)
+  ipcMain.handle('backup:reset', async () => {
+    if (!backupService) {
+      return { ok: false, error: 'Backup service not initialized' };
+    }
+
+    try {
+      const result = await backupService.resetRepository();
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      return { ok: false, error: message };
+    }
+  });
+
   // Verify repository password
   ipcMain.handle('backup:verify-password', async (_event, password: string) => {
     if (!backupService) {
@@ -323,6 +338,7 @@ export async function unregisterBackupHandlers(): Promise<void> {
     'backup:get-status',
     'backup:ensure-restic',
     'backup:init-repo',
+    'backup:reset',
     'backup:verify-password',
     'backup:create',
     'backup:list',

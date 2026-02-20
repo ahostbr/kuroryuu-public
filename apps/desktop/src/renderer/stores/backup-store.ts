@@ -65,6 +65,7 @@ export interface BackupState {
   loadStatus: () => Promise<void>;
   ensureRestic: () => Promise<ResticBinaryStatus | null>;
   initRepository: (password: string) => Promise<boolean>;
+  resetRepository: () => Promise<boolean>;
   verifyPassword: (password: string) => Promise<boolean>;
   loadSnapshots: (limit?: number) => Promise<void>;
   selectSnapshot: (snapshotId: string | null) => void;
@@ -83,6 +84,18 @@ export interface BackupState {
   setBackupSummary: (summary: BackupSummary) => void;
   setBackupError: (error: BackupError) => void;
   clearBackupState: () => void;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+/** Coerce any value to a display-safe string (guards against objects in error fields) */
+function safeErrorString(value: unknown, fallback = 'Unknown error'): string {
+  if (typeof value === 'string') return value;
+  if (value == null) return fallback;
+  if (value instanceof Error) return value.message;
+  try { return JSON.stringify(value); } catch { return fallback; }
 }
 
 // ============================================================================
@@ -135,14 +148,13 @@ export const useBackupStore = create<BackupState>((set, get) => ({
         });
       } else {
         set({
-          error: result.error || 'Failed to load config',
+          error: safeErrorString(result.error, 'Failed to load config'),
           isLoading: false,
           showSetupWizard: true,
         });
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      set({ error: message, isLoading: false, showSetupWizard: true });
+      set({ error: safeErrorString(err, 'Failed to load config'), isLoading: false, showSetupWizard: true });
     }
   },
 
@@ -160,11 +172,10 @@ export const useBackupStore = create<BackupState>((set, get) => ({
           showSetupWizard: !isFullyConfigured,
         });
       } else {
-        set({ error: result.error || 'Failed to save config', isLoading: false });
+        set({ error: safeErrorString(result.error, 'Failed to save config'), isLoading: false });
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      set({ error: message, isLoading: false });
+      set({ error: safeErrorString(err, 'Failed to save config'), isLoading: false });
     }
   },
 
@@ -190,11 +201,11 @@ export const useBackupStore = create<BackupState>((set, get) => ({
       if (result.ok && result.data) {
         set({ status: result.data, statusError: null });
       } else {
-        set({ statusError: result.error || 'Status unavailable' });
+        set({ statusError: safeErrorString(result.error, 'Status unavailable') });
       }
     } catch (err) {
       console.error('[BackupStore] loadStatus failed:', err);
-      set({ statusError: 'Cannot reach MCP Core — is the server running?' });
+      set({ statusError: safeErrorString(err, 'Cannot reach MCP Core — is the server running?') });
     }
   },
 
@@ -226,12 +237,37 @@ export const useBackupStore = create<BackupState>((set, get) => ({
         await get().loadStatus();
         return true;
       } else {
-        set({ error: result.error || 'Failed to initialize repository' });
+        set({ error: safeErrorString(result.error, 'Failed to initialize repository') });
         return false;
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      set({ error: message, isLoading: false });
+      set({ error: safeErrorString(err, 'Failed to initialize repository'), isLoading: false });
+      return false;
+    }
+  },
+
+  resetRepository: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const result = await window.electronAPI.backup.resetRepo();
+      if (result.ok) {
+        set({
+          isLoading: false,
+          config: null,
+          isConfigured: false,
+          status: null,
+          statusError: null,
+          snapshots: [],
+          error: null,
+          showSetupWizard: true,
+        });
+        return true;
+      } else {
+        set({ error: safeErrorString(result.error, 'Failed to reset repository'), isLoading: false });
+        return false;
+      }
+    } catch (err) {
+      set({ error: safeErrorString(err, 'Failed to reset repository'), isLoading: false });
       return false;
     }
   },
@@ -298,17 +334,37 @@ export const useBackupStore = create<BackupState>((set, get) => ({
       const result = await window.electronAPI.backup.create({ message, tags });
       if (result.ok) {
         set({ currentSessionId: result.session_id });
+
+        // Safety timeout: if no progress/summary/error arrives within 30s,
+        // assume the backup failed silently (WebSocket not connected, Gateway down, etc.)
+        const sessionId = result.session_id;
+        setTimeout(() => {
+          const state = get();
+          if (
+            state.isBackupRunning &&
+            state.currentSessionId === sessionId &&
+            !state.backupProgress &&
+            !state.backupSummary &&
+            !state.backupError
+          ) {
+            set({
+              isBackupRunning: false,
+              error: 'Backup timed out — no progress received. Check that Gateway is running.',
+              currentSessionId: null,
+            });
+          }
+        }, 30_000);
+
         return result.session_id;
       } else {
         set({
           isBackupRunning: false,
-          error: result.error || 'Failed to start backup',
+          error: safeErrorString(result.error, 'Failed to start backup'),
         });
         return null;
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Unknown error';
-      set({ isBackupRunning: false, error: msg });
+      set({ isBackupRunning: false, error: safeErrorString(err, 'Failed to start backup') });
       return null;
     }
   },
@@ -329,12 +385,11 @@ export const useBackupStore = create<BackupState>((set, get) => ({
       if (result.ok) {
         return true;
       } else {
-        set({ restoreError: result.error || 'Restore failed' });
+        set({ restoreError: safeErrorString(result.error, 'Restore failed') });
         return false;
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      set({ isRestoring: false, restoreError: message });
+      set({ isRestoring: false, restoreError: safeErrorString(err, 'Restore failed') });
       return false;
     }
   },

@@ -126,26 +126,26 @@ export function useBackupProgress(options: BackupProgressOptions = {}): UseBacku
 
               case 'summary':
                 setBackupSummary({
-                  session_id: ptyEvent.session_id,
-                  snapshot_id: eventData.snapshot_id || '',
-                  files_new: eventData.files_new || 0,
-                  files_changed: eventData.files_changed || 0,
-                  files_unmodified: eventData.files_unmodified || 0,
-                  dirs_new: eventData.dirs_new || 0,
-                  dirs_changed: eventData.dirs_changed || 0,
-                  dirs_unmodified: eventData.dirs_unmodified || 0,
-                  data_added: eventData.data_added || 0,
-                  total_files_processed: eventData.total_files_processed || 0,
-                  total_bytes_processed: eventData.total_bytes_processed || 0,
-                  duration_seconds: eventData.duration_seconds || 0,
+                  session_id: String(ptyEvent.session_id || ''),
+                  snapshot_id: String(eventData.snapshot_id ?? ''),
+                  files_new: Number(eventData.files_new) || 0,
+                  files_changed: Number(eventData.files_changed) || 0,
+                  files_unmodified: Number(eventData.files_unmodified) || 0,
+                  dirs_new: Number(eventData.dirs_new) || 0,
+                  dirs_changed: Number(eventData.dirs_changed) || 0,
+                  dirs_unmodified: Number(eventData.dirs_unmodified) || 0,
+                  data_added: Number(eventData.data_added) || 0,
+                  total_files_processed: Number(eventData.total_files_processed) || 0,
+                  total_bytes_processed: Number(eventData.total_bytes_processed) || 0,
+                  duration_seconds: Number(eventData.duration_seconds) || 0,
                 });
                 break;
 
               case 'error':
                 setBackupError({
                   session_id: ptyEvent.session_id,
-                  message: eventData.message || 'Unknown error',
-                  code: eventData.code || 'UNKNOWN_ERROR',
+                  message: typeof eventData.message === 'string' ? eventData.message : (eventData.message ? JSON.stringify(eventData.message) : 'Unknown error'),
+                  code: String(eventData.code || 'UNKNOWN_ERROR'),
                 });
                 break;
 

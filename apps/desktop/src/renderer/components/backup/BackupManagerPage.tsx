@@ -70,7 +70,7 @@ function OverviewDashboard() {
           <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
           <div>
             <p className="text-sm font-medium text-amber-500">Status Unavailable</p>
-            <p className="text-xs text-muted-foreground">{statusError}</p>
+            <p className="text-xs text-muted-foreground">{typeof statusError === 'string' ? statusError : JSON.stringify(statusError)}</p>
           </div>
         </div>
       )}

@@ -388,7 +388,7 @@ export function DiffView() {
         <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
           <div className="flex items-center gap-2 text-red-500">
             <AlertCircle className="w-5 h-5" />
-            <span className="text-sm">{restoreError}</span>
+            <span className="text-sm">{typeof restoreError === 'string' ? restoreError : JSON.stringify(restoreError)}</span>
           </div>
         </div>
       )}

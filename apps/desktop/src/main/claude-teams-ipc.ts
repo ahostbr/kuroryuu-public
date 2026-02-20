@@ -40,6 +40,7 @@ import {
   toggleTemplateFavorite,
 } from './claude-teams-templates';
 import { getSettingsWriter } from './services/settings-writer';
+import { escapePathForHooks } from './utils/hook-paths';
 
 // -----------------------------------------------------------------------
 // UV Binary Resolution (cached)
@@ -106,9 +107,9 @@ function getSmartTtsPath(): string {
   return path.join(getProjectRoot(), '.claude', 'plugins', 'kuro', 'hooks', 'smart_tts.py');
 }
 
-/** Escape backslashes for embedding in hook command strings (bash-safe) */
+/** Escape path for hook command strings — Git Bash format for CC 2.1.47+, double-backslash for older */
 function escapePath(p: string): string {
-  return p.replace(/\\/g, '\\\\');
+  return escapePathForHooks(p);
 }
 
 interface ValidationResult {

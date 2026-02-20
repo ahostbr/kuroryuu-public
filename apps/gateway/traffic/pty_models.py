@@ -69,6 +69,11 @@ class PTYEventDetail(PTYEventBase):
     blocked: bool = False
     blocked_pattern: Optional[str] = None
 
+    # Streaming/backup event fields (used by k_backup progress streaming)
+    event_type: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
+    is_final: bool = False
+
     class Config:
         json_encoders = {
             datetime: lambda v: v.isoformat()
