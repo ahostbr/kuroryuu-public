@@ -386,12 +386,46 @@ export function registerMarketingHandlers(): void {
     return await ensureUv();
   });
 
-  // Install Playwright browser binaries in the system Python environment
+  // Install all gateway Python dependencies + Playwright browser binaries.
+  //
+  // WHY TWO PYTHONS: On Windows, uvicorn spawns a worker subprocess using sys.executable from
+  // the venv, but Windows resolves that to the base system Python (not the venv Scripts/python.exe).
+  // So the ASGI worker that actually owns port 8200 runs from the system Python, while the
+  // supervisor runs from .venv_mcp312. We must install deps into both to cover either case.
   ipcMain.handle('marketing:installPlaywright', async () => {
     try {
-      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-      const result = await runCommand(pythonCmd, ['-m', 'playwright', 'install', 'chromium'], PROJECT_ROOT);
-      return result;
+      const requirementsTxt = path.join(PROJECT_ROOT, 'apps', 'gateway', 'requirements.txt');
+
+      // Collect both Pythons: venv (supervisor) + system (worker)
+      const venvPython = path.join(PROJECT_ROOT, '.venv_mcp312', 'Scripts', 'python.exe');
+      const systemPython = process.platform === 'win32' ? 'python' : 'python3';
+      const pythons: string[] = [];
+      if (fs.existsSync(venvPython)) pythons.push(venvPython);
+      pythons.push(systemPython);
+
+      for (const pythonCmd of pythons) {
+        // pip install -r requirements.txt
+        const pipResult = await runCommand(
+          pythonCmd,
+          ['-m', 'pip', 'install', '-r', requirementsTxt],
+          PROJECT_ROOT,
+        );
+        if (!pipResult.ok) {
+          return { ok: false, error: `pip install failed (${pythonCmd}): ${pipResult.error}` };
+        }
+
+        // playwright install chromium
+        const pwResult = await runCommand(
+          pythonCmd,
+          ['-m', 'playwright', 'install', 'chromium'],
+          PROJECT_ROOT,
+        );
+        if (!pwResult.ok) {
+          return { ok: false, error: `playwright install failed (${pythonCmd}): ${pwResult.error}` };
+        }
+      }
+
+      return { ok: true };
     } catch (err) {
       return { ok: false, error: String(err) };
     }
@@ -531,7 +565,7 @@ export function registerMarketingHandlers(): void {
         const finalCmd = useNpx
           ? (process.platform === 'win32' ? 'npx.cmd' : 'npx')
           : localBin;
-        const finalArgs = useNpx ? ['remotion', 'studio'] : ['studio'];
+        const finalArgs = useNpx ? ['remotion', 'studio', '--no-open'] : ['studio', '--no-open'];
 
         console.log(`[Marketing] Starting Remotion Studio: ${finalCmd} ${finalArgs.join(' ')} in ${templateDir}`);
 

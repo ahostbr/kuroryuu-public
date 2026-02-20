@@ -36,11 +36,12 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
   const [cliProxyConnected, setCliProxyConnected] = useState(false);
 
 
-  // Load tool status on mount
+  // Load tool status on mount and auto-install gateway deps
   useEffect(() => {
     loadToolStatus();
     checkHealth();
     checkUv();
+    installPlaywright(); // auto-run: installs gateway requirements.txt + Chromium
   }, []);
 
   const loadToolStatus = async () => {
@@ -282,42 +283,32 @@ export function MarketingSetupWizard({ onComplete }: MarketingSetupWizardProps) 
               </div>
             </div>
 
-            {/* Playwright browser prerequisite */}
+            {/* Gateway dependencies (auto-installs on mount) */}
             <div className="bg-zinc-800 rounded-lg p-4 border border-zinc-700 mb-2">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <Globe className="w-4 h-4 text-blue-400" />
-                    <h3 className="font-medium">Web Browser (Playwright)</h3>
+                    <h3 className="font-medium">Gateway Dependencies</h3>
+                    {playwrightInstalling && <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />}
                     {playwrightInstalled === true && <CheckCircle2 className="w-4 h-4 text-green-500" />}
                     {playwrightInstalled === false && <XCircle className="w-4 h-4 text-red-500" />}
                   </div>
                   <p className="text-sm text-zinc-400">
-                    Required for Web Scraper. Downloads Chromium (~200MB).
+                    {playwrightInstalling
+                      ? 'Installing gateway requirements + Chromium browser…'
+                      : 'Python packages (requirements.txt) + Chromium browser for Web Scraper.'}
                   </p>
                 </div>
-                <button
-                  onClick={installPlaywright}
-                  disabled={playwrightInstalling || playwrightInstalled === true}
-                  className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
-                >
-                  {playwrightInstalling ? (
-                    <>
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                      Installing
-                    </>
-                  ) : playwrightInstalled === true ? (
-                    <>
-                      <CheckCircle2 className="w-3 h-3" />
-                      Installed
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-3 h-3" />
-                      Install Browser
-                    </>
-                  )}
-                </button>
+                {playwrightInstalled === false && !playwrightInstalling && (
+                  <button
+                    onClick={installPlaywright}
+                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white rounded text-sm font-medium transition-colors flex items-center gap-2"
+                  >
+                    <Download className="w-3 h-3" />
+                    Retry
+                  </button>
+                )}
               </div>
             </div>
 
