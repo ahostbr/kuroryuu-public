@@ -2,7 +2,7 @@
  * Marketing IPC Handlers
  * Tool installation and setup management for the marketing workspace
  */
-import { ipcMain } from 'electron';
+import { ipcMain, session } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { spawn, execSync, ChildProcess } from 'child_process';
@@ -167,7 +167,29 @@ let studioProcess: ChildProcess | null = null;
 let studioTemplate: string | null = null;
 const STUDIO_PORT = 3000;
 
+function registerStudioHeaderStripping(port: number): void {
+  const filter = { urls: [`http://localhost:${port}/*`] };
+  session.defaultSession.webRequest.onHeadersReceived(filter, (details, callback) => {
+    const responseHeaders = { ...details.responseHeaders };
+    for (const key of Object.keys(responseHeaders)) {
+      if (key.toLowerCase() === 'x-frame-options') {
+        delete responseHeaders[key];
+      } else if (key.toLowerCase() === 'content-security-policy') {
+        responseHeaders[key] = responseHeaders[key].map((csp: string) =>
+          csp.replace(/frame-ancestors[^;]*(;|$)/gi, '').trim()
+        );
+      }
+    }
+    callback({ responseHeaders });
+  });
+}
+
+function removeStudioHeaderStripping(): void {
+  try { session.defaultSession.webRequest.onHeadersReceived(null as any); } catch { /* ignore */ }
+}
+
 export function killStudioServer(): void {
+  removeStudioHeaderStripping();
   if (studioProcess && !studioProcess.killed) {
     studioProcess.kill();
     console.log('[Marketing] Killed Remotion Studio process');
@@ -473,6 +495,7 @@ export function registerMarketingHandlers(): void {
       }
 
       if (action === 'stop') {
+        removeStudioHeaderStripping();
         killStudioServer();
         return { ok: true };
       }
@@ -509,6 +532,7 @@ export function registerMarketingHandlers(): void {
         });
 
         studioTemplate = tmpl;
+        registerStudioHeaderStripping(STUDIO_PORT);
 
         studioProcess.stdout?.on('data', (data) => {
           console.log('[Marketing/Studio]', data.toString().trimEnd());
