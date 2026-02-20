@@ -9,6 +9,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+#### Git Bash Hook Path Utilities (Feb 19, 2026)
+- `hook-paths.ts` with `hooksUseBash()`, `toGitBashPath()`, `escapePathForHooks()` for CC 2.1.47+ compatibility
+- Version-aware UV path resolution and `cd "$CLAUDE_PROJECT_DIR"` prefix for correct CWD
+- Desktop code generator updated to emit Git Bash-compatible hook commands
+
+#### Playground UI & Skill (Feb 18, 2026)
+- Renamed GenUI to Playground with dedicated Electron window and IPC handlers (open/list/read HTML files)
+- 4 project-aware single-file HTML templates: agent-team-planner, architecture-explorer, hook-builder, theme-tuner
+- `/k-playground` skill and command for Claude Code
+- FeedbackBar component and usePlayground hook
+- Blob URL viewer approach bypassing CSP restrictions for inline scripts
+
+#### Backup Enhancements (Feb 18, 2026)
+- Background streaming for backups (`background=true`, daemon thread)
+- Password persistence in backup config (loaded on init, saved on change)
+- `backup:reset` IPC handler and `BackupService.resetRepository()`
+- 10s AbortController timeout for MCP requests to prevent hanging
+- `statusError` in backup store with amber alert banner UI
+
+#### Generic CLI PTY Support (Feb 16, 2026)
+- Backend accepts `cliCommand/cliArgs/cliType` via IPC, routes non-Claude CLIs through `startGenericPty`
+- Emits `cli:session-spawned` events for auto-navigation, max concurrent sessions raised to 5
+- CLIAgentsPanel with PTY-aware session cards and action buttons (view/stop)
+- LauncherCard component for Quick Access in App Settings
+
+#### k-start-worker-loop Autonomous Task Loop (Feb 16, 2026)
+- Loads pending T### tasks from `ai/todo.md`, spawns `do-work-builder` subagents per task
+- Structured git commits with HEREDOC messages and Task/Request trailers
+- Records `commit_hash`/`committed_at` in `ai/task-meta.json` sidecar
+- Ralph prompts updated: workers forbidden from git operations, leader handles verification/commit
+
+#### k_tts Agent-Initiated TTS Tool (Feb 15, 2026)
+- New MCP tool with `speak` (direct) and `smart` (AI-summarized ~20 words via Gateway with fallback) actions
+- Edge-tts playback, TTS queue integration, optional blocking via `wait=True`
+
+#### CI/Release Workflows & Tests (Feb 15, 2026)
+- GitHub Actions CI workflow: typecheck, vitest, pytest, build & publish
+- Manual Release workflow for tagged releases
+- Unit tests for updater, backup service, settings paths, and gateway endpoints
+- Removed ~3,500 lines of dead code (legacy Insights, LMStudioPanel, AgentFlow, CodingAgents, SpawnAgentDialog)
+
+#### Session Linking & Identity (Feb 13-14, 2026)
+- CLI sessions bridged to Claude Code session IDs via observability event mapping
+- Gateway auto-links `kuroryuu_session_id` → `session_id` with module-level cache
+- k_session `update_memory` and `link` actions for mid-session state tracking
+- MCP Bootstrap block injected into teammate prompts (k_session/k_collective lifecycle required)
+- About dialog shows git version/commit info via `git describe`
+
+#### Claude Teams Details Dashboard (Feb 13, 2026)
+- Unified TeamDetailsDashboard consolidating members, tasks, messages, and analytics into tabbed view
+- New components: CompletionRing, MemberCard, MembersTab, MessagesTab, OverviewTab, StatsRibbon, TasksTab
+- Replaced separate TaskListPanel and TeamsAnalyticsPanel with single dashboard (live + archive modes)
+- One-time memory injection modal at bootstrap (enables smartSessionStart, autoCheckpointOnEnd, previouslySection)
+
+#### Global Plugin Sync Service (Feb 13, 2026)
+- PluginSyncService: polls every 60s, compares mtime, syncs `.claude/plugins/kuro/` to `~/.claude/plugins/kuro-global/`
+- `sync-global-plugin.ps1` with force flag, timestamp tracking, and global settings registration
+- Plugin scripts resolve project root via `KURORYUU_PROJECT_ROOT` env var for dual project-local/global contexts
+
+#### Image Lightbox & Asset IPC (Feb 13, 2026)
+- ImageLightbox component with AnimatePresence modal overlay in assistant panel
+- `app:getAssetDataUrl` IPC handler: reads project assets as base64 data URLs, auto-detects MIME type, prevents directory traversal
+- Marlee Rose tribute image in About dialog
+
+#### Developer Convenience Scripts (Feb 13, 2026)
+- `claude-bypass.bat`: wrapper for Claude CLI with `--dangerously-skip-permissions`
+- `make-shortcut.ps1`: creates Desktop shortcut for taskbar pinning
+- `KillKuroryuu.bat`: invokes `kill_all.ps1` for quick shutdown
+
 #### Zero-Cost Memory Injection (Feb 13, 2026)
 - Agent→checkpoint linking: checkpoint save/load now carries agent_id/session_id, new `_load_latest_for_agent()` query
 - Smart session start: `_action_start` returns resumption_context with checkpoint summary, worklog summary, working memory, and "Previously" section — all file reads, zero LLM cost
@@ -261,6 +330,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+#### TTS Queue Hardening (Feb 17-18, 2026)
+- Max lock age, PID liveness checks, and stale-lock cleanup in tts_queue.py
+
+#### Port Management (Feb 16-17, 2026)
+- Port-kill routine terminates child workers and parent Python processes (uvicorn master)
+- Uvicorn passes app object directly instead of "server:app" import string
+
+#### Marketing UI Refactor (Feb 16, 2026)
+- Replaced sidebar/header/panels with TerminalWorkspace-driven layout and 7 paged tool components
+- GalleryLightbox for image previews
+- `marketing:injectKeys` IPC handler injects API keys from token store into local marketing Gateway
+- Removed legacy MarketingHeader, MarketingToolPanel, MarketingSkillPicker, MarketingAssetGallery
+
+#### Observability UI Refactor (Feb 15, 2026)
+- 4 new timeline renderers: CompactStrip, DensityRidge, FlameStack, SpiralClock
+- Zustand `useShallow` selectors on observability components to prevent unnecessary re-renders
+- AgentSwimLanes simplified from SVG axis/tooltip to card-based lane UI
+
+#### Heartbeat & Identity System (Feb 13, 2026)
+- Mandatory identity file updates enforced in heartbeat prompt (daily memory, heartbeat.md, actions.json, soul.md)
+- `0` = "Infinite" option for max lines/turns/timeout (skips truncation/validation)
+
+#### Kuro Plugin Feature Defaults (Feb 13, 2026)
+- `smartSessionStart`, `autoCheckpointOnEnd`, `previouslySection` default to opt-in (false)
+
+#### CLI & Process Defaults (Feb 13, 2026)
+- Default CLI CWD to project root via `KURORYUU_PROJECT_ROOT` env or resolved path
+- Spawn dialog placeholder shows actual default working directory
+- Session ID statusline priority: Claude Code session_id first, then Kuroryuu env vars
+
 #### Agent Execution & UI (Feb 12-13, 2026)
 - Kuroryuu Agents: default execution backend switched from SDK API to CLI PTY (no API key needed)
 - SessionTerminal flattened to thin passthrough (no wrapper divs)
@@ -308,6 +407,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plan Mode button added (shift+tab shortcut)
 
 ### Fixed
+
+#### Git Bash Hook Path Compatibility (Feb 19, 2026)
+- CC 2.1.47+ runs hooks via Git Bash on Windows — backslash paths mangled to `C:UsersRyan...`
+- UV paths converted to Git Bash format (`/c/Users/Ryan/.local/bin/uv.exe`)
+- PowerShell `-Command` strings wrapped in single quotes to prevent bash variable/escape processing
+- `cd "$CLAUDE_PROJECT_DIR" && ` prefix ensures correct CWD for relative script paths
+- Desktop code generator (`kuro-config:save`, `setTeamTtsOverride`) updated to emit correct paths
+
+#### Backup System Reliability (Feb 18, 2026)
+- Persist backup config to disk when repository marked initialized
+- Fixed nested-key config lookup (defaults not treated as traversal nodes)
+- Atomic temp-file writes; `stdin=subprocess.DEVNULL` prevents subprocess hangs
+- Preserve Python-managed fields (password, password_hash) when saving config
+- Desktop `getStatus` throws errors instead of silent defaults
+
+#### Terminal & UI Fixes (Feb 13-18, 2026)
+- Shift+Tab intercepted at capture phase, forwards CSI Z escape to PTY instead of browser focus navigation
+- `Dialog.Title` replaces raw `<h2>` in IntegrationsDialog for accessibility
+- Unique changelog entry IDs with map index suffix
+- `useSpawnTerminalAgent` falls back to env vars when IPC fails for project root
 
 #### Session & PTY Fixes (Feb 12-13, 2026)
 - Session archival persistence: onCompleted archival listener was tied to KuroryuuAgents component lifecycle — navigating away dropped completion events; extracted to persistent App.tsx-level listener
@@ -420,6 +539,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed ALLOW_EXTERNAL config option
 
 ### Documentation
+
+#### PTY Internals (Feb 19, 2026)
+- `Docs/Architecture/K_PTY_INTERNALS.md` — comprehensive PTY architecture documentation (743 lines)
+
+#### Architecture Reference Documents (Feb 17, 2026)
+- `Docs/Architecture/AI_HARNESS_ARCHITECTURE.md` — governance, tasks, prompts, collective, identity (1,198 lines)
+- `Docs/Architecture/DESKTOP_ARCHITECTURE.md` — Electron, stores, hooks, IPC, PTY, themes (1,138 lines)
+- `Docs/Architecture/GATEWAY_ARCHITECTURE.md` — FastAPI, routers, orchestration, GenUI pipeline (1,305 lines)
+- `Docs/Architecture/MCP_CORE_ARCHITECTURE.md` — tools, actions, RAG, PTY, security (946 lines)
 
 #### New Documentation (Feb 9-10, 2026)
 - VirtualBox sandboxing: technical API analysis of VBox 7.2.6 Python bindings + end-user setup guide
