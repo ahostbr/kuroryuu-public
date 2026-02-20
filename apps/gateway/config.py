@@ -94,6 +94,8 @@ class GatewayConfig:
             "http://127.0.0.1:3000",
             "http://localhost:5173",      # Vite dev server
             "http://127.0.0.1:5173",
+            "http://localhost:5174",      # Vite dev server (second instance)
+            "http://127.0.0.1:5174",
             "http://localhost:8200",      # Gateway self (for SPA)
             "http://127.0.0.1:8200",
             "null",                        # Electron renderer (file:// origin)

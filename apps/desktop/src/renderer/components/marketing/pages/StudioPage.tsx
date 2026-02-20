@@ -121,7 +121,7 @@ export function StudioPage() {
             src="http://localhost:3000"
             className="w-full h-full border-none"
             title="Remotion Studio"
-            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-downloads"
+            sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-downloads"
           />
         )}
 
