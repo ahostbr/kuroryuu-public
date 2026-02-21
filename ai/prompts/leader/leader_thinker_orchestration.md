@@ -62,49 +62,79 @@ Choose thinker pair based on decision type:
 | Conflict resolution | skeptic + synthesizer | Critical analysis feeds integration |
 | Stress testing bold ideas | devils_advocate + visionary | Structured opposition |
 | Roadmap planning | visionary + pragmatist | Vision meets execution |
-| Meta-cognitive review | meta_modeler + (topic thinker) | Challenge reasoning quality, not conclusions |
-| Reasoning quality audit | meta_modeler + first_principles | Process audit + decomposition check |
-| Decision confidence check | meta_modeler + synthesizer | Challenge premature or comfortable synthesis |
-| Bias detection | meta_modeler + visionary | Is the vision creative or just linear thinking? |
+| Meta-cognitive review | reasoning_referee + (topic thinker) | Challenge reasoning quality, not conclusions |
+| Reasoning quality audit | reasoning_referee + first_principles | Process audit + decomposition check |
+| Decision confidence check | reasoning_referee + synthesizer | Challenge premature or comfortable synthesis |
+| Bias detection | reasoning_referee + visionary | Is the vision creative or just linear thinking? |
 
 **Persona files:** `ai/prompt_packs/thinkers/`
 
-### When to Include Meta-Modeler
+### When to Include Reasoning Referee
 
-The Meta-Modeler is a special persona that challenges HOW thinkers reason, not WHAT they conclude. Include it when:
+The Reasoning Referee is a special persona that challenges HOW thinkers reason, not WHAT they conclude. Include it when:
 
 - **Reasoning quality matters more than domain coverage** — the other thinkers have enough domain expertise, but you want to ensure their reasoning process is sound
 - **You suspect unexamined assumptions** — the debate feels productive but the foundations haven't been stress-tested
 - **Consensus came too quickly** — both thinkers agree, and nobody challenged the process
-- **Post-debate audit** — after a 2-thinker debate, spawn meta_modeler to review the synthesis quality
+- **Post-debate audit** — after a 2-thinker debate, spawn reasoning_referee to review the synthesis quality
 
-**Key distinction from Devil's Advocate**: The Devil's Advocate argues the opposite position (content-level). The Meta-Modeler audits the reasoning process itself (meta-level). They are complementary, not redundant.
+**Key distinction from Devil's Advocate**: The Devil's Advocate argues the opposite position (content-level). The Reasoning Referee audits the reasoning process itself (meta-level). They are complementary, not redundant.
 
-### 3-Thinker Configurations with Meta-Modeler
+### 3-Thinker Configurations with Reasoning Referee
 
-When using meta_modeler as a third thinker:
+When using reasoning_referee as a third thinker:
 
 1. **Spawn the two domain thinkers first** — let them establish positions (Round 1)
-2. **Spawn meta_modeler after Round 1-2** — it needs to observe reasoning patterns before intervening
-3. **Meta-modeler enters as process auditor** — it will apply 1-3 relevant meta-cognitive lenses per round
-4. **Watch for self-correction** — when domain thinkers start catching their own reasoning flaws, meta_modeler's job is done
+2. **Spawn reasoning_referee after Round 1-2** — it needs to observe reasoning patterns before intervening
+3. **Reasoning Referee enters as process auditor** — it will apply 1-3 relevant meta-cognitive lenses per round
+4. **Watch for self-correction** — when domain thinkers start catching their own reasoning flaws, reasoning_referee's job is done
 
 **Recommended 3-thinker configurations:**
 
 | Configuration | Use Case |
 |---------------|----------|
-| visionary + pragmatist + meta_modeler | Ensure vision-vs-execution debate has sound reasoning |
-| first_principles + systems_thinker + meta_modeler | Deep analysis with reasoning quality guardrails |
-| devils_advocate + visionary + meta_modeler | Stress-test ideas AND audit the stress-testing process |
-| synthesizer + skeptic + meta_modeler | Ensure synthesis isn't just conflict avoidance |
+| visionary + pragmatist + reasoning_referee | Ensure vision-vs-execution debate has sound reasoning |
+| first_principles + systems_thinker + reasoning_referee | Deep analysis with reasoning quality guardrails |
+| devils_advocate + visionary + reasoning_referee | Stress-test ideas AND audit the stress-testing process |
+| synthesizer + skeptic + reasoning_referee | Ensure synthesis isn't just conflict avoidance |
 
-**Timing for meta_modeler entry:**
+**Timing for reasoning_referee entry:**
 ```
-Round 1: Domain thinkers establish positions → meta_modeler observes silently
-Round 2: Domain thinkers engage → meta_modeler may make light observations
-Round 3: Meta_modeler delivers process audit → domain thinkers adjust reasoning
-Round 4+: Meta_modeler yields when thinkers self-correct
+Round 1: Domain thinkers establish positions → reasoning_referee observes silently
+Round 2: Domain thinkers engage → reasoning_referee may make light observations
+Round 3: Reasoning Referee delivers process audit → domain thinkers adjust reasoning
+Round 4+: Reasoning Referee yields when thinkers self-correct
 ```
+
+### Individual Meta-Cognition Thinkers
+
+In addition to the Reasoning Referee (who holds all 6 lenses), each lens has a dedicated specialist thinker. Use these when you want deep, focused application of a single meta-cognitive lens rather than broad process auditing.
+
+| Decision Type | Recommended Pair | Why |
+|---------------|------------------|-----|
+| Detecting linear thinking | nonlinear_thinker + (topic thinker) | Map actual variable relationships, catch feedback loops and thresholds |
+| Breaking binary framing | gray_thinker + (topic thinker) | Find the spectrum between endpoints, reveal intermediate solutions |
+| Complexity audit | occams_auditor + first_principles | Ensure decomposition didn't over-simplify, name the black boxes |
+| Problem reframing | reframer + visionary | Challenge inherited frames with fresh vision |
+| Blind spot detection | comfort_challenger + synthesizer | Challenge comfortable synthesis, probe for unexamined consensus |
+| Cognitive debt check | cognitive_debt + pragmatist | Ensure practical plan doesn't defer the hard parts |
+| Full reasoning audit | reasoning_referee + (topic thinker) | All 6 lenses, process-level challenge |
+
+**When to use specialists vs. Reasoning Referee:**
+
+- **Reasoning Referee**: Best when you want broad process auditing across multiple lenses. It applies whichever 1-3 lenses are most relevant per round.
+- **Individual specialists**: Best when you already know which cognitive blind spot is most relevant. They go deeper into their single lens than the Reasoning Referee would.
+
+**Specialist 3-thinker configurations:**
+
+| Configuration | Use Case |
+|---------------|----------|
+| visionary + pragmatist + nonlinear_thinker | Catch linear assumptions in vision-vs-execution debates |
+| first_principles + pragmatist + occams_auditor | Ensure practical decomposition didn't hide complexity |
+| visionary + skeptic + reframer | Challenge inherited frames in innovation debates |
+| synthesizer + pragmatist + comfort_challenger | Stress-test comfortable consensus in planning |
+| visionary + first_principles + cognitive_debt | Prevent bold plans from deferring hard decisions |
+| skeptic + pragmatist + gray_thinker | Break binary framing in technical decision-making |
 
 ---
 
@@ -251,8 +281,14 @@ k_thinker_channel(action="read", target_agent_id="...", timeout_ms=5000)
 | Security | red_team + blue_team |
 | Architecture | first_principles + systems_thinker |
 | UX | user_advocate + pragmatist |
-| Reasoning audit | meta_modeler + (topic thinker) |
-| Decision confidence | meta_modeler + synthesizer |
+| Reasoning audit | reasoning_referee + (topic thinker) |
+| Decision confidence | reasoning_referee + synthesizer |
+| Linear thinking check | nonlinear_thinker + (topic thinker) |
+| Binary framing check | gray_thinker + (topic thinker) |
+| Complexity audit | occams_auditor + first_principles |
+| Problem reframing | reframer + visionary |
+| Blind spot detection | comfort_challenger + synthesizer |
+| Cognitive debt check | cognitive_debt + pragmatist |
 
 ### Personas Location
 `ai/prompt_packs/thinkers/`
