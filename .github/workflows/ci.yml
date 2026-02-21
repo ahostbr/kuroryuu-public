@@ -7,6 +7,20 @@ on:
     branches: [master]
 
 jobs:
+  lint:
+    name: Lint Code
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
+      - run: cd apps/desktop && npm ci
+      - run: cd apps/desktop && npx eslint src/ --max-warnings=0
+        continue-on-error: true
+
   typecheck:
     name: TypeScript Type Check
     runs-on: windows-latest
@@ -38,9 +52,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v4
-      - run: cd apps/gateway && uv sync
-      - run: cd apps/gateway && uv run python -m pytest tests/ -v
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: cd apps/gateway && pip install -r requirements.txt
+      - run: cd apps/gateway && python -m pytest tests/ -v
 
   build:
     name: Build Desktop
