@@ -252,7 +252,7 @@ describe('FeatureManager', () => {
       
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.errorCode).toBe(FeatureErrorCode.INVALID_ACTION);
+        expect(result.errorCode).toBe(FeatureErrorCode.ACTION_NOT_SUPPORTED);
       }
     });
     

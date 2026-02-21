@@ -325,7 +325,7 @@ export abstract class FeatureModuleBase implements IFeatureModule {
    */
   protected requireInitialized(): FeatureError | null {
     if (!this._isInitialized) {
-      return this.error('Module not initialized', FeatureErrorCode.NOT_INITIALIZED);
+      return this.error('Module not initialized', FeatureErrorCode.MODULE_NOT_INITIALIZED);
     }
     return null;
   }
@@ -335,7 +335,7 @@ export abstract class FeatureModuleBase implements IFeatureModule {
    */
   protected validateAction(action: string): FeatureError | null {
     if (!this.getSupportedActions().includes(action)) {
-      return this.error(`Unknown action: ${action}`, FeatureErrorCode.INVALID_ACTION);
+      return this.error(`Unknown action: ${action}`, FeatureErrorCode.ACTION_NOT_SUPPORTED);
     }
     return null;
   }

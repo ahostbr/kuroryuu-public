@@ -94,19 +94,19 @@ describe('TTS Module', () => {
       
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.errorCode).toBe(FeatureErrorCode.NOT_INITIALIZED);
+        expect(result.errorCode).toBe(FeatureErrorCode.MODULE_NOT_INITIALIZED);
       }
     });
-    
+
     it('should fail for unsupported action', async () => {
       const ttsModule = new TTSModule(eventBus, configManager);
       await ttsModule.initialize();
-      
+
       const result = await ttsModule.execute('invalid_action', {});
-      
+
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.errorCode).toBe(FeatureErrorCode.INVALID_ACTION);
+        expect(result.errorCode).toBe(FeatureErrorCode.ACTION_NOT_SUPPORTED);
       }
     });
     
@@ -204,7 +204,7 @@ describe('TTS Module', () => {
       }
     });
   });
-  
+
   // ─────────────────────────────────────────────────────────────────────────────
   // Voice Management Tests
   // ─────────────────────────────────────────────────────────────────────────────

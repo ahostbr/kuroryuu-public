@@ -180,7 +180,7 @@ export const usePlaygroundStore = create<PlaygroundStoreState>((set, get) => ({
 
   applySnapshot: (snapshot) => {
     set(state => {
-      const updates: Partial<PlaygroundState> = {};
+      const updates: Partial<PlaygroundStoreState> = {};
 
       if (snapshot.status !== undefined) updates.status = snapshot.status;
       if (snapshot.progress !== undefined) updates.progress = snapshot.progress;

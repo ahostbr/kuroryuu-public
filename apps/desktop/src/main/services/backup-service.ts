@@ -319,7 +319,17 @@ export class BackupService {
       throw new Error(result.error || 'Backup status check failed');
     } catch (error) {
       console.error('[BackupService] getStatus failed:', error);
-      throw error;
+      return {
+        is_configured: false,
+        repository_exists: false,
+        repository_accessible: false,
+        restic_installed: false,
+        restic_version: null,
+        config_path: getConfigFilePath(),
+        binary_path: path.join(getResticBinDir(), process.platform === 'win32' ? 'restic.exe' : 'restic'),
+        snapshot_count: 0,
+        last_backup_time: null,
+      };
     }
   }
 
