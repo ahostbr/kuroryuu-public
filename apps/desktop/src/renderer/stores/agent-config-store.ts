@@ -44,6 +44,7 @@ export interface AgentConfig {
   worktreePath?: string;                    // For shared mode: which worktree path
   // Ralph mode - leader personality for autonomous task orchestration
   ralphMode?: boolean;                      // When true, leader spawns as Ralph with k_pty monitoring
+  noBootstrap?: boolean;                    // Skip all @ file bootstrap injection (bare CLI)
 }
 
 interface AgentConfigState {

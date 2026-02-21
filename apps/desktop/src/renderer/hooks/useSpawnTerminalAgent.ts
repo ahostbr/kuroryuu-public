@@ -36,6 +36,8 @@ export interface SpawnTerminalAgentOptions {
   registerHeartbeat?: boolean;
   /** Agent capabilities list */
   capabilities?: string[];
+  /** Skip all bootstrap prompt injection — spawn bare CLI */
+  noBootstrap?: boolean;
   /** Callback when PTY is created */
   onReady?: (ptyId: string) => void;
   /** Callback when PTY exits */
@@ -72,6 +74,7 @@ export function useSpawnTerminalAgent() {
       // Map promptPath to specialistPromptPath so buildCliConfig skips worker/leader bootstrap
       specialistPromptPath: options.promptPath,
       atFiles: options.atFiles || [],
+      noBootstrap: options.noBootstrap,
     };
 
     // Register in agent-config-store (visible in TerminalGrid's worker list)

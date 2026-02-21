@@ -62,8 +62,49 @@ Choose thinker pair based on decision type:
 | Conflict resolution | skeptic + synthesizer | Critical analysis feeds integration |
 | Stress testing bold ideas | devils_advocate + visionary | Structured opposition |
 | Roadmap planning | visionary + pragmatist | Vision meets execution |
+| Meta-cognitive review | meta_modeler + (topic thinker) | Challenge reasoning quality, not conclusions |
+| Reasoning quality audit | meta_modeler + first_principles | Process audit + decomposition check |
+| Decision confidence check | meta_modeler + synthesizer | Challenge premature or comfortable synthesis |
+| Bias detection | meta_modeler + visionary | Is the vision creative or just linear thinking? |
 
 **Persona files:** `ai/prompt_packs/thinkers/`
+
+### When to Include Meta-Modeler
+
+The Meta-Modeler is a special persona that challenges HOW thinkers reason, not WHAT they conclude. Include it when:
+
+- **Reasoning quality matters more than domain coverage** — the other thinkers have enough domain expertise, but you want to ensure their reasoning process is sound
+- **You suspect unexamined assumptions** — the debate feels productive but the foundations haven't been stress-tested
+- **Consensus came too quickly** — both thinkers agree, and nobody challenged the process
+- **Post-debate audit** — after a 2-thinker debate, spawn meta_modeler to review the synthesis quality
+
+**Key distinction from Devil's Advocate**: The Devil's Advocate argues the opposite position (content-level). The Meta-Modeler audits the reasoning process itself (meta-level). They are complementary, not redundant.
+
+### 3-Thinker Configurations with Meta-Modeler
+
+When using meta_modeler as a third thinker:
+
+1. **Spawn the two domain thinkers first** — let them establish positions (Round 1)
+2. **Spawn meta_modeler after Round 1-2** — it needs to observe reasoning patterns before intervening
+3. **Meta-modeler enters as process auditor** — it will apply 1-3 relevant meta-cognitive lenses per round
+4. **Watch for self-correction** — when domain thinkers start catching their own reasoning flaws, meta_modeler's job is done
+
+**Recommended 3-thinker configurations:**
+
+| Configuration | Use Case |
+|---------------|----------|
+| visionary + pragmatist + meta_modeler | Ensure vision-vs-execution debate has sound reasoning |
+| first_principles + systems_thinker + meta_modeler | Deep analysis with reasoning quality guardrails |
+| devils_advocate + visionary + meta_modeler | Stress-test ideas AND audit the stress-testing process |
+| synthesizer + skeptic + meta_modeler | Ensure synthesis isn't just conflict avoidance |
+
+**Timing for meta_modeler entry:**
+```
+Round 1: Domain thinkers establish positions → meta_modeler observes silently
+Round 2: Domain thinkers engage → meta_modeler may make light observations
+Round 3: Meta_modeler delivers process audit → domain thinkers adjust reasoning
+Round 4+: Meta_modeler yields when thinkers self-correct
+```
 
 ---
 
@@ -210,6 +251,8 @@ k_thinker_channel(action="read", target_agent_id="...", timeout_ms=5000)
 | Security | red_team + blue_team |
 | Architecture | first_principles + systems_thinker |
 | UX | user_advocate + pragmatist |
+| Reasoning audit | meta_modeler + (topic thinker) |
+| Decision confidence | meta_modeler + synthesizer |
 
 ### Personas Location
 `ai/prompt_packs/thinkers/`

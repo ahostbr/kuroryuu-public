@@ -38,7 +38,7 @@ export function buildCliConfig(agentConfig: AgentConfig | null | undefined): Cli
   const cmd = agentConfig.cliPath || agentConfig.cliProvider;
   const args: string[] = [];
 
-  if (agentConfig.cliProvider === 'claude') {
+  if (agentConfig.cliProvider === 'claude' && !agentConfig.noBootstrap) {
     // Thinker/Specialist: use their specific @ files
     if (agentConfig.thinkerBasePath || agentConfig.thinkerPersonaPath || agentConfig.specialistPromptPath) {
       if (agentConfig.thinkerBasePath) {

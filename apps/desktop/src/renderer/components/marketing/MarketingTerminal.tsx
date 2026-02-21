@@ -27,6 +27,7 @@ export function MarketingTerminal() {
       name: 'Marketing Specialist',
       role: 'specialist',
       capabilities: ['marketing'],
+      noBootstrap: true,
       onReady: (ptyId) => {
         console.log('[Marketing] Agent spawned:', ptyId);
         setTerminalPtyId(ptyId);
