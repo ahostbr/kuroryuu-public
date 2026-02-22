@@ -9,6 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fc from 'fast-check';
 import { TTSModule } from '../module';
+import { TTSEngine } from '../tts-engine';
 import { FeatureEventBus, resetEventBus } from '../../event-bus';
 import { ConfigManager } from '../../config-manager';
 
@@ -25,12 +26,21 @@ describe('TTS Events Property Tests', () => {
     resetEventBus();
     eventBus = new FeatureEventBus();
     configManager = new ConfigManager();
-    
+
     // Spy on event bus methods
     vi.spyOn(eventBus, 'emit');
     vi.spyOn(eventBus, 'emitTTSSpeakStart');
     vi.spyOn(eventBus, 'emitTTSSpeakComplete');
-    
+
+    // Mock engine.speak to resolve instantly (avoid real speech synthesis)
+    vi.spyOn(TTSEngine.prototype, 'speak').mockResolvedValue({
+      text: 'mock',
+      voice: 'mock',
+      rate: 1,
+      pitch: 1,
+      volume: 1,
+    });
+
     module = new TTSModule(eventBus, configManager);
     await module.initialize();
   });
