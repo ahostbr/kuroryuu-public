@@ -5,7 +5,7 @@
   "main": "./out/main/index.js",
   "author": "Kuroryuu Team",
   "scripts": {
-    "prebuild": "node -e \"const fs=require('fs');const src='resources/Kuroryuu_ico.ico';const dst='build/icon.ico';if(fs.existsSync(src)&&!fs.existsSync(dst)){fs.mkdirSync('build',{recursive:true});fs.copyFileSync(src,dst);}\"",
+    "prebuild": "node -e \"const fs=require('fs');fs.mkdirSync('build',{recursive:true});const copies=[['resources/Kuroryuu_ico.ico','build/icon.ico'],['resources/Kuroryuu_png.png','build/icon.png']];copies.forEach(([s,d])=>{if(fs.existsSync(s)&&!fs.existsSync(d))fs.copyFileSync(s,d);});\"",
     "dev": "electron-vite dev",
     "build": "npm run prebuild && electron-vite build",
     "start": "electron .",

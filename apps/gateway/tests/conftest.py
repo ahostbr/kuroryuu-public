@@ -20,6 +20,10 @@ def client(monkeypatch):
     # Mock the security checks to allow test client
     # The middleware checks request.client.host which returns "testclient" for TestClient
 
+    # 0. Clear blocklist so "testclient" isn't blocked from prior test runs
+    from apps.gateway.security.blocklist import blocklist
+    blocklist.clear()
+
     # 1. Mock TrafficMonitoringMiddleware to allow "testclient" IP
     from apps.gateway.traffic.middleware import TrafficMonitoringMiddleware
 

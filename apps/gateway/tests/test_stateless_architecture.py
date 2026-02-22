@@ -14,10 +14,7 @@ import shutil
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
-# Import the app
-from apps.gateway.server import app
 from apps.gateway.context.run_id import generate_run_id, is_valid_run_id
 
 
@@ -25,12 +22,6 @@ from apps.gateway.context.run_id import generate_run_id, is_valid_run_id
 AI_DIR = Path("ai")
 WORKING_DIR = Path("WORKING")
 AGENT_RUNS_DIR = WORKING_DIR / "agent_runs"
-
-
-@pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
 
 
 @pytest.fixture
