@@ -34,11 +34,12 @@ describe('TTS Events Property Tests', () => {
 
     // Mock engine.speak to resolve instantly (avoid real speech synthesis)
     vi.spyOn(TTSEngine.prototype, 'speak').mockResolvedValue({
+      id: 'mock-utterance',
       text: 'mock',
       voice: 'mock',
-      rate: 1,
-      pitch: 1,
-      volume: 1,
+      startTime: Date.now(),
+      estimatedDuration: 0,
+      state: 'completed',
     });
 
     module = new TTSModule(eventBus, configManager);
