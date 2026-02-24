@@ -38,6 +38,10 @@ export interface SpawnTerminalAgentOptions {
   capabilities?: string[];
   /** Skip all bootstrap prompt injection — spawn bare CLI */
   noBootstrap?: boolean;
+  /** Worktree isolation mode */
+  worktreeMode?: AgentConfig['worktreeMode'];
+  /** For shared worktree mode: path to the shared worktree */
+  worktreePath?: string;
   /** Callback when PTY is created */
   onReady?: (ptyId: string) => void;
   /** Callback when PTY exits */
@@ -75,7 +79,29 @@ export function useSpawnTerminalAgent() {
       specialistPromptPath: options.promptPath,
       atFiles: options.atFiles || [],
       noBootstrap: options.noBootstrap,
+      worktreeMode: options.worktreeMode,
+      worktreePath: options.worktreePath,
     };
+
+    // Per-worker worktree: create git worktree for non-Claude agents before spawn.
+    // Claude agents use native --worktree flag (buildCliConfig adds it to args).
+    if (agentConfig.worktreeMode === 'per-worker' && agentConfig.cliProvider !== 'claude') {
+      try {
+        const worktreeName = agentId.replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+        const result = await window.electronAPI.worktree.create({
+          taskId: worktreeName,
+          branchName: `worker/${worktreeName}`,
+          baseBranch: 'master',
+        });
+        if (result.error) {
+          console.error('[useSpawnTerminalAgent] Failed to create worktree:', result.error);
+        } else if (result.worktree?.path) {
+          agentConfig.worktreePath = result.worktree.path;
+        }
+      } catch (err) {
+        console.error('[useSpawnTerminalAgent] Worktree creation IPC failed:', err);
+      }
+    }
 
     // Register in agent-config-store (visible in TerminalGrid's worker list)
     addWorkerAgent(agentConfig);

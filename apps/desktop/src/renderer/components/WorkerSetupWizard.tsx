@@ -456,8 +456,33 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
     const cliPath = manualCliPath.trim() || cliStatus[selectedProvider.id]?.path || undefined;
     const allAtFiles = [...bootstrapFiles, ...atFiles];
 
+    const workerId = `${selectedRole || 'worker'}_${selectedProvider.id}_${Date.now()}`;
+
+    // Per-worker worktree: create git worktree for non-Claude agents before spawn.
+    // Claude agents use native --worktree flag handled by buildCliConfig.
+    let resolvedWorktreePath: string | undefined =
+      worktreeMode === 'shared' && selectedWorktree ? selectedWorktree.path : undefined;
+
+    if (worktreeMode === 'per-worker' && selectedProvider.id !== 'claude') {
+      try {
+        const worktreeName = workerId.replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+        const result = await window.electronAPI.worktree.create({
+          taskId: worktreeName,
+          branchName: `worker/${worktreeName}`,
+          baseBranch: 'master',
+        });
+        if (result.worktree?.path) {
+          resolvedWorktreePath = result.worktree.path;
+        } else if (result.error) {
+          console.error('[WorkerSetupWizard] Failed to create worktree:', result.error);
+        }
+      } catch (err) {
+        console.error('[WorkerSetupWizard] Worktree creation failed:', err);
+      }
+    }
+
     const workerConfig: AgentConfig = {
-      id: `${selectedRole || 'worker'}_${selectedProvider.id}_${Date.now()}`,
+      id: workerId,
       name: selectedRole === 'specialist' && selectedSubtype
         ? SPECIALIST_TYPES.find(s => s.id === selectedSubtype)?.name || `Worker ${workerCount + 1}`
         : `Worker ${workerCount + 1}`,
@@ -471,7 +496,7 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
       atFiles: selectedProvider.supportsAtFiles && allAtFiles.length > 0 ? allAtFiles : undefined,
       claudeModeEnabled: selectedProvider.id === 'claude' ? claudeModeEnabled : undefined,
       worktreeMode: worktreeMode !== 'none' ? worktreeMode : undefined,
-      worktreePath: worktreeMode === 'shared' && selectedWorktree ? selectedWorktree.path : undefined,
+      worktreePath: resolvedWorktreePath,
     };
 
     addWorkerAgent(workerConfig);

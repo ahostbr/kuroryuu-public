@@ -38,6 +38,12 @@ export function buildCliConfig(agentConfig: AgentConfig | null | undefined): Cli
   const cmd = agentConfig.cliPath || agentConfig.cliProvider;
   const args: string[] = [];
 
+  // Claude native worktree: add --worktree flag (Claude handles isolation internally)
+  if (agentConfig.cliProvider === 'claude' && agentConfig.worktreeMode === 'per-worker') {
+    const worktreeName = agentConfig.id.replace(/[^a-z0-9-]/g, '-').slice(0, 50);
+    args.push('--worktree', worktreeName);
+  }
+
   if (agentConfig.cliProvider === 'claude' && !agentConfig.noBootstrap) {
     // Thinker/Specialist: use their specific @ files
     if (agentConfig.thinkerBasePath || agentConfig.thinkerPersonaPath || agentConfig.specialistPromptPath) {
@@ -95,7 +101,15 @@ export function getTerminalCwd(
   }
 
   if (agentConfig.worktreeMode === 'per-worker') {
-    console.warn('[buildCliConfig] Per-worker worktree mode not yet implemented, using projectRoot');
+    // Claude handles its own worktree via --worktree flag (cwd stays as projectRoot).
+    // Non-Claude agents get a worktree created before spawn; path stored in worktreePath.
+    if (agentConfig.cliProvider === 'claude') {
+      return projectRoot; // Claude's --worktree flag handles isolation
+    }
+    if (agentConfig.worktreePath) {
+      return agentConfig.worktreePath; // Pre-created worktree for non-Claude agents
+    }
+    console.warn('[buildCliConfig] Per-worker worktree: no worktreePath set for non-Claude agent');
     return projectRoot;
   }
 

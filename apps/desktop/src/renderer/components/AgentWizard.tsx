@@ -30,6 +30,15 @@ const TABS: { id: TabType; label: string; icon: React.ComponentType<{ className?
   { id: 'workflow', label: 'Workflow PRD', icon: Workflow },
 ];
 
+type QuizmasterVariant = 'small' | 'full' | 'v4' | 'v5';
+
+const QUIZMASTER_VARIANTS: { id: QuizmasterVariant; label: string; desc: string }[] = [
+  { id: 'small', label: 'Quick', desc: '5-8 focused questions' },
+  { id: 'full', label: 'Full', desc: '12-20 deep-dive questions' },
+  { id: 'v4', label: 'V4', desc: 'Structured with categories' },
+  { id: 'v5', label: 'V5', desc: 'Adaptive with follow-ups' },
+];
+
 export function AgentWizard({
   isOpen,
   onClose,
@@ -40,10 +49,12 @@ export function AgentWizard({
   defaultTab = 'thinkers'
 }: AgentWizardProps) {
   const [activeTab, setActiveTab] = useState<TabType>(defaultTab);
+  const [quizExpanded, setQuizExpanded] = useState(false);
+  const [quizVariant, setQuizVariant] = useState<QuizmasterVariant>('small');
 
-  const handleQuizmasterLaunch = () => {
+  const handleQuizmasterLaunch = (variant: QuizmasterVariant) => {
     if (onLaunchQuizmaster) {
-      onLaunchQuizmaster();
+      onLaunchQuizmaster(variant);
       onClose();
     }
   };
@@ -80,51 +91,85 @@ export function AgentWizard({
                 100% { background-position: 200% center; }
               }
             `}</style>
-            <button
-              onClick={handleQuizmasterLaunch}
-              className="group relative w-full p-4 rounded-xl border-2 border-[#c9a227]/40 bg-gradient-to-r from-[#c9a227]/10 via-[#c9a227]/5 to-transparent hover:border-[#c9a227]/70 hover:from-[#c9a227]/15 transition-all duration-300"
+            <div
+              className="relative rounded-xl border-2 border-[#c9a227]/40 bg-gradient-to-r from-[#c9a227]/10 via-[#c9a227]/5 to-transparent overflow-hidden transition-all duration-300"
               style={{ animation: 'quizHeroGlow 3s ease-in-out infinite' }}
             >
-              {/* Shimmer overlay */}
-              <div
-                className="absolute inset-0 rounded-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{
-                  background: 'linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.1), transparent)',
-                  backgroundSize: '200% 100%',
-                  animation: 'quizHeroShimmer 2s linear infinite',
-                }}
-              />
+              {/* Header button — toggles variant picker */}
+              <button
+                onClick={() => setQuizExpanded(!quizExpanded)}
+                className="group relative w-full p-4 hover:from-[#c9a227]/15 transition-all duration-300"
+              >
+                {/* Shimmer overlay */}
+                <div
+                  className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.1), transparent)',
+                    backgroundSize: '200% 100%',
+                    animation: 'quizHeroShimmer 2s linear infinite',
+                  }}
+                />
 
-              <div className="relative flex items-center gap-4">
-                {/* Icon with glow */}
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#c9a227]/30 to-[#c9a227]/10 flex items-center justify-center border border-[#c9a227]/30">
-                    <MessageCircleQuestion className="w-7 h-7 text-[#c9a227]" />
-                  </div>
-                  {/* Badge */}
-                  <div className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded bg-[#c9a227] text-[8px] font-bold text-black uppercase tracking-wider">
-                    Start
-                  </div>
-                </div>
-
-                {/* Text */}
-                <div className="flex-1 text-left">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-base font-semibold text-[#c9a227]">The Ultimate Quizzer</span>
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#c9a227]/20 border border-[#c9a227]/30">
-                      <Trophy className="w-3 h-3 text-[#c9a227]" />
-                      <span className="text-[9px] font-bold text-[#c9a227] uppercase">Secret Weapon</span>
+                <div className="relative flex items-center gap-4">
+                  {/* Icon with glow */}
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#c9a227]/30 to-[#c9a227]/10 flex items-center justify-center border border-[#c9a227]/30">
+                      <MessageCircleQuestion className="w-7 h-7 text-[#c9a227]" />
+                    </div>
+                    {/* Badge */}
+                    <div className="absolute -top-2 -right-2 px-1.5 py-0.5 rounded bg-[#c9a227] text-[8px] font-bold text-black uppercase tracking-wider">
+                      Start
                     </div>
                   </div>
-                  <p className="text-sm text-zinc-400">
-                    Requirements extraction before planning. Ask questions first, build perfectly after.
-                  </p>
-                </div>
 
-                {/* Arrow */}
-                <ChevronRight className="w-5 h-5 text-[#c9a227]/50 group-hover:text-[#c9a227] group-hover:translate-x-1 transition-all" />
-              </div>
-            </button>
+                  {/* Text */}
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-base font-semibold text-[#c9a227]">The Ultimate Quizzer</span>
+                      <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#c9a227]/20 border border-[#c9a227]/30">
+                        <Trophy className="w-3 h-3 text-[#c9a227]" />
+                        <span className="text-[9px] font-bold text-[#c9a227] uppercase">Secret Weapon</span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-zinc-400">
+                      Requirements extraction before planning. Ask questions first, build perfectly after.
+                    </p>
+                  </div>
+
+                  {/* Arrow — rotates when expanded */}
+                  <ChevronRight className={`w-5 h-5 text-[#c9a227]/50 group-hover:text-[#c9a227] transition-all duration-200 ${quizExpanded ? 'rotate-90' : ''}`} />
+                </div>
+              </button>
+
+              {/* Variant picker — slides open */}
+              {quizExpanded && (
+                <div className="px-4 pb-4 pt-1 border-t border-[#c9a227]/20">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Select variant</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {QUIZMASTER_VARIANTS.map((v) => (
+                      <button
+                        key={v.id}
+                        onClick={() => setQuizVariant(v.id)}
+                        className={`p-2 rounded-lg border text-left transition-all ${
+                          quizVariant === v.id
+                            ? 'border-[#c9a227] bg-[#c9a227]/15 text-[#c9a227]'
+                            : 'border-border bg-card/50 text-muted-foreground hover:border-[#c9a227]/40 hover:text-foreground'
+                        }`}
+                      >
+                        <div className="text-xs font-semibold">{v.label}</div>
+                        <div className="text-[10px] opacity-70">{v.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => handleQuizmasterLaunch(quizVariant)}
+                    className="mt-3 w-full py-2 rounded-lg bg-[#c9a227] text-black text-sm font-semibold hover:bg-[#c9a227]/80 transition-colors"
+                  >
+                    Launch {QUIZMASTER_VARIANTS.find(v => v.id === quizVariant)?.label} Quizzer
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Divider with text */}
             <div className="flex items-center gap-3 mt-4">
