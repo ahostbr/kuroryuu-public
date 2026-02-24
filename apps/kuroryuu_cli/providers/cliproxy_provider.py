@@ -68,12 +68,22 @@ class CLIProxyProvider(LLMProvider):
 
             # Default context for known model families
             model = config.cliproxy_model.lower()
-            if "opus" in model or "sonnet" in model:
+            if "opus" in model or "sonnet" in model or "haiku" in model:
                 self._context_window = 200000
             elif "gpt-5" in model or "codex" in model:
                 self._context_window = 200000
             elif "gemini" in model:
-                self._context_window = 1000000  # Gemini 2.0 has 1M
+                self._context_window = 1000000  # Gemini 2.0+ has 1M
+            elif model.startswith("kiro-"):
+                self._context_window = 200000  # Kiro uses Claude backend
+            elif "copilot" in model or "grok" in model or "oswe" in model:
+                self._context_window = 128000  # GitHub Copilot models
+            elif "deepseek" in model:
+                self._context_window = 64000
+            elif "qwen" in model:
+                self._context_window = 32000
+            elif "antigravity" in model or model.startswith("gemini-claude-") or model == "tab_flash_lite_preview" or model == "gpt-oss-120b-medium":
+                self._context_window = 200000  # Antigravity models
 
         except Exception as e:
             logger.debug(f"Could not fetch CLIProxy model info: {e}")

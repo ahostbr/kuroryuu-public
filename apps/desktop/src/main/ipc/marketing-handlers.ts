@@ -527,6 +527,52 @@ export function registerMarketingHandlers(): void {
     }
   });
 
+  // Pull upstream updates for both marketing tool repos
+  ipcMain.handle('marketing:pullUpdates', async () => {
+    try {
+      const results: Array<{ id: string; name: string; ok: boolean; error?: string; updated?: boolean }> = [];
+
+      for (const tool of TOOL_DEFINITIONS) {
+        const repoPath = path.join(TOOLS_DIR, tool.dirName);
+
+        if (!fs.existsSync(repoPath)) {
+          results.push({ id: tool.id, name: tool.name, ok: false, error: 'Not cloned' });
+          continue;
+        }
+
+        // Get current HEAD before fetch
+        const oldHead = await runCommand('git', ['rev-parse', 'HEAD'], repoPath);
+
+        // Fetch latest — try main, fallback to master
+        let fetchResult = await runCommand('git', ['fetch', 'origin', 'main'], repoPath);
+        if (!fetchResult.ok) {
+          fetchResult = await runCommand('git', ['fetch', 'origin', 'master'], repoPath);
+        }
+        if (!fetchResult.ok) {
+          results.push({ id: tool.id, name: tool.name, ok: false, error: `Fetch failed: ${fetchResult.error}` });
+          continue;
+        }
+
+        const resetResult = await runCommand('git', ['reset', '--hard', 'FETCH_HEAD'], repoPath);
+        if (!resetResult.ok) {
+          results.push({ id: tool.id, name: tool.name, ok: false, error: `Reset failed: ${resetResult.error}` });
+          continue;
+        }
+
+        // Check if HEAD changed
+        const newHead = await runCommand('git', ['rev-parse', 'HEAD'], repoPath);
+        const updated = oldHead.output?.trim() !== newHead.output?.trim();
+
+        results.push({ id: tool.id, name: tool.name, ok: true, updated });
+      }
+
+      return { ok: true, results };
+    } catch (err) {
+      console.error('[Marketing] pullUpdates error:', err);
+      return { ok: false, error: String(err) };
+    }
+  });
+
   // Remotion Studio server — start/stop/status
   ipcMain.handle('marketing:studioServer', async (_event, action: 'start' | 'stop' | 'status', template?: string) => {
     try {

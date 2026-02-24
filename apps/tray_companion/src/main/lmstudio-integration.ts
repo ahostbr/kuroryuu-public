@@ -1087,71 +1087,151 @@ export class LMStudioIntegration {
 
   /**
    * Static fallback for CLI Proxy models
-   * Includes: Claude, OpenAI (GPT/o1), Gemini, Qwen, Copilot, Kiro
-   * Updated for CLIProxyAPIPlus
+   * Includes: Antigravity, Claude, OpenAI, GitHub Copilot, Kiro, Gemini
+   * Updated to match model-registry.ts (62 models)
    */
   private getStaticCLIProxyModels(): Array<{id: string, name: string}> {
     return [
-      // Claude family
-      { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-      { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-      { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
-      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
-      // OpenAI family
+      // ===== ANTIGRAVITY (10) =====
+      { id: 'gemini-claude-sonnet-4-5-thinking', name: 'Claude Sonnet 4.5 (Thinking)' },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+      { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
+      { id: 'gemini-3-pro-image-preview', name: 'Gemini 3 Pro Image' },
+      { id: 'gemini-claude-opus-4-5-thinking', name: 'Claude Opus 4.5 (Thinking)' },
+      { id: 'tab_flash_lite_preview', name: 'Tab Flash Lite Preview' },
+      { id: 'gpt-oss-120b-medium', name: 'GPT-OSS 120B (Medium)' },
+      { id: 'gemini-claude-sonnet-4-5', name: 'Claude Sonnet 4.5' },
+      { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
+      { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (High)' },
+
+      // ===== CLAUDE (8) =====
+      { id: 'claude-haiku-4-5-20251001', name: 'Claude 4.5 Haiku' },
+      { id: 'claude-sonnet-4-5-20250929', name: 'Claude 4.5 Sonnet' },
+      { id: 'claude-opus-4-5-20251101', name: 'Claude 4.5 Opus' },
+      { id: 'claude-opus-4-1-20250805', name: 'Claude 4.1 Opus' },
+      { id: 'claude-opus-4-20250514', name: 'Claude 4 Opus' },
+      { id: 'claude-sonnet-4-20250514', name: 'Claude 4 Sonnet' },
+      { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet' },
+      { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+
+      // ===== OPENAI (9) =====
+      { id: 'gpt-5', name: 'GPT 5' },
+      { id: 'gpt-5-codex', name: 'GPT 5 Codex' },
+      { id: 'gpt-5-codex-mini', name: 'GPT 5 Codex Mini' },
+      { id: 'gpt-5.1', name: 'GPT 5.1' },
+      { id: 'gpt-5.1-codex', name: 'GPT 5.1 Codex' },
+      { id: 'gpt-5.1-codex-mini', name: 'GPT 5.1 Codex Mini' },
+      { id: 'gpt-5.1-codex-max', name: 'GPT 5.1 Codex Max' },
+      { id: 'gpt-5.2', name: 'GPT 5.2' },
+      { id: 'gpt-5.2-codex', name: 'GPT 5.2 Codex' },
+
+      // ===== GITHUB-COPILOT (21) =====
+      { id: 'gpt-4.1', name: 'GPT-4.1' },
       { id: 'gpt-4o', name: 'GPT-4o' },
-      { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-      { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-      { id: 'o1-preview', name: 'o1 Preview' },
-      { id: 'o1-mini', name: 'o1 Mini' },
-      // Gemini family
+      { id: 'gpt-5', name: 'GPT-5' },
+      { id: 'gpt-5-mini', name: 'GPT-5 Mini' },
+      { id: 'gpt-5-codex', name: 'GPT-5 Codex' },
+      { id: 'gpt-5.1', name: 'GPT-5.1' },
+      { id: 'gpt-5.1-codex', name: 'GPT-5.1 Codex' },
+      { id: 'gpt-5.1-codex-mini', name: 'GPT-5.1 Codex Mini' },
+      { id: 'gpt-5.1-codex-max', name: 'GPT-5.1 Codex Max' },
+      { id: 'gpt-5.2', name: 'GPT-5.2' },
+      { id: 'gpt-5.2-codex', name: 'GPT-5.2 Codex' },
+      { id: 'claude-haiku-4.5', name: 'Claude Haiku 4.5' },
+      { id: 'claude-opus-4.1', name: 'Claude Opus 4.1' },
+      { id: 'claude-opus-4.5', name: 'Claude Opus 4.5' },
+      { id: 'claude-sonnet-4', name: 'Claude Sonnet 4' },
+      { id: 'claude-sonnet-4.5', name: 'Claude Sonnet 4.5' },
       { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-      // Qwen family
-      { id: 'qwen-coder', name: 'Qwen Coder' },
-      // GitHub Copilot (new in CLIProxyAPIPlus)
-      { id: 'copilot', name: 'GitHub Copilot' },
-      { id: 'copilot-chat', name: 'GitHub Copilot Chat' },
-      // Kiro/CodeWhisperer (new in CLIProxyAPIPlus)
-      { id: 'amazon-q-developer', name: 'Amazon Q Developer' },
-      { id: 'kiro', name: 'Kiro (CodeWhisperer)' },
+      { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro (Preview)' },
+      { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Preview)' },
+      { id: 'grok-code-fast-1', name: 'Grok Code Fast 1' },
+      { id: 'oswe-vscode-prime', name: 'Raptor mini (Preview)' },
+
+      // ===== KIRO (9) =====
+      { id: 'kiro-auto', name: 'Kiro Auto' },
+      { id: 'kiro-claude-opus-4-5', name: 'Kiro Claude Opus 4.5' },
+      { id: 'kiro-claude-sonnet-4-5', name: 'Kiro Claude Sonnet 4.5' },
+      { id: 'kiro-claude-sonnet-4', name: 'Kiro Claude Sonnet 4' },
+      { id: 'kiro-claude-haiku-4-5', name: 'Kiro Claude Haiku 4.5' },
+      { id: 'kiro-claude-opus-4-5-agentic', name: 'Kiro Claude Opus 4.5 (Agentic)' },
+      { id: 'kiro-claude-sonnet-4-5-agentic', name: 'Kiro Claude Sonnet 4.5 (Agentic)' },
+      { id: 'kiro-claude-sonnet-4-agentic', name: 'Kiro Claude Sonnet 4 (Agentic)' },
+      { id: 'kiro-claude-haiku-4-5-agentic', name: 'Kiro Claude Haiku 4.5 (Agentic)' },
+
+      // ===== GEMINI (5) =====
+      { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+      { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
+      { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview' },
+      { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
     ];
   }
 
   /**
    * Format model ID to human-readable name
-   * Updated for CLIProxyAPIPlus with Copilot and Kiro
+   * Updated to match model-registry.ts
    */
   private formatModelName(modelId: string): string {
     const knownNames: Record<string, string> = {
-      // Claude family
-      'claude-sonnet-4-20250514': 'Claude Sonnet 4',
-      'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
-      'claude-3-opus-20240229': 'Claude 3 Opus',
-      'claude-3-haiku-20240307': 'Claude 3 Haiku',
-      // OpenAI family
+      // ===== ANTIGRAVITY =====
+      'gemini-claude-sonnet-4-5-thinking': 'Claude Sonnet 4.5 (Thinking)',
+      'gemini-claude-opus-4-5-thinking': 'Claude Opus 4.5 (Thinking)',
+      'gemini-claude-sonnet-4-5': 'Claude Sonnet 4.5',
+      'tab_flash_lite_preview': 'Tab Flash Lite Preview',
+      'gpt-oss-120b-medium': 'GPT-OSS 120B (Medium)',
+      'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+      'gemini-3-pro-image-preview': 'Gemini 3 Pro Image',
+
+      // ===== CLAUDE =====
+      'claude-haiku-4-5-20251001': 'Claude 4.5 Haiku',
+      'claude-sonnet-4-5-20250929': 'Claude 4.5 Sonnet',
+      'claude-opus-4-5-20251101': 'Claude 4.5 Opus',
+      'claude-opus-4-1-20250805': 'Claude 4.1 Opus',
+      'claude-opus-4-20250514': 'Claude 4 Opus',
+      'claude-sonnet-4-20250514': 'Claude 4 Sonnet',
+      'claude-3-7-sonnet-20250219': 'Claude 3.7 Sonnet',
+      'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku',
+
+      // ===== OPENAI =====
+      'gpt-5': 'GPT 5',
+      'gpt-5-codex': 'GPT 5 Codex',
+      'gpt-5-codex-mini': 'GPT 5 Codex Mini',
+      'gpt-5.1': 'GPT 5.1',
+      'gpt-5.1-codex': 'GPT 5.1 Codex',
+      'gpt-5.1-codex-mini': 'GPT 5.1 Codex Mini',
+      'gpt-5.1-codex-max': 'GPT 5.1 Codex Max',
+      'gpt-5.2': 'GPT 5.2',
+      'gpt-5.2-codex': 'GPT 5.2 Codex',
+
+      // ===== GITHUB-COPILOT =====
+      'gpt-4.1': 'GPT-4.1',
       'gpt-4o': 'GPT-4o',
-      'gpt-4-turbo': 'GPT-4 Turbo',
-      'gpt-4o-mini': 'GPT-4o Mini',
-      'o1-preview': 'o1 Preview',
-      'o1-mini': 'o1 Mini',
-      'o1': 'o1',
-      // Gemini family
+      'gpt-5-mini': 'GPT-5 Mini',
+      'claude-haiku-4.5': 'Claude Haiku 4.5',
+      'claude-opus-4.1': 'Claude Opus 4.1',
+      'claude-opus-4.5': 'Claude Opus 4.5',
+      'claude-sonnet-4': 'Claude Sonnet 4',
+      'claude-sonnet-4.5': 'Claude Sonnet 4.5',
+      'grok-code-fast-1': 'Grok Code Fast 1',
+      'oswe-vscode-prime': 'Raptor mini (Preview)',
+
+      // ===== KIRO =====
+      'kiro-auto': 'Kiro Auto',
+      'kiro-claude-opus-4-5': 'Kiro Claude Opus 4.5',
+      'kiro-claude-sonnet-4-5': 'Kiro Claude Sonnet 4.5',
+      'kiro-claude-sonnet-4': 'Kiro Claude Sonnet 4',
+      'kiro-claude-haiku-4-5': 'Kiro Claude Haiku 4.5',
+      'kiro-claude-opus-4-5-agentic': 'Kiro Claude Opus 4.5 (Agentic)',
+      'kiro-claude-sonnet-4-5-agentic': 'Kiro Claude Sonnet 4.5 (Agentic)',
+      'kiro-claude-sonnet-4-agentic': 'Kiro Claude Sonnet 4 (Agentic)',
+      'kiro-claude-haiku-4-5-agentic': 'Kiro Claude Haiku 4.5 (Agentic)',
+
+      // ===== GEMINI =====
       'gemini-2.5-pro': 'Gemini 2.5 Pro',
-      'gemini-2.0-flash': 'Gemini 2.0 Flash',
-      'gemini-1.5-pro': 'Gemini 1.5 Pro',
-      'gemini-1.5-flash': 'Gemini 1.5 Flash',
-      // Qwen family
-      'qwen-coder': 'Qwen Coder',
-      'qwen-coder-plus': 'Qwen Coder Plus',
-      // GitHub Copilot (new in CLIProxyAPIPlus)
-      'copilot': 'GitHub Copilot',
-      'copilot-chat': 'GitHub Copilot Chat',
-      // Kiro/CodeWhisperer (new in CLIProxyAPIPlus)
-      'amazon-q-developer': 'Amazon Q Developer',
-      'amazon-q': 'Amazon Q',
-      'kiro': 'Kiro (CodeWhisperer)',
-      'codewhisperer': 'AWS CodeWhisperer',
+      'gemini-2.5-flash': 'Gemini 2.5 Flash',
+      'gemini-3-pro-preview': 'Gemini 3 Pro Preview',
+      'gemini-3-flash-preview': 'Gemini 3 Flash Preview',
     };
 
     if (knownNames[modelId]) {

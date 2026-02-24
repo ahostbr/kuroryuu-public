@@ -284,48 +284,84 @@ export function getDefaultDomainConfig(domainId: DomainId): DomainConfig {
  */
 export function getModelDisplayName(modelId: string): string {
   const modelNames: Record<string, string> = {
-    // Claude family
-    'claude-sonnet-4-20250514': 'Claude Sonnet 4',
-    'claude-opus-4-5-20251101': 'Claude Opus 4.5',
-    'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
+    // ===== ANTIGRAVITY =====
+    'gemini-claude-sonnet-4-5-thinking': 'Claude Sonnet 4.5 (Thinking)',
+    'gemini-claude-opus-4-5-thinking': 'Claude Opus 4.5 (Thinking)',
+    'gemini-claude-sonnet-4-5': 'Claude Sonnet 4.5',
+    'tab_flash_lite_preview': 'Tab Flash Lite Preview',
+    'gpt-oss-120b-medium': 'GPT-OSS 120B (Medium)',
+    'gemini-2.5-flash-lite': 'Gemini 2.5 Flash Lite',
+    'gemini-3-pro-image-preview': 'Gemini 3 Pro Image',
+    'gemini-3-pro-preview': 'Gemini 3 Pro (High)',
+
+    // ===== CLAUDE =====
+    'claude-haiku-4-5-20251001': 'Claude 4.5 Haiku',
+    'claude-sonnet-4-5-20250929': 'Claude 4.5 Sonnet',
+    'claude-opus-4-5-20251101': 'Claude 4.5 Opus',
+    'claude-opus-4-1-20250805': 'Claude 4.1 Opus',
+    'claude-opus-4-20250514': 'Claude 4 Opus',
+    'claude-sonnet-4-20250514': 'Claude 4 Sonnet',
+    'claude-3-7-sonnet-20250219': 'Claude 3.7 Sonnet',
     'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku',
+    'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet',
     'claude-3-opus-20240229': 'Claude 3 Opus',
     'claude-3-haiku-20240307': 'Claude 3 Haiku',
-    // OpenAI GPT family
+
+    // ===== OPENAI =====
+    'gpt-5': 'GPT 5',
+    'gpt-5-codex': 'GPT 5 Codex',
+    'gpt-5-codex-mini': 'GPT 5 Codex Mini',
+    'gpt-5.1': 'GPT 5.1',
+    'gpt-5.1-codex': 'GPT 5.1 Codex',
+    'gpt-5.1-codex-mini': 'GPT 5.1 Codex Mini',
+    'gpt-5.1-codex-max': 'GPT 5.1 Codex Max',
+    'gpt-5.2': 'GPT 5.2',
+    'gpt-5.2-codex': 'GPT 5.2 Codex',
+
+    // ===== GITHUB-COPILOT =====
+    'gpt-4.1': 'GPT-4.1',
     'gpt-4o': 'GPT-4o',
     'gpt-4-turbo': 'GPT-4 Turbo',
     'gpt-4o-mini': 'GPT-4o Mini',
+    'gpt-5-mini': 'GPT-5 Mini',
+    'claude-haiku-4.5': 'Claude Haiku 4.5',
+    'claude-opus-4.1': 'Claude Opus 4.1',
+    'claude-opus-4.5': 'Claude Opus 4.5',
+    'claude-sonnet-4': 'Claude Sonnet 4',
+    'claude-sonnet-4.5': 'Claude Sonnet 4.5',
+    'grok-code-fast-1': 'Grok Code Fast 1',
+    'oswe-vscode-prime': 'Raptor mini (Preview)',
     'o1-preview': 'o1 Preview',
     'o1-mini': 'o1 Mini',
     'o1': 'o1',
     'o3-mini': 'o3 Mini',
-    // GPT-5 / Codex family
-    'gpt-5-codex': 'GPT-5 Codex',
-    'gpt-5-medium': 'GPT-5 Medium',
-    // Gemini family
+
+    // ===== KIRO =====
+    'kiro-auto': 'Kiro Auto',
+    'kiro-claude-opus-4-5': 'Kiro Claude Opus 4.5',
+    'kiro-claude-sonnet-4-5': 'Kiro Claude Sonnet 4.5',
+    'kiro-claude-sonnet-4': 'Kiro Claude Sonnet 4',
+    'kiro-claude-haiku-4-5': 'Kiro Claude Haiku 4.5',
+    'kiro-claude-opus-4-5-agentic': 'Kiro Claude Opus 4.5 (Agentic)',
+    'kiro-claude-sonnet-4-5-agentic': 'Kiro Claude Sonnet 4.5 (Agentic)',
+    'kiro-claude-sonnet-4-agentic': 'Kiro Claude Sonnet 4 (Agentic)',
+    'kiro-claude-haiku-4-5-agentic': 'Kiro Claude Haiku 4.5 (Agentic)',
+
+    // ===== GEMINI =====
     'gemini-2.5-pro': 'Gemini 2.5 Pro',
     'gemini-2.5-flash': 'Gemini 2.5 Flash',
-    'gemini-2.0-flash': 'Gemini 2.0 Flash',
-    'gemini-1.5-pro': 'Gemini 1.5 Pro',
-    'gemini-1.5-flash': 'Gemini 1.5 Flash',
-    // Gemini 3 family (preview)
-    'gemini-3-pro-preview': 'Gemini 3 Pro',
-    'gemini-3-flash-preview': 'Gemini 3 Flash',
-    'gemini-3-pro-image-preview': 'Gemini 3 Pro Image',
-    // Qwen family
+    'gemini-3-pro-preview': 'Gemini 3 Pro Preview',
+    'gemini-3-flash-preview': 'Gemini 3 Flash Preview',
+
+    // ===== QWEN =====
     'qwen-coder': 'Qwen Coder',
     'qwen-coder-plus': 'Qwen Coder Plus',
-    // DeepSeek family
+
+    // ===== DEEPSEEK =====
     'deepseek-coder': 'DeepSeek Coder',
     'deepseek-v3': 'DeepSeek V3',
-    // iFlow / Antigravity
-    'iflow': 'iFlow',
-    'antigravity': 'Antigravity',
-    // GitHub Copilot (CLIProxyAPIPlus)
-    'copilot': 'GitHub Copilot',
-    // Kiro / AWS (CLIProxyAPIPlus)
-    'kiro': 'Kiro (CodeWhisperer)',
-    // Local models
+
+    // ===== LOCAL =====
     'mistralai/devstral-small-2-2512': 'Devstral Small',
   };
 

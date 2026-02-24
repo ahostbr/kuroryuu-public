@@ -317,21 +317,29 @@ export const AGENT_PHASE_CONFIG: Record<AgentPhase, { label: string; description
 };
 
 export const AVAILABLE_MODELS = [
-  // Claude family (4)
-  { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-  { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
-  { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
-  // OpenAI family (5)
-  { id: 'gpt-4o', name: 'GPT-4o' },
-  { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-  { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-  { id: 'o1-preview', name: 'o1 Preview' },
-  { id: 'o1-mini', name: 'o1 Mini' },
-  // Gemini family (3)
+  // Claude family (8)
+  { id: 'claude-haiku-4-5-20251001', name: 'Claude 4.5 Haiku' },
+  { id: 'claude-sonnet-4-5-20250929', name: 'Claude 4.5 Sonnet' },
+  { id: 'claude-opus-4-5-20251101', name: 'Claude 4.5 Opus' },
+  { id: 'claude-opus-4-1-20250805', name: 'Claude 4.1 Opus' },
+  { id: 'claude-opus-4-20250514', name: 'Claude 4 Opus' },
+  { id: 'claude-sonnet-4-20250514', name: 'Claude 4 Sonnet' },
+  { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet' },
+  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku' },
+  // OpenAI family (9)
+  { id: 'gpt-5', name: 'GPT 5' },
+  { id: 'gpt-5-codex', name: 'GPT 5 Codex' },
+  { id: 'gpt-5-codex-mini', name: 'GPT 5 Codex Mini' },
+  { id: 'gpt-5.1', name: 'GPT 5.1' },
+  { id: 'gpt-5.1-codex', name: 'GPT 5.1 Codex' },
+  { id: 'gpt-5.1-codex-mini', name: 'GPT 5.1 Codex Mini' },
+  { id: 'gpt-5.1-codex-max', name: 'GPT 5.1 Codex Max' },
+  { id: 'gpt-5.2', name: 'GPT 5.2' },
+  { id: 'gpt-5.2-codex', name: 'GPT 5.2 Codex' },
+  // Gemini family (5)
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-  { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-  // Qwen family (1)
-  { id: 'qwen-coder', name: 'Qwen Coder' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+  { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro Preview' },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview' },
 ];

@@ -2572,6 +2572,8 @@ const api = {
       ipcRenderer.invoke('marketing:resetSetup'),
     studioServer: (action: 'start' | 'stop' | 'status', template?: string): Promise<{ ok: boolean; running?: boolean; port?: number; template?: string; error?: string }> =>
       ipcRenderer.invoke('marketing:studioServer', action, template),
+    pullUpdates: (): Promise<{ ok: boolean; results?: Array<{ id: string; name: string; ok: boolean; error?: string; updated?: boolean }>; error?: string }> =>
+      ipcRenderer.invoke('marketing:pullUpdates'),
   },
   /**
    * LLM Apps API

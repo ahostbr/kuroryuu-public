@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Search,
   Globe,
@@ -13,6 +14,8 @@ import {
   TrendingUp,
   Lightbulb,
   BookOpen,
+  Download,
+  Loader2,
 } from 'lucide-react';
 import { useMarketingStore } from '../../stores/marketing-store';
 import { TerminalWorkspace } from '../shared/terminal-workspace';
@@ -61,6 +64,35 @@ export function MarketingWorkspace() {
   const setSetupComplete = useMarketingStore((s) => s.setSetupComplete);
   useMarketingEvents();
 
+  const [updating, setUpdating] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState<string | null>(null);
+
+  const handleCheckUpdates = async () => {
+    setUpdating(true);
+    setUpdateMsg(null);
+    try {
+      const result = await window.electronAPI.marketing.pullUpdates();
+      if (result.ok && result.results) {
+        const updatedCount = result.results.filter((r) => r.updated).length;
+        const failedCount = result.results.filter((r) => !r.ok).length;
+        if (failedCount > 0) {
+          setUpdateMsg(`${failedCount} tool(s) failed to update`);
+        } else if (updatedCount > 0) {
+          setUpdateMsg(`${updatedCount} tool(s) updated`);
+        } else {
+          setUpdateMsg('Already up to date');
+        }
+      } else {
+        setUpdateMsg('Update failed');
+      }
+    } catch {
+      setUpdateMsg('Update failed — check network');
+    } finally {
+      setUpdating(false);
+      setTimeout(() => setUpdateMsg(null), 5000);
+    }
+  };
+
   return (
     <TerminalWorkspace
       title="Marketing"
@@ -74,6 +106,19 @@ export function MarketingWorkspace() {
       defaultTool="research"
       defaultLayout="window"
       onSettings={() => setSetupComplete(false)}
+      headerExtra={
+        <div className="flex items-center gap-2">
+          {updateMsg && <span className="text-xs text-zinc-400">{updateMsg}</span>}
+          <button
+            onClick={handleCheckUpdates}
+            disabled={updating}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs rounded border border-zinc-700 hover:border-zinc-500 text-zinc-300 disabled:opacity-50"
+          >
+            {updating ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+            Check for Updates
+          </button>
+        </div>
+      }
     />
   );
 }

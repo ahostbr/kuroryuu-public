@@ -2,13 +2,13 @@
 
 CLIProxyAPIPlus (https://github.com/router-for-me/CLIProxyAPIPlus) provides an OpenAI-compatible
 API wrapper around multiple CLI tools:
-- Claude Code CLI (Anthropic)
-- ChatGPT Codex (OpenAI) - GPT-4o, o1-preview, o1-mini
-- Gemini CLI (Google) - gemini-2.5-pro, gemini-1.5-pro
+- Claude Code CLI (Anthropic) - claude-sonnet-4-20250514, claude-opus-4-5-20251101, etc.
+- ChatGPT Codex (OpenAI) - gpt-5, gpt-5-codex, gpt-5.1-codex-max, etc.
+- Gemini CLI (Google) - gemini-2.5-pro, gemini-3-pro-preview
 - Qwen Code (Alibaba) - qwen-coder models
-- GitHub Copilot - copilot models (new in Plus)
-- Kiro/AWS CodeWhisperer - amazon-q models (new in Plus)
-- iFlow, Antigravity, and others
+- GitHub Copilot - gpt-4.1, gpt-4o, grok-code-fast-1, oswe-vscode-prime
+- Kiro/AWS CodeWhisperer - kiro-auto, kiro-claude-opus-4-5, kiro-claude-sonnet-4-5-agentic
+- Antigravity - gemini-claude-sonnet-4-5-thinking, tab_flash_lite_preview, gpt-oss-120b-medium
 
 CLIProxyAPIPlus adds:
 - GitHub Copilot support (--github-copilot-login)
@@ -89,21 +89,44 @@ class CLIProxyAPIBackend(LMStudioBackend):
     def _get_model_family(self, model: Optional[str] = None) -> str:
         """Detect model family from model ID.
 
-        Returns: 'claude', 'openai', 'gemini', 'qwen', 'copilot', 'kiro', or 'other'
+        Returns: 'claude', 'openai', 'gemini', 'qwen', 'copilot', 'kiro', 'antigravity', 'deepseek', or 'other'
         """
         model_id = (model or self.default_model or "").lower()
+
+        # Kiro models (AWS CodeWhisperer)
+        if model_id.startswith("kiro-") or "codewhisperer" in model_id or "amazon-q" in model_id:
+            return "kiro"
+
+        # Antigravity models (gemini-claude hybrids, tab_flash, gpt-oss)
+        if model_id.startswith("gemini-claude-") or "antigravity" in model_id:
+            return "antigravity"
+        if model_id in ("tab_flash_lite_preview", "gpt-oss-120b-medium"):
+            return "antigravity"
+
+        # Direct Claude models
         if "claude" in model_id:
             return "claude"
-        if "gpt" in model_id or model_id.startswith("o1-") or model_id.startswith("o1"):
-            return "openai"
-        if "gemini" in model_id:
+
+        # Direct Gemini models (after gemini-claude check)
+        if model_id.startswith("gemini-"):
             return "gemini"
+
+        # OpenAI models (GPT, o1, o3 series)
+        if "gpt" in model_id or model_id.startswith("o1") or model_id.startswith("o3"):
+            return "openai"
+
+        # GitHub Copilot special models
+        if "copilot" in model_id or model_id in ("grok-code-fast-1", "oswe-vscode-prime"):
+            return "copilot"
+
+        # Qwen models
         if "qwen" in model_id:
             return "qwen"
-        if "copilot" in model_id:
-            return "copilot"
-        if "kiro" in model_id or "codewhisperer" in model_id or "amazon-q" in model_id:
-            return "kiro"
+
+        # DeepSeek models
+        if "deepseek" in model_id:
+            return "deepseek"
+
         return "other"
 
     def model_supports_tools(self, model: Optional[str] = None) -> bool:
@@ -111,12 +134,15 @@ class CLIProxyAPIBackend(LMStudioBackend):
 
         Tool support by family:
         - Claude: Yes (all models)
-        - OpenAI GPT-4: Yes
+        - OpenAI GPT-4/5: Yes
         - OpenAI o1: No (reasoning models don't support tools)
         - Gemini: Yes
         - Copilot: Yes (GitHub Copilot supports function calling)
-        - Kiro: No (CodeWhisperer focused on code completion)
+        - Kiro base: No (CodeWhisperer focused on code completion)
+        - Kiro agentic: Yes (agentic mode enables tool use)
+        - Antigravity: No (proxied models)
         - Qwen: No (typically)
+        - DeepSeek: No
         - Other: No (safe default)
         """
         model_id = (model or self.default_model or "").lower()
@@ -126,17 +152,18 @@ class CLIProxyAPIBackend(LMStudioBackend):
             return True
         if family == "openai":
             # o1 models don't support tools
-            if model_id.startswith("o1-") or model_id.startswith("o1"):
+            if model_id.startswith("o1-") or model_id == "o1":
                 return False
-            return True  # GPT-4, etc. support tools
+            return True  # GPT-4, GPT-5, etc. support tools
         if family == "gemini":
             return True
         if family == "copilot":
             return True  # GitHub Copilot supports function calling
         if family == "kiro":
-            return False  # CodeWhisperer focused on code completion
-        if family == "qwen":
-            return False  # Qwen Code typically doesn't support tools
+            # Kiro agentic models support tools, base models do not
+            return "agentic" in model_id
+        if family in ("antigravity", "qwen", "deepseek"):
+            return False
         return False  # Default to no tools for unknown models
 
     def get_prompt_builder(self, model: Optional[str] = None) -> "PromptBuilder":
@@ -176,6 +203,8 @@ class CLIProxyAPIBackend(LMStudioBackend):
                 "qwen": "qwen-code",
                 "copilot": "github-copilot",
                 "kiro": "kiro-codewhisperer",
+                "antigravity": "antigravity",
+                "deepseek": "deepseek",
                 "other": "unknown",
             }
             result["wrapped_cli"] = cli_map.get(family, "unknown")
