@@ -16,7 +16,7 @@ const CONFIG_FILE_PATH = 'ai/checkpoints/agent-config.json';
 export interface AgentConfig {
   id: string;
   name: string;
-  role: 'leader' | 'worker' | 'thinker' | 'specialist' | 'workflow' | 'quizmaster';
+  role: 'leader' | 'worker' | 'thinker' | 'specialist' | 'workflow' | 'pentester' | 'quizmaster';
   modelName: string;
   backend: 'lmstudio' | 'claude' | 'claude-cli' | 'openai' | 'custom' | 'terminal';
   capabilities: string[];

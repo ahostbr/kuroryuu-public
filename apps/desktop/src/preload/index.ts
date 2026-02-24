@@ -1542,6 +1542,33 @@ const api = {
     }> => ipcRenderer.invoke('workflow-specialist:get-prompt-path', specialistId),
   },
   /**
+   * Pen Tester API
+   * For discovering and launching pentest prompt packs
+   */
+  pentester: {
+    /** List available pen testers from prompt pack index */
+    listVariants: (): Promise<{
+      ok: boolean;
+      pentesters?: Array<{
+        id: string;
+        name: string;
+        file: string;
+        category: string;
+        tool_profile: string;
+        icon: string;
+        color: string;
+      }>;
+      error?: string;
+    }> => ipcRenderer.invoke('pentester:list-variants'),
+
+    /** Get relative path for pen tester prompt file */
+    getPromptPath: (pentesterId: string): Promise<{
+      ok: boolean;
+      promptPath?: string;
+      error?: string;
+    }> => ipcRenderer.invoke('pentester:get-prompt-path', pentesterId),
+  },
+  /**
    * Speech Recognition API
    * Uses Python SpeechRecognition library via main process
    */

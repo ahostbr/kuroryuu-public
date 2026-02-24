@@ -6,7 +6,9 @@ import {
   FileText,
   TestTube,
   Loader2,
-  Sparkles
+  Sparkles,
+  Microscope,
+  Lightbulb
 } from 'lucide-react';
 
 interface SpecialistInfo {
@@ -34,6 +36,8 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   'gauge': Gauge,
   'file-text': FileText,
   'test-tube': TestTube,
+  'microscope': Microscope,
+  'lightbulb': Lightbulb,
 };
 
 // Tool profile badge colors and labels

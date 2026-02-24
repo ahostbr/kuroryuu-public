@@ -49,6 +49,12 @@ import {
   Settings,
   Trophy,
   MessageCircleQuestion,
+  Microscope,
+  Radar,
+  Bug,
+  Zap,
+  KeyRound,
+  Link as LinkIcon,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useAgentConfigStore, type AgentConfig } from '../stores/agent-config-store';
@@ -56,7 +62,7 @@ import { useWorktreesStore } from '../stores/worktrees-store';
 import type { Worktree } from '../types/worktree';
 
 type CliProvider = 'claude' | 'kuroryuu' | 'shell';
-type AgentRole = 'worker' | 'thinker' | 'specialist' | 'workflow' | 'quizmaster';
+type AgentRole = 'worker' | 'thinker' | 'specialist' | 'workflow' | 'pentester' | 'quizmaster';
 
 interface CliDetectionResult {
   available: boolean;
@@ -170,6 +176,15 @@ const AGENT_ROLES: RoleOption[] = [
     hasSubtypes: true,
   },
   {
+    id: 'pentester',
+    name: 'Pen Tester',
+    description: 'White-box security testing',
+    icon: Shield,
+    color: '#DC2626',
+    hasSubtypes: true,
+    requiresClaude: true,
+  },
+  {
     id: 'quizmaster',
     name: 'Quizmaster',
     description: 'Planning & requirements gathering',
@@ -198,6 +213,24 @@ const SPECIALIST_TYPES: SubtypeOption[] = [
   { id: 'performance_optimizer', name: 'Performance', description: 'Optimization expert', icon: Gauge, color: '#F59E0B', toolProfile: 'read_only' },
   { id: 'doc_writer', name: 'Doc Writer', description: 'Documentation', icon: FileText, color: '#3B82F6', toolProfile: 'write_docs' },
   { id: 'test_generator', name: 'Test Generator', description: 'Test creation', icon: TestTube, color: '#10B981', toolProfile: 'write_tests' },
+  { id: 'meta_challenger', name: 'Meta Challenger', description: 'Reasoning audit', icon: Microscope, color: '#9333EA', toolProfile: 'read_only' },
+  { id: 'brainstormer', name: 'Brainstormer', description: 'Evidence-driven ideation', icon: Lightbulb, color: '#F59E0B', toolProfile: 'read_only' },
+];
+
+const PENTESTER_TYPES: SubtypeOption[] = [
+  { id: 'pre_recon', name: 'Pre-Recon', description: 'Pre-engagement recon', icon: Search, color: '#60A5FA', category: 'recon' },
+  { id: 'recon', name: 'Recon', description: 'Reconnaissance', icon: Radar, color: '#22D3EE', category: 'recon' },
+  { id: 'analyze_injection', name: 'Injection Analyzer', description: 'Injection analysis', icon: Bug, color: '#F97316', category: 'analysis' },
+  { id: 'analyze_xss', name: 'XSS Analyzer', description: 'XSS analysis', icon: Bug, color: '#F43F5E', category: 'analysis' },
+  { id: 'analyze_auth', name: 'Auth Analyzer', description: 'Auth analysis', icon: ShieldAlert, color: '#DC2626', category: 'analysis' },
+  { id: 'analyze_authz', name: 'AuthZ Analyzer', description: 'AuthZ analysis', icon: ShieldAlert, color: '#B91C1C', category: 'analysis' },
+  { id: 'analyze_ssrf', name: 'SSRF Analyzer', description: 'SSRF analysis', icon: Network, color: '#A855F7', category: 'analysis' },
+  { id: 'exploit_injection', name: 'Injection Exploiter', description: 'Injection exploit', icon: Zap, color: '#EA580C', category: 'exploit' },
+  { id: 'exploit_xss', name: 'XSS Exploiter', description: 'XSS exploit', icon: Zap, color: '#E11D48', category: 'exploit' },
+  { id: 'exploit_auth', name: 'Auth Exploiter', description: 'Auth exploit', icon: KeyRound, color: '#DC2626', category: 'exploit' },
+  { id: 'exploit_authz', name: 'AuthZ Exploiter', description: 'AuthZ exploit', icon: KeyRound, color: '#991B1B', category: 'exploit' },
+  { id: 'exploit_ssrf', name: 'SSRF Exploiter', description: 'SSRF exploit', icon: LinkIcon, color: '#9333EA', category: 'exploit' },
+  { id: 'report', name: 'Pentest Reporter', description: 'Report generation', icon: FileText, color: '#14B8A6', category: 'report' },
 ];
 
 const WORKFLOW_TYPES: SubtypeOption[] = [
@@ -226,9 +259,12 @@ function getBootstrapFiles(role: AgentRole, subtype: string | null, quizmasterVa
       }
       return [];
     case 'specialist':
-      if (subtype) {
-        return [`ai/prompt_packs/specialists/${subtype}.md`];
-      }
+      if (subtype === 'meta_challenger') return ['ai/prompt_packs/meta_challenger/meta_challenger.md'];
+      if (subtype === 'brainstormer') return ['ai/prompt_packs/brainstormer/brainstormer_promp_small.md'];
+      if (subtype) return [`ai/prompt_packs/specialists/${subtype}.md`];
+      return [];
+    case 'pentester':
+      if (subtype) return [`ai/prompt_packs/pen_testers/${subtype}.md`];
       return [];
     case 'workflow':
       if (subtype) {
@@ -257,12 +293,13 @@ interface Props {
   projectRoot?: string;
   onLaunchThinker?: (basePath: string, personaPath: string, personaName: string) => void;
   onLaunchWorkflowSpecialist?: (promptPath: string, specialistName: string, profile: string) => void;
+  onLaunchPentester?: (promptPath: string, pentesterName: string, profile: string) => void;
   onLaunchQuizmaster?: (variant?: string) => void;
 }
 
 type WorktreeMode = 'none' | 'shared' | 'per-worker';
 
-export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, projectRoot = '', onLaunchThinker, onLaunchWorkflowSpecialist, onLaunchQuizmaster }: Props) {
+export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, projectRoot = '', onLaunchThinker, onLaunchWorkflowSpecialist, onLaunchPentester, onLaunchQuizmaster }: Props) {
   // Store actions
   const { addWorkerAgent } = useAgentConfigStore();
   const { worktrees, refreshWorktrees, isLoading: isLoadingWorktrees } = useWorktreesStore();
@@ -310,6 +347,7 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
       case 'thinker': return THINKER_PERSONAS;
       case 'specialist': return SPECIALIST_TYPES;
       case 'workflow': return WORKFLOW_TYPES;
+      case 'pentester': return PENTESTER_TYPES;
       default: return [];
     }
   }, [selectedRole]);
@@ -446,6 +484,24 @@ export function WorkerSetupWizard({ open, onComplete, onCancel, workerCount, pro
         }
       } catch (err) {
         console.error('Failed to launch workflow specialist:', err);
+      } finally {
+        setIsLaunching(false);
+      }
+      return;
+    }
+
+    // Handle pentester launch via existing API
+    if (selectedRole === 'pentester' && selectedSubtype && onLaunchPentester) {
+      setIsLaunching(true);
+      try {
+        const result = await window.electronAPI.pentester.getPromptPath(selectedSubtype);
+        if (result.ok && result.promptPath) {
+          const pentester = PENTESTER_TYPES.find(p => p.id === selectedSubtype);
+          onLaunchPentester(result.promptPath, pentester?.name || selectedSubtype, 'pentest_analyze');
+          onCancel();
+        }
+      } catch (err) {
+        console.error('Failed to launch pentester:', err);
       } finally {
         setIsLaunching(false);
       }

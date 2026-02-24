@@ -1125,6 +1125,45 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
     console.log('[WorkflowFromWizard] Created terminal for workflow specialist:', specialistId);
   }, [addWorkerAgent, startHeartbeat]);
 
+  // Handle Pen Tester launch from unified wizard - creates new terminal
+  // Follows handleWorkflowSpecialistFromWizard pattern exactly
+  const handlePentesterFromWizard = useCallback((promptPath: string, pentesterName: string, profile: string) => {
+    const pentesterId = `pentester_${pentesterName.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+    const pentesterConfig: AgentConfig = {
+      id: pentesterId,
+      name: `Pentester: ${pentesterName}`,
+      role: 'worker',
+      modelName: 'claude-code',
+      backend: 'claude-cli',
+      capabilities: ['pentester', profile],
+      enabled: true,
+      cliProvider: 'claude',
+      specialistPromptPath: promptPath,
+      claudeModeEnabled: true,
+    };
+
+    addWorkerAgent(pentesterConfig);
+
+    const newTerminalId = `term-${pentesterId}`;
+    setTerminals(prev => [
+      ...prev,
+      {
+        id: newTerminalId,
+        title: `Pentester: ${pentesterName}`,
+        linkedAgentId: pentesterId,
+        viewMode: 'terminal',
+        claudeMode: true,
+        agentConfig: pentesterConfig,
+      }
+    ]);
+    setActiveId(newTerminalId);
+    setShowWorkerWizard(false);
+
+    startHeartbeat(pentesterId, pentesterConfig);
+    console.log('[PentesterFromWizard] Created terminal for pen tester:', pentesterId);
+  }, [addWorkerAgent, startHeartbeat]);
+
+
   // Handle Thinker Wizard launch - launch thinker into existing terminal
   // FIXED: Follow worker pattern - let Terminal.tsx create PTY to avoid race condition
   const handleThinkerLaunch = useCallback(async (basePath: string, personaPath: string, personaName: string) => {
@@ -2327,6 +2366,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
         projectRoot={projectRoot}
         onLaunchThinker={handleThinkerFromWizard}
         onLaunchWorkflowSpecialist={handleWorkflowSpecialistFromWizard}
+        onLaunchPentester={handlePentesterFromWizard}
         onLaunchQuizmaster={handleQuizmasterLaunch}
       />
       {/* Thinker Wizard Modal */}
@@ -2364,6 +2404,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
           }, 100);
         }}
         onLaunchWorkflowSpecialist={handleWorkflowSpecialistLaunch}
+        onLaunchPentester={handlePentesterFromWizard}
         onLaunchQuizmaster={handleQuizmasterLaunch}
       />
 

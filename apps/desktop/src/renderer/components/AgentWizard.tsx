@@ -6,13 +6,15 @@ import {
   Workflow,
   MessageCircleQuestion,
   Trophy,
-  ChevronRight
+  ChevronRight,
+  Shield,
 } from 'lucide-react';
 import { ThinkerWizard } from './ThinkerWizard';
 import { SpecialistWizard } from './SpecialistWizard';
 import { WorkflowSpecialistWizard } from './WorkflowSpecialistWizard';
+import { PenTesterWizard } from './PenTesterWizard';
 
-type TabType = 'thinkers' | 'specialists' | 'workflow';
+type TabType = 'thinkers' | 'specialists' | 'workflow' | 'pentesters';
 
 interface AgentWizardProps {
   isOpen: boolean;
@@ -20,6 +22,7 @@ interface AgentWizardProps {
   onLaunchThinker: (basePath: string, personaPath: string, personaName: string) => void;
   onLaunchSpecialist: (promptPath: string, specialistName: string, profile: string) => void;
   onLaunchWorkflowSpecialist: (promptPath: string, specialistName: string, profile: string) => void;
+  onLaunchPentester: (promptPath: string, pentesterName: string, profile: string) => void;
   onLaunchQuizmaster?: (variant?: string) => void;
   defaultTab?: TabType;
 }
@@ -28,6 +31,7 @@ const TABS: { id: TabType; label: string; icon: React.ComponentType<{ className?
   { id: 'thinkers', label: 'Thinkers', icon: Brain },
   { id: 'specialists', label: 'Task Specialists', icon: Sparkles },
   { id: 'workflow', label: 'Workflow PRD', icon: Workflow },
+  { id: 'pentesters', label: 'Pen Testers', icon: Shield },
 ];
 
 type QuizmasterVariant = 'small' | 'full' | 'v4' | 'v5';
@@ -45,6 +49,7 @@ export function AgentWizard({
   onLaunchThinker,
   onLaunchSpecialist,
   onLaunchWorkflowSpecialist,
+  onLaunchPentester,
   onLaunchQuizmaster,
   defaultTab = 'thinkers'
 }: AgentWizardProps) {
@@ -230,6 +235,15 @@ export function AgentWizard({
               isOpen={true}
               onClose={onClose}
               onLaunch={onLaunchWorkflowSpecialist}
+              embedded={true}
+            />
+          )}
+
+          {activeTab === 'pentesters' && (
+            <PenTesterWizard
+              isOpen={true}
+              onClose={onClose}
+              onLaunch={onLaunchPentester}
               embedded={true}
             />
           )}

@@ -106,6 +106,30 @@
       "icon": "test-tube",
       "color": "#10B981",
       "tags": ["testing", "unit-tests", "coverage", "TDD"]
+    },
+    {
+      "id": "meta_challenger",
+      "name": "Meta Challenger",
+      "file": "meta_challenger.md",
+      "prompt_path": "ai/prompt_packs/meta_challenger/meta_challenger.md",
+      "category": "review",
+      "description": "Challenges reasoning quality through 6 meta-cognitive lenses. Read-only audit of plans and decisions.",
+      "tool_profile": "read_only",
+      "icon": "microscope",
+      "color": "#9333EA",
+      "tags": ["reasoning", "audit", "meta-cognitive", "plans"]
+    },
+    {
+      "id": "brainstormer",
+      "name": "Ultimate Brainstormer",
+      "file": "brainstormer_promp_small.md",
+      "prompt_path": "ai/prompt_packs/brainstormer/brainstormer_promp_small.md",
+      "category": "generation",
+      "description": "Evidence-driven brainstorming with repo intelligence. Explores, synthesizes, generates high-leverage ideas.",
+      "tool_profile": "read_only",
+      "icon": "lightbulb",
+      "color": "#F59E0B",
+      "tags": ["brainstorming", "ideation", "product", "architecture"]
     }
   ],
 

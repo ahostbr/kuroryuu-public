@@ -3327,10 +3327,15 @@ function setupSpecialistIpc(): void {
   });
 
   // Get RELATIVE path for specialist prompt file (matching worker pattern)
+  // Supports prompt_path override for specialists that live outside the specialists/ directory
   ipcMain.handle('specialist:get-prompt-path', async (_, specialistId: string) => {
     try {
-      // Return relative path - PTY spawns with cwd=projectRoot so relative paths work
-      const promptPath = `ai/prompt_packs/specialists/${specialistId}.md`;
+      const projectRoot = getProjectRoot();
+      const indexPath = join(projectRoot, 'ai/prompt_packs/specialists/index.json');
+      const content = await readFile(indexPath, 'utf-8');
+      const index = JSON.parse(content);
+      const pack = (index.packs || []).find((p: { id: string; prompt_path?: string }) => p.id === specialistId);
+      const promptPath = pack?.prompt_path || `ai/prompt_packs/specialists/${specialistId}.md`;
       return { ok: true, promptPath };
     } catch (error) {
       console.error('[Specialist] Failed to get prompt path:', error);
@@ -3392,6 +3397,41 @@ function setupWorkflowSpecialistIpc(): void {
       return { ok: true, promptPath };
     } catch (error) {
       console.error('[WorkflowSpecialist] Failed to get prompt path:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+}
+
+/**
+ * Setup IPC handlers for Pen Tester prompt packs
+ */
+function setupPentesterIpc(): void {
+  const getProjectRoot = (): string => {
+    return process.env.KURORYUU_ROOT || join(__dirname, '../../../..');
+  };
+
+  // List available pen testers from index.json
+  ipcMain.handle('pentester:list-variants', async () => {
+    try {
+      const projectRoot = getProjectRoot();
+      const indexPath = join(projectRoot, 'ai/prompt_packs/pen_testers/index.json');
+      const content = await readFile(indexPath, 'utf-8');
+      const index = JSON.parse(content);
+      return { ok: true, pentesters: index.packs || [] };
+    } catch (error) {
+      console.error('[Pentester] Failed to list variants:', error);
+      return { ok: false, error: String(error) };
+    }
+  });
+
+  // Get RELATIVE path for pen tester prompt file (matching worker pattern)
+  ipcMain.handle('pentester:get-prompt-path', async (_, pentesterId: string) => {
+    try {
+      // Return relative path - PTY spawns with cwd=projectRoot so relative paths work
+      const promptPath = `ai/prompt_packs/pen_testers/${pentesterId}.md`;
+      return { ok: true, promptPath };
+    } catch (error) {
+      console.error('[Pentester] Failed to get prompt path:', error);
       return { ok: false, error: String(error) };
     }
   });
@@ -4182,6 +4222,7 @@ app.whenReady().then(async () => {
   setupSpecialistIpc();
   setupQuizmasterIpc();
   setupWorkflowSpecialistIpc();
+  setupPentesterIpc();
   setupSettingsIpc();
   setupServiceManagerIpc();
   // V4 OPT-IN features
