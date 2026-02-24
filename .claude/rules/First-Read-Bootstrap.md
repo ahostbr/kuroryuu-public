@@ -1,21 +1,13 @@
-# Bootstrap (Pointer-Only)
+# Kuroryuu Project
 
-> **Read `KURORYUU_BOOTSTRAP.md` at session start.**
-> Full canonical authority: `KURORYUU_LAWS.md`
+This is the Kuroryuu multi-agent orchestration platform. Monorepo with:
+- `apps/gateway/` — Python FastAPI (port 8200)
+- `apps/desktop/` — Electron desktop app
+- `apps/web/` — Next.js web UI (port 3000)
+- `ai/` — Harness files (tasks, checkpoints, sessions, prompts)
+- `Docs/` — Plans, worklogs, architecture docs
 
-## Workspace Root
-`<PROJECT_ROOT>` (wherever you cloned/installed Kuroryuu)
+Tasks source of truth: `ai/todo.md`
+Development history: `Docs/DEVLOG.md`
 
-## Quick Start - MUST READ NOW HARD RULE
-1. Read `KURORYUU_BOOTSTRAP.md` (project root, ~2k tokens)
-2. Read `KURORYUU_LAWS.md` for operational rules
-
-## On-Demand (load when needed)
-| Situation | Read |
-|-----------|------|
-| Harness/hooks work | `ai/hooks.json` |
-| Task tracking | `ai/todo.md` |
-| Development history | `Docs/DEVLOG.md` |
-| Gateway development | `apps/gateway/server.py` |
-| Frontend development | `apps/web/` |
-| Desktop development | `apps/desktop/` |
+For multi-agent orchestration patterns, use the `/k-start` command or read `KURORYUU_BOOTSTRAP.md`.
