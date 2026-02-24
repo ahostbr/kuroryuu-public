@@ -22,6 +22,7 @@ Tools exposed (routed pattern with action parameter):
 - k_backup: Restic backup management (help, status, init, backup, list, restore, diff, check, forget, prune, config)
 - k_msg: Inter-agent messaging (help, send, check, read, reply, complete, broadcast, list_agents)
 - k_tts: Text-to-speech via Edge TTS (fire-and-forget)
+- k_excalidraw: Excalidraw diagramming (architecture, flowchart, sequence, freeform)
 """
 
 from __future__ import annotations
@@ -58,6 +59,7 @@ from tools_askuserquestion import register_askuserquestion_tools  # Interactive 
 from tools_backup import register_backup_tools  # Restic backup management
 from tools_msg import register_msg_tools  # Inter-agent messaging (k_msg)
 from tools_tts import register_tts_tools  # Text-to-speech (k_tts)
+from tools_excalidraw import register_excalidraw_tools  # Excalidraw diagramming (k_excalidraw)
 from pty_registry import get_pty_registry
 from pty_persistence import get_pty_persistence
 from pty_manager import get_pty_manager
@@ -109,6 +111,7 @@ register_askuserquestion_tools(registry)  # Interactive user input (k_askuserque
 register_backup_tools(registry)  # Restic backup management (k_backup)
 register_msg_tools(registry)  # Inter-agent messaging (k_msg)
 register_tts_tools(registry)  # Text-to-speech (k_tts)
+register_excalidraw_tools(registry)  # Excalidraw diagramming (k_excalidraw)
 
 protocol = MCPProtocol(registry)
 

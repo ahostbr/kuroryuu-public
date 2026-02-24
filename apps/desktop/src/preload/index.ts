@@ -2603,6 +2603,28 @@ const api = {
       ipcRenderer.invoke('marketing:pullUpdates'),
   },
   /**
+   * Excalidraw API
+   * Setup verification for excalidraw diagramming workspace
+   */
+  excalidraw: {
+    checkNpmPackage: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('excalidraw:checkNpmPackage'),
+    checkMcpCore: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('excalidraw:checkMcpCore'),
+    checkMcpTool: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('excalidraw:checkMcpTool'),
+    checkOutputDir: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('excalidraw:checkOutputDir'),
+    testDiagram: (): Promise<{ ok: boolean; path?: string; error?: string }> =>
+      ipcRenderer.invoke('excalidraw:testDiagram'),
+    getSetupState: (): Promise<{ complete: boolean }> =>
+      ipcRenderer.invoke('excalidraw:getSetupState'),
+    saveSetup: (state: unknown): Promise<{ ok: boolean }> =>
+      ipcRenderer.invoke('excalidraw:saveSetup', state),
+    resetSetup: (): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('excalidraw:resetSetup'),
+  },
+  /**
    * LLM Apps API
    * Catalog browsing and setup for awesome-llm-apps collection
    */

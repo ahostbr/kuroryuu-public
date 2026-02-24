@@ -29,6 +29,7 @@ import {
   Users,
   Calendar,
   Megaphone,
+  PenTool,
   Info,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
@@ -80,7 +81,8 @@ export type View =
   | 'playground'
   | 'scheduler'
   | 'llm-apps'
-  | 'marketing';
+  | 'marketing'
+  | 'excalidraw';
 
 interface SidebarProps {
   activeView: View;
@@ -126,6 +128,7 @@ const navGroups: NavGroup[] = [
       { id: 'playground', label: 'Claude Playground', icon: Sparkles, shortcut: 'G' },
       { id: 'llm-apps', label: 'LLM Apps', icon: Layers, shortcut: 'X' },
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
+      { id: 'excalidraw', label: 'Excalidraw', icon: PenTool, shortcut: 'V' },
     ],
   },
   {

@@ -54,6 +54,7 @@ import { setupSchedulerIpc, cleanupSchedulerIpc } from './ipc/scheduler-handlers
 import { setupIdentityIpc, cleanupIdentityIpc } from './ipc/identity-handlers';
 import { registerBackupHandlers } from './ipc/backup-handlers';
 import { registerMarketingHandlers, killStudioServer } from './ipc/marketing-handlers';
+import { registerExcalidrawHandlers } from './ipc/excalidraw-handlers';
 import { registerLLMAppsHandlers } from './ipc/llm-apps-handlers';
 import { getTaskService } from './services/task-service';
 import { pluginSyncService } from './services/plugin-sync-service';
@@ -4284,6 +4285,7 @@ app.whenReady().then(async () => {
   setupOrchestrationIpc();
   registerBootstrapHandlers();
   registerMarketingHandlers();
+  registerExcalidrawHandlers();
   registerLLMAppsHandlers();
 
   // Auto-launch tray companion if enabled (uses project scope via resolveScope)

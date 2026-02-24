@@ -32,6 +32,7 @@ import { KuroryuuAgents } from './components/kuroryuu-agents';  // Kuroryuu Agen
 import { SchedulerPanel } from './components/scheduler';  // Job scheduler
 import { MarketingPanel } from './components/marketing';  // Marketing workflow
 import { LLMAppsPanel } from './components/llm-apps';  // LLM Apps catalog browser
+import { ExcalidrawPanel } from './components/excalidraw';  // Excalidraw diagramming
 // BackupManagerPage opened as dialog from IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
@@ -111,6 +112,7 @@ export function App() {
   const [activeView, setActiveView] = useState<View>('welcome');
   const [terminalMounted, setTerminalMounted] = useState(false);
   const [marketingMounted, setMarketingMounted] = useState(false);
+  const [excalidrawMounted, setExcalidrawMounted] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
 
 
@@ -382,7 +384,10 @@ export function App() {
     if (activeView === 'marketing' && !marketingMounted) {
       setMarketingMounted(true);
     }
-  }, [activeView, terminalMounted, marketingMounted]);
+    if (activeView === 'excalidraw' && !excalidrawMounted) {
+      setExcalidrawMounted(true);
+    }
+  }, [activeView, terminalMounted, marketingMounted, excalidrawMounted]);
 
   return (
     <ErrorBoundary>
@@ -466,6 +471,13 @@ export function App() {
 
                 {/* LLM Apps - Browse awesome-llm-apps catalog */}
                 {activeView === 'llm-apps' && <LLMAppsPanel />}
+
+                {/* Excalidraw - Agent diagramming workspace (keep mounted) */}
+                {excalidrawMounted && (
+                  <div className={`absolute inset-0 ${activeView === 'excalidraw' ? '' : 'hidden pointer-events-none'}`}>
+                    <ExcalidrawPanel />
+                  </div>
+                )}
 
               </ErrorBoundary>
             </main>
