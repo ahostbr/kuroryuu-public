@@ -38,23 +38,20 @@ export function registerExcalidrawHandlers(): void {
   // Check if k_excalidraw tool is registered in MCP Core
   ipcMain.handle('excalidraw:checkMcpTool', async () => {
     try {
-      const res = await fetch(`${MCP_CORE_URL}/v1/tools/call`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tool: 'k_excalidraw', args: { action: 'help' } }),
-        signal: AbortSignal.timeout(10000),
+      const res = await fetch(`${MCP_CORE_URL}/tools`, {
+        signal: AbortSignal.timeout(5000),
       });
       if (!res.ok) {
         return { ok: false, error: `MCP Core returned status ${res.status}` };
       }
       const data = await res.json();
-      // The tool returns help text on success
-      if (data.error) {
-        return { ok: false, error: data.error };
+      const found = data.tools?.some((t: any) => t.name === 'k_excalidraw');
+      if (!found) {
+        return { ok: false, error: 'k_excalidraw tool not registered in MCP Core' };
       }
       return { ok: true };
     } catch (err) {
-      return { ok: false, error: 'Failed to call k_excalidraw tool. Is MCP Core running?' };
+      return { ok: false, error: 'Failed to query MCP Core tools. Is MCP Core running?' };
     }
   });
 
@@ -77,27 +74,32 @@ export function registerExcalidrawHandlers(): void {
     }
   });
 
-  // Create a test diagram via k_excalidraw
+  // Create a test diagram via k_excalidraw (JSON-RPC 2.0 via /mcp)
   ipcMain.handle('excalidraw:testDiagram', async () => {
     try {
-      const res = await fetch(`${MCP_CORE_URL}/v1/tools/call`, {
+      const res = await fetch(`${MCP_CORE_URL}/mcp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tool: 'k_excalidraw',
-          args: {
-            action: 'create',
-            name: '_setup_test',
-            title: 'Setup Verification',
-            nodes: JSON.stringify([
-              { id: 'a', label: 'Start', x: 100, y: 100 },
-              { id: 'b', label: 'Process', x: 350, y: 100 },
-              { id: 'c', label: 'End', x: 600, y: 100 },
-            ]),
-            edges: JSON.stringify([
-              { from: 'a', to: 'b' },
-              { from: 'b', to: 'c' },
-            ]),
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: {
+            name: 'k_excalidraw',
+            arguments: {
+              action: 'create',
+              name: '_setup_test',
+              diagram_type: 'architecture',
+              nodes: [
+                { id: 'a', label: 'Start', color: 'blue' },
+                { id: 'b', label: 'Process', color: 'green' },
+                { id: 'c', label: 'End', color: 'yellow' },
+              ],
+              connections: [
+                { from: 'a', to: 'b' },
+                { from: 'b', to: 'c' },
+              ],
+            },
           },
         }),
         signal: AbortSignal.timeout(15000),
@@ -107,13 +109,14 @@ export function registerExcalidrawHandlers(): void {
         return { ok: false, error: `MCP Core returned status ${res.status}` };
       }
 
-      const data = await res.json();
-      if (data.error) {
-        return { ok: false, error: data.error };
+      const rpc = await res.json();
+      if (rpc.error) {
+        return { ok: false, error: rpc.error.message || JSON.stringify(rpc.error) };
       }
 
-      // Extract path from response
-      const filePath = data.result?.path || data.path || `${OUTPUT_DIR}/_setup_test.excalidraw`;
+      // JSON-RPC response: { result: { content: [{ type: 'text', text: '{"ok":true,...}' }] } }
+      const toolResult = JSON.parse(rpc.result.content[0].text);
+      const filePath = toolResult.path || `${OUTPUT_DIR}/_setup_test.excalidraw`;
       return { ok: true, path: filePath };
     } catch (err) {
       return { ok: false, error: `Test diagram creation failed: ${String(err)}` };
