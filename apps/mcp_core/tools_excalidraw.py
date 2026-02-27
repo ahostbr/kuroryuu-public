@@ -3,6 +3,9 @@
 Agents create architecture diagrams, flowcharts, and sequence diagrams
 via simple JSON. Files are stored as .excalidraw format (viewable at excalidraw.com).
 
+Dark theme, section-based layouts, Excalifont. Compatible with excalidraw.com.
+Quality conventions from axton-obsidian-visual-skills (skills.sh #1).
+
 Output: tools/excalidraw/output/
 Routed tool: k_excalidraw(action, ...)
 Actions: help, create, read, update, list, delete
@@ -39,20 +42,74 @@ def _make_id() -> str:
 
 
 # ============================================================================
+# Color Palettes (dark theme)
+# ============================================================================
+
+# Fill colors for shapes on dark background
+DARK_COLORS = {
+    "blue": "#1e3a5f",
+    "green": "#1a3a2a",
+    "red": "#3a1a1a",
+    "yellow": "#3a3a1a",
+    "purple": "#2a1a3a",
+    "orange": "#3a2a1a",
+    "gray": "#2a2a2e",
+    "teal": "#1a2a2a",
+    "dark": "#1a1a2e",
+    "white": "#ffffff",
+}
+
+# Bright accent colors for headers, highlights, annotations
+ACCENT_COLORS = {
+    "green": "#4ade80",
+    "red": "#f87171",
+    "cyan": "#67e8f9",
+    "yellow": "#fbbf24",
+    "magenta": "#f472b6",
+    "purple": "#a78bfa",
+    "orange": "#fb923c",
+    "white": "#e0e0e0",
+    "muted": "#6b7280",
+}
+
+# Layout constraints (from axton's skill — battle-tested values)
+CANVAS_WIDTH = 1200
+CANVAS_HEIGHT = 800
+MIN_SHAPE_W = 120
+MIN_SHAPE_H = 60
+MIN_SPACING = 25
+CANVAS_PADDING = 60
+
+# Font size minimums
+FONT_TITLE = 24
+FONT_SUBTITLE = 20
+FONT_BODY = 16
+FONT_ANNOTATION = 14
+
+# Text width estimation
+CHAR_WIDTH_FACTOR = 0.5
+CJK_WIDTH_FACTOR = 1.0
+
+# Default dark theme colors
+_DEFAULT_STROKE = "#e0e0e0"
+_DEFAULT_BG = "#191919"
+_DEFAULT_TEXT = "#e0e0e0"
+_DEFAULT_FILL = "#1e3a5f"
+
+
+# ============================================================================
 # Excalidraw Element Builders
 # ============================================================================
 
-# Default colors for diagram nodes
-DEFAULT_COLORS = {
-    "blue": "#a5d8ff",
-    "green": "#b2f2bb",
-    "red": "#ffc9c9",
-    "yellow": "#ffec99",
-    "purple": "#d0bfff",
-    "orange": "#ffd8a8",
-    "gray": "#dee2e6",
-    "white": "#ffffff",
-}
+def _estimate_text_width(text: str, font_size: int) -> float:
+    """Estimate text width accounting for CJK characters."""
+    width = 0.0
+    for ch in text:
+        if ord(ch) > 0x2E80:
+            width += font_size * CJK_WIDTH_FACTOR
+        else:
+            width += font_size * CHAR_WIDTH_FACTOR
+    return width
 
 
 def _base_element(
@@ -63,7 +120,10 @@ def _base_element(
     h: float,
     **overrides: Any,
 ) -> Dict[str, Any]:
-    """Create base Excalidraw element with all required fields."""
+    """Create base Excalidraw element with all required fields.
+
+    Compatibility: omits frameId, index, versionNonce per excalidraw.com requirements.
+    """
     elem = {
         "id": _make_id(),
         "type": elem_type,
@@ -72,7 +132,7 @@ def _base_element(
         "width": w,
         "height": h,
         "angle": 0,
-        "strokeColor": "#1e1e1e",
+        "strokeColor": _DEFAULT_STROKE,
         "backgroundColor": "transparent",
         "fillStyle": "solid",
         "strokeWidth": 2,
@@ -80,12 +140,9 @@ def _base_element(
         "roughness": 1,
         "opacity": 100,
         "groupIds": [],
-        "frameId": None,
-        "index": "a0",
         "roundness": {"type": 3},
         "seed": abs(hash(_make_id())) % (2**31),
         "version": 1,
-        "versionNonce": abs(hash(_make_id())) % (2**31),
         "isDeleted": False,
         "boundElements": None,
         "updated": 1,
@@ -98,15 +155,33 @@ def _base_element(
 
 def _make_rectangle(
     x: float, y: float, w: float = 200, h: float = 80,
-    label: str = "", color: str = "#a5d8ff",
+    label: str = "", color: str = _DEFAULT_FILL,
+    stroke_color: str = _DEFAULT_STROKE,
+    stroke_style: str = "solid",
+    text_color: str = _DEFAULT_TEXT,
+    font_family: int = 5,
+    opacity: int = 100,
 ) -> List[Dict[str, Any]]:
     """Create a rectangle (optionally with centered text label)."""
+    w = max(w, MIN_SHAPE_W)
+    h = max(h, MIN_SHAPE_H)
     elements = []
-    rect = _base_element("rectangle", x, y, w, h, backgroundColor=color)
+    rect = _base_element(
+        "rectangle", x, y, w, h,
+        backgroundColor=color,
+        strokeColor=stroke_color,
+        strokeStyle=stroke_style,
+        opacity=opacity,
+    )
     elements.append(rect)
 
     if label:
-        text = _make_text(x + w / 2, y + h / 2, label, container_id=rect["id"])
+        text = _make_text(
+            x + w / 2, y + h / 2, label,
+            container_id=rect["id"],
+            color=text_color,
+            font_family=font_family,
+        )
         rect["boundElements"] = [{"id": text["id"], "type": "text"}]
         elements.append(text)
 
@@ -115,15 +190,31 @@ def _make_rectangle(
 
 def _make_diamond(
     x: float, y: float, w: float = 160, h: float = 100,
-    label: str = "", color: str = "#ffec99",
+    label: str = "", color: str = "#3a3a1a",
+    stroke_color: str = _DEFAULT_STROKE,
+    stroke_style: str = "solid",
+    text_color: str = _DEFAULT_TEXT,
+    font_family: int = 5,
 ) -> List[Dict[str, Any]]:
     """Create a diamond shape (for flowchart decisions)."""
+    w = max(w, MIN_SHAPE_W)
+    h = max(h, MIN_SHAPE_H)
     elements = []
-    diamond = _base_element("diamond", x, y, w, h, backgroundColor=color)
+    diamond = _base_element(
+        "diamond", x, y, w, h,
+        backgroundColor=color,
+        strokeColor=stroke_color,
+        strokeStyle=stroke_style,
+    )
     elements.append(diamond)
 
     if label:
-        text = _make_text(x + w / 2, y + h / 2, label, container_id=diamond["id"])
+        text = _make_text(
+            x + w / 2, y + h / 2, label,
+            container_id=diamond["id"],
+            color=text_color,
+            font_family=font_family,
+        )
         diamond["boundElements"] = [{"id": text["id"], "type": "text"}]
         elements.append(text)
 
@@ -132,15 +223,31 @@ def _make_diamond(
 
 def _make_ellipse(
     x: float, y: float, w: float = 160, h: float = 80,
-    label: str = "", color: str = "#d0bfff",
+    label: str = "", color: str = "#2a1a3a",
+    stroke_color: str = _DEFAULT_STROKE,
+    stroke_style: str = "solid",
+    text_color: str = _DEFAULT_TEXT,
+    font_family: int = 5,
 ) -> List[Dict[str, Any]]:
     """Create an ellipse."""
+    w = max(w, MIN_SHAPE_W)
+    h = max(h, MIN_SHAPE_H)
     elements = []
-    ellipse = _base_element("ellipse", x, y, w, h, backgroundColor=color)
+    ellipse = _base_element(
+        "ellipse", x, y, w, h,
+        backgroundColor=color,
+        strokeColor=stroke_color,
+        strokeStyle=stroke_style,
+    )
     elements.append(ellipse)
 
     if label:
-        text = _make_text(x + w / 2, y + h / 2, label, container_id=ellipse["id"])
+        text = _make_text(
+            x + w / 2, y + h / 2, label,
+            container_id=ellipse["id"],
+            color=text_color,
+            font_family=font_family,
+        )
         ellipse["boundElements"] = [{"id": text["id"], "type": "text"}]
         elements.append(text)
 
@@ -149,13 +256,18 @@ def _make_ellipse(
 
 def _make_text(
     x: float, y: float, text: str,
-    font_size: int = 16, container_id: Optional[str] = None,
+    font_size: int = FONT_BODY, container_id: Optional[str] = None,
+    text_align: str = "center",
+    font_family: int = 5,
+    color: str = _DEFAULT_TEXT,
 ) -> Dict[str, Any]:
-    """Create a text element. If container_id is set, it's bound to that container."""
-    # Estimate text dimensions
-    char_width = font_size * 0.6
-    text_width = len(text) * char_width
-    text_height = font_size * 1.4
+    """Create a text element. If container_id is set, it's bound to that container.
+
+    font_family: 1=Virgil, 3=Cascadia, 5=Excalifont (default, hand-drawn)
+    """
+    text_width = _estimate_text_width(text, font_size)
+    lines = text.split("\n")
+    text_height = font_size * 1.25 * len(lines)
 
     elem = _base_element(
         "text",
@@ -165,11 +277,11 @@ def _make_text(
         text_height,
         text=text,
         fontSize=font_size,
-        fontFamily=1,  # 1 = Virgil (hand-drawn), 3 = Cascadia
-        textAlign="center",
+        fontFamily=font_family,
+        textAlign=text_align,
         verticalAlign="middle",
         backgroundColor="transparent",
-        strokeColor="#1e1e1e",
+        strokeColor=color,
         roundness=None,
         containerId=container_id,
         originalText=text,
@@ -185,6 +297,10 @@ def _make_arrow(
     label: str = "",
     start_id: Optional[str] = None,
     end_id: Optional[str] = None,
+    stroke_color: str = _DEFAULT_STROKE,
+    stroke_style: str = "solid",
+    stroke_width: int = 2,
+    start_arrowhead: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Create an arrow (line with arrowhead). Optionally bound to start/end elements."""
     elements = []
@@ -195,10 +311,13 @@ def _make_arrow(
         end_x - start_x, end_y - start_y,
         backgroundColor="transparent",
         fillStyle="solid",
+        strokeColor=stroke_color,
+        strokeStyle=stroke_style,
+        strokeWidth=stroke_width,
         points=[[0, 0], [end_x - start_x, end_y - start_y]],
         startBinding={"elementId": start_id, "focus": 0, "gap": 5, "fixedPoint": None} if start_id else None,
         endBinding={"elementId": end_id, "focus": 0, "gap": 5, "fixedPoint": None} if end_id else None,
-        startArrowhead=None,
+        startArrowhead=start_arrowhead,
         endArrowhead="arrow",
         roundness={"type": 2},
     )
@@ -207,7 +326,7 @@ def _make_arrow(
     if label:
         mid_x = start_x + (end_x - start_x) / 2
         mid_y = start_y + (end_y - start_y) / 2 - 20
-        text = _make_text(mid_x, mid_y, label, font_size=14, container_id=arrow["id"])
+        text = _make_text(mid_x, mid_y, label, font_size=FONT_ANNOTATION, container_id=arrow["id"])
         arrow["boundElements"] = [{"id": text["id"], "type": "text"}]
         elements.append(text)
 
@@ -217,6 +336,9 @@ def _make_arrow(
 def _make_line(
     start_x: float, start_y: float,
     end_x: float, end_y: float,
+    stroke_color: str = _DEFAULT_STROKE,
+    stroke_style: str = "solid",
+    stroke_width: int = 2,
 ) -> Dict[str, Any]:
     """Create a plain line (no arrowhead)."""
     return _base_element(
@@ -224,8 +346,315 @@ def _make_line(
         start_x, start_y,
         end_x - start_x, end_y - start_y,
         points=[[0, 0], [end_x - start_x, end_y - start_y]],
+        strokeColor=stroke_color,
+        strokeStyle=stroke_style,
+        strokeWidth=stroke_width,
         startArrowhead=None,
         endArrowhead=None,
+    )
+
+
+# ============================================================================
+# New Element Builders (sections, headers, body text, bullets, flow chains)
+# ============================================================================
+
+def _make_section(
+    x: float, y: float, w: float, h: float,
+    title: str = "",
+    title_color: str = ACCENT_COLORS["cyan"],
+    description: str = "",
+    bg_color: str = DARK_COLORS["dark"],
+    opacity: int = 40,
+) -> List[Dict[str, Any]]:
+    """Create a section zone — dashed rect with title, underline, optional description.
+
+    Returns list of elements: [bg_rect, title_text, underline, description_text]
+    """
+    elements = []
+
+    # Background rectangle (dashed, low opacity)
+    bg = _base_element(
+        "rectangle", x, y, w, h,
+        backgroundColor=bg_color,
+        strokeColor=_DEFAULT_STROKE,
+        strokeStyle="dashed",
+        strokeWidth=1,
+        opacity=opacity,
+    )
+    elements.append(bg)
+
+    inner_x = x + MIN_SPACING
+    inner_y = y + MIN_SPACING
+
+    if title:
+        # Title text (freestanding, colored)
+        title_w = _estimate_text_width(title, FONT_TITLE)
+        title_h = FONT_TITLE * 1.25
+        title_elem = _base_element(
+            "text",
+            inner_x, inner_y,
+            title_w, title_h,
+            text=title,
+            fontSize=FONT_TITLE,
+            fontFamily=5,
+            textAlign="left",
+            verticalAlign="top",
+            backgroundColor="transparent",
+            strokeColor=title_color,
+            roundness=None,
+            containerId=None,
+            originalText=title,
+            autoResize=True,
+            lineHeight=1.25,
+        )
+        elements.append(title_elem)
+
+        # Colored underline
+        underline_y = inner_y + title_h + 4
+        underline = _make_line(
+            inner_x, underline_y,
+            inner_x + min(title_w + 20, w - 2 * MIN_SPACING), underline_y,
+            stroke_color=title_color,
+            stroke_width=2,
+        )
+        elements.append(underline)
+
+        if description:
+            desc_y = underline_y + 10
+            desc_w = _estimate_text_width(description, FONT_ANNOTATION)
+            desc_h = FONT_ANNOTATION * 1.25
+            desc_elem = _base_element(
+                "text",
+                inner_x, desc_y,
+                desc_w, desc_h,
+                text=description,
+                fontSize=FONT_ANNOTATION,
+                fontFamily=5,
+                textAlign="left",
+                verticalAlign="top",
+                backgroundColor="transparent",
+                strokeColor=ACCENT_COLORS["muted"],
+                roundness=None,
+                containerId=None,
+                originalText=description,
+                autoResize=True,
+                lineHeight=1.25,
+            )
+            elements.append(desc_elem)
+
+    return elements
+
+
+def _make_header(
+    x: float, y: float, text: str,
+    color: str = ACCENT_COLORS["cyan"],
+    font_size: int = FONT_TITLE,
+    underline: bool = True,
+) -> List[Dict[str, Any]]:
+    """Create a freestanding header with optional underline."""
+    elements = []
+    text_w = _estimate_text_width(text, font_size)
+    text_h = font_size * 1.25
+
+    header = _base_element(
+        "text",
+        x, y, text_w, text_h,
+        text=text,
+        fontSize=font_size,
+        fontFamily=5,
+        textAlign="left",
+        verticalAlign="top",
+        backgroundColor="transparent",
+        strokeColor=color,
+        roundness=None,
+        containerId=None,
+        originalText=text,
+        autoResize=True,
+        lineHeight=1.25,
+    )
+    elements.append(header)
+
+    if underline:
+        ul_y = y + text_h + 4
+        ul = _make_line(x, ul_y, x + text_w + 20, ul_y, stroke_color=color, stroke_width=2)
+        elements.append(ul)
+
+    return elements
+
+
+def _make_body_text(
+    x: float, y: float, text: str,
+    color: str = _DEFAULT_TEXT,
+    font_size: int = FONT_BODY,
+    max_width: float = 400,
+) -> Dict[str, Any]:
+    """Create multi-line body text, word-wrapped to max_width."""
+    words = text.split()
+    lines = []
+    current_line = ""
+    for word in words:
+        test = f"{current_line} {word}".strip()
+        if _estimate_text_width(test, font_size) > max_width and current_line:
+            lines.append(current_line)
+            current_line = word
+        else:
+            current_line = test
+    if current_line:
+        lines.append(current_line)
+
+    wrapped = "\n".join(lines)
+    text_w = max(_estimate_text_width(line, font_size) for line in lines) if lines else 0
+    text_h = font_size * 1.25 * len(lines)
+
+    return _base_element(
+        "text",
+        x, y, text_w, text_h,
+        text=wrapped,
+        fontSize=font_size,
+        fontFamily=5,
+        textAlign="left",
+        verticalAlign="top",
+        backgroundColor="transparent",
+        strokeColor=color,
+        roundness=None,
+        containerId=None,
+        originalText=wrapped,
+        autoResize=True,
+        lineHeight=1.25,
+    )
+
+
+def _make_bullet_list(
+    x: float, y: float,
+    items: List[str],
+    bullet_color: str = ACCENT_COLORS["cyan"],
+    text_color: str = _DEFAULT_TEXT,
+    font_size: int = FONT_BODY,
+) -> Dict[str, Any]:
+    """Render a bullet list as a single text element with bullet characters."""
+    bulleted = "\n".join(f"\u2022 {item}" for item in items)
+    max_w = max(_estimate_text_width(f"\u2022 {item}", font_size) for item in items) if items else 0
+    text_h = font_size * 1.25 * len(items)
+
+    return _base_element(
+        "text",
+        x, y, max_w, text_h,
+        text=bulleted,
+        fontSize=font_size,
+        fontFamily=5,
+        textAlign="left",
+        verticalAlign="top",
+        backgroundColor="transparent",
+        strokeColor=text_color,
+        roundness=None,
+        containerId=None,
+        originalText=bulleted,
+        autoResize=True,
+        lineHeight=1.25,
+    )
+
+
+def _make_flow_chain(
+    x: float, y: float,
+    steps: List[Dict[str, Any]],
+    direction: str = "horizontal",
+    gap: int = 60,
+    arrow_style: str = "solid",
+) -> List[Dict[str, Any]]:
+    """Create a linear sequence of shapes connected by arrows.
+
+    steps: [{label, shape, color, width, height}]
+    direction: "horizontal" | "vertical"
+    """
+    elements = []
+    prev_info = None
+
+    for i, step in enumerate(steps):
+        label = step.get("label", f"Step {i + 1}")
+        shape = step.get("shape", "rectangle")
+        color = _resolve_color(step.get("color", "blue"))
+        w = max(step.get("width", 160), MIN_SHAPE_W)
+        h = max(step.get("height", 70), MIN_SHAPE_H)
+
+        if direction == "horizontal":
+            sx = x + i * (w + gap)
+            sy = y
+        else:
+            sx = x
+            sy = y + i * (h + gap)
+
+        if shape == "ellipse":
+            elems = _make_ellipse(sx, sy, w, h, label=label, color=color)
+        elif shape == "diamond":
+            elems = _make_diamond(sx, sy, w, h, label=label, color=color)
+        else:
+            elems = _make_rectangle(sx, sy, w, h, label=label, color=color)
+
+        elements.extend(elems)
+
+        cur_info = {"id": elems[0]["id"], "x": sx, "y": sy, "w": w, "h": h}
+
+        if prev_info:
+            if direction == "horizontal":
+                ax = prev_info["x"] + prev_info["w"]
+                ay = prev_info["y"] + prev_info["h"] / 2
+                bx = cur_info["x"]
+                by = cur_info["y"] + cur_info["h"] / 2
+            else:
+                ax = prev_info["x"] + prev_info["w"] / 2
+                ay = prev_info["y"] + prev_info["h"]
+                bx = cur_info["x"] + cur_info["w"] / 2
+                by = cur_info["y"]
+
+            arrow_elems = _make_arrow(
+                ax, ay, bx, by,
+                start_id=prev_info["id"],
+                end_id=cur_info["id"],
+                stroke_style=arrow_style,
+            )
+
+            # Update boundElements
+            for elem in elements:
+                if elem["id"] == prev_info["id"]:
+                    if elem.get("boundElements") is None:
+                        elem["boundElements"] = []
+                    elem["boundElements"].append({"id": arrow_elems[0]["id"], "type": "arrow"})
+                if elem["id"] == cur_info["id"]:
+                    if elem.get("boundElements") is None:
+                        elem["boundElements"] = []
+                    elem["boundElements"].append({"id": arrow_elems[0]["id"], "type": "arrow"})
+
+            elements.extend(arrow_elems)
+
+        prev_info = cur_info
+
+    return elements
+
+
+def _make_annotation(
+    x: float, y: float, text: str,
+    color: str = ACCENT_COLORS["muted"],
+    font_size: int = FONT_ANNOTATION,
+) -> Dict[str, Any]:
+    """Small muted text annotation — floating label near shapes."""
+    text_w = _estimate_text_width(text, font_size)
+    text_h = font_size * 1.25
+
+    return _base_element(
+        "text",
+        x, y, text_w, text_h,
+        text=text,
+        fontSize=font_size,
+        fontFamily=5,
+        textAlign="left",
+        verticalAlign="top",
+        backgroundColor="transparent",
+        strokeColor=color,
+        roundness=None,
+        containerId=None,
+        originalText=text,
+        autoResize=True,
+        lineHeight=1.25,
     )
 
 
@@ -236,25 +665,46 @@ def _make_line(
 def _resolve_color(color: Optional[str]) -> str:
     """Resolve color name to hex, or pass through hex values."""
     if not color:
-        return "#a5d8ff"
+        return _DEFAULT_FILL
     if color.startswith("#"):
         return color
-    return DEFAULT_COLORS.get(color.lower(), "#a5d8ff")
+    return DARK_COLORS.get(color.lower(), _DEFAULT_FILL)
+
+
+def _resolve_accent(color: Optional[str]) -> str:
+    """Resolve accent color name to hex."""
+    if not color:
+        return ACCENT_COLORS["cyan"]
+    if color.startswith("#"):
+        return color
+    return ACCENT_COLORS.get(color.lower(), ACCENT_COLORS["cyan"])
 
 
 def _layout_architecture(
     nodes: List[Dict[str, Any]],
     connections: List[Dict[str, Any]],
 ) -> List[Dict[str, Any]]:
-    """Layout nodes in a horizontal grid with connecting arrows.
+    """Layout architecture diagram. Supports two modes:
 
-    Nodes are placed in rows of up to 4, spaced evenly.
-    Connections draw arrows between node centers.
+    1. Section-based: If any node has type="section", uses section layout with
+       vertical stacking, child nodes in 2-col mini-grids inside sections.
+    2. Flat grid: Classic 4-column grid layout (dark theme + Excalifont).
     """
-    elements = []
-    node_map: Dict[str, Dict[str, Any]] = {}  # id -> {elem_id, cx, cy}
+    has_sections = any(n.get("type") == "section" for n in nodes)
 
-    # Layout params
+    if has_sections:
+        return _layout_architecture_sections(nodes, connections)
+    return _layout_architecture_grid(nodes, connections)
+
+
+def _layout_architecture_grid(
+    nodes: List[Dict[str, Any]],
+    connections: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Flat grid layout — dark theme upgrade of original layout."""
+    elements = []
+    node_map: Dict[str, Dict[str, Any]] = {}
+
     box_w, box_h = 200, 80
     gap_x, gap_y = 100, 120
     cols = min(4, max(1, len(nodes)))
@@ -263,24 +713,231 @@ def _layout_architecture(
         nid = node.get("id", f"node_{i}")
         label = node.get("label", nid)
         color = _resolve_color(node.get("color"))
+        shape = node.get("shape", "rectangle")
+        text_color = node.get("text_color", _DEFAULT_TEXT)
+        stroke_style = node.get("stroke_style", "solid")
+        node_w = max(node.get("width", box_w), MIN_SHAPE_W)
+        node_h = max(node.get("height", box_h), MIN_SHAPE_H)
 
         row, col = divmod(i, cols)
-        x = col * (box_w + gap_x)
-        y = row * (box_h + gap_y)
+        x = CANVAS_PADDING + col * (box_w + gap_x)
+        y = CANVAS_PADDING + row * (box_h + gap_y)
 
-        elems = _make_rectangle(x, y, box_w, box_h, label=label, color=color)
+        if shape == "ellipse":
+            elems = _make_ellipse(x, y, node_w, node_h, label=label, color=color,
+                                  text_color=text_color, stroke_style=stroke_style)
+        elif shape == "diamond":
+            elems = _make_diamond(x, y, node_w, node_h, label=label, color=color,
+                                  text_color=text_color, stroke_style=stroke_style)
+        else:
+            elems = _make_rectangle(x, y, node_w, node_h, label=label, color=color,
+                                    text_color=text_color, stroke_style=stroke_style)
+
         rect_id = elems[0]["id"]
         elements.extend(elems)
 
         node_map[nid] = {
             "elem_id": rect_id,
-            "cx": x + box_w / 2,
-            "cy": y + box_h / 2,
+            "cx": x + node_w / 2,
+            "cy": y + node_h / 2,
             "x": x, "y": y,
-            "w": box_w, "h": box_h,
+            "w": node_w, "h": node_h,
         }
 
     # Draw connections
+    _draw_connections(elements, node_map, connections)
+
+    return elements
+
+
+def _layout_architecture_sections(
+    nodes: List[Dict[str, Any]],
+    connections: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Section-based layout — sections stacked vertically, child nodes in 2-col mini-grids."""
+    elements = []
+    node_map: Dict[str, Dict[str, Any]] = {}
+
+    # Separate sections from regular nodes
+    sections = [n for n in nodes if n.get("type") == "section"]
+    regular_nodes = {n["id"]: n for n in nodes if n.get("type") != "section"}
+
+    # Also collect standalone special elements
+    standalone_headers = [n for n in nodes if n.get("type") == "header"]
+    standalone_bullets = [n for n in nodes if n.get("type") == "bullets"]
+    standalone_annotations = [n for n in nodes if n.get("type") == "annotation"]
+
+    # Track nodes that belong to sections
+    assigned_nodes = set()
+    for sec in sections:
+        for nid in sec.get("nodes", []):
+            assigned_nodes.add(nid)
+
+    # Unassigned regular nodes (not in any section)
+    unassigned = [n for n in nodes
+                  if n.get("type") not in ("section", "header", "bullets", "annotation")
+                  and n.get("id") not in assigned_nodes]
+
+    # Layout params for sections
+    section_x = CANVAS_PADDING
+    section_y = CANVAS_PADDING
+    section_gap = MIN_SPACING * 2
+    child_box_w = 180
+    child_box_h = 70
+    child_gap_x = MIN_SPACING * 2
+    child_gap_y = MIN_SPACING * 2
+    child_cols = 2
+
+    # Render standalone headers first
+    for hdr in standalone_headers:
+        hdr_elems = _make_header(
+            section_x, section_y, hdr.get("text", ""),
+            color=_resolve_accent(hdr.get("color")),
+            font_size=hdr.get("font_size", FONT_TITLE),
+        )
+        elements.extend(hdr_elems)
+        section_y += FONT_TITLE * 1.25 + 20 + section_gap
+
+    # Render each section
+    for sec in sections:
+        sec_title = sec.get("title", "")
+        sec_title_color = _resolve_accent(sec.get("title_color", "cyan"))
+        sec_desc = sec.get("description", "")
+        sec_bg = _resolve_color(sec.get("bg_color", "dark"))
+        child_ids = sec.get("nodes", [])
+
+        # Calculate section height based on child count
+        child_count = len(child_ids)
+        child_rows = math.ceil(child_count / child_cols) if child_count > 0 else 0
+
+        # Header area height: title + underline + optional description
+        header_height = MIN_SPACING + FONT_TITLE * 1.25 + 10
+        if sec_desc:
+            header_height += FONT_ANNOTATION * 1.25 + 10
+
+        child_area_height = child_rows * (child_box_h + child_gap_y) if child_rows > 0 else 0
+        section_h = header_height + child_area_height + MIN_SPACING * 2
+        section_w = CANVAS_WIDTH - 2 * CANVAS_PADDING
+
+        # Create section zone
+        sec_elems = _make_section(
+            section_x, section_y, section_w, section_h,
+            title=sec_title,
+            title_color=sec_title_color,
+            description=sec_desc,
+            bg_color=sec_bg,
+        )
+        elements.extend(sec_elems)
+
+        # Place child nodes inside section
+        child_start_x = section_x + MIN_SPACING * 2
+        child_start_y = section_y + header_height
+
+        for ci, cid in enumerate(child_ids):
+            cnode = regular_nodes.get(cid)
+            if not cnode:
+                continue
+
+            crow, ccol = divmod(ci, child_cols)
+            cx = child_start_x + ccol * (child_box_w + child_gap_x)
+            cy = child_start_y + crow * (child_box_h + child_gap_y)
+
+            clabel = cnode.get("label", cid)
+            ccolor = _resolve_color(cnode.get("color"))
+            cshape = cnode.get("shape", "rectangle")
+            ctext_color = cnode.get("text_color", _DEFAULT_TEXT)
+            cstroke_style = cnode.get("stroke_style", "solid")
+            cw = max(cnode.get("width", child_box_w), MIN_SHAPE_W)
+            ch = max(cnode.get("height", child_box_h), MIN_SHAPE_H)
+
+            if cshape == "ellipse":
+                celems = _make_ellipse(cx, cy, cw, ch, label=clabel, color=ccolor,
+                                       text_color=ctext_color, stroke_style=cstroke_style)
+            elif cshape == "diamond":
+                celems = _make_diamond(cx, cy, cw, ch, label=clabel, color=ccolor,
+                                       text_color=ctext_color, stroke_style=cstroke_style)
+            else:
+                celems = _make_rectangle(cx, cy, cw, ch, label=clabel, color=ccolor,
+                                         text_color=ctext_color, stroke_style=cstroke_style)
+
+            elements.extend(celems)
+            node_map[cid] = {
+                "elem_id": celems[0]["id"],
+                "cx": cx + cw / 2,
+                "cy": cy + ch / 2,
+                "x": cx, "y": cy,
+                "w": cw, "h": ch,
+            }
+
+        section_y += section_h + section_gap
+
+    # Render unassigned nodes as flat grid below sections
+    if unassigned:
+        section_y += MIN_SPACING
+        cols = min(4, max(1, len(unassigned)))
+        for i, node in enumerate(unassigned):
+            nid = node.get("id", f"unassigned_{i}")
+            label = node.get("label", nid)
+            color = _resolve_color(node.get("color"))
+            shape = node.get("shape", "rectangle")
+            text_color = node.get("text_color", _DEFAULT_TEXT)
+            nw = max(node.get("width", 180), MIN_SHAPE_W)
+            nh = max(node.get("height", 70), MIN_SHAPE_H)
+
+            row, col = divmod(i, cols)
+            x = CANVAS_PADDING + col * (nw + MIN_SPACING * 2)
+            y = section_y + row * (nh + MIN_SPACING * 2)
+
+            if shape == "ellipse":
+                elems = _make_ellipse(x, y, nw, nh, label=label, color=color, text_color=text_color)
+            elif shape == "diamond":
+                elems = _make_diamond(x, y, nw, nh, label=label, color=color, text_color=text_color)
+            else:
+                elems = _make_rectangle(x, y, nw, nh, label=label, color=color, text_color=text_color)
+
+            elements.extend(elems)
+            node_map[nid] = {
+                "elem_id": elems[0]["id"],
+                "cx": x + nw / 2,
+                "cy": y + nh / 2,
+                "x": x, "y": y,
+                "w": nw, "h": nh,
+            }
+
+    # Render standalone bullet lists
+    for bl in standalone_bullets:
+        bullet_y = section_y + MIN_SPACING
+        bullet_elem = _make_bullet_list(
+            CANVAS_PADDING, bullet_y,
+            bl.get("items", []),
+            bullet_color=_resolve_accent(bl.get("bullet_color", "cyan")),
+            text_color=bl.get("text_color", _DEFAULT_TEXT),
+        )
+        elements.append(bullet_elem)
+        section_y = bullet_y + FONT_BODY * 1.25 * len(bl.get("items", [])) + MIN_SPACING
+
+    # Render standalone annotations
+    for ann in standalone_annotations:
+        ann_elem = _make_annotation(
+            ann.get("x", CANVAS_PADDING),
+            ann.get("y", section_y),
+            ann.get("text", ""),
+            color=_resolve_accent(ann.get("color", "muted")),
+        )
+        elements.append(ann_elem)
+
+    # Draw connections
+    _draw_connections(elements, node_map, connections)
+
+    return elements
+
+
+def _draw_connections(
+    elements: List[Dict[str, Any]],
+    node_map: Dict[str, Dict[str, Any]],
+    connections: List[Dict[str, Any]],
+) -> None:
+    """Draw arrows between nodes, updating boundElements on both ends."""
     for conn in connections:
         from_id = conn.get("from", "")
         to_id = conn.get("to", "")
@@ -291,24 +948,21 @@ def _layout_architecture(
         if not src or not dst:
             continue
 
-        # Calculate arrow start/end at box edges
-        sx = src["x"] + src["w"]  # right edge
-        sy = src["cy"]
-        ex = dst["x"]  # left edge
-        ey = dst["cy"]
+        conn_stroke = conn.get("stroke_color", _DEFAULT_STROKE)
+        conn_style = conn.get("stroke_style", "solid")
+        conn_width = conn.get("stroke_width", 2)
 
-        # If dst is below src (different row), go from bottom to top
-        if dst["y"] > src["y"] + src["h"]:
-            sx = src["cx"]
-            sy = src["y"] + src["h"]
-            ex = dst["cx"]
-            ey = dst["y"]
+        # Smart edge routing
+        sx, sy, ex, ey = _route_arrow(src, dst)
 
         arrow_elems = _make_arrow(
             sx, sy, ex, ey,
             label=label,
             start_id=src["elem_id"],
             end_id=dst["elem_id"],
+            stroke_color=conn_stroke,
+            stroke_style=conn_style,
+            stroke_width=conn_width,
         )
 
         # Update bound elements on source and destination
@@ -324,7 +978,35 @@ def _layout_architecture(
 
         elements.extend(arrow_elems)
 
-    return elements
+
+def _route_arrow(src: Dict[str, Any], dst: Dict[str, Any]) -> tuple:
+    """Smart edge routing — pick the best edge pair for arrow start/end."""
+    # Determine relative position
+    dx = dst["cx"] - src["cx"]
+    dy = dst["cy"] - src["cy"]
+
+    if abs(dx) > abs(dy):
+        # Horizontal dominant
+        if dx > 0:
+            sx = src["x"] + src["w"]  # right edge
+            ex = dst["x"]             # left edge
+        else:
+            sx = src["x"]             # left edge
+            ex = dst["x"] + dst["w"]  # right edge
+        sy = src["cy"]
+        ey = dst["cy"]
+    else:
+        # Vertical dominant
+        if dy > 0:
+            sy = src["y"] + src["h"]  # bottom edge
+            ey = dst["y"]             # top edge
+        else:
+            sy = src["y"]             # top edge
+            ey = dst["y"] + dst["h"]  # bottom edge
+        sx = src["cx"]
+        ex = dst["cx"]
+
+    return sx, sy, ex, ey
 
 
 def _layout_flowchart(
@@ -336,7 +1018,7 @@ def _layout_flowchart(
     node_map: Dict[str, Dict[str, Any]] = {}
 
     gap_y = 120
-    x_center = 200
+    x_center = CANVAS_PADDING + 200
 
     for i, node in enumerate(nodes):
         nid = node.get("id", f"node_{i}")
@@ -344,16 +1026,16 @@ def _layout_flowchart(
         color = _resolve_color(node.get("color"))
         ntype = node.get("type", "process")
 
-        y = i * gap_y
+        y = CANVAS_PADDING + i * gap_y
 
         if ntype == "decision":
             w, h = 180, 110
             x = x_center - w / 2
-            elems = _make_diamond(x, y, w, h, label=label, color=color or "#ffec99")
-        elif ntype == "start" or ntype == "end":
+            elems = _make_diamond(x, y, w, h, label=label, color=color or DARK_COLORS["yellow"])
+        elif ntype in ("start", "end"):
             w, h = 160, 80
             x = x_center - w / 2
-            elems = _make_ellipse(x, y, w, h, label=label, color=color or "#b2f2bb")
+            elems = _make_ellipse(x, y, w, h, label=label, color=color or DARK_COLORS["green"])
         else:
             w, h = 200, 80
             x = x_center - w / 2
@@ -371,39 +1053,7 @@ def _layout_flowchart(
         }
 
     # Connections
-    for conn in connections:
-        from_id = conn.get("from", "")
-        to_id = conn.get("to", "")
-        label = conn.get("label", "")
-
-        src = node_map.get(from_id)
-        dst = node_map.get(to_id)
-        if not src or not dst:
-            continue
-
-        sx = src["cx"]
-        sy = src["y"] + src["h"]
-        ex = dst["cx"]
-        ey = dst["y"]
-
-        arrow_elems = _make_arrow(
-            sx, sy, ex, ey,
-            label=label,
-            start_id=src["elem_id"],
-            end_id=dst["elem_id"],
-        )
-
-        for elem in elements:
-            if elem["id"] == src["elem_id"]:
-                if elem.get("boundElements") is None:
-                    elem["boundElements"] = []
-                elem["boundElements"].append({"id": arrow_elems[0]["id"], "type": "arrow"})
-            if elem["id"] == dst["elem_id"]:
-                if elem.get("boundElements") is None:
-                    elem["boundElements"] = []
-                elem["boundElements"].append({"id": arrow_elems[0]["id"], "type": "arrow"})
-
-        elements.extend(arrow_elems)
+    _draw_connections(elements, node_map, connections)
 
     return elements
 
@@ -423,7 +1073,7 @@ def _layout_sequence(
     box_w, box_h = 160, 60
     gap_x = 120
     msg_gap_y = 60
-    lifeline_start_y = box_h + 20
+    lifeline_start_y = CANVAS_PADDING + box_h + 20
 
     # Draw participant boxes
     for i, p in enumerate(participants):
@@ -431,8 +1081,8 @@ def _layout_sequence(
         label = p.get("label", pid)
         color = _resolve_color(p.get("color", "blue"))
 
-        x = i * (box_w + gap_x)
-        y = 0
+        x = CANVAS_PADDING + i * (box_w + gap_x)
+        y = CANVAS_PADDING
 
         elems = _make_rectangle(x, y, box_w, box_h, label=label, color=color)
         elements.extend(elems)
@@ -447,7 +1097,7 @@ def _layout_sequence(
             points=[[0, 0], [0, lifeline_end_y - lifeline_start_y]],
             strokeStyle="dashed",
             strokeWidth=1,
-            strokeColor="#868e96",
+            strokeColor=ACCENT_COLORS["muted"],
         )
         elements.append(line)
 
@@ -488,7 +1138,7 @@ def _excalidraw_document(elements: List[Dict[str, Any]]) -> Dict[str, Any]:
             "gridSize": 20,
             "gridStep": 5,
             "gridModeEnabled": False,
-            "viewBackgroundColor": "#ffffff",
+            "viewBackgroundColor": _DEFAULT_BG,
         },
         "files": {},
     }
@@ -504,7 +1154,7 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
         "ok": True,
         "data": {
             "tool": "k_excalidraw",
-            "description": "Excalidraw diagramming tool — create architecture diagrams, flowcharts, and sequence diagrams",
+            "description": "Excalidraw diagramming — dark theme, section-based layouts, Excalifont",
             "actions": {
                 "help": "Show this help",
                 "create": "Create a new diagram. Params: name (required), diagram_type (architecture|flowchart|sequence|freeform), nodes, connections, elements, output_path",
@@ -514,13 +1164,33 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
                 "delete": "Delete a diagram. Params: name (required)",
             },
             "diagram_types": {
-                "architecture": "Horizontal grid of boxes with connecting arrows. nodes=[{id, label, color}], connections=[{from, to, label}]",
+                "architecture": "Section-based or grid layout. nodes=[{id, label, color, shape, type}], connections=[{from, to, label}]. Section nodes: {type='section', title, title_color, description, bg_color, nodes=[child_ids]}",
                 "flowchart": "Vertical flow with diamonds for decisions. nodes=[{id, label, type(process|decision|start|end), color}], connections=[{from, to, label}]",
                 "sequence": "Participant lifelines with horizontal message arrows. Use 'nodes' as participants=[{id, label}], 'connections' as messages=[{from, to, label}]",
                 "freeform": "Raw Excalidraw elements. Pass 'elements' list directly.",
             },
+            "node_properties": {
+                "id": "Unique identifier (required)",
+                "label": "Display text",
+                "color": "Fill color name or hex (dark palette: blue, green, red, yellow, purple, orange, gray, teal, dark)",
+                "shape": "rectangle (default) | ellipse | diamond",
+                "stroke_style": "solid (default) | dashed | dotted",
+                "text_color": "Label text color (default #e0e0e0)",
+                "width": "Override width (min 120)",
+                "height": "Override height (min 60)",
+            },
+            "section_properties": {
+                "type": "Must be 'section'",
+                "title": "Section header text",
+                "title_color": "Accent color for title (cyan, green, red, yellow, magenta, purple, orange)",
+                "description": "Optional subtitle text",
+                "bg_color": "Section background fill",
+                "nodes": "List of child node IDs to place inside this section",
+            },
             "output_root": str(_get_output_root()),
-            "colors": DEFAULT_COLORS,
+            "fill_colors": DARK_COLORS,
+            "accent_colors": ACCENT_COLORS,
+            "theme": "dark (#191919 background, #e0e0e0 strokes, Excalifont)",
         },
         "error": None,
     }
@@ -861,7 +1531,7 @@ def k_excalidraw(
     modify: Optional[List[Dict[str, Any]]] = None,
     **kwargs: Any,
 ) -> Dict[str, Any]:
-    """Excalidraw diagramming — create architecture diagrams, flowcharts, sequences.
+    """Excalidraw diagramming — dark theme, section-based architecture, Excalifont.
 
     Routed tool with actions: help, create, read, update, list, delete
 
@@ -869,7 +1539,7 @@ def k_excalidraw(
         action: Action to perform (required)
         name: Diagram name without extension (for create, read, update, delete)
         diagram_type: architecture | flowchart | sequence | freeform (for create)
-        nodes: List of node definitions [{id, label, color, type}] (for create)
+        nodes: List of node definitions [{id, label, color, type, shape}] (for create)
         connections: List of connections [{from, to, label}] (for create)
         elements: Raw Excalidraw elements (for create freeform)
         output_path: Override output directory (for create)
@@ -922,7 +1592,7 @@ def register_excalidraw_tools(registry: "ToolRegistry") -> None:
 
     registry.register(
         name="k_excalidraw",
-        description="Excalidraw diagramming — create architecture diagrams, flowcharts, and sequence diagrams. Actions: help, create, read, update, list, delete",
+        description="Excalidraw diagramming — dark theme, section-based architecture, flowcharts, sequence diagrams. Actions: help, create, read, update, list, delete",
         input_schema={
             "type": "object",
             "properties": {
@@ -944,12 +1614,12 @@ def register_excalidraw_tools(registry: "ToolRegistry") -> None:
                 "nodes": {
                     "type": "array",
                     "items": {"type": "object"},
-                    "description": "Node definitions: [{id, label, color, type}] (for create)",
+                    "description": "Node definitions: [{id, label, color, shape, type, stroke_style, text_color, width, height}]. Section nodes: {type='section', title, title_color, description, bg_color, nodes=[child_ids]}",
                 },
                 "connections": {
                     "type": "array",
                     "items": {"type": "object"},
-                    "description": "Connections: [{from, to, label}] (for create)",
+                    "description": "Connections: [{from, to, label, stroke_color, stroke_style, stroke_width}]",
                 },
                 "elements": {
                     "type": "array",

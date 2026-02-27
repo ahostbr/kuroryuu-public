@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import datetime as dt
+import fnmatch
 import json
 import math
 import os
@@ -279,7 +280,7 @@ SKIP_DIRS: Set[str] = {
 
 # Directories that start with . but SHOULD be indexed
 ALLOWED_DOT_DIRS: Set[str] = {
-    ".agents", ".claude", ".github", ".vscode", ".Cline",
+    ".agents", ".github", ".vscode", ".Cline",
 }
 
 # Reference directories - indexed but excluded by default (use scope="all" or scope="reference")
@@ -289,6 +290,12 @@ REFERENCE_DIRS: Set[str] = {
     "Docs/CaseStudies/REPOS",
     "ai/exports",
 }
+
+# Knowledge patterns - high-value architecture docs (PLUGIN_OVERVIEW per plugin)
+# Use scope="knowledge" to search only these. Uses fnmatch patterns on relative paths.
+KNOWLEDGE_PATTERNS: List[str] = [
+    "Plugins/*/Docs/PLUGIN_OVERVIEW.md",
+]
 
 
 def _should_skip_dir(name: str) -> bool:
@@ -310,12 +317,22 @@ def _is_reference_path(rel_path: str) -> bool:
     return False
 
 
+def _is_knowledge_path(rel_path: str) -> bool:
+    """Check if a relative path matches a knowledge pattern (PLUGIN_OVERVIEW docs)."""
+    normalized = rel_path.replace("\\", "/")
+    for pattern in KNOWLEDGE_PATTERNS:
+        if fnmatch.fnmatch(normalized, pattern):
+            return True
+    return False
+
+
 def _filter_matches_by_scope(matches: List[Dict[str, Any]], scope: str) -> List[Dict[str, Any]]:
     """Filter search matches based on scope setting.
 
     Args:
         matches: List of match dicts with 'path' key
-        scope: "project" (exclude reference), "all" (include all), "reference" (only reference)
+        scope: "project" (exclude reference), "all" (include all),
+               "reference" (only reference), "knowledge" (only PLUGIN_OVERVIEW docs)
 
     Returns:
         Filtered list of matches
@@ -326,15 +343,15 @@ def _filter_matches_by_scope(matches: List[Dict[str, Any]], scope: str) -> List[
     filtered = []
     for m in matches:
         path = m.get("path", "")
-        is_ref = _is_reference_path(path)
 
         if scope == "reference":
-            # Only include reference paths
-            if is_ref:
+            if _is_reference_path(path):
+                filtered.append(m)
+        elif scope == "knowledge":
+            if _is_knowledge_path(path):
                 filtered.append(m)
         else:  # scope == "project" (default)
-            # Exclude reference paths
-            if not is_ref:
+            if not _is_reference_path(path):
                 filtered.append(m)
 
     return filtered
@@ -745,7 +762,8 @@ def _action_query(
 
     Args:
         scope: Search scope - "project" (default, excludes reference dirs like CaseStudies),
-               "all" (includes everything), "reference" (only reference dirs)
+               "all" (includes everything), "reference" (only reference dirs),
+               "knowledge" (only PLUGIN_OVERVIEW.md docs)
     """
     start_time = time.time()
 
@@ -762,7 +780,7 @@ def _action_query(
 
     # Validate scope
     scope = (scope or "project").lower()
-    if scope not in ("project", "all", "reference"):
+    if scope not in ("project", "all", "reference", "knowledge"):
         scope = "project"
 
     # Clamp top_k - fetch extra if filtering by scope
@@ -1682,7 +1700,7 @@ def k_rag(
         strategy: Search strategy for query_agentic/query_interactive (auto|keyword|semantic|hybrid|reranked|multi|reflective)
         bm25_weight: BM25 weight for hybrid search (0-1, default 0.3)
         variations: Number of query variations for query_multi
-        scope: Search scope - "project" (default, excludes reference dirs), "all" (everything), "reference" (only CaseStudies/REPOS)
+        scope: Search scope - "project" (default, excludes reference dirs), "all" (everything), "reference" (only CaseStudies/REPOS), "knowledge" (only PLUGIN_OVERVIEW.md docs)
 
     Returns:
         {ok, ...} response dict
@@ -1790,9 +1808,9 @@ def register_rag_tools(registry: "ToolRegistry") -> None:
                 },
                 "scope": {
                     "type": "string",
-                    "enum": ["project", "all", "reference"],
+                    "enum": ["project", "all", "reference", "knowledge"],
                     "default": "project",
-                    "description": "Search scope: 'project' (default, excludes CaseStudies/REPOS), 'all' (everything), 'reference' (only CaseStudies/REPOS)",
+                    "description": "Search scope: 'project' (default, excludes CaseStudies/REPOS), 'all' (everything), 'reference' (only CaseStudies/REPOS), 'knowledge' (only PLUGIN_OVERVIEW.md docs across all SOTS plugins)",
                 },
             },
             "required": ["action"],

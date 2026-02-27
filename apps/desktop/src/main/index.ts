@@ -643,6 +643,47 @@ function setupPtyIpcHandlersDaemon(): void {
       }
     }
 
+    // Windows ConPTY cannot execute .cmd shim files directly.
+    // Wrap npm-global CLI commands in cmd /c (same as embedded PtyManager).
+    const npmGlobalCommands = ['kiro', 'kuroryuu', 'copilot', 'claude', 'codex', 'aider'];
+    const needsShellWrapper = options.cmd &&
+      npmGlobalCommands.some(c => options.cmd!.toLowerCase().includes(c));
+
+    if (needsShellWrapper && process.platform === 'win32') {
+      const originalCmd = options.cmd!;
+      const originalArgs = [...(options.args || [])];
+      const cwd = options.cwd || '';
+
+      // Convert absolute @file paths to relative (simpler for cmd.exe)
+      const cwdNormalized = cwd.replace(/\\/g, '/').toLowerCase();
+      const simplifiedArgs = originalArgs.map(arg => {
+        if (arg.startsWith('@')) {
+          const pathPart = arg.slice(1);
+          const pathNormalized = pathPart.replace(/\\/g, '/').toLowerCase();
+          if (pathNormalized.startsWith(cwdNormalized) && cwdNormalized) {
+            let relativePath = pathPart.slice(cwd.length);
+            if (relativePath.startsWith('/') || relativePath.startsWith('\\')) {
+              relativePath = relativePath.slice(1);
+            }
+            return `@${relativePath.replace(/\\/g, '/')}`;
+          }
+        }
+        return arg;
+      });
+
+      // Quote args with special cmd.exe characters
+      const quotedArgs = simplifiedArgs.map(arg => {
+        if (arg.includes('@') || arg.includes(' ') || arg.includes('"')) {
+          return `"${arg.replace(/"/g, '""')}"`;
+        }
+        return arg;
+      });
+
+      options.cmd = 'cmd';
+      options.args = ['/c', originalCmd, ...quotedArgs];
+      mainLogger.log('PTY-IPC', 'Wrapped npm CLI for Windows ConPTY', { originalCmd, wrapped: { cmd: options.cmd, args: options.args } });
+    }
+
     // === Pre-spawn leader detection ===
     // Extract agent identity from env vars (renderer passes these)
     const agentId = options.ownerAgentId || options.env?.KURORYUU_AGENT_ID;
