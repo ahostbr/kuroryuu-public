@@ -84,7 +84,30 @@ export default defineConfig({
         input: { index: resolve(__dirname, 'src/renderer/index.html') }
       }
     },
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'excalidraw-fonts',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (req.url?.startsWith('/fonts/')) {
+              const fontPath = resolve(
+                __dirname,
+                'node_modules/@excalidraw/excalidraw/dist/prod',
+                req.url.slice(1)
+              );
+              if (existsSync(fontPath)) {
+                res.setHeader('Content-Type', 'font/woff2');
+                res.setHeader('Access-Control-Allow-Origin', '*');
+                res.end(readFileSync(fontPath));
+                return;
+              }
+            }
+            next();
+          });
+        }
+      }
+    ],
     resolve: {
       alias: { '@': resolve(__dirname, 'src/renderer') }
     }
