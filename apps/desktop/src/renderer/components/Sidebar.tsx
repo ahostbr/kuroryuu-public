@@ -31,6 +31,7 @@ import {
   Megaphone,
   PenTool,
   Info,
+  NotebookPen,
 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settings-store';
 import { useIsThemedStyle } from '../hooks/useTheme';
@@ -82,7 +83,8 @@ export type View =
   | 'scheduler'
   | 'llm-apps'
   | 'marketing'
-  | 'excalidraw';
+  | 'excalidraw'
+  | 'litenotion';
 
 interface SidebarProps {
   activeView: View;
@@ -129,6 +131,7 @@ const navGroups: NavGroup[] = [
       { id: 'llm-apps', label: 'LLM Apps', icon: Layers, shortcut: 'X' },
       { id: 'terminals', label: 'Terminals', icon: TerminalSquare, shortcut: 'T' },
       { id: 'excalidraw', label: 'Excalidraw', icon: PenTool, shortcut: 'V' },
+      { id: 'litenotion', label: 'LiteNotion', icon: NotebookPen, shortcut: 'Q' },
     ],
   },
   {

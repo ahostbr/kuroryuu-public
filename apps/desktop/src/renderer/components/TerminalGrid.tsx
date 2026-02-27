@@ -24,6 +24,7 @@ import { buildCliConfig as buildCliConfigFromAgent, getTerminalCwd as resolveTer
 import { fileLogger } from '../utils/file-logger';
 import { toast } from './ui/toast';
 import { useKuroryuuDialog } from '../hooks/useKuroryuuDialog';
+import { useDragOverlay } from '../hooks/useDragOverlay';
 
 // Kuroryuu theme styling applied - v2
 // Leader message hook - uses WebSocket for notifications, claims from inbox for content
@@ -228,6 +229,9 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
 
   // Dialog hook for confirmations
   const { confirmDestructive } = useKuroryuuDialog();
+
+  // Drag overlay prevents xterm canvas from stealing mouse events during drag
+  const { activate: showOverlay, deactivate: hideOverlay } = useDragOverlay();
 
   // Recording state for header indicator
   const isRecording = useCaptureStore((s) => s.isRecording);
@@ -2014,6 +2018,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
     bringToFront(termId);
     setIsDraggingWindow(true);
     setDraggingWindowId(termId);
+    showOverlay('move');
     const startX = e.clientX;
     const startY = e.clientY;
     const state = windowStates[termId] || getDefaultWindowState(termId, 0);
@@ -2029,6 +2034,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
       setActiveDropZone(zone);
     };
     const onUp = (upE: MouseEvent) => {
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
 
@@ -2045,13 +2051,15 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [windowStates, updateWindowState, bringToFront, detectDropZone, applyDropZone]);
+  }, [windowStates, updateWindowState, bringToFront, detectDropZone, applyDropZone, showOverlay, hideOverlay]);
 
   // Window mode resize handler
   const handleWindowResize = useCallback((e: React.MouseEvent, termId: string, direction: string) => {
     e.preventDefault();
     e.stopPropagation();
     bringToFront(termId);
+    const cursor = direction === 'se' ? 'nwse-resize' : direction.includes('e') || direction.includes('w') ? 'ew-resize' : 'ns-resize';
+    showOverlay(cursor);
     const startX = e.clientX;
     const startY = e.clientY;
     const state = windowStates[termId] || getDefaultWindowState(termId, 0);
@@ -2069,12 +2077,13 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
       updateWindowState(termId, updates);
     };
     const onUp = () => {
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [windowStates, updateWindowState, bringToFront]);
+  }, [windowStates, updateWindowState, bringToFront, showOverlay, hideOverlay]);
 
   // Splitter mode resize handler (horizontal - drag to adjust widths)
   const handleSplitterResize = useCallback((e: React.MouseEvent, splitIndex: number) => {
@@ -2082,6 +2091,7 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
     const container = e.currentTarget.parentElement;
     if (!container) return;
 
+    showOverlay('col-resize');
     const startX = e.clientX;
     const totalWidth = container.clientWidth;
     const initialSizes = splitterSizes.length === terminals.length
@@ -2099,12 +2109,13 @@ export function TerminalGrid({ maxTerminals = 12, projectRoot = '' }: TerminalGr
       setSplitterSizes(newSizes);
     };
     const onUp = () => {
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [splitterSizes, terminals.length]);
+  }, [splitterSizes, terminals.length, showOverlay, hideOverlay]);
 
   // NOTE: We render ALL terminals always to preserve xterm instances.
   // Non-expanded terminals are hidden with CSS (display:none) not filtered out.

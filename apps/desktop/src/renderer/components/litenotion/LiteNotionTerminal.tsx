@@ -1,18 +1,14 @@
 import { useRef, useState } from 'react';
 import { Play } from 'lucide-react';
-import { useExcalidrawStore } from '../../stores/excalidraw-store';
+import { useLiteNotionStore } from '../../stores/litenotion-store';
 import { Terminal } from '../Terminal';
 
 /**
- * ExcalidrawTerminal — Lazy-starts a PowerShell terminal for Excalidraw work.
- *
- * - Fresh visit (no ptyId): shows "Start Terminal" button
- * - Click button: spawns PTY, shows "Spawning..." while waiting
- * - ptyId arrives: renders Terminal (reconnects on return visits)
+ * LiteNotionTerminal — Lazy-starts a PowerShell terminal for LiteNotion work.
  */
-export function ExcalidrawTerminal() {
-  const terminalPtyId = useExcalidrawStore((s) => s.terminalPtyId);
-  const setTerminalPtyId = useExcalidrawStore((s) => s.setTerminalPtyId);
+export function LiteNotionTerminal() {
+  const terminalPtyId = useLiteNotionStore((s) => s.terminalPtyId);
+  const setTerminalPtyId = useLiteNotionStore((s) => s.setTerminalPtyId);
   const spawnedRef = useRef(false);
   const [spawning, setSpawning] = useState(false);
 
@@ -36,15 +32,15 @@ export function ExcalidrawTerminal() {
         cwd,
         cols: 120,
         rows: 30,
-        label: 'Excalidraw Shell',
+        label: 'LiteNotion Shell',
         cliType: 'shell',
       });
 
-      console.log('[Excalidraw] Shell spawned:', pty.id);
+      console.log('[LiteNotion] Shell spawned:', pty.id);
       setTerminalPtyId(pty.id);
       setSpawning(false);
     } catch (err) {
-      console.error('[Excalidraw] Failed to spawn shell:', err);
+      console.error('[LiteNotion] Failed to spawn shell:', err);
       spawnedRef.current = false;
       setSpawning(false);
     }
@@ -67,7 +63,7 @@ export function ExcalidrawTerminal() {
   if (!terminalPtyId) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-        Spawning Excalidraw Shell...
+        Spawning LiteNotion Shell...
       </div>
     );
   }
@@ -75,7 +71,7 @@ export function ExcalidrawTerminal() {
   return (
     <Terminal
       id={terminalPtyId}
-      terminalId={`excalidraw-${terminalPtyId}`}
+      terminalId={`litenotion-${terminalPtyId}`}
     />
   );
 }

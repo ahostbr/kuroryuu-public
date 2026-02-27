@@ -1,5 +1,5 @@
 import React from 'react';
-import { PanelLeftClose } from 'lucide-react';
+import { PanelLeftClose, PanelRightClose, PanelRightOpen } from 'lucide-react';
 import type { WorkspaceTool, WorkspaceState } from './types';
 
 interface WorkspaceNavProps {
@@ -11,10 +11,11 @@ export function WorkspaceNav({ tools, state }: WorkspaceNavProps) {
   const { activeTool, showToolPanel, setActiveTool, setShowToolPanel, setShowToolNav } = state;
 
   const handleNavClick = (id: string) => {
-    if (id === activeTool && showToolPanel) {
-      setShowToolPanel(false);
-    } else {
+    if (id !== activeTool) {
       setActiveTool(id);
+    }
+    // Always ensure tool panel is visible when clicking any icon
+    if (!showToolPanel) {
       setShowToolPanel(true);
     }
   };
@@ -61,9 +62,21 @@ export function WorkspaceNav({ tools, state }: WorkspaceNavProps) {
         </div>
       )}
 
-      {/* Collapse button */}
+      {/* Panel toggle button */}
       <div
         className={`w-12 h-10 flex items-center justify-center cursor-pointer border-t border-zinc-700 hover:bg-zinc-700/50 group ${bottomTools.length === 0 ? 'mt-auto' : ''}`}
+        onClick={() => setShowToolPanel(!showToolPanel)}
+        title={showToolPanel ? 'Collapse tool panel' : 'Expand tool panel'}
+      >
+        {showToolPanel
+          ? <PanelRightClose className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300" />
+          : <PanelRightOpen className="w-4 h-4 text-amber-500/70 group-hover:text-amber-400" />
+        }
+      </div>
+
+      {/* Collapse nav button */}
+      <div
+        className={`w-12 h-10 flex items-center justify-center cursor-pointer border-t border-zinc-700 hover:bg-zinc-700/50 group`}
         onClick={() => setShowToolNav(false)}
       >
         <PanelLeftClose className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300" />

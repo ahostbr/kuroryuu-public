@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import type { WorkspaceTool, WorkspaceState } from './types';
+import { useDragOverlay } from '../../../hooks/useDragOverlay';
 
 interface WorkspaceContentProps {
   tools: WorkspaceTool[];
@@ -16,6 +17,9 @@ function ToolPageRouter({ tools, activeId }: { tools: WorkspaceTool[]; activeId:
 export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', state }: WorkspaceContentProps) {
   const { activeTool, showToolPanel, splitRatio, setSplitRatio, layoutMode } = state;
 
+  // Drag overlay prevents xterm canvas from stealing mouse events during drag
+  const { activate: showOverlay, deactivate: hideOverlay } = useDragOverlay();
+
   // Split view resize handle
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +30,7 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
     const startX = e.clientX;
     const totalWidth = container.clientWidth;
     const initialRatio = splitRatio;
+    showOverlay('col-resize');
 
     const onMove = (moveE: MouseEvent) => {
       const dx = moveE.clientX - startX;
@@ -33,12 +38,13 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
       setSplitRatio(initialRatio + deltaPercent);
     };
     const onUp = () => {
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [splitRatio, setSplitRatio]);
+  }, [splitRatio, setSplitRatio, showOverlay, hideOverlay]);
 
   // Terminal window state (drag + resize)
   const [win, setWin] = useState({ x: 20, y: 20, width: 700, height: 450 });
@@ -48,6 +54,7 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
   const handleDrag = useCallback((e: React.MouseEvent) => {
     if (!(e.target as HTMLElement).closest('.window-drag-handle')) return;
     e.preventDefault();
+    showOverlay('move');
     const startX = e.clientX, startY = e.clientY;
     const start = { ...win };
     const onMove = (me: MouseEvent) => {
@@ -58,17 +65,20 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
       }));
     };
     const onUp = () => {
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [win]);
+  }, [win, showOverlay, hideOverlay]);
 
   const handleWindowResize = useCallback((e: React.MouseEvent, dir: string) => {
     e.preventDefault();
     e.stopPropagation();
     setResizing(true);
+    const cursor = dir === 'se' ? 'nwse-resize' : dir.includes('e') ? 'ew-resize' : 'ns-resize';
+    showOverlay(cursor);
     const startX = e.clientX, startY = e.clientY;
     const start = { ...win };
     const onMove = (me: MouseEvent) => {
@@ -81,12 +91,13 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
     };
     const onUp = () => {
       setResizing(false);
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [win]);
+  }, [win, showOverlay, hideOverlay]);
 
   // Tool window state (for window mode)
   const [toolWin, setToolWin] = useState({ x: 740, y: 20, width: 600, height: 450 });
@@ -95,6 +106,7 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
   const handleToolDrag = useCallback((e: React.MouseEvent) => {
     if (!(e.target as HTMLElement).closest('.tool-window-drag-handle')) return;
     e.preventDefault();
+    showOverlay('move');
     const startX = e.clientX, startY = e.clientY;
     const start = { ...toolWin };
     const onMove = (me: MouseEvent) => {
@@ -105,17 +117,20 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
       }));
     };
     const onUp = () => {
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [toolWin]);
+  }, [toolWin, showOverlay, hideOverlay]);
 
   const handleToolWindowResize = useCallback((e: React.MouseEvent, dir: string) => {
     e.preventDefault();
     e.stopPropagation();
     setToolResizing(true);
+    const cursor = dir === 'se' ? 'nwse-resize' : dir.includes('e') ? 'ew-resize' : 'ns-resize';
+    showOverlay(cursor);
     const startX = e.clientX, startY = e.clientY;
     const start = { ...toolWin };
     const onMove = (me: MouseEvent) => {
@@ -128,12 +143,13 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
     };
     const onUp = () => {
       setToolResizing(false);
+      hideOverlay();
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
     };
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
-  }, [toolWin]);
+  }, [toolWin, showOverlay, hideOverlay]);
 
   // Terminal refit hack (padding nudge)
   useEffect(() => {
@@ -158,8 +174,8 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
         {/* Terminal (left) — takes full width when tool panel collapsed */}
         <div
           ref={termWrapperRef}
-          style={{ width: showToolPanel ? `${100 - splitRatio}%` : '100%' }}
-          className="h-full min-w-0 overflow-hidden transition-[width] duration-150"
+          style={{ flex: showToolPanel ? `0 0 ${100 - splitRatio}%` : '1 1 100%' }}
+          className="h-full min-w-0 overflow-hidden transition-[flex] duration-150"
         >
           <div className="h-full rounded-lg border border-zinc-700 overflow-hidden flex flex-col">
             <div className="flex-shrink-0 flex items-center px-3 py-1.5 bg-zinc-800 border-b border-zinc-700">
@@ -185,7 +201,7 @@ export function WorkspaceContent({ tools, terminal, terminalTitle = 'Terminal', 
               </div>
             </div>
 
-            <div style={{ width: `${splitRatio}%` }} className="h-full min-w-0 overflow-hidden">
+            <div style={{ flex: `0 0 ${splitRatio}%` }} className="h-full min-w-0 overflow-auto border-l border-zinc-700">
               <ToolPageRouter tools={tools} activeId={activeTool} />
             </div>
           </>
