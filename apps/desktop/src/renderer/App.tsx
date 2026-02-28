@@ -33,7 +33,6 @@ import { SchedulerPanel } from './components/scheduler';  // Job scheduler
 import { MarketingPanel } from './components/marketing';  // Marketing workflow
 import { LLMAppsPanel } from './components/llm-apps';  // LLM Apps catalog browser
 import { ExcalidrawPanel } from './components/excalidraw';  // Excalidraw diagramming
-import { LiteNotionPanel } from './components/litenotion';  // LiteNotion workspace (terminal + tools split)
 // BackupManagerPage opened as dialog from IntegrationsDialog
 import { RichVizPopupLayer } from './components/RichVizPopupLayer';  // Rich tool visualization popups
 import {
@@ -114,7 +113,6 @@ export function App() {
   const [terminalMounted, setTerminalMounted] = useState(false);
   const [marketingMounted, setMarketingMounted] = useState(false);
   const [excalidrawMounted, setExcalidrawMounted] = useState(false);
-  const [litenotionMounted, setLitenotionMounted] = useState(false);
   const [showInspector, setShowInspector] = useState(false);
 
 
@@ -389,10 +387,7 @@ export function App() {
     if (activeView === 'excalidraw' && !excalidrawMounted) {
       setExcalidrawMounted(true);
     }
-    if (activeView === 'litenotion' && !litenotionMounted) {
-      setLitenotionMounted(true);
-    }
-  }, [activeView, terminalMounted, marketingMounted, excalidrawMounted, litenotionMounted]);
+  }, [activeView, terminalMounted, marketingMounted, excalidrawMounted]);
 
   return (
     <ErrorBoundary>
@@ -484,12 +479,6 @@ export function App() {
                   </div>
                 )}
 
-                {/* LiteNotion - Terminal + tools split workspace (keep mounted) */}
-                {litenotionMounted && (
-                  <div className={`absolute inset-0 ${activeView === 'litenotion' ? '' : 'hidden pointer-events-none'}`}>
-                    <LiteNotionPanel />
-                  </div>
-                )}
 
               </ErrorBoundary>
             </main>
