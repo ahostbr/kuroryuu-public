@@ -265,6 +265,57 @@ class ClaudeTeamsWatcher {
     return { ok: true };
   }
 
+  /**
+   * Force-remove a member from a team's config.json and delete their inbox.
+   * This is config surgery only — no OS process killing.
+   */
+  async removeMemberFromConfig(
+    teamName: string,
+    memberName: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    // Input validation (path traversal prevention)
+    if (!teamName || teamName.includes('/') || teamName.includes('\\') || teamName.includes('..')) {
+      return { ok: false, error: `Invalid team name: ${teamName}` };
+    }
+    if (!memberName || memberName.includes('/') || memberName.includes('\\') || memberName.includes('..')) {
+      return { ok: false, error: `Invalid member name: ${memberName}` };
+    }
+
+    const configPath = path.join(TEAMS_DIR, teamName, 'config.json');
+
+    try {
+      // Read current config
+      const raw = await readFile(configPath, 'utf-8');
+      const config = JSON.parse(raw) as TeamConfig;
+
+      // Filter out the member
+      const originalCount = config.members.length;
+      config.members = config.members.filter((m) => m.name !== memberName);
+
+      if (config.members.length === originalCount) {
+        return { ok: false, error: `Member "${memberName}" not found in team "${teamName}"` };
+      }
+
+      // Atomic write: write to .tmp then rename
+      const tmpPath = configPath + '.tmp';
+      await fs.promises.writeFile(tmpPath, JSON.stringify(config, null, 2), 'utf-8');
+      await fs.promises.rename(tmpPath, configPath);
+
+      // Delete inbox file (best-effort)
+      const inboxPath = path.join(TEAMS_DIR, teamName, 'inboxes', `${memberName}.json`);
+      try {
+        await fs.promises.unlink(inboxPath);
+      } catch {
+        // Inbox may not exist — that's fine
+      }
+
+      console.log(`[ClaudeTeamsWatcher] Force-removed member "${memberName}" from team "${teamName}"`);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: `Failed to remove member: ${(err as Error).message}` };
+    }
+  }
+
   // -------------------------------------------------------------------------
   // Staleness detection
   // -------------------------------------------------------------------------

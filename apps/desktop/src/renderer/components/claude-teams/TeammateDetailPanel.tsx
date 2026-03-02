@@ -398,6 +398,7 @@ export function TeammateDetailPanel() {
                 memberName={member.name}
                 isLead={isLead}
                 planModeRequired={member.planModeRequired}
+                isUnresponsive={teammateHealth[member.name]?.isUnresponsive ?? false}
               />
             </div>
           </div>

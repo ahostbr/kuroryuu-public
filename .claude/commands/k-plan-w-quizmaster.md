@@ -1,6 +1,6 @@
 ---
-description: Plan with quizmaster validation - uses AskUserQuestion to thoroughly understand requirements before planning. Variants: v4 (default), full, small.
-argument-hint: "[user request]" "[variant: v4|full|small]"
+description: Plan with quizmaster validation - uses AskUserQuestion to thoroughly understand requirements before planning. Variants: v4 (default), full, small. v5
+argument-hint: "[user request]" "[variant: v4|full|small|v5]"
 model: opus
 disallowed-tools: Task, EnterPlanMode
 hooks:
@@ -30,7 +30,7 @@ Plan with **Ultimate Quizzer** methodology - thoroughly understand requirements 
 | Variable | Source | Description |
 |----------|--------|-------------|
 | USER_PROMPT | $1 | The user's request to plan |
-| VARIANT | $2 | Prompt variant: v4 (default), full, small |
+| VARIANT | $2 | Prompt variant: v4 (default), full, small,v5 |
 | PLAN_OUTPUT | Docs/Plans/ | Output directory |
 
 ## Prompt Variants
@@ -40,6 +40,7 @@ Plan with **Ultimate Quizzer** methodology - thoroughly understand requirements 
 | **v4** (default) | `ULTIMATE_QUIZZER_PROMPT_v4.md` | Visual coverage maps, quality metrics, assumption gate, retrospective |
 | **full** | `ULTIMATE_QUIZZER PROMPT_full.md` | Elaborated 10-domain context sweep |
 | **small** | `ULTIMATE_QUIZZER_PROMPT_small.md` | Lightweight, faster questioning |
+| **v5** | `ULTIMATE_QUIZZER_PROMPT_v5` | Self Evaluating Ever Evolving, Meta Planner. |
 
 ## Quizmaster Methodology
 

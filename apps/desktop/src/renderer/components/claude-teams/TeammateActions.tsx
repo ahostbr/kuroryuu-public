@@ -3,7 +3,7 @@
  * Send messages, request shutdown, and view plan mode status.
  */
 import { useState, useCallback } from 'react';
-import { Send, Power, Eye } from 'lucide-react';
+import { Send, Power, Eye, Skull } from 'lucide-react';
 import { useClaudeTeamsStore } from '../../stores/claude-teams-store';
 
 interface TeammateActionsProps {
@@ -11,11 +11,13 @@ interface TeammateActionsProps {
   memberName: string;
   isLead: boolean;
   planModeRequired?: boolean;
+  isUnresponsive?: boolean;
 }
 
-export function TeammateActions({ teamName, memberName, isLead, planModeRequired }: TeammateActionsProps) {
+export function TeammateActions({ teamName, memberName, isLead, planModeRequired, isUnresponsive }: TeammateActionsProps) {
   const messageTeammate = useClaudeTeamsStore((s) => s.messageTeammate);
   const shutdownTeammate = useClaudeTeamsStore((s) => s.shutdownTeammate);
+  const forceKillMember = useClaudeTeamsStore((s) => s.forceKillMember);
 
   // Message form state
   const [showMessageForm, setShowMessageForm] = useState(false);
@@ -27,6 +29,11 @@ export function TeammateActions({ teamName, memberName, isLead, planModeRequired
   const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
   const [shutdownSending, setShutdownSending] = useState(false);
   const [shutdownResult, setShutdownResult] = useState<'success' | 'error' | null>(null);
+
+  // Force kill state
+  const [showForceKillConfirm, setShowForceKillConfirm] = useState(false);
+  const [forceKillSending, setForceKillSending] = useState(false);
+  const [forceKillResult, setForceKillResult] = useState<'success' | 'error' | null>(null);
 
   const clearFeedback = useCallback((setter: (v: 'success' | 'error' | null) => void) => {
     setTimeout(() => setter(null), 3000);
@@ -50,6 +57,16 @@ export function TeammateActions({ teamName, memberName, isLead, planModeRequired
     }
     clearFeedback(setMessageResult);
   }, [messageText, teamName, memberName, messageTeammate, clearFeedback]);
+
+  const handleForceKill = useCallback(async () => {
+    setForceKillSending(true);
+    setForceKillResult(null);
+    const ok = await forceKillMember({ teamName, memberName });
+    setForceKillSending(false);
+    setForceKillResult(ok ? 'success' : 'error');
+    setShowForceKillConfirm(false);
+    clearFeedback(setForceKillResult);
+  }, [teamName, memberName, forceKillMember, clearFeedback]);
 
   const handleShutdown = useCallback(async () => {
     setShutdownSending(true);
@@ -180,6 +197,63 @@ export function TeammateActions({ teamName, memberName, isLead, planModeRequired
         }`}>
           {shutdownResult === 'success' ? 'Shutdown requested' : 'Failed to request shutdown'}
         </div>
+      )}
+
+      {/* Force Kill (only visible when unresponsive) */}
+      {isUnresponsive && !isLead && (
+        <>
+          {!showForceKillConfirm ? (
+            <button
+              onClick={() => setShowForceKillConfirm(true)}
+              disabled={forceKillSending}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs rounded
+                bg-red-950 border border-red-800 text-red-400
+                hover:bg-red-900/60 hover:border-red-600 hover:text-red-300
+                disabled:opacity-40 disabled:cursor-not-allowed
+                transition-colors"
+            >
+              <Skull className="w-3.5 h-3.5" />
+              Force Kill
+              <span className="ml-auto text-[9px] uppercase tracking-wider text-red-600 font-bold">Last Resort</span>
+            </button>
+          ) : (
+            <div className="rounded border border-red-700 bg-red-950/60 p-2 space-y-2">
+              <p className="text-xs text-red-300">
+                This will remove <span className="font-bold">{memberName}</span> from the team config and delete their inbox.
+                The agent process may still be running but will have no effect.
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleForceKill}
+                  disabled={forceKillSending}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded
+                    bg-red-700 text-white hover:bg-red-600
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    transition-colors"
+                >
+                  <Skull className="w-3 h-3" />
+                  {forceKillSending ? 'Removing...' : 'Confirm Force Kill'}
+                </button>
+                <button
+                  onClick={() => setShowForceKillConfirm(false)}
+                  className="px-3 py-1.5 text-xs rounded text-gray-400 hover:text-gray-200 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {forceKillResult && (
+            <div className={`text-[11px] px-2 py-1 rounded ${
+              forceKillResult === 'success'
+                ? 'text-green-400 bg-green-900/30'
+                : 'text-red-400 bg-red-900/30'
+            }`}>
+              {forceKillResult === 'success' ? 'Member force-killed' : 'Failed to force kill member'}
+            </div>
+          )}
+        </>
       )}
 
       {/* View Plan */}

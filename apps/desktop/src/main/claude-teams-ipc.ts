@@ -401,6 +401,74 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
   );
 
   // -----------------------------------------------------------------------
+  // Force kill (config surgery — bypasses cooperative shutdown)
+  // -----------------------------------------------------------------------
+
+  ipcMain.handle(
+    'claude-teams:force-kill-member',
+    async (_event, params: { teamName: string; memberName: string }) => {
+      if (!params.teamName || !params.memberName) {
+        return { ok: false, error: 'teamName and memberName are required' };
+      }
+      try {
+        return await claudeTeamsWatcher.removeMemberFromConfig(params.teamName, params.memberName);
+      } catch (err) {
+        console.error('[ClaudeTeamsIPC] Force kill member failed:', err);
+        return { ok: false, error: String(err) };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    'claude-teams:force-kill-all',
+    async (_event, params: { teamName: string; leadAgentId: string }) => {
+      if (!params.teamName || !params.leadAgentId) {
+        return { ok: false, error: 'teamName and leadAgentId are required' };
+      }
+      try {
+        const configPath = path.join(TEAMS_DIR, params.teamName, 'config.json');
+        const raw = await readFile(configPath, 'utf-8');
+        const config = JSON.parse(raw);
+
+        if (!config.members || !Array.isArray(config.members)) {
+          return { ok: false, error: 'Invalid config: no members array' };
+        }
+
+        // Keep only the lead member
+        const nonLeadMembers = config.members.filter(
+          (m: { agentId: string; name: string }) => m.agentId !== params.leadAgentId
+        );
+        config.members = config.members.filter(
+          (m: { agentId: string }) => m.agentId === params.leadAgentId
+        );
+
+        // Atomic write
+        const tmpPath = configPath + '.tmp';
+        await writeFileAsync(tmpPath, JSON.stringify(config, null, 2), 'utf-8');
+        const fs = await import('fs');
+        await fs.promises.rename(tmpPath, configPath);
+
+        // Delete non-lead inboxes (best-effort)
+        const inboxDir = path.join(TEAMS_DIR, params.teamName, 'inboxes');
+        for (const member of nonLeadMembers) {
+          try {
+            const inboxPath = path.join(inboxDir, `${member.name}.json`);
+            await fs.promises.unlink(inboxPath);
+          } catch {
+            // Inbox may not exist
+          }
+        }
+
+        console.log(`[ClaudeTeamsIPC] Force killed ${nonLeadMembers.length} members from team "${params.teamName}"`);
+        return { ok: true };
+      } catch (err) {
+        console.error('[ClaudeTeamsIPC] Force kill all failed:', err);
+        return { ok: false, error: String(err) };
+      }
+    },
+  );
+
+  // -----------------------------------------------------------------------
   // Direct team cleanup (reliable, replaces fire-and-forget CLI)
   // -----------------------------------------------------------------------
 
@@ -747,6 +815,8 @@ export function cleanupClaudeTeamsIpc(): void {
     'claude-teams:message-teammate',
     'claude-teams:shutdown-teammate',
     'claude-teams:cleanup-team',
+    'claude-teams:force-kill-member',
+    'claude-teams:force-kill-all',
     'claude-teams:mark-inbox-read',
     'claude-teams:archive-session',
     'claude-teams:list-archives',

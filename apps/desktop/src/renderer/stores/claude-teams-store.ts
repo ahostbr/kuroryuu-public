@@ -705,6 +705,37 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
     return allOk;
   },
 
+  forceKillMember: async (params) => {
+    try {
+      const result = await window.electronAPI?.claudeTeams?.forceKillMember?.(params);
+      if (result && !result.ok) {
+        console.error('[ClaudeTeamsStore] forceKillMember failed:', result.error);
+      }
+      return result?.ok ?? false;
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] forceKillMember error:', err);
+      return false;
+    }
+  },
+
+  forceKillAll: async (teamName) => {
+    const { selectedTeam } = get();
+    if (!selectedTeam || selectedTeam.config.name !== teamName) return false;
+    try {
+      const result = await window.electronAPI?.claudeTeams?.forceKillAll?.({
+        teamName,
+        leadAgentId: selectedTeam.config.leadAgentId,
+      });
+      if (result && !result.ok) {
+        console.error('[ClaudeTeamsStore] forceKillAll failed:', result.error);
+      }
+      return result?.ok ?? false;
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] forceKillAll error:', err);
+      return false;
+    }
+  },
+
   broadcastToTeammates: async (teamName, content) => {
     const { selectedTeam, messageTeammate } = get();
     if (!selectedTeam || selectedTeam.config.name !== teamName) return false;

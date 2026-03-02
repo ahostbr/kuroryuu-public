@@ -244,6 +244,16 @@ export interface CleanupTeamParams {
   teamName: string;
 }
 
+export interface ForceKillMemberParams {
+  teamName: string;
+  memberName: string;
+}
+
+export interface ForceKillAllParams {
+  teamName: string;
+  leadAgentId: string;
+}
+
 // ============================================================================
 // ZUSTAND STORE INTERFACE
 // ============================================================================
@@ -313,6 +323,10 @@ export interface ClaudeTeamsState {
   // Actions - bulk operations
   shutdownAllTeammates: (teamName: string) => Promise<boolean>;
   broadcastToTeammates: (teamName: string, content: string) => Promise<boolean>;
+
+  // Actions - force kill (config surgery, bypasses cooperative shutdown)
+  forceKillMember: (params: ForceKillMemberParams) => Promise<boolean>;
+  forceKillAll: (teamName: string) => Promise<boolean>;
 }
 
 // ============================================================================

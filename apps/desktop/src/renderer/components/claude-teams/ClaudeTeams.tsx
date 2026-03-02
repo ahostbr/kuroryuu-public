@@ -18,6 +18,7 @@ import {
   Loader2,
   Archive,
   Power,
+  Skull,
   Megaphone,
   Send,
   X,
@@ -69,15 +70,30 @@ export function ClaudeTeams() {
   const teammateHealth = useClaudeTeamsStore((s) => s.teammateHealth);
   const shutdownAllTeammates = useClaudeTeamsStore((s) => s.shutdownAllTeammates);
   const broadcastToTeammates = useClaudeTeamsStore((s) => s.broadcastToTeammates);
+  const forceKillAll = useClaudeTeamsStore((s) => s.forceKillAll);
 
   const [showShutdownConfirm, setShowShutdownConfirm] = useState(false);
   const [showBroadcastInput, setShowBroadcastInput] = useState(false);
   const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [showForceKillAllConfirm, setShowForceKillAllConfirm] = useState(false);
+
+  // Derive whether any non-lead members are unresponsive
+  const hasUnresponsiveMembers = selectedTeam
+    ? selectedTeam.config.members.some(
+        (m) => m.agentId !== selectedTeam.config.leadAgentId && teammateHealth[m.name]?.isUnresponsive
+      )
+    : false;
 
   const handleShutdownAll = async () => {
     if (!selectedTeam) return;
     await shutdownAllTeammates(selectedTeam.config.name);
     setShowShutdownConfirm(false);
+  };
+
+  const handleForceKillAll = async () => {
+    if (!selectedTeam) return;
+    await forceKillAll(selectedTeam.config.name);
+    setShowForceKillAllConfirm(false);
   };
 
   const handleBroadcast = async () => {
@@ -297,6 +313,39 @@ export function ClaudeTeams() {
                 Cancel
               </button>
             </div>
+          )}
+
+          {/* Force Kill Stuck (only visible when unresponsive members exist) */}
+          {hasUnresponsiveMembers && (
+            <>
+              <span className="text-border">|</span>
+              {!showForceKillAllConfirm ? (
+                <button
+                  onClick={() => setShowForceKillAllConfirm(true)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-red-500 hover:bg-red-500/10 transition-colors"
+                  title="Force kill all unresponsive members"
+                >
+                  <Skull className="w-3.5 h-3.5" />
+                  Force Kill Stuck
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-400">Remove all stuck members from config?</span>
+                  <button
+                    onClick={handleForceKillAll}
+                    className="px-2 py-0.5 rounded text-xs font-medium bg-red-600 text-white hover:bg-red-500 transition-colors"
+                  >
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setShowForceKillAllConfirm(false)}
+                    className="px-2 py-0.5 rounded text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           <span className="text-border">|</span>

@@ -2291,6 +2291,12 @@ const api = {
     /** Cleanup a team (convenience wrapper) */
     cleanupTeam: (params: { teamName: string }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('claude-teams:cleanup-team', params.teamName),
+    /** Force-remove a stuck member from team config (bypasses cooperative shutdown) */
+    forceKillMember: (params: { teamName: string; memberName: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:force-kill-member', params),
+    /** Force-remove all non-lead members from team config */
+    forceKillAll: (params: { teamName: string; leadAgentId: string }): Promise<{ ok: boolean; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:force-kill-all', params),
     /** Refresh data for a specific team */
     refreshTeam: (teamName: string): Promise<void> =>
       ipcRenderer.invoke('claude-teams:get-teams').then(() => { }),

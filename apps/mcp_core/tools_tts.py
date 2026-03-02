@@ -122,7 +122,7 @@ Requirements:
         return None
 
 
-def _speak_internal(text: str) -> bool:
+def _speak_internal(text: str, timeout: int = 60) -> bool:
     """Generate MP3 via edge-tts and play via PowerShell MediaPlayer.
 
     Acquires TTS queue lock, generates audio, plays, cleans up.
@@ -196,7 +196,7 @@ def _speak_internal(text: str) -> bool:
             subprocess.run(
                 ["powershell.exe", "-NoProfile", "-Command", ps_cmd],
                 capture_output=True,
-                timeout=60,
+                timeout=timeout,
             )
 
             logger.info(f"Spoke: {text[:80]}")
@@ -216,10 +216,10 @@ def _speak_internal(text: str) -> bool:
             tts_queue.release_tts_lock(agent_id)
 
 
-def _tts_thread(text: str) -> None:
+def _tts_thread(text: str, timeout: int = 60) -> None:
     """Background thread wrapper for _speak_internal."""
     try:
-        _speak_internal(text)
+        _speak_internal(text, timeout=timeout)
     except Exception as e:
         logger.error(f"TTS thread error: {e}")
 
@@ -228,7 +228,7 @@ def _tts_thread(text: str) -> None:
 # Action handlers
 # ============================================================================
 
-def _action_speak(text: str = "", wait: bool = False, **kwargs: Any) -> Dict[str, Any]:
+def _action_speak(text: str = "", wait: bool = False, timeout: int = 60, **kwargs: Any) -> Dict[str, Any]:
     """Speak text directly via Edge TTS."""
     if not text or not text.strip():
         return {
@@ -240,7 +240,7 @@ def _action_speak(text: str = "", wait: bool = False, **kwargs: Any) -> Dict[str
     text = text.strip()
 
     if wait:
-        success = _speak_internal(text)
+        success = _speak_internal(text, timeout=timeout)
         return {
             "ok": success,
             "action": "speak",
@@ -248,7 +248,7 @@ def _action_speak(text: str = "", wait: bool = False, **kwargs: Any) -> Dict[str
             "text": text[:100],
         }
     else:
-        t = threading.Thread(target=_tts_thread, args=(text,), daemon=True)
+        t = threading.Thread(target=_tts_thread, args=(text, timeout), daemon=True)
         t.start()
         return {
             "ok": True,
@@ -262,6 +262,7 @@ def _action_smart(
     text: str = "",
     context: str = "",
     wait: bool = False,
+    timeout: int = 60,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Generate AI summary of text, then speak it."""
@@ -286,7 +287,7 @@ def _action_smart(
         summary = fallback
 
     if wait:
-        success = _speak_internal(summary)
+        success = _speak_internal(summary, timeout=timeout)
         return {
             "ok": success,
             "action": "smart",
@@ -295,7 +296,7 @@ def _action_smart(
             "original": text[:100],
         }
     else:
-        t = threading.Thread(target=_tts_thread, args=(summary,), daemon=True)
+        t = threading.Thread(target=_tts_thread, args=(summary, timeout), daemon=True)
         t.start()
         return {
             "ok": True,
@@ -321,6 +322,7 @@ def k_tts(
     text: str = "",
     context: str = "",
     wait: bool = False,
+    timeout: int = 60,
     **kwargs: Any,
 ) -> Dict[str, Any]:
     """Kuroryuu Text-to-Speech — speak text aloud via Edge TTS.
@@ -334,6 +336,7 @@ def k_tts(
         text: Text to speak (required for both actions)
         context: Extra framing for smart summaries (optional)
         wait: If True, block until playback finishes (default False)
+        timeout: Playback timeout in seconds (default 60, increase for long text)
 
     Returns:
         {ok, action, message, ...} response dict
@@ -357,7 +360,7 @@ def k_tts(
             "details": {"available_actions": list(ACTION_HANDLERS.keys())},
         }
 
-    return handler(text=text, context=context, wait=wait, **kwargs)
+    return handler(text=text, context=context, wait=wait, timeout=timeout, **kwargs)
 
 
 # ============================================================================
@@ -390,6 +393,11 @@ def register_tts_tools(registry: "ToolRegistry") -> None:
                     "type": "boolean",
                     "default": False,
                     "description": "If true, block until playback finishes. Default: false (fire-and-forget)",
+                },
+                "timeout": {
+                    "type": "integer",
+                    "default": 60,
+                    "description": "Playback timeout in seconds. Increase for long text (e.g. 120-180). Default: 60",
                 },
             },
             "required": ["action", "text"],
