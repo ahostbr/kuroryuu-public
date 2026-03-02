@@ -2,9 +2,9 @@
   "schema": "kuroryuu_prompt_pack_index_v1",
   "name": "Pen Testers",
   "description": "Kuroryuu-native white-box pentest workflow prompts adapted from Shannon-style phase orchestration",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "created_at": "2026-02-08",
-  "updated_at": "2026-02-08",
+  "updated_at": "2026-03-01",
   "category": "pen_testers",
   "tool_profiles": {
     "pentest_analyze": {
@@ -61,6 +61,8 @@
     { "id": "exploit_auth", "name": "Auth Exploiter", "file": "exploit_auth.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "key-round", "color": "#DC2626" },
     { "id": "exploit_authz", "name": "AuthZ Exploiter", "file": "exploit_authz.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "key-round", "color": "#991B1B" },
     { "id": "exploit_ssrf", "name": "SSRF Exploiter", "file": "exploit_ssrf.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "link", "color": "#9333EA" },
+    { "id": "analyze_evasion", "name": "Evasion Analyzer", "file": "analyze_evasion.md", "category": "analysis", "tool_profile": "pentest_analyze", "icon": "eye-off", "color": "#6366F1" },
+    { "id": "exploit_evasion", "name": "Evasion Exploiter", "file": "exploit_evasion.md", "category": "exploit", "tool_profile": "pentest_exploit", "icon": "ghost", "color": "#4F46E5" },
     { "id": "report", "name": "Pentest Reporter", "file": "report.md", "category": "report", "tool_profile": "pentest_report", "icon": "file-text", "color": "#14B8A6" }
   ],
   "usage": {

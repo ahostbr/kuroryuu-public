@@ -38,7 +38,7 @@ All expected under:
 1. Executive Summary
 2. Scope and Method
 3. Attack Surface Summary
-4. Findings by Class (Injection, XSS, Auth, AuthZ, SSRF)
+4. Findings by Class (Injection, XSS, Auth, AuthZ, SSRF, Defense Evasion)
 5. Exploited Findings (with severity and evidence)
 6. Blocked Findings (controls that worked)
 7. Remediation Plan (ordered by risk and effort)
