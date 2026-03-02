@@ -78,13 +78,14 @@ export type RichCardType =
   | 'file-content'
   | 'session-state'  // Legacy alias
   | 'tool-output'
-  | 'askuserquestion';  // Interactive user input (k_askuserquestion)
+  | 'askuserquestion'  // Interactive user input (k_askuserquestion)
+  | 'excalidraw-diagram';  // Excalidraw SVG diagram (official MCP create_view)
 
 export interface RichCard {
   id: string;
   type: RichCardType;
   toolCallId: string;  // Links to parent ToolCall
-  data: RAGResultsData | FileTreeData | FileContentData | SymbolMapData | TerminalData | CheckpointData | SessionData | InboxData | MemoryData | CollectiveData | BashData | ProcessData | CaptureData | ThinkerData | HooksData | PCControlData | ToolSearchData | HelpData | GraphitiData | ToolOutputData | AskUserQuestionData;
+  data: RAGResultsData | FileTreeData | FileContentData | SymbolMapData | TerminalData | CheckpointData | SessionData | InboxData | MemoryData | CollectiveData | BashData | ProcessData | CaptureData | ThinkerData | HooksData | PCControlData | ToolSearchData | HelpData | GraphitiData | ToolOutputData | AskUserQuestionData | ExcalidrawDiagramData;
 }
 
 export interface RAGResultsData {
@@ -396,6 +397,13 @@ export interface GraphitiData {
   migrated?: number;
   failed?: number;
   error?: string;
+}
+
+// Excalidraw diagram data for official MCP create_view results
+export interface ExcalidrawDiagramData {
+  svgContent: string;
+  elements?: unknown[];
+  fileName?: string;
 }
 
 // Symbol map for k_repo_intel results

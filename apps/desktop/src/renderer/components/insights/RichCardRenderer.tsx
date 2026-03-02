@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * RichCardRenderer - Routes RichCard types to appropriate visualization components
  *
- * Supported card types (19 total):
+ * Supported card types (20 total):
  * - rag-results: RAGResultsCard (k_rag query results)
  * - file-tree: FileTreeCard (k_files results)
  * - symbol-map: SymbolMapCard (k_repo_intel results)
@@ -23,6 +23,7 @@ import React from 'react';
  * - help: HelpCard (k_help results)
  * - graphiti: GraphitiCard (k_graphiti_migrate results)
  * - askuserquestion: AskUserQuestionCard (k_askuserquestion interactive input)
+ * - excalidraw-diagram: ExcalidrawDiagramCard (official Excalidraw MCP create_view)
  * - tool-output: ToolOutputCard (generic tool output)
  */
 
@@ -49,6 +50,7 @@ import type {
   GraphitiData,
   ToolOutputData,
   AskUserQuestionData,
+  ExcalidrawDiagramData,
 } from '../../types/insights';
 import { RAGResultsCard } from './cards/RAGResultsCard';
 import { FileTreeCard } from './cards/FileTreeCard';
@@ -69,6 +71,7 @@ import { ToolSearchCard } from './cards/ToolSearchCard';
 import { HelpCard } from './cards/HelpCard';
 import { GraphitiCard } from './cards/GraphitiCard';
 import { AskUserQuestionCard } from './cards/AskUserQuestionCard';
+import { ExcalidrawDiagramCard } from './cards/ExcalidrawDiagramCard';
 import { FileCode, AlertCircle } from 'lucide-react';
 
 interface RichCardRendererProps {
@@ -217,6 +220,9 @@ export function RichCardRenderer({ card, collapsed = false }: RichCardRendererPr
 
     case 'askuserquestion':
       return <AskUserQuestionCard data={card.data as AskUserQuestionData} collapsed={collapsed} />;
+
+    case 'excalidraw-diagram':
+      return <ExcalidrawDiagramCard data={card.data as ExcalidrawDiagramData} collapsed={collapsed} />;
 
     case 'tool-output':
       return <ToolOutputCard data={card.data as ToolOutputData} />;

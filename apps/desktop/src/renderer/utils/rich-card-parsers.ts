@@ -41,6 +41,7 @@ import type {
   HelpData,
   HelpToolEntry,
   GraphitiData,
+  ExcalidrawDiagramData,
 } from '../types/insights';
 
 /**
@@ -929,6 +930,63 @@ export function parseGraphitiToRichCard(toolCallId: string, result: unknown): Ri
 }
 
 /**
+ * Parse Excalidraw MCP create_view tool result into RichCard format
+ */
+export function parseExcalidrawToRichCard(toolCallId: string, result: unknown): RichCard | null {
+  if (!result) return null;
+
+  let data: Record<string, unknown>;
+  if (typeof result === 'string') {
+    // create_view may return SVG directly as a string
+    if (result.trim().startsWith('<svg')) {
+      const diagramData: ExcalidrawDiagramData = {
+        svgContent: result,
+      };
+      return {
+        id: `rich-${toolCallId}`,
+        type: 'excalidraw-diagram',
+        toolCallId,
+        data: diagramData,
+      };
+    }
+    try {
+      const parsed = JSON.parse(result);
+      if (typeof parsed !== 'object' || parsed === null) return null;
+      data = parsed as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  } else if (typeof result === 'object') {
+    data = result as Record<string, unknown>;
+  } else {
+    return null;
+  }
+
+  // Extract SVG content from various possible response shapes
+  const svgContent = typeof data.svg === 'string' ? data.svg
+    : typeof data.svgContent === 'string' ? data.svgContent
+    : typeof data.content === 'string' && data.content.trim().startsWith('<svg') ? data.content
+    : null;
+
+  if (!svgContent) return null;
+
+  const diagramData: ExcalidrawDiagramData = {
+    svgContent,
+    elements: Array.isArray(data.elements) ? data.elements : undefined,
+    fileName: typeof data.fileName === 'string' ? data.fileName
+      : typeof data.name === 'string' ? data.name
+      : undefined,
+  };
+
+  return {
+    id: `rich-${toolCallId}`,
+    type: 'excalidraw-diagram',
+    toolCallId,
+    data: diagramData,
+  };
+}
+
+/**
  * Router function - parses tool result based on tool name
  * Returns null if the tool is not recognized or parsing fails
  */
@@ -1022,6 +1080,11 @@ export function parseToolResultToRichCard(toolName: string, toolCallId: string, 
   // k_graphiti_migrate
   if (normalizedName === 'k_graphiti_migrate' || normalizedName.includes('k_graphiti')) {
     return parseGraphitiToRichCard(toolCallId, result);
+  }
+
+  // Excalidraw MCP create_view
+  if (normalizedName === 'create_view' || normalizedName.includes('excalidraw')) {
+    return parseExcalidrawToRichCard(toolCallId, result);
   }
 
   return null;
