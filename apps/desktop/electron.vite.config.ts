@@ -109,7 +109,10 @@ export default defineConfig({
       }
     ],
     resolve: {
-      alias: { '@': resolve(__dirname, 'src/renderer') }
+      alias: {
+        '@': resolve(__dirname, 'src/renderer'),
+        '@excalidraw/excalidraw/index.css': resolve(__dirname, 'node_modules/@excalidraw/excalidraw/dist/prod/index.css')
+      }
     }
   }
 });
