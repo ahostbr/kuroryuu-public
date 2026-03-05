@@ -3,33 +3,60 @@ Centralized Path Utilities for Kuroryuu MCP Core
 
 Provides path-agnostic helpers that work regardless of where the repo is located.
 All paths are derived from either:
-1. KURORYUU_PROJECT_ROOT environment variable (set by desktop app on startup)
-2. __file__-based calculation (fallback for development)
+1. Project registry lookup (when project_id is provided)
+2. KURORYUU_PROJECT_ROOT environment variable (set by desktop app on startup)
+3. __file__-based calculation (fallback for development)
 
 Usage:
     from paths import get_project_root, get_ai_dir, get_hooks_dir
 
-    project = get_project_root()  # Returns Path object
-    ai = get_ai_dir()  # Returns Path to ai/ directory
+    project = get_project_root()  # Returns Path object (default/Kuroryuu)
+    ai = get_ai_dir(project_id="my-app")  # Returns Path to my-app's ai/ directory
 """
 
 import os
 from pathlib import Path
-from functools import lru_cache
+from typing import Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from project_registry import ProjectRegistry
+
+# Module-level registry reference (injected at startup via set_registry)
+_registry: Optional["ProjectRegistry"] = None
 
 
-@lru_cache(maxsize=1)
-def get_project_root() -> Path:
+def set_registry(registry: Optional["ProjectRegistry"]) -> None:
+    """Inject the project registry for project-aware path resolution."""
+    global _registry
+    _registry = registry
+
+
+def get_registry() -> Optional["ProjectRegistry"]:
+    """Get the current project registry instance."""
+    return _registry
+
+
+def _resolve_from_registry(project_id: str):
+    """Look up a project in the registry. Returns project dict or None."""
+    if _registry is None:
+        return None
+    return _registry.get(project_id)
+
+
+def get_project_root(project_id: Optional[str] = None) -> Path:
     """
     Get the project root directory.
 
     Priority:
-    1. KURORYUU_PROJECT_ROOT environment variable
-    2. Derive from __file__ location (mcp_core/ -> apps/ -> Kuroryuu)
-
-    Returns:
-        Path to project root directory
+    1. project_id lookup in registry (if provided)
+    2. KURORYUU_PROJECT_ROOT environment variable
+    3. Derive from __file__ location (mcp_core/ -> apps/ -> Kuroryuu)
     """
+    if project_id:
+        project = _resolve_from_registry(project_id)
+        if project:
+            return Path(project["root"])
+
     env_root = os.environ.get("KURORYUU_PROJECT_ROOT")
     if env_root:
         return Path(env_root).resolve()
@@ -38,44 +65,64 @@ def get_project_root() -> Path:
     return Path(__file__).resolve().parent.parent.parent
 
 
-def get_apps_dir() -> Path:
+def get_apps_dir(project_id: Optional[str] = None) -> Path:
     """Get the apps/ directory."""
-    return get_project_root() / "apps"
+    return get_project_root(project_id) / "apps"
 
 
-def get_ai_dir() -> Path:
-    """Get the ai/ directory."""
-    return get_project_root() / "ai"
+def get_ai_dir(project_id: Optional[str] = None) -> Path:
+    """Get the ai/ directory (lives in project root)."""
+    return get_project_root(project_id) / "ai"
 
 
-def get_hooks_dir() -> Path:
-    """Get the ai/hooks/ directory (alias for harness dir)."""
+def get_hooks_dir(project_id: Optional[str] = None) -> Path:
+    """Get the ai/hooks/ directory (alias for ai dir)."""
+    return get_ai_dir(project_id)
+
+
+def get_harness_dir(project_id: Optional[str] = None) -> Path:
+    """Get the harness directory.
+
+    When project_id is provided, returns the external harness path
+    (~/.kuroryuu/projects/{id}/). Otherwise returns the ai/ directory.
+    """
+    if project_id:
+        project = _resolve_from_registry(project_id)
+        if project:
+            return Path(project["harness"])
     return get_ai_dir()
 
 
-def get_harness_dir() -> Path:
-    """Get the ai/ directory (harness files location)."""
-    return get_ai_dir()
-
-
-def get_working_dir() -> Path:
+def get_working_dir(project_id: Optional[str] = None) -> Path:
     """Get the WORKING/ directory."""
+    if project_id:
+        project = _resolve_from_registry(project_id)
+        if project:
+            return Path(project["harness"])
     return get_project_root() / "WORKING"
 
 
-def get_checkpoints_dir() -> Path:
-    """Get the ai/checkpoints/ directory."""
+def get_checkpoints_dir(project_id: Optional[str] = None) -> Path:
+    """Get the checkpoints directory.
+
+    When project_id is provided, returns external harness checkpoints.
+    Otherwise returns ai/checkpoints/.
+    """
+    if project_id:
+        project = _resolve_from_registry(project_id)
+        if project:
+            return Path(project["harness"]) / "checkpoints"
     return get_ai_dir() / "checkpoints"
 
 
-def get_models_dir() -> Path:
+def get_models_dir(project_id: Optional[str] = None) -> Path:
     """Get the ai/models/ directory."""
-    return get_ai_dir() / "models"
+    return get_ai_dir(project_id) / "models"
 
 
-def get_todo_path() -> Path:
-    """Get the ai/todo.md file path."""
-    return get_ai_dir() / "todo.md"
+def get_todo_path(project_id: Optional[str] = None) -> Path:
+    """Get the ai/todo.md file path (lives in project root)."""
+    return get_ai_dir(project_id) / "todo.md"
 
 
 # Legacy compatibility - some files use these variable names
