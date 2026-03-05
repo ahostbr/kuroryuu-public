@@ -32,21 +32,23 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import numpy as np
 
 try:
-    from .paths import get_project_root
+    from .paths import get_project_root, get_rag_index_dir
 except ImportError:
-    from paths import get_project_root
+    from paths import get_project_root, get_rag_index_dir
 
 # ============================================================================
 # Configuration
 # ============================================================================
 
-def _get_project_root() -> Path:
+def _get_project_root(project_id: str = None) -> Path:
     """Get project root from env or centralized paths."""
-    return get_project_root()
+    return get_project_root(project_id)
 
 
-def _get_index_dir() -> Path:
-    """Get RAG index directory from env or default."""
+def _get_index_dir(project_id: str = None) -> Path:
+    """Get RAG index directory, scoped to project if project_id provided."""
+    if project_id:
+        return get_rag_index_dir(project_id)
     default = get_project_root() / "WORKING" / "rag_index"
     return Path(os.environ.get("KURORYUU_RAG_INDEX_DIR", str(default))).resolve()
 
@@ -741,8 +743,8 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
                 "unsure": "query_agentic with strategy='auto'",
                 "human_curation_needed": "query_interactive",
             },
-            "project_root": str(_get_project_root()),
-            "index_dir": str(_get_index_dir()),
+            "project_root": str(_get_project_root(kwargs.get("project_id"))),
+            "index_dir": str(_get_index_dir(kwargs.get("project_id"))),
             "ripgrep_available": _find_ripgrep() is not None,
         },
         "error": None,
@@ -854,8 +856,9 @@ def _action_query(
 def _action_status(**kwargs: Any) -> Dict[str, Any]:
     """Check RAG index status."""
     try:
-        project_root = _get_project_root()
-        index_dir = _get_index_dir()
+        pid = kwargs.get("project_id")
+        project_root = _get_project_root(pid)
+        index_dir = _get_index_dir(pid)
 
         bm25, chunks = _load_index(index_dir)
         rg_path = _find_ripgrep()
@@ -891,7 +894,7 @@ def _action_index(
 
     try:
         search_root, warnings = _validate_root(root)
-        index_dir = _get_index_dir()
+        index_dir = _get_index_dir(kwargs.get("project_id"))
         max_bytes = _get_max_file_bytes()
         allowed_exts = _get_default_exts()
 
@@ -1811,6 +1814,10 @@ def register_rag_tools(registry: "ToolRegistry") -> None:
                     "enum": ["project", "all", "reference", "knowledge"],
                     "default": "project",
                     "description": "Search scope: 'project' (default, excludes CaseStudies/REPOS), 'all' (everything), 'reference' (only CaseStudies/REPOS), 'knowledge' (only PLUGIN_OVERVIEW.md docs across all SOTS plugins)",
+                },
+                "project_id": {
+                    "type": "string",
+                    "description": "Project ID to scope search to (optional, auto-resolved from CWD if omitted)",
                 },
             },
             "required": ["action"],

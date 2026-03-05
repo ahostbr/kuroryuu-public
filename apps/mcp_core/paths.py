@@ -125,6 +125,45 @@ def get_todo_path(project_id: Optional[str] = None) -> Path:
     return get_ai_dir(project_id) / "todo.md"
 
 
+def get_rag_index_dir(project_id: Optional[str] = None) -> Path:
+    """Get the RAG index directory.
+
+    When project_id is provided, returns external harness rag_index.
+    Otherwise returns WORKING/rag_index.
+    """
+    if project_id:
+        project = _resolve_from_registry(project_id)
+        if project:
+            return Path(project["harness"]) / "rag_index"
+    return get_project_root() / "WORKING" / "rag_index"
+
+
+def get_inbox_dir(project_id: Optional[str] = None) -> Path:
+    """Get the inbox directory.
+
+    When project_id is provided, returns external harness inbox.
+    Otherwise returns ai/inbox.
+    """
+    if project_id:
+        project = _resolve_from_registry(project_id)
+        if project:
+            return Path(project["harness"]) / "inbox"
+    return get_ai_dir() / "inbox"
+
+
+def get_memory_path(project_id: Optional[str] = None) -> Path:
+    """Get the working memory file path.
+
+    When project_id is provided, returns external harness working_memory.json.
+    Otherwise returns ai/working_memory.json.
+    """
+    if project_id:
+        project = _resolve_from_registry(project_id)
+        if project:
+            return Path(project["harness"]) / "working_memory.json"
+    return get_ai_dir() / "working_memory.json"
+
+
 # Legacy compatibility - some files use these variable names
 def _get_legacy_ai_dir() -> Path:
     """Legacy alias for get_ai_dir()."""
