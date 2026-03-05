@@ -61,6 +61,8 @@ from tools_msg import register_msg_tools  # Inter-agent messaging (k_msg)
 from tools_tts import register_tts_tools  # Text-to-speech (k_tts)
 from tools_excalidraw import register_excalidraw_tools  # Excalidraw diagramming (k_excalidraw)
 from tools_project import register_project_tools  # Project lifecycle management (k_project)
+from project_registry import ProjectRegistry
+from paths import set_registry, get_project_root
 from pty_registry import get_pty_registry
 from pty_persistence import get_pty_persistence
 from pty_manager import get_pty_manager
@@ -134,6 +136,20 @@ async def on_startup():
 
     # Load internal service secret from environment
     _load_internal_secret()
+
+    # Initialize project registry and inject into paths module
+    _project_registry = ProjectRegistry()
+    set_registry(_project_registry)
+    logger.info("Project registry initialized")
+
+    # Self-register Kuroryuu as the first project
+    kuroryuu_root = get_project_root()
+    _project_registry.register(
+        project_id="kuroryuu",
+        root=kuroryuu_root,
+        name="Kuroryuu",
+    )
+    logger.info(f"Kuroryuu self-registered at {kuroryuu_root}")
 
     try:
         # Initialize persistence layer
