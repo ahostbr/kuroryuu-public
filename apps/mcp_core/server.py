@@ -60,6 +60,7 @@ from tools_backup import register_backup_tools  # Restic backup management
 from tools_msg import register_msg_tools  # Inter-agent messaging (k_msg)
 from tools_tts import register_tts_tools  # Text-to-speech (k_tts)
 from tools_excalidraw import register_excalidraw_tools  # Excalidraw diagramming (k_excalidraw)
+from tools_project import register_project_tools  # Project lifecycle management (k_project)
 from pty_registry import get_pty_registry
 from pty_persistence import get_pty_persistence
 from pty_manager import get_pty_manager
@@ -112,6 +113,7 @@ register_backup_tools(registry)  # Restic backup management (k_backup)
 register_msg_tools(registry)  # Inter-agent messaging (k_msg)
 register_tts_tools(registry)  # Text-to-speech (k_tts)
 register_excalidraw_tools(registry)  # Excalidraw diagramming (k_excalidraw)
+register_project_tools(registry)  # Project lifecycle management (k_project)
 
 protocol = MCPProtocol(registry)
 
