@@ -15,45 +15,49 @@ from typing import Any, Dict, List, Optional
 
 from protocol import ToolRegistry
 try:
-    from .paths import get_ai_dir_or_env
+    from .paths import get_ai_dir_or_env, get_memory_path
 except ImportError:
-    from paths import get_ai_dir_or_env
+    from paths import get_ai_dir_or_env, get_memory_path
 
-# Paths
+# Paths (default, used when no project_id specified)
 AI_DIR = get_ai_dir_or_env("KURORYUU_HOOKS_DIR")
 TODO_PATH = AI_DIR / "todo.md"
 WORKING_MEMORY_PATH = AI_DIR / "working_memory.json"
 
+_DEFAULT_WM = {
+    "recent_actions": [],
+    "tool_call_count": 0,
+    "last_inject_at": 0,
+    "active_goal": "",
+    "blockers": [],
+    "next_steps": [],
+}
 
-def _load_working_memory() -> Dict[str, Any]:
+
+def _resolve_memory_path(project_id: str = None) -> Path:
+    """Get working memory path, scoped to project if project_id provided."""
+    if project_id:
+        return get_memory_path(project_id)
+    return WORKING_MEMORY_PATH
+
+
+def _load_working_memory(project_id: str = None) -> Dict[str, Any]:
     """Load working memory from disk."""
-    if not WORKING_MEMORY_PATH.exists():
-        return {
-            "recent_actions": [],
-            "tool_call_count": 0,
-            "last_inject_at": 0,
-            "active_goal": "",
-            "blockers": [],
-            "next_steps": [],
-        }
+    path = _resolve_memory_path(project_id)
+    if not path.exists():
+        return dict(_DEFAULT_WM)
 
     try:
-        return json.loads(WORKING_MEMORY_PATH.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
-        return {
-            "recent_actions": [],
-            "tool_call_count": 0,
-            "last_inject_at": 0,
-            "active_goal": "",
-            "blockers": [],
-            "next_steps": [],
-        }
+        return dict(_DEFAULT_WM)
 
 
-def _save_working_memory(wm: Dict[str, Any]) -> None:
+def _save_working_memory(wm: Dict[str, Any], project_id: str = None) -> None:
     """Save working memory to disk."""
-    AI_DIR.mkdir(parents=True, exist_ok=True)
-    WORKING_MEMORY_PATH.write_text(
+    path = _resolve_memory_path(project_id)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
         json.dumps(wm, indent=2),
         encoding="utf-8",
     )
@@ -90,7 +94,7 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
 
 def _action_get(**kwargs: Any) -> Dict[str, Any]:
     """Get the current working memory context."""
-    wm = _load_working_memory()
+    wm = _load_working_memory(kwargs.get("project_id"))
 
     # Read current todo.md for reference
     todo_content = ""
@@ -118,9 +122,9 @@ def _action_set_goal(
     if not goal:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "goal is required"}
 
-    wm = _load_working_memory()
+    wm = _load_working_memory(kwargs.get("project_id"))
     wm["active_goal"] = goal[:200]
-    _save_working_memory(wm)
+    _save_working_memory(wm, kwargs.get("project_id"))
 
     return {
         "ok": True,
@@ -137,11 +141,11 @@ def _action_add_blocker(
     if not blocker:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "blocker is required"}
 
-    wm = _load_working_memory()
+    wm = _load_working_memory(kwargs.get("project_id"))
     blockers = wm.get("blockers", [])
     blockers.append(blocker[:100])
     wm["blockers"] = blockers[-5:]  # Keep last 5
-    _save_working_memory(wm)
+    _save_working_memory(wm, kwargs.get("project_id"))
 
     return {
         "ok": True,
@@ -153,10 +157,10 @@ def _action_add_blocker(
 
 def _action_clear_blockers(**kwargs: Any) -> Dict[str, Any]:
     """Clear all blockers from working memory."""
-    wm = _load_working_memory()
+    wm = _load_working_memory(kwargs.get("project_id"))
     cleared = len(wm.get("blockers", []))
     wm["blockers"] = []
-    _save_working_memory(wm)
+    _save_working_memory(wm, kwargs.get("project_id"))
 
     return {
         "ok": True,
@@ -173,9 +177,9 @@ def _action_set_steps(
     if not steps:
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "steps is required (array)"}
 
-    wm = _load_working_memory()
+    wm = _load_working_memory(kwargs.get("project_id"))
     wm["next_steps"] = [s[:100] for s in steps[:5]]
-    _save_working_memory(wm)
+    _save_working_memory(wm, kwargs.get("project_id"))
 
     return {
         "ok": True,
@@ -194,7 +198,7 @@ def _action_reset(**kwargs: Any) -> Dict[str, Any]:
         "blockers": [],
         "next_steps": [],
     }
-    _save_working_memory(wm)
+    _save_working_memory(wm, kwargs.get("project_id"))
 
     return {
         "ok": True,
@@ -295,6 +299,10 @@ def register_working_memory_tools(registry: ToolRegistry) -> None:
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "List of next steps (for set_steps)",
+                },
+                "project_id": {
+                    "type": "string",
+                    "description": "Project ID to scope memory to (optional, uses default if omitted)",
                 },
             },
             "required": ["action"],

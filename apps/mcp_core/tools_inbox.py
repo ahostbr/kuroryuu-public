@@ -181,9 +181,9 @@ def _trigger_websocket_notification(message: dict) -> None:
 
 
 try:
-    from .paths import get_project_root
+    from .paths import get_project_root, get_inbox_dir
 except ImportError:
-    from paths import get_project_root
+    from paths import get_project_root, get_inbox_dir
 
 # ============================================================================
 # Configuration
@@ -195,8 +195,10 @@ def _get_working_root() -> Path:
     return Path(os.environ.get("KURORYUU_WORKING_ROOT", str(default))).resolve()
 
 
-def _get_inbox_root() -> Path:
-    """Get inbox root from env or default."""
+def _get_inbox_root(project_id: str = None) -> Path:
+    """Get inbox root from env, project registry, or default."""
+    if project_id:
+        return get_inbox_dir(project_id)
     default = get_project_root() / "ai" / "inbox"
     return Path(os.environ.get("KURORYUU_INBOX_ROOT", str(default))).resolve()
 
@@ -211,10 +213,10 @@ def _allow_external_root() -> bool:
     return os.environ.get("KURORYUU_ALLOW_EXTERNAL_ROOT", "0").strip() in ("1", "true", "yes")
 
 
-def _validate_inbox_root() -> Tuple[Path, List[str]]:
+def _validate_inbox_root(project_id: str = None) -> Tuple[Path, List[str]]:
     """Validate and ensure inbox root exists. Returns (path, warnings)."""
     warnings: List[str] = []
-    inbox_root = _get_inbox_root()
+    inbox_root = _get_inbox_root(project_id)
     working_root = _get_working_root()
 
     # Security check: inbox must be under project root unless explicitly allowed
@@ -1167,6 +1169,10 @@ def register_inbox_tools(registry: "ToolRegistry") -> None:
                 "agent_id": {
                     "type": "string",
                     "description": "Agent ID (for mark_read)",
+                },
+                "project_id": {
+                    "type": "string",
+                    "description": "Project ID to scope inbox to (optional, uses default if omitted)",
                 },
             },
             "required": ["action"],

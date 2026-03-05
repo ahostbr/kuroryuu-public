@@ -21,15 +21,17 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
-    from .paths import get_project_root
+    from .paths import get_project_root, get_checkpoints_dir
 except ImportError:
-    from paths import get_project_root
+    from paths import get_project_root, get_checkpoints_dir
 
 SCHEMA_V1 = "kuroryuu_checkpoint_v1"
 
 
-def _get_checkpoint_root() -> Path:
-    """Get checkpoint root from env or default."""
+def _get_checkpoint_root(project_id: str = None) -> Path:
+    """Get checkpoint root from env, project registry, or default."""
+    if project_id:
+        return get_checkpoints_dir(project_id)
     default = get_project_root() / "WORKING" / "checkpoints"
     return Path(os.environ.get("KURORYUU_CHECKPOINT_ROOT", str(default))).resolve()
 
@@ -122,7 +124,7 @@ def _action_help(**kwargs: Any) -> Dict[str, Any]:
                 "list": "List checkpoints. Params: name (filter), limit",
                 "load": "Load checkpoint. Params: id (or 'latest' for global latest), name (for namespace latest), agent_id (for agent-specific latest)",
             },
-            "checkpoint_root": str(_get_checkpoint_root()),
+            "checkpoint_root": str(_get_checkpoint_root(kwargs.get("project_id"))),
         },
         "error": None,
     }
@@ -259,7 +261,7 @@ def _action_save(
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "data is required"}
 
     try:
-        root = _get_checkpoint_root()
+        root = _get_checkpoint_root(kwargs.get("project_id"))
         now = _now_local()
         safe_name = _safe_name(name)
 
@@ -365,7 +367,7 @@ def _action_append(
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "name is required"}
 
     try:
-        root = _get_checkpoint_root()
+        root = _get_checkpoint_root(kwargs.get("project_id"))
         safe_name = _safe_name(name)
         cp_dir = root / safe_name
 
@@ -425,7 +427,7 @@ def _action_list(
 ) -> Dict[str, Any]:
     """List available checkpoints."""
     try:
-        root = _get_checkpoint_root()
+        root = _get_checkpoint_root(kwargs.get("project_id"))
         root.mkdir(parents=True, exist_ok=True)
 
         checkpoints: List[Dict[str, Any]] = []
@@ -501,7 +503,7 @@ def _action_list(
         return {"ok": False, "error_code": "LIST_FAILED", "message": str(e)}
 
 
-def _load_latest_for_agent(agent_id: str, session_id: str = "") -> Optional[Dict[str, Any]]:
+def _load_latest_for_agent(agent_id: str, session_id: str = "", project_id: str = None) -> Optional[Dict[str, Any]]:
     """Load the latest checkpoint for a given agent_id (or session_id).
 
     Two-pass strategy:
@@ -510,7 +512,7 @@ def _load_latest_for_agent(agent_id: str, session_id: str = "") -> Optional[Dict
 
     Returns the full checkpoint dict or None.
     """
-    root = _get_checkpoint_root()
+    root = _get_checkpoint_root(project_id)
     index_path = root / "_index.jsonl"
     if not index_path.exists():
         return None
@@ -597,7 +599,7 @@ def _action_load(
         return {"ok": False, "error_code": "MISSING_PARAM", "message": "id, name, or agent_id is required"}
 
     try:
-        root = _get_checkpoint_root()
+        root = _get_checkpoint_root(kwargs.get("project_id"))
 
         # If loading by name (latest within that namespace)
         if name and (not id or id == "latest"):
@@ -784,6 +786,10 @@ def register_checkpoint_tools(registry: "ToolRegistry") -> None:
                     "type": "string",
                     "default": "",
                     "description": "Agent identifier. Auto-detected from KURORYUU_AGENT_ID env if not provided. Used for save (tagging) and load (agent-specific latest).",
+                },
+                "project_id": {
+                    "type": "string",
+                    "description": "Project ID to scope checkpoints to (optional, uses default if omitted)",
                 },
             },
             "required": ["action"],
