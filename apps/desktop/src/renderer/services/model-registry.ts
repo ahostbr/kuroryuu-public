@@ -213,27 +213,75 @@ export function inferSourceFromId(modelId: string): string {
   return 'other';
 }
 
+// Map CLIProxyAPI owned_by values to our source names
+const OWNED_BY_TO_SOURCE: Record<string, string> = {
+  'anthropic': 'claude',
+  'google': 'gemini',
+  'aws': 'kiro',
+  'moonshot': 'kimi',
+  // These map 1:1: openai, github-copilot, antigravity, qwen, iflow
+};
+
+function ownedByToSource(ownedBy: string): string {
+  return OWNED_BY_TO_SOURCE[ownedBy] || ownedBy;
+}
+
+// Cache for CLIProxy models (avoid re-fetching on every call)
+let _cliproxyCache: { models: ModelInfo[]; timestamp: number } | null = null;
+const CLIPROXY_CACHE_TTL = 60000; // 1 minute
+
 /**
  * Fetch models available through CLIProxyAPI
  *
- * CLIProxyAPI (port 8317) supports multiple providers:
- * - Claude Code CLI
- * - ChatGPT Codex (OpenAI)
- * - Gemini CLI
- * - Qwen Code
- * - iFlow, Antigravity, etc.
- *
- * IMPORTANT: Always returns the static master list as source of truth.
- * The API fetch is only used to check availability, not for model metadata.
- * This ensures consistent source grouping and context window info.
+ * Dynamically fetches from /v1/models and uses owned_by for provider grouping.
+ * Falls back to static list if the API is unreachable.
  */
 export async function fetchCLIProxyModels(): Promise<ModelInfo[]> {
-  // Always return the static master list - it's our canonical source of truth
-  // for model IDs, display names, sources, context windows, and tool support.
-  //
-  // The API endpoint doesn't reliably return source information (owned_by),
-  // which breaks our provider grouping in the UI.
-  return getStaticCLIProxyModels();
+  if (_cliproxyCache && Date.now() - _cliproxyCache.timestamp < CLIPROXY_CACHE_TTL) {
+    return _cliproxyCache.models;
+  }
+
+  try {
+    const response = await fetch('http://127.0.0.1:8317/v1/models', {
+      headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+      signal: AbortSignal.timeout(3000),
+    });
+
+    if (!response.ok) {
+      _cliproxyCache = { models: getStaticCLIProxyModels(), timestamp: Date.now() };
+      return _cliproxyCache.models;
+    }
+
+    const data = await response.json();
+    if (!data.data || !Array.isArray(data.data)) {
+      _cliproxyCache = { models: getStaticCLIProxyModels(), timestamp: Date.now() };
+      return _cliproxyCache.models;
+    }
+
+    const models: ModelInfo[] = data.data.map((m: Record<string, unknown>) => {
+      const id = String(m.id || '');
+      const ownedBy = String(m.owned_by || '');
+      const source = ownedByToSource(ownedBy);
+      const displayName = m.display_name ? String(m.display_name) : formatModelName(id);
+      const contextLength = Number(m.context_length) || getContextWindowForModel(id);
+
+      return {
+        id,
+        name: displayName,
+        provider: 'cliproxyapi' as LLMProvider,
+        source,
+        contextWindow: contextLength,
+        supportsTools: modelSupportsTools(id),
+      };
+    });
+
+    _cliproxyCache = { models, timestamp: Date.now() };
+    return models;
+  } catch {
+    // API unreachable — fall back to static list
+    _cliproxyCache = { models: getStaticCLIProxyModels(), timestamp: Date.now() };
+    return _cliproxyCache.models;
+  }
 }
 
 /**
