@@ -43,7 +43,7 @@ STATIC_MODELS: List[ModelInfo] = [
     {"id": "claude-3-7-sonnet-20250219", "name": "Claude 3.7 Sonnet", "source": "claude", "context_window": 200000, "supports_tools": True},
     {"id": "claude-3-5-haiku-20241022", "name": "Claude 3.5 Haiku", "source": "claude", "context_window": 200000, "supports_tools": True},
 
-    # ===== OPENAI (9) =====
+    # ===== OPENAI (10) =====
     {"id": "gpt-5", "name": "GPT 5", "source": "openai", "context_window": 128000, "supports_tools": True},
     {"id": "gpt-5-codex", "name": "GPT 5 Codex", "source": "openai", "context_window": 200000, "supports_tools": True},
     {"id": "gpt-5-codex-mini", "name": "GPT 5 Codex Mini", "source": "openai", "context_window": 128000, "supports_tools": True},
@@ -53,6 +53,7 @@ STATIC_MODELS: List[ModelInfo] = [
     {"id": "gpt-5.1-codex-max", "name": "GPT 5.1 Codex Max", "source": "openai", "context_window": 200000, "supports_tools": True},
     {"id": "gpt-5.2", "name": "GPT 5.2", "source": "openai", "context_window": 128000, "supports_tools": True},
     {"id": "gpt-5.2-codex", "name": "GPT 5.2 Codex", "source": "openai", "context_window": 200000, "supports_tools": True},
+    {"id": "gpt-5.4", "name": "GPT 5.4", "source": "openai", "context_window": 1050000, "supports_tools": True},
 
     # ===== GITHUB-COPILOT (21) =====
     {"id": "gpt-4.1", "name": "GPT-4.1", "source": "github-copilot", "context_window": 128000, "supports_tools": True},

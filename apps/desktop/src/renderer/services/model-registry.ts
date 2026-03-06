@@ -498,7 +498,7 @@ export function modelSupportsTools(modelId: string): boolean {
 /**
  * Get static CLI Proxy models (fallback when live fetch fails)
  *
- * MASTER MODEL LIST - Exact match from management gateway (61 models)
+ * MASTER MODEL LIST - Exact match from management gateway (62 models)
  * Source: CLIProxyAPI management.html + Architecture doc tool support
  *
  * Tool Support (per Architecture Doc):
@@ -535,7 +535,7 @@ export function getStaticCLIProxyModels(): ModelInfo[] {
     { id: 'claude-3-7-sonnet-20250219', name: 'Claude 3.7 Sonnet', provider: 'cliproxyapi', source: 'claude', contextWindow: 200000, supportsTools: true },
     { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'cliproxyapi', source: 'claude', contextWindow: 200000, supportsTools: true },
 
-    // ===== OPENAI (9) =====
+    // ===== OPENAI (10) =====
     { id: 'gpt-5', name: 'GPT 5', provider: 'cliproxyapi', source: 'openai', contextWindow: 128000, supportsTools: true },
     { id: 'gpt-5-codex', name: 'GPT 5 Codex', provider: 'cliproxyapi', source: 'openai', contextWindow: 200000, supportsTools: true },
     { id: 'gpt-5-codex-mini', name: 'GPT 5 Codex Mini', provider: 'cliproxyapi', source: 'openai', contextWindow: 128000, supportsTools: true },
@@ -545,6 +545,7 @@ export function getStaticCLIProxyModels(): ModelInfo[] {
     { id: 'gpt-5.1-codex-max', name: 'GPT 5.1 Codex Max', provider: 'cliproxyapi', source: 'openai', contextWindow: 200000, supportsTools: true },
     { id: 'gpt-5.2', name: 'GPT 5.2', provider: 'cliproxyapi', source: 'openai', contextWindow: 128000, supportsTools: true },
     { id: 'gpt-5.2-codex', name: 'GPT 5.2 Codex', provider: 'cliproxyapi', source: 'openai', contextWindow: 200000, supportsTools: true },
+    { id: 'gpt-5.4', name: 'GPT 5.4', provider: 'cliproxyapi', source: 'openai', contextWindow: 1050000, supportsTools: true },
 
     // ===== GITHUB-COPILOT (21) =====
     { id: 'gpt-4.1', name: 'GPT-4.1', provider: 'cliproxyapi', source: 'github-copilot', contextWindow: 128000, supportsTools: true },
@@ -623,6 +624,7 @@ function formatModelName(modelId: string): string {
     'gpt-5.1-codex-max': 'GPT 5.1 Codex Max',
     'gpt-5.2': 'GPT 5.2',
     'gpt-5.2-codex': 'GPT 5.2 Codex',
+    'gpt-5.4': 'GPT 5.4',
 
     // ===== GITHUB-COPILOT =====
     'gpt-4.1': 'GPT-4.1',

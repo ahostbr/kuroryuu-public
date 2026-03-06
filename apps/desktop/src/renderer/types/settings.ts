@@ -336,6 +336,7 @@ export const AVAILABLE_MODELS = [
   { id: 'gpt-5.1-codex-max', name: 'GPT 5.1 Codex Max' },
   { id: 'gpt-5.2', name: 'GPT 5.2' },
   { id: 'gpt-5.2-codex', name: 'GPT 5.2 Codex' },
+  { id: 'gpt-5.4', name: 'GPT 5.4' },
   // Gemini family (5)
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },

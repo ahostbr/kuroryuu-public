@@ -1124,6 +1124,7 @@ export class LMStudioIntegration {
       { id: 'gpt-5.1-codex-max', name: 'GPT 5.1 Codex Max' },
       { id: 'gpt-5.2', name: 'GPT 5.2' },
       { id: 'gpt-5.2-codex', name: 'GPT 5.2 Codex' },
+      { id: 'gpt-5.4', name: 'GPT 5.4' },
 
       // ===== GITHUB-COPILOT (21) =====
       { id: 'gpt-4.1', name: 'GPT-4.1' },
@@ -1203,6 +1204,7 @@ export class LMStudioIntegration {
       'gpt-5.1-codex-max': 'GPT 5.1 Codex Max',
       'gpt-5.2': 'GPT 5.2',
       'gpt-5.2-codex': 'GPT 5.2 Codex',
+      'gpt-5.4': 'GPT 5.4',
 
       // ===== GITHUB-COPILOT =====
       'gpt-4.1': 'GPT-4.1',
