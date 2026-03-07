@@ -1,0 +1,82 @@
+[
+  {
+    "query": "test this entire app end to end, cover all the main user flows",
+    "should_trigger": true
+  },
+  {
+    "query": "run comprehensive e2e tests on our web app, signup through checkout",
+    "should_trigger": true
+  },
+  {
+    "query": "I need full end-to-end testing of every user journey in this application",
+    "should_trigger": true
+  },
+  {
+    "query": "test all user journeys - login, browse products, add to cart, checkout, and order history",
+    "should_trigger": true
+  },
+  {
+    "query": "can you do a complete e2e test sweep of our app? it's running on localhost:3000",
+    "should_trigger": true
+  },
+  {
+    "query": "set up end-to-end tests that cover the critical paths through our SaaS platform",
+    "should_trigger": true
+  },
+  {
+    "query": "e2e test the whole thing, make sure every page works and the flows connect properly",
+    "should_trigger": true
+  },
+  {
+    "query": "run e2e tests against our staging environment and report any broken flows",
+    "should_trigger": true
+  },
+  {
+    "query": "test this app from the user's perspective, every feature, every edge case you can think of",
+    "should_trigger": true
+  },
+  {
+    "query": "we're about to deploy, can you run a full end-to-end test suite first?",
+    "should_trigger": true
+  },
+  {
+    "query": "go to this page and click the signup button to see if it works",
+    "should_trigger": false
+  },
+  {
+    "query": "write a Playwright test file with describe blocks and expect assertions for the login page",
+    "should_trigger": false
+  },
+  {
+    "query": "scrape the product listings from this website",
+    "should_trigger": false
+  },
+  {
+    "query": "write unit tests for this React component using jest and testing library",
+    "should_trigger": false
+  },
+  {
+    "query": "use playwright to intercept network requests and mock the API responses",
+    "should_trigger": false
+  },
+  {
+    "query": "take a screenshot of the landing page for me",
+    "should_trigger": false
+  },
+  {
+    "query": "fill out the contact form on this website with dummy data",
+    "should_trigger": false
+  },
+  {
+    "query": "write integration tests for our API endpoints",
+    "should_trigger": false
+  },
+  {
+    "query": "set up playwright trace recording for debugging our flaky tests",
+    "should_trigger": false
+  },
+  {
+    "query": "write a vitest spec for the useAuth hook",
+    "should_trigger": false
+  }
+]

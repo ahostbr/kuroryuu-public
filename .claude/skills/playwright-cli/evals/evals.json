@@ -1,0 +1,82 @@
+[
+  {
+    "query": "use playwright to navigate to this page and fill in the login form",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to record a Playwright trace while reproducing a bug on our staging site",
+    "should_trigger": true
+  },
+  {
+    "query": "set up Playwright network interception to mock our API responses during development",
+    "should_trigger": true
+  },
+  {
+    "query": "use playwright-cli to take screenshots of this page at different viewport sizes",
+    "should_trigger": true
+  },
+  {
+    "query": "can you use playwright to manage multiple browser tabs and switch between them?",
+    "should_trigger": true
+  },
+  {
+    "query": "intercept all XHR requests with playwright and log the payloads to a file",
+    "should_trigger": true
+  },
+  {
+    "query": "run playwright codegen against our app so I can see the generated selectors",
+    "should_trigger": true
+  },
+  {
+    "query": "use playwright to wait for this specific network request to complete before clicking the button",
+    "should_trigger": true
+  },
+  {
+    "query": "playwright route handler to block all third-party analytics scripts on this page",
+    "should_trigger": true
+  },
+  {
+    "query": "open playwright trace viewer and help me figure out why this page load is slow",
+    "should_trigger": true
+  },
+  {
+    "query": "go to google.com and search for something, take a screenshot",
+    "should_trigger": false
+  },
+  {
+    "query": "run a full end-to-end test suite covering login, dashboard, and settings",
+    "should_trigger": false
+  },
+  {
+    "query": "scrape all the links from this webpage and save them to a file",
+    "should_trigger": false
+  },
+  {
+    "query": "test all user journeys in our app comprehensively",
+    "should_trigger": false
+  },
+  {
+    "query": "fill out the contact form on example.com with test data",
+    "should_trigger": false
+  },
+  {
+    "query": "write cypress tests for our checkout flow",
+    "should_trigger": false
+  },
+  {
+    "query": "write selenium automation scripts in python",
+    "should_trigger": false
+  },
+  {
+    "query": "create a comprehensive e2e test plan for our entire application",
+    "should_trigger": false
+  },
+  {
+    "query": "use puppeteer to generate a PDF from this webpage",
+    "should_trigger": false
+  },
+  {
+    "query": "automate clicking through every page of our app and check for broken links",
+    "should_trigger": false
+  }
+]

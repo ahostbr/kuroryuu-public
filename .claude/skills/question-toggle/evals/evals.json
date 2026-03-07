@@ -1,0 +1,82 @@
+[
+  {
+    "query": "stop asking me questions, just do it",
+    "should_trigger": true
+  },
+  {
+    "query": "toggle question mode off — I want you to just execute",
+    "should_trigger": true
+  },
+  {
+    "query": "turn on question mode, ask before you edit anything",
+    "should_trigger": true
+  },
+  {
+    "query": "question_toggle — I want to be asked before changes",
+    "should_trigger": true
+  },
+  {
+    "query": "disable the asking, just go ahead and make changes without confirming",
+    "should_trigger": true
+  },
+  {
+    "query": "switch to asking mode — check with me before every edit",
+    "should_trigger": true
+  },
+  {
+    "query": "I want you to ask clarifying questions before touching files",
+    "should_trigger": true
+  },
+  {
+    "query": "turn off questions, I trust you, just do the work",
+    "should_trigger": true
+  },
+  {
+    "query": "enable question mode — confirm edits with me first",
+    "should_trigger": true
+  },
+  {
+    "query": "toggle: stop confirming, go autonomous",
+    "should_trigger": true
+  },
+  {
+    "query": "what's the answer to this TypeScript question?",
+    "should_trigger": false
+  },
+  {
+    "query": "change the app settings to dark mode",
+    "should_trigger": false
+  },
+  {
+    "query": "ask the team about the deployment schedule",
+    "should_trigger": false
+  },
+  {
+    "query": "I have a question about how hooks work",
+    "should_trigger": false
+  },
+  {
+    "query": "toggle the TTS on",
+    "should_trigger": false
+  },
+  {
+    "query": "update the configuration file with the new API key",
+    "should_trigger": false
+  },
+  {
+    "query": "should I use React or Vue for this project?",
+    "should_trigger": false
+  },
+  {
+    "query": "switch to a different model for this task",
+    "should_trigger": false
+  },
+  {
+    "query": "turn on verbose logging in the gateway",
+    "should_trigger": false
+  },
+  {
+    "query": "can you explain the difference between these two approaches?",
+    "should_trigger": false
+  }
+]

@@ -1,0 +1,82 @@
+[
+  {
+    "query": "k-plan this feature — break it down for the team",
+    "should_trigger": true
+  },
+  {
+    "query": "create an implementation plan for the new notification system",
+    "should_trigger": true
+  },
+  {
+    "query": "plan this out with task decomposition for parallel team execution",
+    "should_trigger": true
+  },
+  {
+    "query": "I need a structured plan for the API migration — phases, dependencies, assignments",
+    "should_trigger": true
+  },
+  {
+    "query": "decompose this feature into plannable tasks for the agent team",
+    "should_trigger": true
+  },
+  {
+    "query": "write up a plan for the dashboard rebuild, break it into parallel tracks",
+    "should_trigger": true
+  },
+  {
+    "query": "k-plan the auth refactor — what tasks, what order, who does what",
+    "should_trigger": true
+  },
+  {
+    "query": "plan the implementation — I want clear phases and task boundaries",
+    "should_trigger": true
+  },
+  {
+    "query": "create a task decomposition plan for this monorepo restructuring",
+    "should_trigger": true
+  },
+  {
+    "query": "build me a plan that I can hand off to subagents",
+    "should_trigger": true
+  },
+  {
+    "query": "plan this with quizmaster validation — stress test the requirements first",
+    "should_trigger": false
+  },
+  {
+    "query": "just start coding the feature, I don't need a plan",
+    "should_trigger": false
+  },
+  {
+    "query": "brainstorm some approaches for the caching layer",
+    "should_trigger": false
+  },
+  {
+    "query": "start the autonomous worker loop",
+    "should_trigger": false
+  },
+  {
+    "query": "review the existing plan and give feedback",
+    "should_trigger": false
+  },
+  {
+    "query": "what tasks are currently in the backlog?",
+    "should_trigger": false
+  },
+  {
+    "query": "execute the plan we already wrote up",
+    "should_trigger": false
+  },
+  {
+    "query": "do a rigorous requirements gathering session with quizmaster",
+    "should_trigger": false
+  },
+  {
+    "query": "how should I architect the new module?",
+    "should_trigger": false
+  },
+  {
+    "query": "estimate how long each task will take",
+    "should_trigger": false
+  }
+]

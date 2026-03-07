@@ -1,7 +1,6 @@
 ---
 name: e2e-test
-description: Comprehensive end-to-end testing command. Launches parallel sub-agents to research the codebase (structure, database schema, potential bugs), then uses the Vercel Agent Browser CLI to test every user journey — taking screenshots, validating UI/UX, and querying the database to verify records. Run after implementation to validate everything before code review.
-disable-model-invocation: true
+description: "Use when the user wants to run comprehensive end-to-end testing of a web application. Triggers on 'run e2e tests', 'test this app end to end', 'test all user journeys', 'do a full test pass'. Launches parallel research sub-agents then uses agent-browser for testing."
 ---
 
 # End-to-End Application Testing

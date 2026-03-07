@@ -1,0 +1,82 @@
+[
+  {
+    "query": "start the worker loop — work through the task list autonomously",
+    "should_trigger": true
+  },
+  {
+    "query": "k-start-worker-loop and commit after each task",
+    "should_trigger": true
+  },
+  {
+    "query": "go into autonomous mode and grind through the todo list",
+    "should_trigger": true
+  },
+  {
+    "query": "start the automated task execution loop with git commits per task",
+    "should_trigger": true
+  },
+  {
+    "query": "run the worker loop — pick up tasks, execute, commit, repeat",
+    "should_trigger": true
+  },
+  {
+    "query": "fire up the autonomous loop and work through everything in ai/todo.md",
+    "should_trigger": true
+  },
+  {
+    "query": "start worker mode — auto-commit after each completed task",
+    "should_trigger": true
+  },
+  {
+    "query": "I'm stepping away, run the task loop and commit as you go",
+    "should_trigger": true
+  },
+  {
+    "query": "autonomous task execution — process the backlog with structured commits",
+    "should_trigger": true
+  },
+  {
+    "query": "k-start-worker-loop, start from T105 and work down the list",
+    "should_trigger": true
+  },
+  {
+    "query": "just do this one task for me",
+    "should_trigger": false
+  },
+  {
+    "query": "create a plan for the upcoming work",
+    "should_trigger": false
+  },
+  {
+    "query": "spawn a team of agents to work on this",
+    "should_trigger": false
+  },
+  {
+    "query": "show me the current task list",
+    "should_trigger": false
+  },
+  {
+    "query": "commit the current changes",
+    "should_trigger": false
+  },
+  {
+    "query": "start a new Kuroryuu session",
+    "should_trigger": false
+  },
+  {
+    "query": "work on T105 manually and tell me what you find",
+    "should_trigger": false
+  },
+  {
+    "query": "plan out the tasks for the next sprint",
+    "should_trigger": false
+  },
+  {
+    "query": "set up as a worker agent for the team",
+    "should_trigger": false
+  },
+  {
+    "query": "run the test suite and fix any failures",
+    "should_trigger": false
+  }
+]
