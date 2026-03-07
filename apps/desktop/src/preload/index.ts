@@ -2298,8 +2298,8 @@ const api = {
     forceKillAll: (params: { teamName: string; leadAgentId: string }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('claude-teams:force-kill-all', params),
     /** Refresh data for a specific team */
-    refreshTeam: (teamName: string): Promise<void> =>
-      ipcRenderer.invoke('claude-teams:get-teams').then(() => { }),
+    refreshTeam: (): Promise<{ ok: boolean; snapshot?: unknown; error?: string }> =>
+      ipcRenderer.invoke('claude-teams:start-watching'),
     /** Mark all inbox messages as read for a specific agent */
     markInboxRead: (params: { teamName: string; agentName: string }): Promise<{ ok: boolean; error?: string }> =>
       ipcRenderer.invoke('claude-teams:mark-inbox-read', params),

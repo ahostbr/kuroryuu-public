@@ -425,9 +425,13 @@ export const useClaudeTeamsStore = create<ClaudeTeamsState>((set, get) => ({
     }
   },
 
-  refreshTeam: async (teamName) => {
+  refreshTeam: async () => {
     try {
-      await window.electronAPI?.claudeTeams?.refreshTeam?.(teamName);
+      const result = await window.electronAPI?.claudeTeams?.startWatching?.();
+      if (result?.ok && result.snapshot && isWatcherSnapshot(result.snapshot)) {
+        const teams = hydrateFromSnapshot(result.snapshot);
+        get().setTeams(teams);
+      }
     } catch (err) {
       console.error('[ClaudeTeamsStore] refreshTeam error:', err);
     }
@@ -780,6 +784,32 @@ export function setupClaudeTeamsIpcListeners(): () => void {
   }, 30_000);
   cleanups.push(() => clearInterval(healthPollInterval));
 
+  // Periodic full-state reconciliation: removes ghost teams, refreshes disk state
+  const reconcileInterval = setInterval(async () => {
+    try {
+      const result = await window.electronAPI?.claudeTeams?.startWatching?.();
+      if (result?.ok && result.snapshot && isWatcherSnapshot(result.snapshot)) {
+        const diskTeams = hydrateFromSnapshot(result.snapshot);
+        const diskNames = new Set(diskTeams.map((t) => t.config.name));
+        const s = useClaudeTeamsStore.getState();
+
+        // Remove ghost teams not on disk
+        for (const team of s.teams) {
+          if (!diskNames.has(team.config.name)) {
+            console.log('[ClaudeTeamsStore] Reconciliation: removing ghost team:', team.config.name);
+            s.removeTeam(team.config.name);
+          }
+        }
+
+        // Refresh all teams from disk
+        s.setTeams(diskTeams);
+      }
+    } catch (err) {
+      console.error('[ClaudeTeamsStore] Reconciliation error:', err);
+    }
+  }, 5 * 60_000);
+  cleanups.push(() => clearInterval(reconcileInterval));
+
   // Listen for state update events from the main process file watcher
   const cleanup = window.electronAPI?.claudeTeams?.onStateUpdate?.((raw: unknown) => {
     const event = raw as ClaudeTeamsIpcEvent;
@@ -858,10 +888,16 @@ export function setupClaudeTeamsIpcListeners(): () => void {
               inboxes: staleTeam.inboxes,
             })
             .then(() => window.electronAPI?.claudeTeams?.cleanupTeam?.({ teamName: event.teamName }))
-            .then(() => useClaudeTeamsStore.getState().loadHistory())
+            .then(() => {
+              // Safety net: directly remove from store even if watcher misses the deletion
+              useClaudeTeamsStore.getState().removeTeam(event.teamName);
+              useClaudeTeamsStore.getState().loadHistory();
+            })
             .catch((err: unknown) => {
               console.error('[ClaudeTeamsStore] Stale team cleanup failed:', err);
               recentlyArchivedTeams.delete(event.teamName);
+              // Still try to remove from store on error
+              useClaudeTeamsStore.getState().removeTeam(event.teamName);
             });
         }
         break;

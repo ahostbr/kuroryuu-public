@@ -13,7 +13,6 @@ export function TeamControls() {
     isLoading,
     cleanupTeam,
     refreshTeam,
-    startWatching,
   } = useClaudeTeamsStore();
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -31,11 +30,7 @@ export function TeamControls() {
   };
 
   const handleRefresh = async () => {
-    if (selectedTeamId) {
-      await refreshTeam(selectedTeamId);
-    } else {
-      await startWatching();
-    }
+    await refreshTeam();
   };
 
   return (

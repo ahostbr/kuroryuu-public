@@ -303,7 +303,7 @@ export interface ClaudeTeamsState {
   messageTeammate: (params: MessageTeammateParams) => Promise<boolean>;
   shutdownTeammate: (params: ShutdownTeammateParams) => Promise<boolean>;
   cleanupTeam: (params: CleanupTeamParams) => Promise<boolean>;
-  refreshTeam: (teamName: string) => Promise<void>;
+  refreshTeam: () => Promise<void>;
 
   // Actions - history
   loadHistory: () => Promise<void>;
