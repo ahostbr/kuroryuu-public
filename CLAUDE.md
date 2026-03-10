@@ -11,7 +11,7 @@
 
 ## Polymathic Agents — When to Use
 
-25 thinking agents in `.claude/agents/polymathic-*.md`. Each applies a historical figure's cognitive architecture as structural constraints on reasoning. They are **read-only consultants** (Read, Glob, Grep, Bash) — they analyze and advise, they don't edit files.
+29 thinking agents in `.claude/agents/polymathic-*.md`. Each applies a historical figure's cognitive architecture as structural constraints on reasoning. They are **read-only consultants** (Read, Glob, Grep, Bash) — they analyze and advise, they don't edit files.
 
 ### By Use Case
 
@@ -22,6 +22,14 @@
 | **linus** | Code review, taste assessment, BS detection, maintainability — demands working code and structural elegance |
 | **tesla** | Systems architecture, infrastructure design, API design, diagnosing complex failures — complete mental model before any implementation |
 | **shannon** | API design, architecture simplification, finding hidden structure, compression — strips to the invariant skeleton |
+
+**Design Patterns (Gang of Four)**
+| Agent | When to spawn |
+|-------|--------------|
+| **gamma** | Code architecture, API design, framework evaluation — refactor TO patterns after feeling pain, composition over inheritance, Rule of Three, pattern removal |
+| **helm** | Architectural evaluation, enterprise design, pattern tradeoffs — engineering handbook lookup, behavioral contracts, explicit tradeoff analysis |
+| **johnson** | Framework design, library architecture, refactoring strategy — three concrete examples before abstracting, frameworks = components + patterns |
+| **vlissides** | Complex domain architecture, multi-pattern design, pattern evolution — discover pattern constellations the domain demands, bridge knowing-applying gap |
 
 **Product & UX**
 | Agent | When to spawn |

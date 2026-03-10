@@ -82,6 +82,7 @@ interface KuroConfig {
     transcriptExport: boolean;
     observability: boolean;
     inboxPolling: boolean;
+    asyncHooks: boolean;
   };
   features: {
     ragInteractive: boolean;
@@ -123,6 +124,7 @@ const DEFAULT_CONFIG: KuroConfig = {
     transcriptExport: true,
     observability: false,
     inboxPolling: true,
+    asyncHooks: false,
   },
   features: {
     ragInteractive: false,
@@ -719,6 +721,7 @@ export function KuroPluginConfig() {
             transcriptExport: restored.hooks?.transcriptExport ?? DEFAULT_CONFIG.hooks.transcriptExport,
             observability: restored.hooks?.observability ?? DEFAULT_CONFIG.hooks.observability,
             inboxPolling: restored.hooks?.inboxPolling ?? DEFAULT_CONFIG.hooks.inboxPolling,
+            asyncHooks: restored.hooks?.asyncHooks ?? DEFAULT_CONFIG.hooks.asyncHooks,
           },
           features: {
             ragInteractive: restored.features?.ragInteractive ?? DEFAULT_CONFIG.features.ragInteractive,
@@ -1236,6 +1239,13 @@ export function KuroPluginConfig() {
             <Toggle
               checked={config.hooks.inboxPolling}
               onChange={(checked) => updateConfig('hooks', { inboxPolling: checked })}
+            />
+          </FieldRow>
+
+          <FieldRow label="Async Hooks" description="Run fire-and-forget hooks in background (non-blocking)">
+            <Toggle
+              checked={config.hooks.asyncHooks}
+              onChange={(checked) => updateConfig('hooks', { asyncHooks: checked })}
             />
           </FieldRow>
         </CollapsibleSection>

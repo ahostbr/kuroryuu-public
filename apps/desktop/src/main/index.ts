@@ -1754,7 +1754,7 @@ function setupKuroConfigIpc(): void {
             ty: false,
             timeout: 30000,
           },
-          hooks: kuroPlugin.hooks || {
+          hooks: {
             ttsOnStop: false,
             ttsOnSubagentStop: false,
             ttsOnNotification: false,
@@ -1762,6 +1762,8 @@ function setupKuroConfigIpc(): void {
             transcriptExport: false,
             observability: false,
             inboxPolling: false,
+            asyncHooks: false,
+            ...(kuroPlugin.hooks || {}),
           },
           features: {
             ragInteractive: false,
@@ -1808,6 +1810,7 @@ function setupKuroConfigIpc(): void {
           transcriptExport: false,
           observability: false,
           inboxPolling: false,
+          asyncHooks: false,
         },
         features: {
           ragInteractive: false,
@@ -1943,6 +1946,7 @@ function setupKuroConfigIpc(): void {
       transcriptExport: boolean;
       observability: boolean;
       inboxPolling: boolean;
+      asyncHooks: boolean;
     };
     features: {
       ragInteractive: boolean;
@@ -1953,7 +1957,35 @@ function setupKuroConfigIpc(): void {
     };
   }) => {
     const writer = getSettingsWriter();
-    return writer.write(SETTINGS_PATH, {
+
+    // Dynamic UV path resolution - check env var first, then use platform-appropriate default
+    // CC 2.1.47+ runs hooks via Git Bash — use /c/Users/... format instead of C:\\Users\\...
+    const useBash = hooksUseBash();
+    const rawUvPath = process.env.UV_PATH
+      || (process.platform === 'win32' ? join(os.homedir(), '.local', 'bin', 'uv.exe') : 'uv');
+    const uvPath = process.platform === 'win32'
+      ? (useBash ? toGitBashPath(rawUvPath) : rawUvPath.replace(/\\/g, '\\\\'))
+      : rawUvPath;
+    // Windows-native path for inside PowerShell -Command strings (PS doesn't understand /c/... paths)
+    const uvPathWindows = rawUvPath;
+    // CC 2.1.47+ runs hooks via Git Bash — CWD may not be project root,
+    // so prefix uv run commands with cd to $CLAUDE_PROJECT_DIR (set by CC for hooks)
+    const cdPrefix = useBash ? 'cd "$CLAUDE_PROJECT_DIR" && ' : '';
+    const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
+    const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
+    const voice = config.tts.voice || 'en-GB-SoniaNeural';
+    const useSmartTts = config.tts.smartSummaries;
+    // ElevenLabs always uses smart_tts.py (it reads provider from config and routes)
+    const isElevenLabs = config.tts.provider === 'elevenlabs';
+    // Timeout is in milliseconds. Smart summaries need ~90s for AI summary + TTS + playback.
+    const ttsTimeout = (useSmartTts || isElevenLabs) ? 90000 : 30000;
+
+    // Async hook helper — fire-and-forget hooks run in background when enabled
+    type HookEntry = { type: string; command: string; timeout: number; async?: true };
+    const maybeAsync = (entry: { type: string; command: string; timeout: number }): HookEntry =>
+      config.hooks.asyncHooks ? { ...entry, async: true as const } : entry;
+
+    const result = await writer.write(SETTINGS_PATH, {
       label: 'kuro-config:save',
       mutate: (settings) => {
         if (!settings.hooks) settings.hooks = {};
@@ -1977,28 +2009,6 @@ function setupKuroConfigIpc(): void {
           _teamTtsActive: prevTeamTtsActive,
         };
 
-        // Dynamic UV path resolution - check env var first, then use platform-appropriate default
-        // CC 2.1.47+ runs hooks via Git Bash — use /c/Users/... format instead of C:\\Users\\...
-        const useBash = hooksUseBash();
-        const rawUvPath = process.env.UV_PATH
-          || (process.platform === 'win32' ? join(os.homedir(), '.local', 'bin', 'uv.exe') : 'uv');
-        const uvPath = process.platform === 'win32'
-          ? (useBash ? toGitBashPath(rawUvPath) : rawUvPath.replace(/\\/g, '\\\\'))
-          : rawUvPath;
-        // Windows-native path for inside PowerShell -Command strings (PS doesn't understand /c/... paths)
-        const uvPathWindows = rawUvPath;
-        // CC 2.1.47+ runs hooks via Git Bash — CWD may not be project root,
-        // so prefix uv run commands with cd to $CLAUDE_PROJECT_DIR (set by CC for hooks)
-        const cdPrefix = useBash ? 'cd "$CLAUDE_PROJECT_DIR" && ' : '';
-        const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
-        const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
-        const voice = config.tts.voice || 'en-GB-SoniaNeural';
-        const useSmartTts = config.tts.smartSummaries;
-        // ElevenLabs always uses smart_tts.py (it reads provider from config and routes)
-        const isElevenLabs = config.tts.provider === 'elevenlabs';
-        // Timeout is in milliseconds. Smart summaries need ~90s for AI summary + TTS + playback.
-        const ttsTimeout = (useSmartTts || isElevenLabs) ? 90000 : 30000;
-
         // Always include TTS in project hooks — the double-fire prevention in
         // smart_tts.py's should_skip_global() checks for actual hook commands,
         // and the TTS lock (tts_queue.py) prevents simultaneous playback as a safety net.
@@ -2011,36 +2021,36 @@ function setupKuroConfigIpc(): void {
 
         // Update Stop hooks - always keep session log + transcript export, only toggle TTS
         {
-          const stopHookEntries: Array<{ type: string; command: string; timeout: number }> = [
-            { type: 'command', command: useBash
-              ? `powershell -NoProfile -Command 'Add-Content -Path "ai/checkpoints/session_log.txt" -Value "Session completed: $(Get-Date -Format \"yyyy-MM-dd HH:mm:ss\")"'`
+          const stopHookEntries: HookEntry[] = [
+            maybeAsync({ type: 'command', command: useBash
+              ? `${cdPrefix}powershell -NoProfile -Command 'Add-Content -Path "ai/checkpoints/session_log.txt" -Value "Session completed: $(Get-Date -Format \"yyyy-MM-dd HH:mm:ss\")"'`
               : `powershell -NoProfile -Command "Add-Content -Path 'ai/checkpoints/session_log.txt' -Value \\"Session completed: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')\\""`,
-              timeout: 10 },
-            { type: 'command', command: `powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 },
+              timeout: 10 }),
+            maybeAsync({ type: 'command', command: `${cdPrefix}powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 10000 }),
           ];
           if (config.hooks.ttsOnStop && !skipProjectTts) {
             const ttsCommand = (useSmartTts || isElevenLabs)
               ? `${cdPrefix}${uvPath} run ${smartTtsScript} "${config.tts.messages.stop}" --type stop --voice "${voice}"`
               : `${cdPrefix}${uvPath} run ${simpleTtsScript} "${config.tts.messages.stop}" --voice "${voice}"`;
-            stopHookEntries.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+            stopHookEntries.push(maybeAsync({ type: 'command', command: ttsCommand, timeout: ttsTimeout }));
           }
           if (config.hooks.observability) {
-            stopHookEntries.push({ type: 'command', command: obsScript('Stop'), timeout: obsTimeout });
+            stopHookEntries.push(maybeAsync({ type: 'command', command: obsScript('Stop'), timeout: obsTimeout }));
           }
           hooks.Stop = [{ hooks: stopHookEntries }];
         }
 
         // Update SubagentStop hooks (TTS + observability built together)
         {
-          const subStopHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          const subStopHooks: HookEntry[] = [];
           if (config.hooks.ttsOnSubagentStop && !skipProjectTts) {
             const ttsCommand = (useSmartTts || isElevenLabs)
               ? `${cdPrefix}${uvPath} run ${smartTtsScript} "${config.tts.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}"`
               : `${cdPrefix}${uvPath} run ${simpleTtsScript} "${config.tts.messages.subagentStop}" --voice "${voice}"`;
-            subStopHooks.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+            subStopHooks.push(maybeAsync({ type: 'command', command: ttsCommand, timeout: ttsTimeout }));
           }
           if (config.hooks.observability && subStopHooks.length > 0) {
-            subStopHooks.push({ type: 'command', command: obsScript('SubagentStop'), timeout: obsTimeout });
+            subStopHooks.push(maybeAsync({ type: 'command', command: obsScript('SubagentStop'), timeout: obsTimeout }));
           }
           if (subStopHooks.length > 0) {
             hooks.SubagentStop = [{ hooks: subStopHooks }];
@@ -2051,15 +2061,15 @@ function setupKuroConfigIpc(): void {
 
         // Update Notification hooks (TTS + observability built together)
         {
-          const notifHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          const notifHooks: HookEntry[] = [];
           if (config.hooks.ttsOnNotification && !skipProjectTts) {
             const ttsCommand = (useSmartTts || isElevenLabs)
               ? `${cdPrefix}${uvPath} run ${smartTtsScript} "${config.tts.messages.notification}" --type notification --voice "${voice}"`
               : `${cdPrefix}${uvPath} run ${simpleTtsScript} "${config.tts.messages.notification}" --voice "${voice}"`;
-            notifHooks.push({ type: 'command', command: ttsCommand, timeout: ttsTimeout });
+            notifHooks.push(maybeAsync({ type: 'command', command: ttsCommand, timeout: ttsTimeout }));
           }
           if (config.hooks.observability && notifHooks.length > 0) {
-            notifHooks.push({ type: 'command', command: obsScript('Notification'), timeout: obsTimeout });
+            notifHooks.push(maybeAsync({ type: 'command', command: obsScript('Notification'), timeout: obsTimeout }));
           }
           if (notifHooks.length > 0) {
             hooks.Notification = [{ hooks: notifHooks }];
@@ -2069,22 +2079,22 @@ function setupKuroConfigIpc(): void {
         }
 
         // Update PostToolUse hooks (validators and task sync)
-        const postHooks: Array<{ matcher: string; hooks: Array<{ type: string; command: string; timeout: number }> }> = [];
+        const postHooks: Array<{ matcher: string; hooks: HookEntry[] }> = [];
 
         // Write/Edit hooks for logging
-        postHooks.push({ matcher: 'Write', hooks: [{ type: 'command', command: 'echo WRITE >> ai/hooks/hook_fired.txt', timeout: 5 }] });
-        postHooks.push({ matcher: 'Edit', hooks: [{ type: 'command', command: 'echo EDIT >> ai/hooks/hook_fired.txt', timeout: 5 }] });
+        postHooks.push({ matcher: 'Write', hooks: [maybeAsync({ type: 'command', command: 'echo WRITE >> ai/hooks/hook_fired.txt', timeout: 5 })] });
+        postHooks.push({ matcher: 'Edit', hooks: [maybeAsync({ type: 'command', command: 'echo EDIT >> ai/hooks/hook_fired.txt', timeout: 5 })] });
 
         // Task sync hooks
         if (config.hooks.taskSync) {
           const syncCmd = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/sync-claude-task.ps1"';
-          postHooks.push({ matcher: 'TaskCreate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
-          postHooks.push({ matcher: 'TaskUpdate', hooks: [{ type: 'command', command: syncCmd, timeout: 5000 }] });
+          postHooks.push({ matcher: 'TaskCreate', hooks: [maybeAsync({ type: 'command', command: syncCmd, timeout: 5000 })] });
+          postHooks.push({ matcher: 'TaskUpdate', hooks: [maybeAsync({ type: 'command', command: syncCmd, timeout: 5000 })] });
         }
 
-        // Validator hooks
+        // Validator hooks — NOT async (feed lint errors back to model)
         if (config.validators.ruff || config.validators.ty) {
-          const validatorHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          const validatorHooks: HookEntry[] = [];
           if (config.validators.ruff) {
             validatorHooks.push({
               type: 'command',
@@ -2108,12 +2118,12 @@ function setupKuroConfigIpc(): void {
 
         // Add observability hooks to PostToolUse if enabled
         if (config.hooks.observability) {
-          postHooks.push({ matcher: '', hooks: [{ type: 'command', command: obsScript('PostToolUse'), timeout: obsTimeout }] });
+          postHooks.push({ matcher: '', hooks: [maybeAsync({ type: 'command', command: obsScript('PostToolUse'), timeout: obsTimeout })] });
         }
 
-        // Add inbox polling to PostToolUse catch-all (piggyback on existing or create new)
+        // Add inbox polling to PostToolUse catch-all — NOT async (feeds inbox messages back to model)
         if (config.hooks.inboxPolling) {
-          const inboxCmd = { type: 'command', command: `${cdPrefix}${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 };
+          const inboxCmd: HookEntry = { type: 'command', command: `${cdPrefix}${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 };
           const catchAll = postHooks.find(h => h.matcher === '');
           if (catchAll) {
             catchAll.hooks.push(inboxCmd);
@@ -2126,16 +2136,17 @@ function setupKuroConfigIpc(): void {
 
         // Update UserPromptSubmit hooks
         {
-          const upsHooks: Array<{ type: string; command: string; timeout: number }> = [];
+          const upsHooks: HookEntry[] = [];
           if (config.hooks.transcriptExport) {
-            upsHooks.push({ type: 'command', command: 'powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"', timeout: 5 });
+            upsHooks.push(maybeAsync({ type: 'command', command: `${cdPrefix}powershell -NoProfile -ExecutionPolicy Bypass -File ".claude/plugins/kuro/scripts/export-transcript.ps1"`, timeout: 5 }));
           }
           if (config.hooks.observability && upsHooks.length > 0) {
             // Only add observability if other UPS hooks exist — standalone arrays
             // break Windows terminal input in Claude Code v2.1.37
-            upsHooks.push({ type: 'command', command: obsScript('UserPromptSubmit'), timeout: obsTimeout });
+            upsHooks.push(maybeAsync({ type: 'command', command: obsScript('UserPromptSubmit'), timeout: obsTimeout }));
           }
           if (config.hooks.inboxPolling && upsHooks.length > 0) {
+            // NOT async — feeds inbox messages back to model
             upsHooks.push({ type: 'command', command: `${cdPrefix}${uvPath} run .claude/plugins/kuro/hooks/check_inbox_hook.py`, timeout: 5000 });
           }
           if (upsHooks.length > 0) {
@@ -2181,6 +2192,86 @@ function setupKuroConfigIpc(): void {
         }
       },
     });
+
+    // Sync TTS toggle states to global ~/.claude/settings.json
+    // Global hooks fire on every CC session — this ensures TTS on/off is respected globally
+    const globalSettingsPath = join(os.homedir(), '.claude', 'settings.json');
+    if (globalSettingsPath !== SETTINGS_PATH) {
+      try {
+        // Build absolute paths for global hooks (can't use relative paths outside project)
+        // PROJECT_ROOT is resolved at function scope (env vars or __dirname fallback)
+        const absSmartTts = useBash
+          ? toGitBashPath(join(PROJECT_ROOT, smartTtsScript))
+          : join(PROJECT_ROOT, smartTtsScript).replace(/\\/g, '\\\\');
+        const absSimpleTts = useBash
+          ? toGitBashPath(join(PROJECT_ROOT, simpleTtsScript))
+          : join(PROJECT_ROOT, simpleTtsScript).replace(/\\/g, '\\\\');
+        const sourceArg = '--source global';
+
+        const makeGlobalTtsCmd = (msg: string, type: string, extraArgs = '') => {
+          return (useSmartTts || isElevenLabs)
+            ? `${uvPath} run ${absSmartTts} "${msg}" --type ${type}${extraArgs} --voice "${voice}" ${sourceArg}`
+            : `${uvPath} run ${absSimpleTts} "${msg}" --voice "${voice}"`;
+        };
+
+        await writer.write(globalSettingsPath, {
+          label: 'kuro-config:save:global-tts-sync',
+          mutate: (globalSettings) => {
+            if (!globalSettings.hooks) globalSettings.hooks = {};
+            const gHooks = globalSettings.hooks as Record<string, unknown[]>;
+
+            // Stop: sync TTS entry
+            const gStop = gHooks.Stop as Array<{ hooks: HookEntry[] }> | undefined;
+            if (gStop?.[0]?.hooks) {
+              // Remove existing TTS entries
+              gStop[0].hooks = gStop[0].hooks.filter(
+                (h: HookEntry) => !h.command?.includes('smart_tts.py') && !h.command?.includes('edge_tts.py')
+              );
+              // Re-add if enabled
+              if (config.hooks.ttsOnStop) {
+                gStop[0].hooks.push(maybeAsync({ type: 'command', command: makeGlobalTtsCmd(config.tts.messages.stop, 'stop'), timeout: ttsTimeout }));
+              }
+            } else if (config.hooks.ttsOnStop) {
+              gHooks.Stop = [{ hooks: [maybeAsync({ type: 'command', command: makeGlobalTtsCmd(config.tts.messages.stop, 'stop'), timeout: ttsTimeout })] }];
+            }
+
+            // SubagentStop
+            if (config.hooks.ttsOnSubagentStop) {
+              gHooks.SubagentStop = [{ hooks: [maybeAsync({ type: 'command', command: makeGlobalTtsCmd(config.tts.messages.subagentStop, 'subagent', ' --task "$CLAUDE_TASK_DESCRIPTION"'), timeout: ttsTimeout })] }];
+            } else {
+              delete gHooks.SubagentStop;
+            }
+
+            // Notification
+            if (config.hooks.ttsOnNotification) {
+              gHooks.Notification = [{ hooks: [maybeAsync({ type: 'command', command: makeGlobalTtsCmd(config.tts.messages.notification, 'notification'), timeout: ttsTimeout })] }];
+            } else {
+              delete gHooks.Notification;
+            }
+
+            // Mirror kuroPlugin config to global for smart_tts.py settings lookup + asyncHooks flag
+            if (globalSettings.kuroPlugin && typeof globalSettings.kuroPlugin === 'object') {
+              const gKuro = globalSettings.kuroPlugin as Record<string, unknown>;
+              gKuro.tts = {
+                provider: config.tts.provider,
+                voice: config.tts.voice,
+                smartSummaries: config.tts.smartSummaries,
+                summaryProvider: config.tts.summaryProvider,
+                summaryModel: config.tts.summaryModel,
+                userName: config.tts.userName,
+                messages: config.tts.messages,
+              };
+              gKuro.hooks = { asyncHooks: config.hooks.asyncHooks };
+            }
+          },
+        });
+      } catch (err) {
+        console.error('[KuroConfig] Failed to sync global TTS hooks:', err);
+        // Non-fatal — project settings already saved successfully
+      }
+    }
+
+    return result;
   });
 
   // Toggle team TTS override — only manipulates TTS hook entries + _teamTtsActive flag
@@ -2229,26 +2320,30 @@ function setupKuroConfigIpc(): void {
           const simpleTtsScript = '.claude/plugins/kuro/hooks/utils/tts/edge_tts.py';
           const smartTtsScript = '.claude/plugins/kuro/hooks/smart_tts.py';
 
-          const makeTtsCmd = (msg: string, type: string, extraArgs = '') => {
-            return (useSmartTts || isElevenLabs)
+          const useAsync = ttsHooks.asyncHooks === true;
+          const makeTtsEntry = (msg: string, type: string, extraArgs = '') => {
+            const command = (useSmartTts || isElevenLabs)
               ? `${cdPrefix2}${uvPath2} run ${smartTtsScript} "${msg}" --type ${type}${extraArgs} --voice "${voice}"`
               : `${cdPrefix2}${uvPath2} run ${simpleTtsScript} "${msg}" --voice "${voice}"`;
+            const entry: Record<string, unknown> = { type: 'command', command, timeout: ttsTimeout };
+            if (useAsync) entry.async = true;
+            return entry;
           };
 
           if (ttsHooks.ttsOnStop) {
-            const stopArr = hooks.Stop as Array<{ hooks: Array<{ type: string; command: string; timeout: number }> }> | undefined;
+            const stopArr = hooks.Stop as Array<{ hooks: Array<Record<string, unknown>> }> | undefined;
             if (stopArr?.[0]?.hooks) {
-              stopArr[0].hooks.push({ type: 'command', command: makeTtsCmd(messages.stop || 'Work complete', 'stop'), timeout: ttsTimeout });
+              stopArr[0].hooks.push(makeTtsEntry(messages.stop || 'Work complete', 'stop'));
             }
           }
           if (ttsHooks.ttsOnSubagentStop) {
             hooks.SubagentStop = [{
-              hooks: [{ type: 'command', command: makeTtsCmd(messages.subagentStop || 'Task finished', 'subagent', ' --task "$CLAUDE_TASK_DESCRIPTION"'), timeout: ttsTimeout }],
+              hooks: [makeTtsEntry(messages.subagentStop || 'Task finished', 'subagent', ' --task "$CLAUDE_TASK_DESCRIPTION"')],
             }];
           }
           if (ttsHooks.ttsOnNotification) {
             hooks.Notification = [{
-              hooks: [{ type: 'command', command: makeTtsCmd(messages.notification || 'Your attention is needed', 'notification'), timeout: ttsTimeout }],
+              hooks: [makeTtsEntry(messages.notification || 'Your attention is needed', 'notification')],
             }];
           }
         }

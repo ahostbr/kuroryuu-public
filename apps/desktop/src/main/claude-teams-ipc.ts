@@ -638,37 +638,28 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
           if (!settings.hooks) settings.hooks = {};
           const hooks = settings.hooks as Record<string, unknown>;
 
+          // Check if async hooks are enabled (mirrored from project kuroPlugin config)
+          const kuroPlugin = settings.kuroPlugin as Record<string, unknown> | undefined;
+          const useAsync = (kuroPlugin?.hooks as Record<string, boolean> | undefined)?.asyncHooks === true;
+          const hookEntry = (cmd: string) => {
+            const entry: Record<string, unknown> = { type: 'command', command: cmd, timeout: 90000 };
+            if (useAsync) entry.async = true;
+            return entry;
+          };
+
           // Install Stop hook
           hooks.Stop = [{
-            hooks: [
-              {
-                type: 'command',
-                command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}" ${sourceArg}`,
-                timeout: 90000,
-              },
-            ],
+            hooks: [hookEntry(`${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.stop}" --type stop --voice "${voice}" ${sourceArg}`)],
           }];
 
           // Install SubagentStop hook
           hooks.SubagentStop = [{
-            hooks: [
-              {
-                type: 'command',
-                command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}" ${sourceArg}`,
-                timeout: 90000,
-              },
-            ],
+            hooks: [hookEntry(`${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.subagentStop}" --type subagent --task "$CLAUDE_TASK_DESCRIPTION" --voice "${voice}" ${sourceArg}`)],
           }];
 
           // Install Notification hook
           hooks.Notification = [{
-            hooks: [
-              {
-                type: 'command',
-                command: `${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}" ${sourceArg}`,
-                timeout: 90000,
-              },
-            ],
+            hooks: [hookEntry(`${uvPath} run ${smartTtsAbsolute} "${ttsConfig.messages.notification}" --type notification --voice "${voice}" ${sourceArg}`)],
           }];
 
           // Mirror kuroPlugin config to global (so smart_tts.py can find settings via global fallback)
