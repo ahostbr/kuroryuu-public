@@ -78,12 +78,21 @@ export class PTYManager extends EventEmitter {
    */
   create(params: CreateParams = {}): { termId: string; pid: number } {
     const termId = this.generateId();
-    const shell = params.cmd || this.getDefaultShell();
-    const args = params.args || [];
+    let shell = params.cmd || this.getDefaultShell();
+    let args = params.args || [];
     const cwd = params.cwd || process.cwd();
     const cols = params.cols || 80;
     const rows = params.rows || 24;
     const name = params.name || `Terminal ${this.terminals.size + 1}`;
+
+    // Windows ConPTY safety: wrap .cmd/.bat files in cmd.exe
+    // The main process IPC handler should already do this, but this is a safety net
+    if (os.platform() === 'win32' && shell && (shell.endsWith('.cmd') || shell.endsWith('.bat'))) {
+      const originalShell = shell;
+      shell = process.env.ComSpec || 'cmd.exe';
+      args = ['/c', originalShell, ...args];
+      console.log('[PTYManager] Wrapped .cmd/.bat for Windows ConPTY:', { originalShell, shell, args });
+    }
 
     console.log('[PTYManager] Creating PTY:', {
       termId,

@@ -32,6 +32,8 @@ from pathlib import Path
 
 # Gateway endpoint
 GATEWAY_URL = "http://127.0.0.1:8200/v1/chat/proxy"
+# Direct LM Studio endpoint (fallback when gateway is down)
+LMSTUDIO_URL = "http://169.254.83.107:1234/v1/chat/completions"
 
 
 def get_settings():
@@ -98,21 +100,17 @@ def should_skip_global(source_arg=""):
     return False
 
 
-def generate_summary_via_gateway(task_description: str, summary_type: str, agent_name: str = None,
-                                  user_name: str = "Ryan", provider: str = "gateway-auto",
-                                  model: str = None) -> str:
-    """Generate an AI summary using Kuroryuu Gateway (any provider)."""
-    try:
-        import requests
+def _build_summary_prompt(task_description: str, summary_type: str, agent_name: str = None,
+                          user_name: str = "Ryan") -> str:
+    """Build the TTS summary prompt."""
+    if summary_type == "stop":
+        context = "A coding session has ended."
+    elif summary_type == "subagent":
+        context = f"A subagent ({agent_name or 'builder'}) completed a task."
+    else:
+        context = "The user's attention is needed."
 
-        if summary_type == "stop":
-            context = "A coding session has ended."
-        elif summary_type == "subagent":
-            context = f"A subagent ({agent_name or 'builder'}) completed a task."
-        else:
-            context = "The user's attention is needed."
-
-        prompt = f"""Generate a brief TTS announcement summarizing COMPLETED work.
+    return f"""Generate a brief TTS announcement summarizing COMPLETED work.
 
 {task_description}
 Context: {context}
@@ -142,48 +140,85 @@ Bad (TOO GENERIC - never say these):
 
 Generate ONE specific announcement:"""
 
-        # Map provider names to Gateway backend values
-        backend_map = {
-            "gateway-auto": "gateway-auto",
-            "lmstudio": "lmstudio",
-            "cliproxy": "cliproxyapi",
-            "claude": "claude"
-        }
-        backend = backend_map.get(provider, "gateway-auto")
 
-        # Build request payload
-        payload = {
-            "messages": [{"role": "user", "content": prompt}],
-            "stream": False,
-            "max_tokens": 100,
-            "temperature": 0.7,
-            "backend": backend
-        }
+def _call_lmstudio_direct(prompt: str, model: str = None) -> str:
+    """Call LM Studio directly via OpenAI-compatible API. No gateway needed."""
+    import requests
 
-        # Add model if specified (for LMStudio)
-        if model:
-            payload["model"] = model
+    payload = {
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+        "max_tokens": 100,
+        "temperature": 0.7,
+    }
+    if model:
+        payload["model"] = model
 
-        response = requests.post(
-            GATEWAY_URL,
-            json=payload,
-            timeout=30
-        )
+    response = requests.post(LMSTUDIO_URL, json=payload, timeout=15)
+    if response.status_code == 200:
+        data = response.json()
+        if "choices" in data:
+            return data["choices"][0]["message"]["content"].strip()
+    else:
+        print(f"[SmartTTS] LM Studio error {response.status_code}", file=sys.stderr)
+    return None
 
-        if response.status_code == 200:
-            data = response.json()
-            # Gateway returns content directly, not in OpenAI format
-            if "content" in data:
-                return data["content"].strip()
-            # Fallback to OpenAI format if present
-            elif "choices" in data:
-                return data["choices"][0]["message"]["content"].strip()
-            else:
-                print(f"[SmartTTS] Unexpected response format: {data}", file=sys.stderr)
-                return None
-        else:
-            print(f"[SmartTTS] Gateway error {response.status_code}: {response.text}", file=sys.stderr)
-            return None
+
+def _call_gateway(prompt: str, provider: str, model: str = None) -> str:
+    """Call Kuroryuu Gateway for summary generation."""
+    import requests
+
+    backend_map = {
+        "gateway-auto": "gateway-auto",
+        "lmstudio": "lmstudio",
+        "cliproxy": "cliproxyapi",
+        "claude": "claude"
+    }
+    payload = {
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": False,
+        "max_tokens": 100,
+        "temperature": 0.7,
+        "backend": backend_map.get(provider, "gateway-auto")
+    }
+    if model:
+        payload["model"] = model
+
+    response = requests.post(GATEWAY_URL, json=payload, timeout=10)
+    if response.status_code == 200:
+        data = response.json()
+        if "content" in data:
+            return data["content"].strip()
+        elif "choices" in data:
+            return data["choices"][0]["message"]["content"].strip()
+    else:
+        print(f"[SmartTTS] Gateway error {response.status_code}", file=sys.stderr)
+    return None
+
+
+def generate_summary_via_gateway(task_description: str, summary_type: str, agent_name: str = None,
+                                  user_name: str = "Ryan", provider: str = "gateway-auto",
+                                  model: str = None) -> str:
+    """Generate an AI summary. Uses LM Studio direct when provider is 'lmstudio' (no gateway needed)."""
+    try:
+        prompt = _build_summary_prompt(task_description, summary_type, agent_name, user_name)
+
+        # LM Studio: go direct — no gateway dependency
+        if provider == "lmstudio":
+            print(f"[SmartTTS] Using LM Studio direct ({LMSTUDIO_URL})", file=sys.stderr)
+            result = _call_lmstudio_direct(prompt, model)
+            if result:
+                return result
+            # If LM Studio is down, try gateway as last resort
+            print("[SmartTTS] LM Studio direct failed, trying gateway fallback", file=sys.stderr)
+            return _call_gateway(prompt, provider, model)
+
+        # All other providers: use gateway, fall back to LM Studio direct
+        result = _call_gateway(prompt, provider, model)
+        if result:
+            return result
+        print("[SmartTTS] Gateway failed, trying LM Studio direct fallback", file=sys.stderr)
+        return _call_lmstudio_direct(prompt, model)
 
     except Exception as e:
         print(f"[SmartTTS] Summary failed: {e}", file=sys.stderr)
@@ -537,7 +572,7 @@ def main():
     # Settings voice takes priority over CLI arg (CLI arg is baked at save time
     # and may be stale if user changed voice without restarting Claude Code)
     voice = tts_config.get("voice") or args.voice or "en-GB-SoniaNeural"
-    provider = args.provider or tts_config.get("summaryProvider", "gateway-auto")
+    provider = args.provider or tts_config.get("summaryProvider", "lmstudio")
     model = args.model or tts_config.get("summaryModel", "")
 
     message = None
@@ -547,15 +582,45 @@ def main():
     result = None
     stdin_context = read_stdin_context()
 
+    # Debug: log what we received (helps diagnose hook data issues)
+    debug_path = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")) / "ai" / "hooks" / "smart_tts_debug.log"
+    try:
+        with open(debug_path, "a", encoding="utf-8") as dbg:
+            import datetime
+            dbg.write(f"\n=== {datetime.datetime.now().isoformat()} type={args.type} ===\n")
+            dbg.write(f"  args.task: {repr(args.task)}\n")
+            dbg.write(f"  stdin_context keys: {list(stdin_context.keys()) if stdin_context else 'None'}\n")
+            if stdin_context:
+                # Log available fields (truncate large values)
+                for k, v in stdin_context.items():
+                    val_str = str(v)[:200] if v else 'None'
+                    dbg.write(f"  stdin.{k}: {val_str}\n")
+    except Exception:
+        pass
+
     if stdin_context:
-        # SubagentStop: read task AND result from agent transcript file
-        transcript_path = stdin_context.get("agent_transcript_path")
-        if transcript_path:
-            task, result = get_task_and_result_from_transcript(transcript_path)
+        # Try last_assistant_message first (newer Claude Code versions provide this directly)
+        last_msg = stdin_context.get("last_assistant_message")
+        if last_msg and isinstance(last_msg, str) and len(last_msg.strip()) > 5:
+            result = last_msg.strip()[:500]
+
+        # SubagentStop: read task AND result from agent transcript file (fallback)
+        if not result:
+            transcript_path = stdin_context.get("agent_transcript_path")
+            if transcript_path:
+                task, result = get_task_and_result_from_transcript(transcript_path)
 
     # Check if task description is valid (not empty, not unexpanded variable)
-    if task and (task.startswith('$') or task == '' or task == 'null'):
+    if not task or task.startswith('$') or task.strip() == '' or task == 'null':
         task = None
+
+    # Debug: log decision state
+    try:
+        with open(debug_path, "a", encoding="utf-8") as dbg:
+            dbg.write(f"  DECISION: smart_summaries={smart_summaries}, task={repr(task)[:100]}, result={repr(result)[:100]}\n")
+            dbg.write(f"  GATE: {'PASS' if smart_summaries and (result or task) else 'FAIL'}\n")
+    except Exception:
+        pass
 
     # Try AI summary if enabled AND we have actual content to summarize
     if smart_summaries and (result or task):

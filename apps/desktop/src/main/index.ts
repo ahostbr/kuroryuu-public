@@ -630,6 +630,7 @@ function setupPtyIpcHandlersDaemon(): void {
     if (options.cmd === 'claude' && process.platform === 'win32') {
       const homeDir = process.env.USERPROFILE || process.env.HOME || '';
       const knownPaths = [
+        join(homeDir, '.local', 'bin', 'claude.exe'),   // Native install (v2.1+)
         join(homeDir, '.claude', 'node_modules', '.bin', 'claude.cmd'),
         join(process.env.APPDATA || '', 'npm', 'claude.cmd'),
         join(homeDir, 'AppData', 'Roaming', 'npm', 'claude.cmd'),
@@ -644,10 +645,12 @@ function setupPtyIpcHandlersDaemon(): void {
     }
 
     // Windows ConPTY cannot execute .cmd shim files directly.
-    // Wrap npm-global CLI commands in cmd /c (same as embedded PtyManager).
+    // Wrap npm-global CLI commands in cmd /c — but NOT native .exe files.
     const npmGlobalCommands = ['kiro', 'kuroryuu', 'copilot', 'claude', 'codex', 'aider'];
+    const cmdLower = (options.cmd || '').toLowerCase();
     const needsShellWrapper = options.cmd &&
-      npmGlobalCommands.some(c => options.cmd!.toLowerCase().includes(c));
+      npmGlobalCommands.some(c => cmdLower.includes(c)) &&
+      !cmdLower.endsWith('.exe');  // Native .exe files don't need cmd /c wrapping
 
     if (needsShellWrapper && process.platform === 'win32') {
       const originalCmd = options.cmd!;
@@ -679,7 +682,8 @@ function setupPtyIpcHandlersDaemon(): void {
         return arg;
       });
 
-      options.cmd = 'cmd';
+      // Use ComSpec or explicit cmd.exe — bare 'cmd' may fail in node-pty ConPTY
+      options.cmd = process.env.ComSpec || 'cmd.exe';
       options.args = ['/c', originalCmd, ...quotedArgs];
       mainLogger.log('PTY-IPC', 'Wrapped npm CLI for Windows ConPTY', { originalCmd, wrapped: { cmd: options.cmd, args: options.args } });
     }
@@ -943,6 +947,7 @@ function setupPtyIpcHandlersEmbedded(): void {
     if (options.cmd === 'claude' && process.platform === 'win32') {
       const homeDir = process.env.USERPROFILE || process.env.HOME || '';
       const knownPaths = [
+        join(homeDir, '.local', 'bin', 'claude.exe'),   // Native install (v2.1+)
         join(homeDir, '.claude', 'node_modules', '.bin', 'claude.cmd'),
         join(process.env.APPDATA || '', 'npm', 'claude.cmd'),
         join(homeDir, 'AppData', 'Roaming', 'npm', 'claude.cmd'),
@@ -1729,9 +1734,9 @@ function setupKuroConfigIpc(): void {
         const ttsDefaults = {
           provider: 'edge_tts',
           voice: 'en-GB-SoniaNeural',
-          smartSummaries: false,
-          summaryProvider: 'gateway-auto',
-          summaryModel: '',
+          smartSummaries: true,
+          summaryProvider: 'lmstudio',
+          summaryModel: 'qwen3.5-0.8b',
           userName: 'Ryan',
           messages: {
             stop: 'Work complete',
@@ -1782,9 +1787,9 @@ function setupKuroConfigIpc(): void {
         tts: {
           provider: 'edge_tts',
           voice: kuroPlugin.voice || 'en-GB-SoniaNeural',
-          smartSummaries: kuroPlugin.smartSummaries || false,
-          summaryProvider: kuroPlugin.summaryProvider || 'gateway-auto',
-          summaryModel: kuroPlugin.summaryModel || '',
+          smartSummaries: kuroPlugin.smartSummaries ?? true,
+          summaryProvider: kuroPlugin.summaryProvider || 'lmstudio',
+          summaryModel: kuroPlugin.summaryModel || 'qwen3.5-0.8b',
           userName: kuroPlugin.userName || 'Ryan',
           messages: {
             stop: 'Work complete',

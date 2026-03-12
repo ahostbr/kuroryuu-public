@@ -5,7 +5,7 @@ type StudioStatus = 'booting' | 'running' | 'error' | 'stopped';
 
 function StatusBadge({ status }: { status: StudioStatus }) {
   const configs: Record<StudioStatus, { label: string; dot: string; text: string }> = {
-    booting: { label: 'Booting…', dot: 'bg-amber-400 animate-pulse', text: 'text-amber-400' },
+    booting: { label: 'Booting...', dot: 'bg-amber-400 animate-pulse', text: 'text-amber-400' },
     running: { label: 'Running',  dot: 'bg-green-400',              text: 'text-green-400' },
     error:   { label: 'Error',    dot: 'bg-red-500',                text: 'text-red-400'   },
     stopped: { label: 'Stopped',  dot: 'bg-zinc-600',               text: 'text-zinc-500'  },
@@ -111,7 +111,7 @@ export function StudioPage() {
         {status === 'booting' && (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-zinc-400">
             <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-            <p className="text-sm">Starting Remotion Studio…</p>
+            <p className="text-sm">Starting Remotion Studio...</p>
           </div>
         )}
 

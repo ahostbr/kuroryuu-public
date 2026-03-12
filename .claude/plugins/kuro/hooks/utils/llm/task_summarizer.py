@@ -146,7 +146,7 @@ def main():
     settings = get_settings()
     smart_summaries = settings.get("smartSummaries", False)
     user_name = settings.get("userName", "Ryan")
-    provider = args.provider or settings.get("summaryProvider", "gateway-auto")
+    provider = args.provider or settings.get("summaryProvider", "lmstudio")
 
     message = None
 

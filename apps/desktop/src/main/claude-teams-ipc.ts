@@ -667,9 +667,9 @@ export function setupClaudeTeamsIpc(mainWindow: BrowserWindow): void {
             tts: {
               provider: 'edge_tts',
               voice: ttsConfig.voice || 'en-GB-SoniaNeural',
-              smartSummaries: ttsConfig.smartSummaries || false,
-              summaryProvider: ttsConfig.summaryProvider || 'gateway-auto',
-              summaryModel: ttsConfig.summaryModel || '',
+              smartSummaries: ttsConfig.smartSummaries ?? true,
+              summaryProvider: ttsConfig.summaryProvider || 'lmstudio',
+              summaryModel: ttsConfig.summaryModel || 'qwen3.5-0.8b',
               userName: ttsConfig.userName || 'Kuroryuu Says',
               messages: ttsConfig.messages,
             },

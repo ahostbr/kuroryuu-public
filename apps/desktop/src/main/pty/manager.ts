@@ -162,10 +162,13 @@ export class PtyManager extends EventEmitter {
     }
 
     // npm-global CLI commands need to be wrapped through shell on Windows
-    // because node-pty's ConPTY cannot properly handle stdin for .cmd shim files
+    // because node-pty's ConPTY cannot properly handle stdin for .cmd shim files.
+    // Native .exe files don't need this — only .cmd/.bat shims do.
     const npmGlobalCommands = ['kiro', 'kuroryuu', 'copilot', 'claude', 'codex', 'aider'];
+    const cmdLower = (options.cmd || '').toLowerCase();
     const needsShellWrapper = options.cmd &&
-      npmGlobalCommands.some(c => options.cmd!.toLowerCase().includes(c));
+      npmGlobalCommands.some(c => cmdLower.includes(c)) &&
+      !cmdLower.endsWith('.exe');  // Native .exe files don't need cmd /c wrapping
 
     // For npm-global commands on Windows, wrap in cmd.exe for proper ConPTY stdin handling
     // Direct .cmd spawn causes stdin to be non-functional (output works, input doesn't)
@@ -207,7 +210,8 @@ export class PtyManager extends EventEmitter {
       });
 
       // Wrap in cmd /c to ensure proper stdin/stdout through shell
-      cmd = 'cmd';
+      // Use ComSpec or explicit cmd.exe — bare 'cmd' may fail in node-pty ConPTY
+      cmd = process.env.ComSpec || 'cmd.exe';
       args = ['/c', originalCmd, ...quotedArgs];
       console.log('[PTY] Wrapped npm CLI for Windows ConPTY:', { originalCmd, originalArgs, simplified: simplifiedArgs, wrapped: { cmd, args } });
     }

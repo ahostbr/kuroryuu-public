@@ -97,9 +97,9 @@ const DEFAULT_CONFIG: KuroConfig = {
   tts: {
     provider: 'edge_tts',
     voice: 'en-GB-SoniaNeural',
-    smartSummaries: false,
-    summaryProvider: 'gateway-auto',
-    summaryModel: '',
+    smartSummaries: true,
+    summaryProvider: 'lmstudio',
+    summaryModel: 'qwen3.5-0.8b',
     userName: 'Ryan',
     messages: {
       stop: 'Work complete',
@@ -1043,8 +1043,8 @@ export function KuroPluginConfig() {
                 onChange={(e) => updateConfig('tts', { summaryProvider: e.target.value as KuroConfig['tts']['summaryProvider'] })}
                 className="px-3 py-1.5 text-sm bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
               >
-                <option value="gateway-auto">Gateway (Auto Fallback)</option>
-                <option value="lmstudio">LMStudio (Local)</option>
+                <option value="lmstudio">LM Studio Direct (Local)</option>
+                <option value="gateway-auto">Gateway (Requires Server)</option>
                 <option value="cliproxy">CLI Proxy (Claude/GPT/Gemini)</option>
                 <option value="claude">Claude API (Direct)</option>
               </select>

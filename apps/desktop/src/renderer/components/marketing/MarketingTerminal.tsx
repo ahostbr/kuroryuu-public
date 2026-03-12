@@ -4,7 +4,7 @@ import { useMarketingStore } from '../../stores/marketing-store';
 import { Terminal } from '../Terminal';
 
 /**
- * MarketingTerminal — Lazy-starts a PowerShell terminal for Marketing work.
+ * MarketingTerminal — Lazily starts a PowerShell terminal for Marketing work.
  *
  * - Fresh visit (no ptyId): shows "Start Terminal" button
  * - Click button: spawns PTY, shows "Spawning..." while waiting
