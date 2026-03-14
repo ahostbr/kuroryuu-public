@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "target_agent": null,
+  "baseline_hash": null,
+  "current_best_hash": null,
+  "total_cycles": 0,
+  "kept_mutations": 0,
+  "reverted_mutations": 0,
+  "domain_scores": {
+    "code": {"best_binary": 0, "best_qualitative": 0, "cycles": 0},
+    "writing": {"best_binary": 0, "best_qualitative": 0, "cycles": 0},
+    "reasoning": {"best_binary": 0, "best_qualitative": 0, "cycles": 0},
+    "codebase": {"best_binary": 0, "best_qualitative": 0, "cycles": 0}
+  },
+  "evolution_history": []
+}

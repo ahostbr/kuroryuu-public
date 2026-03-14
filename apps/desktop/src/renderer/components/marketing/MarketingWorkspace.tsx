@@ -16,6 +16,7 @@ import {
   BookOpen,
   Download,
   Loader2,
+  Video,
 } from 'lucide-react';
 import { useMarketingStore } from '../../stores/marketing-store';
 import { TerminalWorkspace } from '../shared/terminal-workspace';
@@ -57,6 +58,7 @@ const MARKETING_SKILLS: WorkspaceSkill[] = [
   { id: 'voiceover-skill', label: 'Voiceover', icon: Mic, file: 'voiceover.md' },
   { id: 'music-gen-skill', label: 'Music Gen', icon: Music, file: 'music_gen.md' },
   { id: 'remotion-studio', label: 'Remotion Studio', icon: MonitorPlay, file: 'remotion_studio.md' },
+  { id: 'lite-suite-video', label: 'Lite Suite Video', icon: Video, file: 'lite_suite_video.md' },
 ];
 
 export function MarketingWorkspace() {
