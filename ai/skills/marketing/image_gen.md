@@ -1,7 +1,7 @@
 ---
 name: Image Generation
-description: Generate marketing images via Gateway AI image generation. Use for ad creative, landing page heroes, social media assets, product mockups. Supports SSE streaming with real-time progress.
-version: 1.0.0
+description: Generate marketing images via Gateway AI image generation. Use for ad creative, landing page heroes, social media assets, product mockups. Supports SSE streaming with real-time progress, reference images, multi-image editing, style transfer, up to 4K resolution.
+version: 2.0.0
 ---
 
 # IMAGE GENERATION TOOL
@@ -66,6 +66,44 @@ curl -X POST http://127.0.0.1:8200/v1/marketing/generate/image \
 | `9:16` | Portrait | Instagram/TikTok Stories, Reels |
 | `4:3` | Classic | Presentations, blog images |
 | `3:4` | Portrait | Pinterest, Facebook ads |
+
+## Direct API Fallback (When Gateway Is Down)
+
+Use `tools/marketing/google-image-gen-api-starter/main.py` for direct Gemini API access with advanced features not available through the Gateway:
+
+```bash
+cd tools/marketing/google-image-gen-api-starter
+
+# Generate with reference images for style consistency (up to 14)
+uv run python main.py output.png "Same style but a rocket" --ref style_ref.png
+uv run python main.py output.png "Blend these" --ref a.png --ref b.png
+
+# Generate at higher resolution (pro model supports up to 4K)
+uv run python main.py output.png "Epic landscape" --aspect 16:9 --size 4K
+
+# Batch variations
+uv run python main.py output.png "cube" "sphere" "pyramid" --style styles/blue_glass_3d.md
+
+# Edit existing image(s) — style transfer, multi-image mixing
+uv run python main.py edit output.png "Change background to blue" -i input.png
+uv run python main.py edit output.png "Merge these art styles" -i style1.png -i style2.png
+uv run python main.py edit output.png "Apply this style" -i photo.png --ref style.png
+
+# Describe / analyze images
+uv run python main.py describe image.png
+uv run python main.py describe a.png b.png --prompt "Compare these two"
+```
+
+### Models
+
+| Alias | Model ID | Quality | Max Resolution |
+|-------|----------|---------|----------------|
+| `pro` | `gemini-3-pro-image-preview` | Best (default) | 4K |
+| `flash` | `gemini-2.5-flash-preview-05-20` | Fast | 1K |
+| `legacy` | `gemini-2.0-flash-exp` | Fallback | 1K |
+
+**Resolution:** `--size 1K` (default), `2K`, `4K` (pro only)
+**Extra aspect ratios:** `4:5`, `5:4`, `21:9` (in addition to Gateway ratios)
 
 ## AI Image Editing
 

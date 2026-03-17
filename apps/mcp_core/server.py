@@ -61,6 +61,7 @@ from tools_msg import register_msg_tools  # Inter-agent messaging (k_msg)
 from tools_tts import register_tts_tools  # Text-to-speech (k_tts)
 from tools_excalidraw import register_excalidraw_tools  # Excalidraw diagramming (k_excalidraw)
 from tools_project import register_project_tools  # Project lifecycle management (k_project)
+from tools_browser import register_browser_tools  # Browser automation via Desktop Electron bridge (k_browser)
 from project_registry import ProjectRegistry
 from paths import set_registry, get_project_root
 from pty_registry import get_pty_registry
@@ -116,6 +117,7 @@ register_msg_tools(registry)  # Inter-agent messaging (k_msg)
 register_tts_tools(registry)  # Text-to-speech (k_tts)
 register_excalidraw_tools(registry)  # Excalidraw diagramming (k_excalidraw)
 register_project_tools(registry)  # Project lifecycle management (k_project)
+register_browser_tools(registry)  # Browser automation via Playwright (k_browser)
 
 protocol = MCPProtocol(registry)
 

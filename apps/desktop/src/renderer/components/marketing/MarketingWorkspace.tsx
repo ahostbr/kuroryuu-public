@@ -17,6 +17,7 @@ import {
   Download,
   Loader2,
   Video,
+  Users,
 } from 'lucide-react';
 import { useMarketingStore } from '../../stores/marketing-store';
 import { TerminalWorkspace } from '../shared/terminal-workspace';
@@ -32,6 +33,7 @@ import { VoiceoverPage } from './pages/VoiceoverPage';
 import { MusicGenPage } from './pages/MusicGenPage';
 import { GalleryPage } from './pages/GalleryPage';
 import { StudioPage } from './pages/StudioPage';
+import { SocialIntelPage } from './pages/SocialIntelPage';
 
 const MARKETING_TOOLS: WorkspaceTool[] = [
   { id: 'research', icon: Search, label: 'Research', page: <ResearchPage /> },
@@ -40,6 +42,7 @@ const MARKETING_TOOLS: WorkspaceTool[] = [
   { id: 'voiceover', icon: Mic, label: 'Voiceover', page: <VoiceoverPage /> },
   { id: 'music-gen', icon: Music, label: 'Music Generation', page: <MusicGenPage /> },
   { id: 'studio', icon: MonitorPlay, label: 'Studio', page: <StudioPage /> },
+  { id: 'social-intel', icon: TrendingUp, label: 'Social Intel', page: <SocialIntelPage /> },
   { id: 'gallery', icon: FolderOpen, label: 'Gallery', page: <GalleryPage />, bottom: true },
 ];
 
@@ -59,6 +62,11 @@ const MARKETING_SKILLS: WorkspaceSkill[] = [
   { id: 'music-gen-skill', label: 'Music Gen', icon: Music, file: 'music_gen.md' },
   { id: 'remotion-studio', label: 'Remotion Studio', icon: MonitorPlay, file: 'remotion_studio.md' },
   { id: 'lite-suite-video', label: 'Lite Suite Video', icon: Video, file: 'lite_suite_video.md' },
+  { id: 'creator-tracker', label: 'Creator Tracker', icon: Users, file: 'creator_tracker.md' },
+  { id: 'social-scraper', label: 'Social Scraper', icon: Globe, file: 'social_scraper.md' },
+  { id: 'video-analysis', label: 'Video Analysis', icon: Search, file: 'video_analysis.md' },
+  { id: 'concept-gen', label: 'Concept Generator', icon: Lightbulb, file: 'concept_generator.md' },
+  { id: 'social-intel-pipeline', label: 'Social Intel Pipeline', icon: TrendingUp, file: 'social_intel.md' },
 ];
 
 export function MarketingWorkspace() {

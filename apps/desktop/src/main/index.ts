@@ -54,6 +54,8 @@ import { setupSchedulerIpc, cleanupSchedulerIpc } from './ipc/scheduler-handlers
 import { setupIdentityIpc, cleanupIdentityIpc } from './ipc/identity-handlers';
 import { registerBackupHandlers } from './ipc/backup-handlers';
 import { registerMarketingHandlers, killStudioServer } from './ipc/marketing-handlers';
+import { getBrowserManager } from './services/browser-manager';
+import { startBrowserBridge, stopBrowserBridge } from './services/browser-bridge';
 import { registerExcalidrawHandlers } from './ipc/excalidraw-handlers';
 import { registerLLMAppsHandlers } from './ipc/llm-apps-handlers';
 import { getTaskService } from './services/task-service';
@@ -4427,6 +4429,32 @@ app.whenReady().then(async () => {
   registerBootstrapHandlers();
   registerMarketingHandlers();
   registerExcalidrawHandlers();
+
+  // Browser automation bridge (mirrors LiteEditor's approach)
+  if (mainWindow) {
+    getBrowserManager().setMainWindow(mainWindow);
+  }
+  startBrowserBridge();
+
+  // Browser IPC handlers for renderer ↔ main process communication
+  ipcMain.handle('browser:show', (_event, bounds: { x: number; y: number; width: number; height: number }) => {
+    getBrowserManager().showView(bounds);
+    return { ok: true };
+  });
+  ipcMain.handle('browser:hide', () => {
+    getBrowserManager().hideView();
+    return { ok: true };
+  });
+  ipcMain.handle('browser:navigate', async (_event, url: string) => {
+    const result = await getBrowserManager().navigate(url);
+    return result;
+  });
+  ipcMain.handle('browser:get-url', () => {
+    try { return getBrowserManager().getCurrentUrl(); } catch { return ''; }
+  });
+  ipcMain.handle('browser:get-title', () => {
+    try { return getBrowserManager().getCurrentTitle(); } catch { return ''; }
+  });
   registerLLMAppsHandlers();
 
   // Auto-launch tray companion if enabled (uses project scope via resolveScope)
@@ -4949,6 +4977,7 @@ async function performShutdownSequence(win: BrowserWindow) {
       fn: async () => {
         console.log('[Main] Step 4/8: Cleaning up file watchers');
         killStudioServer();
+        stopBrowserBridge();
         pluginSyncService.stop();
         fileWatcher.dispose();
       },

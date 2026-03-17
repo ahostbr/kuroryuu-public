@@ -28,13 +28,26 @@ try {
 
     # Context values
     $ctx = $data.context_window
-    $contextWindow = if ($ctx.context_window_size) { [int64]$ctx.context_window_size } else { 200000 }
-    $totalUsed = [int64]$ctx.total_input_tokens + [int64]$ctx.total_output_tokens
-    # Use API's percentage (includes system prompt, tools, etc.)
-    $percent = if ($ctx.used_percentage) { $ctx.used_percentage } else { [math]::Round(($totalUsed / $contextWindow) * 100, 1) }
-
-    # Derive total from percentage (input+output doesn't include overhead)
-    $totalUsed = [math]::Round(($percent / 100) * $contextWindow)
+    # Opus 4.5/4.6 and Sonnet 4.6 run with 1M context in Claude Code (beta always enabled)
+    # API may report 200K base window, but actual usable context is 1M
+    if ($model -match '4\.[56]') {
+        $contextWindow = 1000000
+    } elseif ($ctx.context_window_size) {
+        $contextWindow = [int64]$ctx.context_window_size
+    } else {
+        $contextWindow = 200000
+    }
+    # Derive real token usage: API percentage is based on API's own window (may be 200K)
+    # We need to get actual tokens, then recalculate percentage against our (possibly 1M) window
+    $apiWindow = if ($ctx.context_window_size) { [int64]$ctx.context_window_size } else { 200000 }
+    if ($ctx.used_percentage) {
+        # Get real token count from API's percentage × API's window
+        $totalUsed = [math]::Round(($ctx.used_percentage / 100) * $apiWindow)
+    } else {
+        $totalUsed = [int64]$ctx.total_input_tokens + [int64]$ctx.total_output_tokens
+    }
+    # Recalculate percentage against our context window (1M for 4.5/4.6)
+    $percent = [math]::Round(($totalUsed / $contextWindow) * 100, 1)
 
     # Format tokens first (needed for bar text)
     $usedStr = if ($totalUsed -ge 1000) { "{0:N0}K" -f ($totalUsed / 1000) } else { "$totalUsed" }

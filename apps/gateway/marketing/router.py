@@ -342,6 +342,28 @@ async def events_stream() -> StreamingResponse:
     )
 
 
+@router.post("/events/emit")
+async def emit_event(body: dict[str, Any]) -> dict[str, Any]:
+    """Emit an event to all SSE subscribers.
+
+    Allows external callers (Claude Code CLI, skills, agents) to push events
+    to the Desktop GUI via the SSE stream. Used by social-intel skills to
+    update the Social Intel page in real-time.
+
+    Body: any JSON object — forwarded as-is to all /events subscribers.
+    Must include a "type" field for the frontend to route correctly.
+
+    Example:
+        curl -X POST http://127.0.0.1:8200/v1/marketing/events/emit \\
+          -H "Content-Type: application/json" \\
+          -d '{"type": "social-intel:creator-added", "data": {...}}'
+    """
+    if "type" not in body:
+        return {"ok": False, "error": "Event must include a 'type' field"}
+    await _broadcast(body)
+    return {"ok": True}
+
+
 # ---------------------------------------------------------------------------
 # Skills Discovery
 # ---------------------------------------------------------------------------

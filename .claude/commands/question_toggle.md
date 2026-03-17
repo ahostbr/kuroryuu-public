@@ -3,4 +3,18 @@ description: Toggle question mode - Claude asks clarifying questions before edit
 args: state
 ---
 
-This command is now implemented as a skill. Use the skill 'question-toggle' instead.
+# Question Toggle
+
+Toggle whether Claude asks clarifying questions before making edits.
+
+## Usage
+- `/question_toggle t` — Turn ON: Claude asks before editing
+- `/question_toggle f` — Turn OFF: Claude edits without asking (default)
+
+## Behavior
+
+When **ON**: Before any file edit, ask the user what they want changed and confirm before proceeding.
+
+When **OFF**: Normal behavior — edit files directly based on the request.
+
+Set the mode based on the argument: `$ARGUMENTS`

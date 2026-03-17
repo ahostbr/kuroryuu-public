@@ -3,4 +3,4 @@ description: Activate maximum parallelism mode - aggressive task decomposition a
 allowed-tools: Task, TaskCreate, TaskUpdate, TaskList, Read, Glob, Grep
 ---
 
-This command is now implemented as a skill. Use the skill 'max-subagents-parallel' instead.
+This command is now implemented as a skill. Use the skill 'max-parallel' instead.
