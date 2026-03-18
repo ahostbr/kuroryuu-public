@@ -55,10 +55,13 @@ Each phase has a dedicated sub-skill file containing proven frameworks, template
 | Voiceover | `ai/skills/marketing/voiceover.md` | Gateway SSE voiceover, ElevenLabs voices (George/Rachel/Adam), models, voiceover.py |
 | Music Gen | `ai/skills/marketing/music_gen.md` | Gateway SSE music, music.py, SFX presets via sfx.py, ElevenLabs music.compose() |
 | Remotion Studio | `ai/skills/marketing/remotion_studio.md` | Studio panel, compositions, interpolate/spring animations, Series/Sequence, audio sync, render CLI |
+| Avatar Video | `ai/skills/marketing/avatar_video.md` | ElevenLabs Omnihuman/Aurora talking heads, photo→avatar, lip sync, FFmpeg compositing, batch production |
+| ElevenLabs Video | `ai/skills/marketing/elevenlabs_video.md` | Multi-model video gen (Sora 2, Veo 3.1, Kling, Wan, Runway), lip sync, image-to-video, upscaling |
+| Content Pipeline | `ai/skills/marketing/content_pipeline.md` | End-to-end short-form video: script→voice→avatar→screen capture→composite→publish for TikTok/Shorts/Reels |
 
 **How to load:** Use `Read` tool on the file path before starting each phase. For `@` references in conversation, use `@ai/skills/marketing/{skill}.md`.
 
-**Traffic phase** has no dedicated sub-skill file — use WebSearch and general strategy knowledge. Research, Web Scraper, Image Gen, Voiceover, Music Gen, and Remotion Studio all have dedicated sub-skill files above.
+**Traffic phase** now has dedicated sub-skill files: Avatar Video, ElevenLabs Video, and Content Pipeline cover short-form video production for TikTok, YouTube Shorts, and Instagram Reels. Research, Web Scraper, Image Gen, Voiceover, Music Gen, and Remotion Studio all have dedicated sub-skill files above.
 
 **Results auto-display in GUI panels** — any Gateway call (GUI or agent curl) triggers the live event stream. The Research, Scraper, Image Gen, Voiceover, and Music Gen panels automatically update when you call their endpoints.
 
