@@ -158,9 +158,24 @@ function TextBlock({ text }: { text: string }) {
 // ThinkingBlock - Collapsible thinking content
 // ============================================================================
 
-function ThinkingBlock({ thinking }: { thinking: string }) {
+function ThinkingBlock({ thinking, signature }: { thinking: string; signature?: string }) {
   const [expanded, setExpanded] = useState(false);
-  const preview = truncateText(thinking, 150);
+  const isEncrypted = !thinking && !!signature;
+  const preview = isEncrypted ? '' : truncateText(thinking, 150);
+
+  // No content and no signature — nothing to show
+  if (!thinking && !signature) return null;
+
+  if (isEncrypted) {
+    const sizeKb = (signature.length / 1024).toFixed(1);
+    return (
+      <div className="my-2 flex items-center gap-2 px-3 py-2 border border-border/50 rounded-lg bg-secondary/20">
+        <Brain className="w-4 h-4 text-purple-400/60" />
+        <span className="text-xs text-muted-foreground/60">Thinking (encrypted by Claude Code)</span>
+        <span className="text-xs text-muted-foreground/40 ml-auto">{sizeKb}KB</span>
+      </div>
+    );
+  }
 
   return (
     <div className="my-2 border border-border/50 rounded-lg overflow-hidden">
@@ -275,7 +290,7 @@ function ContentBlockRenderer({ block }: { block: MessageContentBlock }) {
     case 'text':
       return <TextBlock text={block.text} />;
     case 'thinking':
-      return <ThinkingBlock thinking={block.thinking} />;
+      return <ThinkingBlock thinking={block.thinking} signature={block.signature} />;
     case 'tool_use':
       return <ToolUseBlock name={block.name} input={block.input} />;
     case 'tool_result':

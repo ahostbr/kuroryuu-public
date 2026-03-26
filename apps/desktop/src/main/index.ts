@@ -2257,7 +2257,10 @@ function setupKuroConfigIpc(): void {
             }
 
             // Mirror kuroPlugin config to global for smart_tts.py settings lookup + asyncHooks flag
-            if (globalSettings.kuroPlugin && typeof globalSettings.kuroPlugin === 'object') {
+            if (!globalSettings.kuroPlugin || typeof globalSettings.kuroPlugin !== 'object') {
+              globalSettings.kuroPlugin = {};
+            }
+            {
               const gKuro = globalSettings.kuroPlugin as Record<string, unknown>;
               gKuro.tts = {
                 provider: config.tts.provider,
