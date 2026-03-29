@@ -1424,6 +1424,26 @@ const api = {
     sendQuitConfirmResponse: (confirmed: boolean): void => {
       ipcRenderer.send('quit:confirm-response', confirmed);
     },
+    // --- Frameless window controls ---
+    minimize: (): void => ipcRenderer.send('window:minimize'),
+    maximize: (): void => ipcRenderer.send('window:maximize'),
+    closeWindow: (): void => ipcRenderer.send('window:close'),
+    isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:is-maximized'),
+    onMaximizeChange: (callback: (maximized: boolean) => void) => {
+      const handler = (_: unknown, maximized: boolean) => callback(maximized);
+      ipcRenderer.on('window:maximize-change', handler);
+      return () => ipcRenderer.removeListener('window:maximize-change', handler);
+    },
+    // --- Multi-monitor span ---
+    spanAllMonitors: (): void => ipcRenderer.send('window:span-all-monitors'),
+    restoreSpan: (): void => ipcRenderer.send('window:restore-span'),
+    isSpanned: (): Promise<boolean> => ipcRenderer.invoke('window:is-spanned'),
+    getDisplayCount: (): Promise<number> => ipcRenderer.invoke('window:display-count'),
+    onSpanChange: (callback: (spanned: boolean) => void) => {
+      const handler = (_: unknown, spanned: boolean) => callback(spanned);
+      ipcRenderer.on('window:span-change', handler);
+      return () => ipcRenderer.removeListener('window:span-change', handler);
+    },
   },
   /**
    * Video Assets API

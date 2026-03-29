@@ -3888,6 +3888,7 @@ function createWindow(): void {
     height: Math.min(WINDOW_HEIGHT, screenHeight - 40),
     minWidth: 800,
     minHeight: 600,
+    frame: false,
     show: false,
     autoHideMenuBar: true,
     title: `Kuroryuu v${getGitVersion()} - kuroryuu.com`,
@@ -3968,6 +3969,68 @@ function createWindow(): void {
       app.exit(0);
     } else {
       console.log('[Main] User cancelled quit');
+    }
+  });
+
+  // --- Frameless window controls ---
+  ipcMain.on('window:minimize', () => { mainWindow?.minimize(); });
+  ipcMain.on('window:maximize', () => {
+    if (mainWindow?.isMaximized()) mainWindow.unmaximize();
+    else mainWindow?.maximize();
+  });
+  ipcMain.on('window:close', () => { mainWindow?.close(); });
+  ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false);
+
+  mainWindow.on('maximize', () => { mainWindow?.webContents.send('window:maximize-change', true); });
+  mainWindow.on('unmaximize', () => { mainWindow?.webContents.send('window:maximize-change', false); });
+
+  // --- Multi-monitor span ---
+  let isSpanned = false;
+  let preSpanBounds: Electron.Rectangle | null = null;
+
+  function getUnionBounds(): Electron.Rectangle {
+    const displays = screen.getAllDisplays();
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const d of displays) {
+      const { x, y, width, height } = d.bounds;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + width);
+      maxY = Math.max(maxY, y + height);
+    }
+    return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+
+  ipcMain.on('window:span-all-monitors', () => {
+    if (!mainWindow || isSpanned) return;
+    preSpanBounds = mainWindow.getBounds();
+    const union = getUnionBounds();
+    mainWindow.setMinimumSize(1, 1);
+    mainWindow.setBounds(union);
+    isSpanned = true;
+    mainWindow.webContents.send('window:span-change', true);
+  });
+
+  ipcMain.on('window:restore-span', () => {
+    if (!mainWindow || !isSpanned) return;
+    if (preSpanBounds) mainWindow.setBounds(preSpanBounds);
+    mainWindow.setMinimumSize(800, 600);
+    isSpanned = false;
+    preSpanBounds = null;
+    mainWindow.webContents.send('window:span-change', false);
+  });
+
+  ipcMain.handle('window:is-spanned', () => isSpanned);
+  ipcMain.handle('window:display-count', () => screen.getAllDisplays().length);
+
+  screen.on('display-removed', () => {
+    if (isSpanned && mainWindow) {
+      const primary = screen.getPrimaryDisplay();
+      mainWindow.setBounds(primary.workArea);
+      mainWindow.setMinimumSize(800, 600);
+      isSpanned = false;
+      preSpanBounds = null;
+      mainWindow.webContents.send('window:span-change', false);
     }
   });
 

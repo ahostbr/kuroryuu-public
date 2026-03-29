@@ -46,6 +46,7 @@ import {
 } from './components/settings';
 import { InitializeProjectDialog } from './components/project';
 import { UpdateNotification } from './components/UpdateNotification';
+import { TitleBar } from './components/TitleBar';
 import { LeaderDeathWarning } from './components/LeaderDeathWarning';
 import { SecurityAlert, type SecurityAlertData } from './components/SecurityAlert';
 import { ShutdownProgressModal } from './components/ShutdownProgressModal';
@@ -398,7 +399,10 @@ export function App() {
         {/* Themed background texture overlay */}
         <ThemedBackgroundOverlay />
 
-        <div className="h-screen w-screen flex bg-background text-foreground font-sans overflow-hidden">
+        <div className="h-screen w-screen flex flex-col bg-background text-foreground font-sans overflow-hidden">
+          {/* Frameless window title bar */}
+          <TitleBar />
+          <div className="flex-1 flex min-h-0 overflow-hidden">
 
           {/* Sidebar Navigation */}
           <Sidebar activeView={activeView} onSelectView={setActiveView} />
@@ -493,6 +497,8 @@ export function App() {
               />
             </div>
           )}
+
+          </div>{/* close inner flex row */}
 
           {/* Task Detail Modal */}
           <TaskDetailModal
