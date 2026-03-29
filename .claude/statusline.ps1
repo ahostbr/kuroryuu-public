@@ -25,6 +25,9 @@ try {
 
     # Model name
     $model = if ($data.model.display_name) { $data.model.display_name } else { "Claude" }
+    # Shorten "Claude Opus 4.6 (1M context)" → "Opus 4.6-1M"
+    $model = $model -replace '^Claude\s+', ''
+    $model = $model -replace '\s*\((\d+[KM])\s+context\)', '-$1'
 
     # Context values
     $ctx = $data.context_window
@@ -103,22 +106,40 @@ try {
         $sessionIdFull = $parts[-1]
     }
 
+    # Rate limits (color-coded thresholds)
+    $rateStr = ""
+    if ($data.rate_limits) {
+        $windows = @()
+        $rl = $data.rate_limits
+        if ($rl.five_hour -and $rl.five_hour.used_percentage -ne $null) {
+            $pct = [math]::Round($rl.five_hour.used_percentage)
+            $rateColor = if ($pct -ge 80) { "$esc[38;5;196m" } elseif ($pct -ge 50) { "$esc[38;5;220m" } else { "$esc[38;5;114m" }
+            $windows += "${rateColor}5h:${pct}%${reset}"
+        }
+        if ($rl.seven_day -and $rl.seven_day.used_percentage -ne $null) {
+            $pct = [math]::Round($rl.seven_day.used_percentage)
+            $rateColor = if ($pct -ge 80) { "$esc[38;5;196m" } elseif ($pct -ge 50) { "$esc[38;5;220m" } else { "$esc[38;5;114m" }
+            $windows += "${rateColor}7d:${pct}%${reset}"
+        }
+        if ($windows.Count -gt 0) {
+            $rateStr = " " + ($windows -join " ")
+        }
+    }
+
     # Output based on mode
     switch ($mode) {
         "minimal" {
-            # Bar only
-            Write-Output $bar
+            Write-Output "$bar$rateStr"
         }
         "compact" {
-            # Full session ID + bar
             if ($sessionIdFull) {
-                Write-Output "$sessionIdFull $bar"
+                Write-Output "$sessionIdFull $bar$rateStr"
             } else {
-                Write-Output $bar
+                Write-Output "$bar$rateStr"
             }
         }
         default {
-            # full mode: Model + Role + Full ID + bar
+            # full mode: Model + Role + Full ID + bar + rate limits
             $prefix = $model
             if ($role) {
                 $prefix += " $role"
@@ -126,7 +147,7 @@ try {
             if ($sessionIdFull) {
                 $prefix += " $sessionIdFull"
             }
-            Write-Output "$prefix $bar"
+            Write-Output "$prefix $bar$rateStr"
         }
     }
 
