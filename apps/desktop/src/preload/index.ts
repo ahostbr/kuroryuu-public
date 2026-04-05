@@ -2902,6 +2902,18 @@ const api = {
     getMemorySyncStatus: (): Promise<unknown> =>
       ipcRenderer.invoke('identity:getMemorySyncStatus'),
   },
+
+  // ── Browser View (Social Intel embedded browser) ──────────────
+  browser: {
+    show: (bounds: { x: number; y: number; width: number; height: number }): Promise<void> =>
+      ipcRenderer.invoke('browser:show', bounds),
+    hide: (): Promise<void> =>
+      ipcRenderer.invoke('browser:hide'),
+    navigate: (url: string): Promise<void> =>
+      ipcRenderer.invoke('browser:navigate', url),
+    getUrl: (): Promise<string> =>
+      ipcRenderer.invoke('browser:get-url'),
+  },
 };
 
 export type ElectronAPI = typeof api;

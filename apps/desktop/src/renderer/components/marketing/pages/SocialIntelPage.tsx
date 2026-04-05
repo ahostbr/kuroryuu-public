@@ -316,7 +316,7 @@ function BrowserTab() {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     // Account for window position offset (Electron uses screen coords for child views)
-    window.electronAPI?.ipcRenderer?.invoke?.('browser:show', {
+    window.electronAPI?.browser?.show({
       x: Math.round(rect.left),
       y: Math.round(rect.top),
       width: Math.round(rect.width),
@@ -327,7 +327,7 @@ function BrowserTab() {
   // Show browser view on mount, hide on unmount
   useEffect(() => {
     // Navigate to initial URL
-    window.electronAPI?.ipcRenderer?.invoke?.('browser:navigate', url);
+    window.electronAPI?.browser?.navigate(url);
     // Small delay for layout to settle, then position
     const timer = setTimeout(updateBounds, 100);
 
@@ -337,7 +337,7 @@ function BrowserTab() {
 
     // Poll URL for address bar updates
     const urlPoll = setInterval(async () => {
-      const cur = await window.electronAPI?.ipcRenderer?.invoke?.('browser:get-url');
+      const cur = await window.electronAPI?.browser?.getUrl();
       if (cur && cur !== currentUrl) setCurrentUrl(cur);
     }, 1000);
 
@@ -345,7 +345,7 @@ function BrowserTab() {
       clearTimeout(timer);
       clearInterval(urlPoll);
       observer.disconnect();
-      window.electronAPI?.ipcRenderer?.invoke?.('browser:hide');
+      window.electronAPI?.browser?.hide();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -356,10 +356,10 @@ function BrowserTab() {
       navUrl = 'https://' + navUrl;
     }
     setUrl(navUrl);
-    window.electronAPI?.ipcRenderer?.invoke?.('browser:navigate', navUrl);
+    window.electronAPI?.browser?.navigate(navUrl);
   };
 
-  const handleBack = () => window.electronAPI?.ipcRenderer?.invoke?.('browser:navigate', '').then(() => {
+  const handleBack = () => window.electronAPI?.browser?.navigate('').then(() => {
     // Use the bridge for back since IPC only has navigate
     fetch('http://127.0.0.1:7425/browser/go-back', {
       method: 'POST',
