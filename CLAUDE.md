@@ -11,4 +11,4 @@
 
 ## Polymathic Agents
 
-29 agents in `.claude/agents/polymathic-*.md` — read-only consultants (Read, Glob, Grep, Bash). Each agent's description in the Agent tool definition contains its use cases. Spawn via `subagent_type` (e.g., `polymathic-feynman`). Stack in parallel for multi-lens analysis. See global CLAUDE.md for the full reference table.
+40 agents in `.claude/agents/polymathic-*.md` — read-only consultants (Read, Glob, Grep, Bash). Each agent's description in the Agent tool definition contains its use cases. Spawn via `subagent_type` (e.g., `polymathic-feynman`). Stack in parallel for multi-lens analysis. See global CLAUDE.md for the full reference table.

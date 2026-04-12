@@ -382,9 +382,8 @@ ACTION_MAP = {
 }
 
 
-def k_project(arguments: Dict[str, Any]) -> list:
+def k_project(action: str = "help", **kwargs: Any) -> list:
     """Route k_project actions."""
-    action = arguments.get("action", "help")
     handler = ACTION_MAP.get(action)
     if handler is None:
         return [{"type": "text", "text": json.dumps({
@@ -392,7 +391,7 @@ def k_project(arguments: Dict[str, Any]) -> list:
             "error": f"Unknown action: {action}. Available: {', '.join(ACTION_MAP.keys())}",
         })}]
 
-    result = handler(**arguments)
+    result = handler(**kwargs)
     return [{"type": "text", "text": json.dumps(result, indent=2)}]
 
 

@@ -25,24 +25,25 @@ try {
 
     # Model name
     $model = if ($data.model.display_name) { $data.model.display_name } else { "Claude" }
-    # Shorten "Claude Opus 4.6 (1M context)" → "Opus 4.6-1M"
+    # Shorten "Claude Opus 4.6 (1M context)" → "O4.6-1M"
     $model = $model -replace '^Claude\s+', ''
     $model = $model -replace '\s*\((\d+[KM])\s+context\)', '-$1'
+    $model = $model -replace '^Opus\s*', 'O-'
+    $model = $model -replace '^Sonnet\s*', 'S-'
+    $model = $model -replace '^Haiku\s*', 'H-'
 
     # Context values
     $ctx = $data.context_window
-    # Opus 4.5/4.6 and Sonnet 4.6 run with 1M context in Claude Code (beta always enabled)
-    # API may report 200K base window, but actual usable context is 1M
-    if ($model -match '4\.[56]') {
-        $contextWindow = 1000000
-    } elseif ($ctx.context_window_size) {
+    # Trust the API's reported context_window_size — it reflects the actual mode (200K vs 1M)
+    if ($ctx.context_window_size) {
         $contextWindow = [int64]$ctx.context_window_size
+    } elseif ($model -match '4\.[56]') {
+        # Fallback: no API data, assume 1M for 4.5/4.6 models (Max plan default)
+        $contextWindow = 1000000
     } else {
         $contextWindow = 200000
     }
-    # Derive real token usage: API percentage is based on API's own window (may be 200K)
-    # We need to get actual tokens, then recalculate percentage against our (possibly 1M) window
-    $apiWindow = if ($ctx.context_window_size) { [int64]$ctx.context_window_size } else { 200000 }
+    $apiWindow = $contextWindow
     if ($ctx.used_percentage) {
         # Get real token count from API's percentage × API's window
         $totalUsed = [math]::Round(($ctx.used_percentage / 100) * $apiWindow)
@@ -54,7 +55,7 @@ try {
 
     # Format tokens first (needed for bar text)
     $usedStr = if ($totalUsed -ge 1000) { "{0:N0}K" -f ($totalUsed / 1000) } else { "$totalUsed" }
-    $maxStr = if ($contextWindow -ge 1000) { "{0:N0}K" -f ($contextWindow / 1000) } else { "$contextWindow" }
+    $maxStr = if ($contextWindow -ge 1000000) { "{0:N0}M" -f ($contextWindow / 1000000) } elseif ($contextWindow -ge 1000) { "{0:N0}K" -f ($contextWindow / 1000) } else { "$contextWindow" }
 
     # ANSI color codes
     $esc = [char]27
@@ -66,7 +67,7 @@ try {
 
     # Progress bar with embedded stats text
     $statsText = " $percent% $usedStr/$maxStr "
-    $barWidth = [math]::Max($statsText.Length, 18)  # Minimum width or text length
+    $barWidth = $statsText.Length
 
     # Pad text to fill bar width (center it)
     $totalPad = $barWidth - $statsText.Length
@@ -114,15 +115,44 @@ try {
         if ($rl.five_hour -and $rl.five_hour.used_percentage -ne $null) {
             $pct = [math]::Round($rl.five_hour.used_percentage)
             $rateColor = if ($pct -ge 80) { "$esc[38;5;196m" } elseif ($pct -ge 50) { "$esc[38;5;220m" } else { "$esc[38;5;114m" }
-            $windows += "${rateColor}5h:${pct}%${reset}"
+            $windows += "${rateColor}5h${pct}%${reset}"
         }
         if ($rl.seven_day -and $rl.seven_day.used_percentage -ne $null) {
             $pct = [math]::Round($rl.seven_day.used_percentage)
+            $remPct7d = 100 - $pct
             $rateColor = if ($pct -ge 80) { "$esc[38;5;196m" } elseif ($pct -ge 50) { "$esc[38;5;220m" } else { "$esc[38;5;114m" }
-            $windows += "${rateColor}7d:${pct}%${reset}"
+            # Show hours until reset alongside the percentage
+            $resetSuffix = ""
+            if ($rl.seven_day.resets_at) {
+                $resetEpoch = [int64]$rl.seven_day.resets_at
+                $nowEpoch = [int64]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())
+                $secsLeft = $resetEpoch - $nowEpoch
+                if ($secsLeft -lt 0) { $secsLeft = 0 }
+                $h = [math]::Floor($secsLeft / 3600)
+                $m = [math]::Floor(($secsLeft % 3600) / 60)
+                $resetSuffix = " ${reset}${h}h${m}m"
+            }
+            $windows += "${rateColor}7d${pct}%${resetSuffix}${reset}"
+        }
+        # Burn rate math: remaining % / hours until reset = safe %/hour
+        $burnStr = ""
+        if ($rl.seven_day -and $rl.seven_day.used_percentage -ne $null) {
+            $remPct = 100 - [math]::Round($rl.seven_day.used_percentage)
+            $hoursLeft = 0
+            if ($rl.seven_day.resets_at) {
+                $resetEpoch = [int64]$rl.seven_day.resets_at
+                $nowEpoch = [int64]([DateTimeOffset]::UtcNow.ToUnixTimeSeconds())
+                $hoursLeft = [math]::Round(($resetEpoch - $nowEpoch) / 3600, 1)
+                if ($hoursLeft -lt 0) { $hoursLeft = 0 }
+            }
+            if ($hoursLeft -gt 0) {
+                $burnRate = [math]::Round($remPct / $hoursLeft, 1)
+                $burnColor = if ($burnRate -ge 1.0) { "$esc[38;5;114m" } elseif ($burnRate -ge 0.5) { "$esc[38;5;220m" } else { "$esc[38;5;196m" }
+                $burnStr = " ${burnColor}${burnRate}h${reset}"
+            }
         }
         if ($windows.Count -gt 0) {
-            $rateStr = " " + ($windows -join " ")
+            $rateStr = " " + ($windows -join " ") + $burnStr
         }
     }
 

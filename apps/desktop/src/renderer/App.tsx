@@ -176,7 +176,7 @@ export function App() {
         const autoUpdate = await showConfirm(
           'CLIProxyAPIPlus Update Available',
           `Version ${pending.latestVersion} is available (current: ${pending.currentVersion || 'unknown'}).\n\nRunning outdated binaries is a security risk.`,
-          { confirmLabel: 'Auto Update', cancelLabel: 'Update Manually' }
+          { confirmLabel: 'Auto Update', cancelLabel: 'Update Manually', disableBackdropClose: true }
         );
 
         if (autoUpdate) {

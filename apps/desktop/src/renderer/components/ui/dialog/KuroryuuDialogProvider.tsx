@@ -40,6 +40,7 @@ export function KuroryuuDialogProvider({ children }: KuroryuuDialogProviderProps
           type={currentDialog.type}
           confirmLabel={currentDialog.confirmLabel}
           cancelLabel={currentDialog.cancelLabel}
+          disableBackdropClose={currentDialog.disableBackdropClose}
           onConfirm={() => {
             resolveDialog(currentDialog.id, true);
           }}

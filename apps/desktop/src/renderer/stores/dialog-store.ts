@@ -15,6 +15,7 @@ export interface DialogConfig {
   message: string | React.ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
+  disableBackdropClose?: boolean;
   resolve: (result: boolean) => void;
 }
 
@@ -71,7 +72,7 @@ export const useDialogStore = create<DialogState>((set, get) => ({
 export function showConfirm(
   title: string,
   message: string | React.ReactNode,
-  options?: { confirmLabel?: string; cancelLabel?: string }
+  options?: { confirmLabel?: string; cancelLabel?: string; disableBackdropClose?: boolean }
 ): Promise<boolean> {
   return useDialogStore.getState().showDialog({
     type: 'confirm',

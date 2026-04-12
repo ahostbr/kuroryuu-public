@@ -25,6 +25,7 @@ export interface KuroryuuConfirmDialogProps {
   onConfirm: () => void | Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
+  disableBackdropClose?: boolean;
 }
 
 // Default labels by type
@@ -52,6 +53,7 @@ export function KuroryuuConfirmDialog({
   onConfirm,
   onCancel,
   isLoading = false,
+  disableBackdropClose = false,
 }: KuroryuuConfirmDialogProps) {
   const { isKuroryuu } = useIsThemedStyle();
   const [isPending, setIsPending] = useState(false);
@@ -163,6 +165,7 @@ export function KuroryuuConfirmDialog({
       size="sm"
       showMist={type !== 'alert'}
       hideCloseButton={type === 'alert'}
+      disableBackdropClose={disableBackdropClose}
       footer={
         <div className="flex items-center justify-end gap-3">
           {showCancel && (

@@ -30,6 +30,7 @@ export interface KuroryuuDialogProps {
   showMist?: boolean;
   footer?: ReactNode;
   hideCloseButton?: boolean;
+  disableBackdropClose?: boolean;
 }
 
 // Size presets
@@ -57,6 +58,7 @@ export function KuroryuuDialog({
   showMist = true,
   footer,
   hideCloseButton = false,
+  disableBackdropClose = false,
 }: KuroryuuDialogProps) {
   const { isKuroryuu } = useIsThemedStyle();
   const { appSettings } = useSettingsStore();
@@ -95,7 +97,7 @@ export function KuroryuuDialog({
     if (!mounted) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !disableBackdropClose) {
         handleClose();
       }
     };
@@ -160,7 +162,7 @@ export function KuroryuuDialog({
           backdropFilter: 'blur(8px)',
           pointerEvents: 'auto',
         }}
-        onClick={handleClose}
+        onClick={disableBackdropClose ? undefined : handleClose}
         onMouseDown={(e) => e.stopPropagation()}
         aria-hidden="true"
       />

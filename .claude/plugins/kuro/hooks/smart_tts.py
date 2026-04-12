@@ -38,30 +38,44 @@ LMSTUDIO_URL = "http://169.254.83.107:1234/v1/chat/completions"
 
 def get_settings():
     """Load kuroPlugin settings from .claude/settings.json (project or global fallback)"""
+    # 0. Try CLAUDE_PROJECT_DIR first (most reliable for hooks)
+    project_dir = os.environ.get("CLAUDE_PROJECT_DIR")
+    if project_dir:
+        settings_path = Path(project_dir) / ".claude" / "settings.json"
+        if settings_path.exists():
+            try:
+                with open(settings_path, encoding="utf-8-sig") as f:
+                    settings = json.load(f)
+                    plugin = settings.get("kuroPlugin", {})
+                    if plugin:
+                        return plugin
+            except Exception as e:
+                print(f"[SmartTTS] Settings read error ({settings_path}): {e}", file=sys.stderr)
+
     # 1. Walk up from cwd looking for project-level settings
     current = Path.cwd()
     while current != current.parent:
         settings_path = current / ".claude" / "settings.json"
         if settings_path.exists():
             try:
-                with open(settings_path) as f:
+                with open(settings_path, encoding="utf-8-sig") as f:
                     settings = json.load(f)
                     plugin = settings.get("kuroPlugin", {})
                     if plugin:  # Found project-level config with kuroPlugin
                         return plugin
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[SmartTTS] Settings read error ({settings_path}): {e}", file=sys.stderr)
         current = current.parent
 
     # 2. Fallback: global ~/.claude/settings.json
     global_settings_path = Path.home() / ".claude" / "settings.json"
     if global_settings_path.exists():
         try:
-            with open(global_settings_path) as f:
+            with open(global_settings_path, encoding="utf-8-sig") as f:
                 settings = json.load(f)
                 return settings.get("kuroPlugin", {})
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[SmartTTS] Global settings read error: {e}", file=sys.stderr)
 
     return {}
 
@@ -560,8 +574,20 @@ def main():
     args = parser.parse_args()
 
     # Guard: skip if running from global hooks and local hooks are enabled
+    _debug_path = Path(os.environ.get("CLAUDE_PROJECT_DIR", ".")) / "ai" / "hooks" / "smart_tts_debug.log"
+    try:
+        import datetime as _dt
+        with open(_debug_path, "a", encoding="utf-8") as _dbg:
+            _dbg.write(f"\n--- {_dt.datetime.now().isoformat()} ENTRY type={args.type} source={repr(args.source)} ---\n")
+    except Exception:
+        pass
+
     if should_skip_global(args.source):
-        print("[SmartTTS] Skipping - local project hooks will handle TTS", file=sys.stderr)
+        try:
+            with open(_debug_path, "a", encoding="utf-8") as _dbg:
+                _dbg.write(f"  SKIPPED (global, local hooks exist)\n")
+        except Exception:
+            pass
         sys.exit(0)
 
     # Load settings
@@ -588,6 +614,11 @@ def main():
         with open(debug_path, "a", encoding="utf-8") as dbg:
             import datetime
             dbg.write(f"\n=== {datetime.datetime.now().isoformat()} type={args.type} ===\n")
+            dbg.write(f"  cwd: {Path.cwd()}\n")
+            dbg.write(f"  CLAUDE_PROJECT_DIR: {os.environ.get('CLAUDE_PROJECT_DIR', 'NOT SET')}\n")
+            dbg.write(f"  settings_keys: {list(settings.keys()) if settings else 'EMPTY'}\n")
+            dbg.write(f"  user_name: {repr(user_name)}\n")
+            dbg.write(f"  smart_summaries: {smart_summaries}\n")
             dbg.write(f"  args.task: {repr(args.task)}\n")
             dbg.write(f"  stdin_context keys: {list(stdin_context.keys()) if stdin_context else 'None'}\n")
             if stdin_context:
@@ -640,6 +671,17 @@ def main():
             model=model if model else None
         )
 
+    # Enforce userName prefix on AI-generated messages
+    if message and user_name and user_name != "Your Name":
+        if not message.startswith(user_name):
+            # Strip any "Ryan, " prefix the AI may have used instead of full userName
+            stripped = message
+            if stripped.lower().startswith("ryan,"):
+                stripped = stripped[5:].lstrip()
+            elif stripped.lower().startswith("ryan "):
+                stripped = stripped[4:].lstrip()
+            message = f"{user_name}, {stripped}"
+
     # Fall back to provided message (prepend userName if not already present)
     if not message:
         fallback = args.fallback
@@ -648,6 +690,13 @@ def main():
             message = f"{user_name}{fallback}" if fallback.startswith(",") else f"{user_name}, {fallback}"
         else:
             message = fallback
+
+    # Debug: log final message
+    try:
+        with open(debug_path, "a", encoding="utf-8") as dbg:
+            dbg.write(f"  FINAL_MESSAGE: {repr(message)[:200]}\n")
+    except Exception:
+        pass
 
     # Route to the correct TTS provider
     tts_provider = tts_config.get("provider", "edge_tts")
