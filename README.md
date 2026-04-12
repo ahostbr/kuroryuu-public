@@ -7,6 +7,14 @@ For more information !
 
 Kuroryuu (黒き幻影の霧の龍 - "Black Dragon of Illusionary Fog") is a production-ready multi-agent AI orchestration platform that enables autonomous AI agents to collaborate on complex software development tasks. Features Ralph leader orchestration, desktop automation via PowerShell/Win32 APIs, and 61+ LLM models across 6 providers.
 
+![Kuroryuu Desktop - Multi-agent orchestration with terminal, chat, and code panels](Docs/Screenshots/desktop-overview.jpg)
+
+![Home Overview - Dragon landing page with guided tour](Docs/Screenshots/home-overview.jpg)
+
+![Agents Dashboard - Heartbeat configuration, identity, and action execution modes](Docs/Screenshots/agents-dashboard.jpg)
+
+![About - We're Doing This For Marlee Rose](Docs/Screenshots/about-marlee-rose.jpg)
+
 ## Prerequisites
 
 **For Windows (native installation):**
