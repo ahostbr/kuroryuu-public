@@ -7,6 +7,7 @@ import { app, BrowserWindow } from 'electron';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
+import { cliproxyAuthHeader } from './cliproxy-key';
 
 // Context tracking types
 interface ContextInfo {
@@ -63,8 +64,6 @@ const GATEWAY_URL = 'http://127.0.0.1:8200';
 const MCP_URL = 'http://127.0.0.1:8100';
 // CLIProxyAPI - fallback when LM Studio unavailable
 const CLIPROXYAPI_URL = 'http://127.0.0.1:8317';
-// CLIProxyAPI auth token (local development key)
-const CLIPROXYAPI_AUTH = 'Bearer kuroryuu-local-key';
 
 // Available tools for LM Studio (OpenAI format - LM Studio converts to [AVAILABLE_TOOLS])
 // NOTE: Using routed tool pattern with action parameter (2026-01-09)
@@ -540,7 +539,7 @@ export class LMStudioIntegration {
         // Add auth header for CLIProxyAPI requests
         const headers: Record<string, string> = { 'Content-Type': 'application/json' };
         if (this.useFallback) {
-          headers['Authorization'] = CLIPROXYAPI_AUTH;
+          headers['Authorization'] = cliproxyAuthHeader();
         }
         response = await fetch(`${baseUrl}/v1/chat/completions`, {
           method: 'POST',
@@ -556,7 +555,7 @@ export class LMStudioIntegration {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': CLIPROXYAPI_AUTH
+              'Authorization': cliproxyAuthHeader()
             },
             body: JSON.stringify(fallbackBody)
           });
@@ -811,7 +810,7 @@ export class LMStudioIntegration {
       try {
         const cliproxyResponse = await fetch(`${this.cliproxyApiUrl}/v1/models`, {
           signal: AbortSignal.timeout(3000),
-          headers: { 'Authorization': CLIPROXYAPI_AUTH }
+          headers: { 'Authorization': cliproxyAuthHeader() }
         });
         cliproxyOk = cliproxyResponse.ok;
       } catch {
@@ -1064,7 +1063,7 @@ export class LMStudioIntegration {
     try {
       const response = await fetch(`${this.cliproxyApiUrl}/v1/models`, {
         signal: AbortSignal.timeout(5000),
-        headers: { 'Authorization': CLIPROXYAPI_AUTH }
+        headers: { 'Authorization': cliproxyAuthHeader() }
       });
       if (!response.ok) {
         return { models: this.getStaticCLIProxyModels(), source: 'static' };

@@ -18,6 +18,7 @@ import {
   Cloud,
   Terminal
 } from 'lucide-react';
+import { cliproxyAuthHeader } from '../services/cliproxy-auth';
 
 type ConnectionState = 'connected' | 'connecting' | 'disconnected' | 'error';
 type BackendType = 'lmstudio' | 'cliproxyapi' | 'claude' | 'none';
@@ -134,7 +135,7 @@ export function StatusBar() {
           try {
             const cliproxyRes = await fetch('http://127.0.0.1:8317/v1/models', {
               method: 'GET',
-              headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+              headers: { 'Authorization': await cliproxyAuthHeader() },
               signal: AbortSignal.timeout(2000)
             });
             if (cliproxyRes.ok) {

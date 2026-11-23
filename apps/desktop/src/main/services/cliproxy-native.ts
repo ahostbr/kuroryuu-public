@@ -19,9 +19,31 @@ import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as https from 'https';
 import * as http from 'http';
+import { randomBytes } from 'crypto';
 import { getProjectRoot } from '../utils/paths';
 
 const execAsync = promisify(exec);
+
+/** Configs written before random per-install keys had no `api-keys`, so the proxy accepted any value. */
+const LEGACY_API_KEY = 'kuroryuu-local';
+const FIRST_API_KEY = /^api-keys:[ \t]*\r?\n[ \t]+-[ \t]*["']?([^"'\r\n#]+?)["']?[ \t]*(?:#.*)?$/m;
+
+/**
+ * API key for the local proxy: KURORYUU_CLIPROXY_API_KEY, else the first `api-keys` entry
+ * in config.yaml, else the legacy key. Mirrored in apps/gateway/cliproxy_key.py,
+ * apps/kuroryuu_cli/cliproxy_key.py and apps/tray_companion/src/main/cliproxy-key.ts.
+ */
+export function readCliproxyApiKey(configPath: string): string {
+  const fromEnv = process.env.KURORYUU_CLIPROXY_API_KEY?.trim();
+  if (fromEnv) return fromEnv;
+  try {
+    const match = FIRST_API_KEY.exec(fsSync.readFileSync(configPath, 'utf-8'));
+    if (match) return match[1].trim();
+  } catch {
+    // No config yet: fall through to the legacy key
+  }
+  return LEGACY_API_KEY;
+}
 
 export interface NativeManagerConfig {
   binaryPath: string;
@@ -406,8 +428,9 @@ port: ${this.config.port}
 remote-management:
   allow-remote: false
 
-# Auth token
-auth_token: "kuroryuu-local"
+# Client API key, random per install. Kuroryuu's clients read it from this file.
+api-keys:
+  - "kr-${randomBytes(32).toString('hex')}"
 
 # OAuth callback ports
 gemini_callback_port: 8085
@@ -418,6 +441,11 @@ kiro_callback_port: 54547
 `;
       await fs.writeFile(this.config.configPath, defaultConfig, 'utf-8');
     }
+  }
+
+  /** API key clients send to this proxy (see readCliproxyApiKey). */
+  getApiKey(): string {
+    return readCliproxyApiKey(this.config.configPath);
   }
 
   /**
@@ -534,7 +562,7 @@ kiro_callback_port: 54547
   async checkHealth(): Promise<boolean> {
     try {
       const response = await fetch(`http://127.0.0.1:${this.config.port}/v1/models`, {
-        headers: { 'Authorization': 'Bearer kuroryuu-local' },
+        headers: { 'Authorization': `Bearer ${this.getApiKey()}` },
         signal: AbortSignal.timeout(2000),
       });
       return response.ok;

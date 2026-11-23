@@ -59,6 +59,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List, TYPE_CHECKING
 
+from ..cliproxy_key import cliproxy_auth_header
+
 # Import command system
 from .commands import (
     Command,
@@ -361,7 +363,7 @@ class AgentRunner:
             async with httpx.AsyncClient(timeout=5) as client:
                 resp = await client.get(
                     f"{self.cliproxyapi_url}/v1/models",
-                    headers={"Authorization": "Bearer kuroryuu-local"},
+                    headers={"Authorization": cliproxy_auth_header()},
                 )
                 if resp.status_code == 200:
                     data = resp.json()
@@ -435,7 +437,7 @@ class AgentRunner:
             async with httpx.AsyncClient(timeout=5) as client:
                 resp = await client.get(
                     f"{self.cliproxyapi_url}/v1/models",
-                    headers={"Authorization": "Bearer kuroryuu-local"},
+                    headers={"Authorization": cliproxy_auth_header()},
                 )
                 if resp.status_code == 200:
                     data = resp.json()
@@ -992,7 +994,7 @@ class AgentRunner:
             async with httpx.AsyncClient(timeout=5) as client:
                 resp = await client.get(
                     f"{self.cliproxyapi_url}/v1/models",
-                    headers={"Authorization": "Bearer kuroryuu-local"},
+                    headers={"Authorization": cliproxy_auth_header()},
                 )
                 if resp.status_code == 200:
                     data = resp.json()

@@ -21,6 +21,7 @@ import {
   getToolCategory,
   isLeaderOnlyTool,
 } from '../types/command-center';
+import { cliproxyAuthHeader } from '../services/cliproxy-auth';
 
 // Maximum execution history entries
 const MAX_EXECUTION_HISTORY = 50;
@@ -394,7 +395,7 @@ export const useCommandCenterStore = create<CommandCenterStore>()(
           // CLIProxyAPI: Direct HTTP health check (no IPC needed)
           try {
             const response = await fetch('http://127.0.0.1:8317/v1/models', {
-              headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+              headers: { 'Authorization': await cliproxyAuthHeader() },
               signal: AbortSignal.timeout(3000),
             });
             if (response.ok) {

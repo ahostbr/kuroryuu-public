@@ -159,7 +159,7 @@ export function registerCLIProxyHandlers(): void {
     try {
       // Fetch models to determine which providers are authenticated
       const response = await fetch('http://127.0.0.1:8317/v1/models', {
-        headers: { 'Authorization': 'Bearer kuroryuu-local' },
+        headers: { 'Authorization': `Bearer ${getCLIProxyNativeManager().getApiKey()}` },
         signal: AbortSignal.timeout(5000),
       });
 
@@ -331,6 +331,8 @@ export function registerCLIProxyHandlers(): void {
     // Manual — user will handle it
     return { success: true, skipped: true };
   });
+
+  ipcMain.handle('cliproxy:native:api-key', () => getCLIProxyNativeManager().getApiKey());
 
   ipcMain.handle('cliproxy:native:config', async () => {
     try {

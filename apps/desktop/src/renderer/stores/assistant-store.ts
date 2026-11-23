@@ -15,6 +15,7 @@ import { inferSourceFromId } from '../services/model-registry';
 import { filterTerminalOutput, hasTerminalArtifacts, stripInputEcho } from '../utils/filter-terminal-output';
 import { parseToolResultToRichCard } from '../utils/rich-card-parsers';
 import type { RichCard } from '../types/insights';
+import { cliproxyAuthHeader } from '../services/cliproxy-auth';
 
 // Gateway endpoints
 const GATEWAY_URL = 'http://127.0.0.1:8200';
@@ -340,7 +341,7 @@ export const useAssistantChatStore = create<AssistantChatState>()(
           let cliproxyOk = false;
           try {
             const cliproxyRes = await fetch(`${CLIPROXYAPI_URL}/v1/models`, {
-              headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+              headers: { 'Authorization': await cliproxyAuthHeader() },
               signal: AbortSignal.timeout(2000),
             });
             cliproxyOk = cliproxyRes.ok;

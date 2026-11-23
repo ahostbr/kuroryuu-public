@@ -11,6 +11,7 @@ import { initializeLMStudio, getLMStudioInstance, resolvePromptsDir } from './lm
 import { initializeSpeechRecognition, setMainWindow, startAlwaysListenMode, stopAlwaysListenMode, isCurrentlyListening, startListening, stopListening } from './speech-recognition';
 import { initializeTokenStore, saveApiKey, getApiKey, deleteApiKey, hasApiKey } from './token-store';
 import { reinitializeElevenLabs, getElevenLabsVoices } from './tts/tts-manager';
+import { cliproxyAuthHeader } from './cliproxy-key';
 
 let settingsWindow: BrowserWindow | null = null;
 let isQuitting = false;
@@ -473,7 +474,7 @@ ipcMain.handle('voice:checkProviderHealth', async () => {
   // Check CLIProxyAPI at port 8317
   try {
     const response = await fetch('http://127.0.0.1:8317/v1/models', {
-      headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+      headers: { 'Authorization': cliproxyAuthHeader() },
       signal: AbortSignal.timeout(2000),
     });
     health.cliproxyapi = response.ok;

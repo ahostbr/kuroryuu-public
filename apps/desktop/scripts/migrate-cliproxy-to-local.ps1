@@ -58,6 +58,17 @@ if ($authFiles) {
 
 # Create/update config.yaml with relative path
 Write-Host "[4/4] Creating config.yaml with relative paths..." -ForegroundColor Green
+# Keep the existing client key so configured clients keep working; otherwise make a random one.
+$apiKey = $null
+if (Test-Path "$globalDir\config.yaml") {
+    $m = [regex]::Match((Get-Content "$globalDir\config.yaml" -Raw), '(?m)^api-keys:[ \t]*\r?\n[ \t]+-[ \t]*["'']?([^"''\r\n#]+?)["'']?[ \t]*(?:#.*)?$')
+    if ($m.Success) { $apiKey = $m.Groups[1].Value.Trim() }
+}
+if (-not $apiKey) {
+    $bytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $apiKey = "kr-" + (($bytes | ForEach-Object { $_.ToString("x2") }) -join "")
+}
 $configContent = @"
 # CLIProxyAPIPlus Config for Kuroryuu (Native Mode)
 # Migrated from global to project-local
@@ -68,7 +79,8 @@ port: 8317
 auth-dir: "./auth"
 remote-management:
   allow-remote: false
-auth_token: "kuroryuu-local"
+api-keys:
+  - "$apiKey"
 
 gemini_callback_port: 8085
 claude_callback_port: 54545

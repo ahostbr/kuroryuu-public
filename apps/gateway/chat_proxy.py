@@ -18,6 +18,8 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import json
 
+from .cliproxy_key import cliproxy_auth_header
+
 router = APIRouter(prefix="/v1/chat", tags=["chat-proxy"])
 
 # LM Studio default URL and model
@@ -26,7 +28,6 @@ LMSTUDIO_MODEL = os.environ.get("KURORYUU_LMSTUDIO_MODEL", "mistralai/devstral-s
 
 # CLIProxyAPI (multi-provider CLI proxy)
 CLIPROXYAPI_URL = os.environ.get("KURORYUU_CLIPROXYAPI_URL", "http://127.0.0.1:8317")
-CLIPROXYAPI_AUTH = "Bearer kuroryuu-local-key"
 
 # Claude API
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -167,7 +168,7 @@ async def stream_cliproxyapi_response(
             "POST",
             f"{CLIPROXYAPI_URL}/v1/chat/completions",
             json=payload,
-            headers={"Authorization": CLIPROXYAPI_AUTH},
+            headers={"Authorization": cliproxy_auth_header()},
         ) as response:
             if response.status_code != 200:
                 error_text = await response.aread()
@@ -253,7 +254,7 @@ async def chat_proxy(request: ChatRequest):
             # Select URL and headers based on backend
             if backend in ("cliproxyapi", "claude"):
                 url = f"{CLIPROXYAPI_URL}/v1/chat/completions"
-                headers = {"Authorization": CLIPROXYAPI_AUTH}
+                headers = {"Authorization": cliproxy_auth_header()}
                 default_model = "claude-sonnet-4-20250514"
             else:
                 url = f"{LMSTUDIO_URL}/v1/chat/completions"

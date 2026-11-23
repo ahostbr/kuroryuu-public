@@ -32,6 +32,7 @@ import { ThemedFrame } from '../ui/ThemedFrame';
 import { useIsThemedStyle } from '../../hooks/useTheme';
 import { showConfirm, showAlert } from '../../stores/dialog-store';
 import { toast } from '../ui/toast';
+import { cliproxyAuthHeader } from '../../services/cliproxy-auth';
 
 type WizardMode = 'docker' | 'native';
 type WizardStep = 'mode' | 'docker' | 'container' | 'provision' | 'gemini' | 'antigravity' | 'claude' | 'openai' | 'copilot' | 'kiro' | 'verify';
@@ -175,7 +176,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
     // If it is, Docker is obviously working - skip IPC check
     try {
       const response = await fetch('http://127.0.0.1:8317/v1/models', {
-        headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+        headers: { 'Authorization': await cliproxyAuthHeader() },
         signal: AbortSignal.timeout(2000),
       });
       if (response.ok) {
@@ -225,7 +226,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
   const checkContainer = async () => {
     try {
       const response = await fetch('http://127.0.0.1:8317/v1/models', {
-        headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+        headers: { 'Authorization': await cliproxyAuthHeader() },
         signal: AbortSignal.timeout(3000),
       });
       if (response.ok) {
@@ -274,7 +275,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
   const checkOAuthStatus = useCallback(async () => {
     try {
       const response = await fetch('http://127.0.0.1:8317/v1/models', {
-        headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+        headers: { 'Authorization': await cliproxyAuthHeader() },
         signal: AbortSignal.timeout(5000),
       });
 
@@ -406,7 +407,7 @@ export function CLIProxyWizard({ onClose }: CLIProxyWizardProps) {
     // This avoids race conditions with IPC handlers during hot reload
     try {
       const response = await fetch('http://127.0.0.1:8317/v1/models', {
-        headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+        headers: { 'Authorization': await cliproxyAuthHeader() },
         signal: AbortSignal.timeout(2000),
       });
       if (response.ok) {

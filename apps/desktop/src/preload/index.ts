@@ -2151,6 +2151,9 @@ const api = {
       /** Check if main process CLIProxy startup cleanup is complete */
       startupReady: (): Promise<boolean> =>
         ipcRenderer.invoke('cliproxy:startup-ready'),
+      /** API key for the local proxy, read from its config.yaml */
+      apiKey: (): Promise<string> =>
+        ipcRenderer.invoke('cliproxy:native:api-key'),
       /** Download and provision the CLIProxyAPI binary */
       provision: (): Promise<{ success: boolean; version?: string; error?: string }> =>
         ipcRenderer.invoke('cliproxy:native:provision'),

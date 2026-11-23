@@ -14,6 +14,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { CLIProxyWizard } from './CLIProxyWizard';
+import { cliproxyAuthHeader } from '../../services/cliproxy-auth';
 
 type CLIProxyStatus = 'checking' | 'stopped' | 'running' | 'configured';
 
@@ -38,7 +39,7 @@ export function CLIProxySection() {
     setIsRefreshing(true);
     try {
       const response = await fetch('http://127.0.0.1:8317/v1/models', {
-        headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+        headers: { 'Authorization': await cliproxyAuthHeader() },
         signal: AbortSignal.timeout(3000),
       });
 

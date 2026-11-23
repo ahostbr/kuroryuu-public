@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Optional, Tuple
 
+from .cliproxy_key import cliproxy_auth_header
 from .ui_helpers import ui
 
 if TYPE_CHECKING:
@@ -1043,7 +1044,7 @@ None
             cliproxy_status = "[--]"
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
-                    headers = {"Authorization": "Bearer kuroryuu-local"}
+                    headers = {"Authorization": cliproxy_auth_header()}
                     resp = await client.get(
                         f"{self.repl.config.cliproxy_url}/v1/models",
                         headers=headers
@@ -1165,7 +1166,7 @@ None
             # Check CLIProxyAPI
             try:
                 async with httpx.AsyncClient(timeout=5.0) as client:
-                    headers = {"Authorization": "Bearer kuroryuu-local"}
+                    headers = {"Authorization": cliproxy_auth_header()}
                     resp = await client.get(
                         f"{self.repl.config.cliproxy_url}/v1/models",
                         headers=headers

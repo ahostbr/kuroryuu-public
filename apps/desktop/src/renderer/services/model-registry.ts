@@ -6,6 +6,7 @@
  */
 
 import type { LLMProvider, ModelInfo, ProviderHealth } from '../types/domain-config';
+import { cliproxyAuthHeader } from './cliproxy-auth';
 
 // ============================================================================
 // Static Model Lists
@@ -243,7 +244,7 @@ export async function fetchCLIProxyModels(): Promise<ModelInfo[]> {
 
   try {
     const response = await fetch('http://127.0.0.1:8317/v1/models', {
-      headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+      headers: { 'Authorization': await cliproxyAuthHeader() },
       signal: AbortSignal.timeout(3000),
     });
 
@@ -357,7 +358,7 @@ export async function checkProviderHealth(provider: LLMProvider): Promise<Provid
       case 'cliproxyapi': {
         // CLIProxyAPI requires auth - use /v1/models endpoint (no /health endpoint)
         const response = await fetch('http://127.0.0.1:8317/v1/models', {
-          headers: { 'Authorization': 'Bearer kuroryuu-local-key' },
+          headers: { 'Authorization': await cliproxyAuthHeader() },
           signal: AbortSignal.timeout(3000),
         });
         result.healthy = response.ok;

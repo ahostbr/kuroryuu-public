@@ -33,6 +33,7 @@ import os
 from typing import TYPE_CHECKING, Dict, Any, Optional
 
 from .lmstudio import LMStudioBackend
+from ...cliproxy_key import cliproxy_auth_header
 
 if TYPE_CHECKING:
     from apps.gateway.prompts.base import PromptBuilder
@@ -79,7 +80,7 @@ class CLIProxyAPIBackend(LMStudioBackend):
 
     def _get_request_headers(self) -> Dict[str, str]:
         """CLIProxyAPI requires Bearer auth."""
-        return {"Authorization": "Bearer kuroryuu-local"}
+        return {"Authorization": cliproxy_auth_header()}
 
     @property
     def supports_native_tools(self) -> bool:

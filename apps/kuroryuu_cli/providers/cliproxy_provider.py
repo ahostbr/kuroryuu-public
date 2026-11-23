@@ -12,6 +12,7 @@ from typing import Any, AsyncGenerator, Dict, List, TYPE_CHECKING
 
 import httpx
 
+from ..cliproxy_key import cliproxy_auth_header
 from ..llm_provider import LLMProvider
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ class CLIProxyProvider(LLMProvider):
         """
         try:
             url = f"{config.cliproxy_url}/v1/models"
-            headers = {"Authorization": "Bearer kuroryuu-local"}
+            headers = {"Authorization": cliproxy_auth_header()}
             resp = await self._http_client.get(url, timeout=5.0, headers=headers)
             resp.raise_for_status()
             data = resp.json()
@@ -144,7 +145,7 @@ class CLIProxyProvider(LLMProvider):
             logger.debug(f"Sending {len(tools)} tools to CLIProxyAPI")
 
         # CLIProxyAPI requires Bearer auth
-        headers = {"Authorization": "Bearer kuroryuu-local"}
+        headers = {"Authorization": cliproxy_auth_header()}
 
         try:
             async with self._http_client.stream("POST", url, json=payload, headers=headers) as response:
