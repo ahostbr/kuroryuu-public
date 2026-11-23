@@ -4535,9 +4535,9 @@ app.whenReady().then(async () => {
     console.log('[Main] Tray companion auto-launch SKIPPED (setting is off)');
   }
 
-  // Auto-start CLIProxyAPI if user has enabled it via Integrations wizard
-  // This ensures CLIProxyAPI is ready BEFORE renderer loads, so Insights works immediately
-  // Also auto-start if binary is provisioned (backwards compat for users who set up before settings flag existed)
+  // Auto-start CLIProxyAPI only if the user has enabled it via the Integrations wizard.
+  // This ensures CLIProxyAPI is ready BEFORE renderer loads, so Insights works immediately.
+  // A provisioned binary alone no longer starts it: the proxy holds the user's OAuth logins.
   const cliproxyEnabled = settingsService.get('integrations.cliproxyapi.enabled') as boolean;
   const cliproxyAutoStart = settingsService.get('integrations.cliproxyapi.launchOnStartup') as boolean;
 
@@ -4549,8 +4549,8 @@ app.whenReady().then(async () => {
     console.log('[Main] Cleaned up stale CLIProxyAPI processes');
     const cliproxyStatus = await cliproxyManager.status();
 
-    // Auto-start if: (1) enabled in settings, OR (2) binary is provisioned (backwards compat)
-    const shouldAutoStart = (cliproxyEnabled && cliproxyAutoStart !== false) || cliproxyStatus.provisioned;
+    // Auto-start only if enabled in settings and launch-on-startup is not turned off
+    const shouldAutoStart = cliproxyEnabled === true && cliproxyAutoStart !== false;
 
     if (shouldAutoStart && cliproxyStatus.provisioned && !cliproxyStatus.healthy) {
       // Check for updates BEFORE starting — never run outdated binaries
@@ -4570,17 +4570,14 @@ app.whenReady().then(async () => {
           }
         }
       } catch (updateErr) {
-        // GitHub API unreachable — start anyway rather than blocking
-        console.log('[Main] CLIProxyAPI update check failed (starting anyway):', updateErr);
-        const result = await cliproxyManager.start();
-        if (result.success) {
-          console.log('[Main] CLIProxyAPI auto-started (update check skipped), PID:', result.pid);
-        } else {
-          console.log('[Main] CLIProxyAPI auto-start failed:', result.error);
-        }
+        // GitHub API unreachable: the binary may be outdated, so do not start it unasked.
+        // The user can still start it from Settings > Integrations.
+        console.log('[Main] CLIProxyAPI update check failed; not auto-starting a possibly outdated binary:', updateErr);
       }
     } else if (cliproxyStatus.healthy) {
       console.log('[Main] CLIProxyAPI already running');
+    } else if (!shouldAutoStart) {
+      console.log('[Main] CLIProxyAPI auto-start disabled in settings - skipping');
     } else if (!cliproxyStatus.provisioned) {
       console.log('[Main] CLIProxyAPI not provisioned - skipping auto-start');
     }

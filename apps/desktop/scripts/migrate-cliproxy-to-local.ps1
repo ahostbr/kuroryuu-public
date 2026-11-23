@@ -63,9 +63,11 @@ $configContent = @"
 # Migrated from global to project-local
 # Auth directory uses relative path for portability
 
-host: ""
+host: "127.0.0.1"
 port: 8317
 auth-dir: "./auth"
+remote-management:
+  allow-remote: false
 auth_token: "kuroryuu-local"
 
 gemini_callback_port: 8085
